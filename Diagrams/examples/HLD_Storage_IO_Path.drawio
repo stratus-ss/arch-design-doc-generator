@@ -1,0 +1,64 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.6.6 Chrome/144.0.7559.236 Electron/40.8.4 Safari/537.36" version="29.6.6">
+  <diagram id="phase2-storage-io" name="Phase 2 Storage I/O Path">
+    <mxGraphModel dx="500" dy="560" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="480" pageHeight="530" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="lane_dc" parent="1" style="swimlane;startSize=30;rounded=1;html=1;container=1;collapsible=0;pointerEvents=0;whiteSpace=wrap;fillColor=#E0F0FF;strokeColor=#0066CC;fontColor=#0066CC;fontSize=10;fontStyle=1;shadow=1" value="Tier 1/Tier 2 Path" vertex="1">
+          <mxGeometry height="220" width="360" x="30" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="vm_dc" parent="lane_dc" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=9;fontStyle=1;shadow=1" value="VM&#xa;(virtio-blk)" vertex="1">
+          <mxGeometry height="56" width="120" x="30" y="44" as="geometry" />
+        </mxCell>
+        <mxCell id="pvc_dc" parent="lane_dc" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;fontColor=#151515;strokeColor=#EE0000;fontSize=9;fontStyle=1;shadow=1" value="PVC&#xa;StorageClass: ibm-block" vertex="1">
+          <mxGeometry height="56" width="130" x="25" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="csi_dc" parent="lane_dc" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;fontColor=#151515;strokeColor=#EE0000;fontSize=9;fontStyle=1;shadow=1" value="Block&#xa;CSI Driver" vertex="1">
+          <mxGeometry height="56" width="110" x="210" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="flash_dc" parent="lane_dc" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0F0FF;fontColor=#151515;strokeColor=#0066CC;fontSize=9;fontStyle=1;shadow=1" value="Enterprise Storage Array&#xa;FC SAN" vertex="1">
+          <mxGeometry height="56" width="110" x="210" y="44" as="geometry" />
+        </mxCell>
+        <mxCell id="lane_br" parent="1" style="swimlane;startSize=30;rounded=1;html=1;container=1;collapsible=0;pointerEvents=0;whiteSpace=wrap;fillColor=#FFE8CC;strokeColor=#F5921B;fontColor=#F5921B;fontSize=10;fontStyle=1;shadow=1" value="Tier 3 Path" vertex="1">
+          <mxGeometry height="230" width="420" x="30" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="vm_br" parent="lane_br" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=9;fontStyle=1;shadow=1" value="VM&#xa;(virtio-blk)" vertex="1">
+          <mxGeometry height="56" width="100" x="15" y="44" as="geometry" />
+        </mxCell>
+        <mxCell id="pvc_br" parent="lane_br" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;fontColor=#151515;strokeColor=#EE0000;fontSize=9;fontStyle=1;shadow=1" value="PVC&#xa;StorageClass: odf-rbd" vertex="1">
+          <mxGeometry height="56" width="105" x="12" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="rbd_br" parent="lane_br" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;fontColor=#151515;strokeColor=#EE0000;fontSize=9;fontStyle=1;shadow=1" value="RBD Pool&#xa;(replicated)" vertex="1">
+          <mxGeometry height="56" width="100" x="155" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="osd_br" parent="lane_br" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;fontColor=#151515;strokeColor=#EE0000;fontSize=9;fontStyle=1;shadow=1" value="Ceph OSDs&#xa;(local NVMe)" vertex="1">
+          <mxGeometry height="56" width="100" x="155" y="44" as="geometry" />
+        </mxCell>
+        <mxCell id="nvme_br" parent="lane_br" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0F0FF;fontColor=#151515;strokeColor=#0066CC;fontSize=9;fontStyle=1;shadow=1" value="Local NVMe&#xa;(replica 3)" vertex="1">
+          <mxGeometry height="56" width="100" x="300" y="44" as="geometry" />
+        </mxCell>
+        <mxCell id="e_dc1" edge="1" parent="1" source="vm_dc" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#4D4D4D;fontColor=#4D4D4D" target="pvc_dc" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_dc2" edge="1" parent="1" source="pvc_dc" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#4D4D4D;fontColor=#4D4D4D" target="csi_dc" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_dc3" edge="1" parent="1" source="csi_dc" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#4D4D4D;fontColor=#4D4D4D" target="flash_dc" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_br1" edge="1" parent="1" source="vm_br" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#4D4D4D;fontColor=#4D4D4D" target="pvc_br" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_br2" edge="1" parent="1" source="pvc_br" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#4D4D4D;fontColor=#4D4D4D" target="rbd_br" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_br3" edge="1" parent="1" source="rbd_br" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#4D4D4D;fontColor=#4D4D4D" target="osd_br" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_br4" edge="1" parent="1" source="osd_br" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#4D4D4D;fontColor=#4D4D4D" target="nvme_br" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

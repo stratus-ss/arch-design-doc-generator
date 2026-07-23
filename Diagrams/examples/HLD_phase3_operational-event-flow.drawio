@@ -1,0 +1,87 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.6.6 Chrome/144.0.7559.236 Electron/40.8.4 Safari/537.36" version="29.6.6">
+  <diagram id="phase3-operational-event-flow" name="Phase 3 Operational Event Flow">
+    <mxGraphModel dx="1424" dy="962" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="1100" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="grp_mc" parent="1" style="swimlane;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#CC0000;strokeWidth=2;fontStyle=1;fontColor=#151515;startSize=32;" value="Managed Cluster" vertex="1">
+          <mxGeometry height="480" width="220" x="40" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="n_prom" parent="grp_mc" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=13;fontStyle=1;shadow=1;" value="Prometheus" vertex="1">
+          <mxGeometry height="50" width="180" x="20" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="n_vector" parent="grp_mc" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=13;fontStyle=1;shadow=1;" value="Vector / CLF" vertex="1">
+          <mxGeometry height="50" width="180" x="20" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="n_am" parent="grp_mc" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=13;fontStyle=1;shadow=1;" value="AlertManager" vertex="1">
+          <mxGeometry height="50" width="180" x="20" y="260" as="geometry" />
+        </mxCell>
+        <mxCell id="n_virt" parent="grp_mc" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#f2f2f2;fontColor=#151515;strokeColor=#c7c7c7;dashed=1;dashed=1;fontSize=13;fontStyle=1;shadow=1;" value="Legacy monitoring" vertex="1">
+          <mxGeometry height="50" width="180" x="20" y="370" as="geometry" />
+        </mxCell>
+        <mxCell id="grp_fleet" parent="1" style="swimlane;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#CC0000;strokeWidth=2;fontStyle=1;fontColor=#151515;startSize=32;" value="Fleet Services" vertex="1">
+          <mxGeometry height="120" width="500" x="350" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="n_thanos" parent="grp_fleet" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=13;fontStyle=1;shadow=1;" value="ACM Thanos" vertex="1">
+          <mxGeometry height="50" width="180" x="20" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="n_dash" parent="grp_fleet" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=13;fontStyle=1;shadow=1;" value="Grafana / Perses" vertex="1">
+          <mxGeometry height="50" width="180" x="290" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="grp_enterprise" parent="1" style="swimlane;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#CC0000;strokeWidth=2;fontStyle=1;fontColor=#151515;startSize=32;" value="Enterprise Tools" vertex="1">
+          <mxGeometry height="297" width="560" x="680" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="n_splunk" parent="grp_enterprise" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#f2f2f2;fontColor=#151515;strokeColor=#c7c7c7;dashed=1;fontSize=13;fontStyle=1;shadow=1;" value="Log Aggregation Platform" vertex="1">
+          <mxGeometry height="50" width="180" x="20" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="n_moog" parent="grp_enterprise" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#f2f2f2;fontColor=#151515;strokeColor=#c7c7c7;dashed=1;fontSize=13;fontStyle=1;shadow=1;" value="AIOps/Event Platform" vertex="1">
+          <mxGeometry height="50" width="180" x="20" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="n_ops" parent="grp_enterprise" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#f2f2f2;fontColor=#151515;strokeColor=#c7c7c7;dashed=1;fontSize=13;fontStyle=1;shadow=1;" value="Platform / Infra Teams" vertex="1">
+          <mxGeometry height="60" width="180" x="360" y="118.5" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="n_prom" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515;endArrow=block;endFill=1;" target="n_thanos" value="metrics">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="n_thanos" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515;endArrow=block;endFill=1;" target="n_dash" value="dashboards">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="n_dash" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515;endArrow=block;endFill=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;curved=1;" target="n_ops" value="fleet health">
+          <mxGeometry relative="1" x="-0.3644" y="-15" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="1120" y="300" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="n_vector" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;curved=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="n_splunk" value="HEC">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="n_splunk" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515;endArrow=block;endFill=1;curved=1;" target="n_ops" value="investigation">
+          <mxGeometry relative="1" x="-0.5862" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="n_am" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515;endArrow=block;endFill=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;curved=1;" target="n_moog" value="route">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="n_moog" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515;endArrow=block;endFill=1;curved=1;" target="n_ops" value="incident &lt;br&gt;/ &lt;br&gt;escalation">
+          <mxGeometry relative="1" x="-0.4911" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="n_virt" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515;endArrow=block;endFill=1;dashed=1;curved=1;entryX=0.546;entryY=0.951;entryDx=0;entryDy=0;entryPerimeter=0;" target="n_ops" value="hardware visibility">
+          <mxGeometry relative="1" x="-0.4645" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="1130" y="435" />
+              <mxPoint x="1130" y="430" />
+              <mxPoint x="1140" y="430" />
+              <mxPoint x="1140" y="370" />
+              <mxPoint x="1138" y="370" />
+            </Array>
+            <mxPoint x="1140" y="380" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

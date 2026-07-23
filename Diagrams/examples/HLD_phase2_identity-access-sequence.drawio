@@ -1,0 +1,108 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.6.6 Chrome/144.0.7559.236 Electron/40.8.4 Safari/537.36" version="29.6.6">
+  <diagram id="phase2-ia-seq" name="Phase 2 Identity Access Sequence">
+    <mxGraphModel dx="1424" dy="962" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="700" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="p_user" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EE0000;fontColor=#FFFFFF;strokeColor=#A60000;fontSize=12;fontStyle=1;shadow=1;" value="User / SRE" vertex="1">
+          <mxGeometry height="50" width="140" x="40" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="p_oauth" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EE0000;fontColor=#FFFFFF;strokeColor=#A60000;fontSize=12;fontStyle=1;shadow=1;" value="OAuth Server" vertex="1">
+          <mxGeometry height="50" width="150" x="260" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="p_ldap" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EE0000;fontColor=#FFFFFF;strokeColor=#A60000;fontSize=12;fontStyle=1;shadow=1;" value="LDAP / SSO" vertex="1">
+          <mxGeometry height="50" width="150" x="490" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="p_rbac" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EE0000;fontColor=#FFFFFF;strokeColor=#A60000;fontSize=12;fontStyle=1;shadow=1;" value="RBAC Engine" vertex="1">
+          <mxGeometry height="50" width="150" x="720" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="p_ns" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EE0000;fontColor=#FFFFFF;strokeColor=#A60000;fontSize=12;fontStyle=1;shadow=1;" value="Namespace" vertex="1">
+          <mxGeometry height="50" width="150" x="950" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="ll_user" edge="1" parent="1" style="endArrow=none;startArrow=none;dashed=1;html=1;strokeWidth=3;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#C7C7C7;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="110" y="100" as="sourcePoint" />
+            <mxPoint x="110" y="500" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll_oauth" edge="1" parent="1" style="endArrow=none;startArrow=none;dashed=1;html=1;strokeWidth=3;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#C7C7C7;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="335" y="100" as="sourcePoint" />
+            <mxPoint x="335" y="500" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll_ldap" edge="1" parent="1" style="endArrow=none;startArrow=none;dashed=1;html=1;strokeWidth=3;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#C7C7C7;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="565" y="100" as="sourcePoint" />
+            <mxPoint x="565" y="500" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll_rbac" edge="1" parent="1" style="endArrow=none;startArrow=none;dashed=1;html=1;strokeWidth=3;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#C7C7C7;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="795" y="100" as="sourcePoint" />
+            <mxPoint x="795" y="500" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll_ns" edge="1" parent="1" style="endArrow=none;startArrow=none;dashed=1;html=1;strokeWidth=3;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#C7C7C7;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1025" y="100" as="sourcePoint" />
+            <mxPoint x="1025" y="500" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m1" edge="1" parent="1" style="endArrow=block;endFill=1;html=1;strokeWidth=2;strokeColor=#EE0000;fontColor=#151515;" value="&lt;b&gt;Login request&lt;/b&gt;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="110" y="140" as="sourcePoint" />
+            <mxPoint x="335" y="140" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m2" edge="1" parent="1" style="endArrow=block;endFill=1;html=1;strokeWidth=2;strokeColor=#EE0000;fontColor=#151515;" value="&lt;b&gt;Authenticate + group lookup&lt;/b&gt;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="335" y="200" as="sourcePoint" />
+            <mxPoint x="565" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m3" edge="1" parent="1" style="endArrow=open;dashed=1;html=1;strokeWidth=2;strokeColor=#4D4D4D;fontColor=#151515;" value="&lt;b&gt;Groups returned&lt;/b&gt;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="565" y="260" as="sourcePoint" />
+            <mxPoint x="335" y="260" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m4" edge="1" parent="1" style="endArrow=open;dashed=1;html=1;strokeWidth=2;strokeColor=#4D4D4D;fontColor=#151515;" value="&lt;b&gt;OAuth token (scoped)&lt;/b&gt;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="335" y="320" as="sourcePoint" />
+            <mxPoint x="110" y="320" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m5" edge="1" parent="1" style="endArrow=block;endFill=1;html=1;strokeWidth=2;strokeColor=#EE0000;fontColor=#151515;" value="&lt;b&gt;API request with token&lt;/b&gt;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="110" y="380" as="sourcePoint" />
+            <mxPoint x="795" y="380" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m6" edge="1" parent="1" style="endArrow=block;endFill=1;html=1;strokeWidth=2;strokeColor=#EE0000;fontColor=#151515;" value="&lt;b&gt;Allow / deny by role + namespace&lt;/b&gt;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="795" y="440" as="sourcePoint" />
+            <mxPoint x="1025" y="440" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="M8UogIuO0ZlYvpITRvAz-1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EE0000;fontColor=#FFFFFF;strokeColor=#A60000;fontSize=12;fontStyle=1;shadow=1;" value="User / SRE" vertex="1">
+          <mxGeometry height="50" width="140" x="40" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="M8UogIuO0ZlYvpITRvAz-2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EE0000;fontColor=#FFFFFF;strokeColor=#A60000;fontSize=12;fontStyle=1;shadow=1;" value="OAuth Server" vertex="1">
+          <mxGeometry height="50" width="150" x="260" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="M8UogIuO0ZlYvpITRvAz-3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EE0000;fontColor=#FFFFFF;strokeColor=#A60000;fontSize=12;fontStyle=1;shadow=1;" value="LDAP / SSO" vertex="1">
+          <mxGeometry height="50" width="150" x="490" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="M8UogIuO0ZlYvpITRvAz-4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EE0000;fontColor=#FFFFFF;strokeColor=#A60000;fontSize=12;fontStyle=1;shadow=1;" value="RBAC Engine" vertex="1">
+          <mxGeometry height="50" width="150" x="720" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="M8UogIuO0ZlYvpITRvAz-5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EE0000;fontColor=#FFFFFF;strokeColor=#A60000;fontSize=12;fontStyle=1;shadow=1;" value="Namespace" vertex="1">
+          <mxGeometry height="50" width="150" x="950" y="500" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

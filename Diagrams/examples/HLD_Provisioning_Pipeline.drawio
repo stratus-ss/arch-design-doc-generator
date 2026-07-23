@@ -1,0 +1,143 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.0.3 Chrome/140.0.7339.249 Electron/38.7.2 Safari/537.36" version="29.0.3">
+  <diagram name="Provisioning Pipeline" id="prov-pipe-1">
+    <mxGraphModel dx="2066" dy="1244" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="Provisioning Pipeline" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=18;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="220" y="10" width="400" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="col-left-bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6E6E6;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="30" y="70" width="370" height="960" as="geometry" />
+        </mxCell>
+        <mxCell id="col-right-bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="430" y="70" width="370" height="960" as="geometry" />
+        </mxCell>
+        <mxCell id="col-left-title" value="Tier 1 / Tier 2 (N clusters)" style="text;html=1;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="80" y="75" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="col-left-sub" value="AAP-Driven IPI" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=2;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="120" y="100" width="170" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="col-right-title" value="Tier 3 (N clusters)" style="text;html=1;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="480" y="75" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="col-right-sub" value="ACM ZTP" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=2;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="530" y="100" width="170" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="l-intersight" value="Hardware Manager Playbooks" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#A20025;fontColor=#ffffff;strokeColor=#6F0000;" vertex="1" parent="1">
+          <mxGeometry x="100" y="150" width="210" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="l-pools" value="Pools / Policies / Profiles" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="100" y="220" width="210" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="l-install-config" value="Generate install-config.yaml" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="100" y="290" width="210" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="l-openshift-install" value="openshift-install (IPI)" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#A20025;fontColor=#ffffff;strokeColor=#6F0000;" vertex="1" parent="1">
+          <mxGeometry x="100" y="360" width="210" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="l-day2" value="Day 2 Config (AAP / Argo)" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="100" y="430" width="210" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="l-register" value="Register to ACM" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="100" y="500" width="210" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="el1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;" edge="1" parent="1" source="l-intersight" target="l-pools">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="el2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;" edge="1" parent="1" source="l-pools" target="l-install-config">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="el3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;" edge="1" parent="1" source="l-install-config" target="l-openshift-install">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="el4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;" edge="1" parent="1" source="l-openshift-install" target="l-day2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="el5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;" edge="1" parent="1" source="l-day2" target="l-register">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r-intersight" value="Hardware Manager Playbooks" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#A20025;fontColor=#ffffff;strokeColor=#6F0000;" vertex="1" parent="1">
+          <mxGeometry x="500" y="150" width="210" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r-query" value="Query BMC IPs / MACs" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="500" y="220" width="210" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r-siteconfig" value="Template SiteConfig CRs" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="500" y="290" width="210" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r-git" value="Push to Git Platform" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="500" y="360" width="210" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r-argo" value="Argo CD Sync to Hub" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="500" y="430" width="210" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r-assisted" value="ACM Assisted Service" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#A20025;fontColor=#ffffff;strokeColor=#6F0000;" vertex="1" parent="1">
+          <mxGeometry x="500" y="500" width="210" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r-boot" value="Discovery ISO / Redfish Boot" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="500" y="570" width="210" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r-install" value="Cluster Install + Import" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#A20025;fontColor=#ffffff;strokeColor=#6F0000;" vertex="1" parent="1">
+          <mxGeometry x="500" y="640" width="210" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r-talm" value="TALM Day 2 Policies" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="500" y="710" width="210" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r-managed" value="Cluster ACM-Managed" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="500" y="780" width="210" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="er1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;" edge="1" parent="1" source="r-intersight" target="r-query">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="er2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;" edge="1" parent="1" source="r-query" target="r-siteconfig">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="er3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;" edge="1" parent="1" source="r-siteconfig" target="r-git">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="er4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;" edge="1" parent="1" source="r-git" target="r-argo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="er5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;" edge="1" parent="1" source="r-argo" target="r-assisted">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="er6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;" edge="1" parent="1" source="r-assisted" target="r-boot">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="er7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;" edge="1" parent="1" source="r-boot" target="r-install">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="er8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;" edge="1" parent="1" source="r-install" target="r-talm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="er9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;" edge="1" parent="1" source="r-talm" target="r-managed">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="converge" value="All N clusters ACM-managed" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="200" y="900" width="420" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ec1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;" edge="1" parent="1" source="l-register" target="converge">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="205" y="860" />
+              <mxPoint x="410" y="860" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ec2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;" edge="1" parent="1" source="r-managed" target="converge">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="605" y="860" />
+              <mxPoint x="410" y="860" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="converge-sub" value="Observability + Policy + TALM lifecycle" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=2;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="250" y="955" width="300" height="25" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

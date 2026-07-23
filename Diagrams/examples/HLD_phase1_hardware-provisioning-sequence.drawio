@@ -1,0 +1,52 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.6.6 Chrome/144.0.7559.236 Electron/40.8.4 Safari/537.36" version="29.6.6">
+  <diagram id="hw-prov-seq" name="Hardware Provisioning Sequence">
+    <mxGraphModel dx="420" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="380" pageHeight="520" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;" value="Hardware Provisioning Sequence" vertex="1">
+          <mxGeometry height="30" width="300" x="40" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="isp" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ee0000;fontColor=#FFFFFF;strokeColor=#a60000;fontSize=11;fontStyle=1;shadow=1;" value="Hardware Manager Server Profiles&lt;br&gt;BIOS, Boot, NIC, PCI Placement" vertex="1">
+          <mxGeometry height="50" width="300" x="40" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="sw" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;strokeColor=#0066cc;fontSize=11;fontStyle=1;shadow=1;" value="Switch Zoning&#xa;Nexus VLAN Trunking" vertex="1">
+          <mxGeometry height="46" width="300" x="40" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="e_isp_sw" edge="1" parent="1" source="isp" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" target="sw">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="stor_net" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;strokeColor=#0066cc;fontSize=11;fontStyle=1;shadow=1;" value="Storage Network&#xa;FC + iSCSI/NVMe-oF" vertex="1">
+          <mxGeometry height="46" width="300" x="40" y="186" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sw_stor" edge="1" parent="1" source="sw" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" target="stor_net">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="mgmt_net" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;strokeColor=#0066cc;fontSize=11;fontStyle=1;shadow=1;" value="Management Network&#xa;DHCP + DNS + NTP" vertex="1">
+          <mxGeometry height="46" width="300" x="40" y="252" as="geometry" />
+        </mxCell>
+        <mxCell id="e_stor_mgmt" edge="1" parent="1" source="stor_net" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" target="mgmt_net">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="mig_net" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;strokeColor=#0066cc;fontSize=11;fontStyle=1;shadow=1;" value="Migration Network&#xa;Jumbo MTU 9000" vertex="1">
+          <mxGeometry height="46" width="300" x="40" y="318" as="geometry" />
+        </mxCell>
+        <mxCell id="e_mgmt_mig" edge="1" parent="1" source="mgmt_net" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" target="mig_net">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fc_net" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;strokeColor=#0066cc;fontSize=11;fontStyle=1;shadow=1;" value="FC Network&#xa;Enterprise Storage Array SAN Zoning" vertex="1">
+          <mxGeometry height="46" width="300" x="40" y="384" as="geometry" />
+        </mxCell>
+        <mxCell id="e_mig_fc" edge="1" parent="1" source="mig_net" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" target="fc_net">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="validated" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#63993d;fontColor=#FFFFFF;strokeColor=#3d7317;fontSize=11;fontStyle=1;shadow=1;" value="Hardware Ready&lt;br&gt;for Cluster Deployment" vertex="1">
+          <mxGeometry height="50" width="300" x="40" y="450" as="geometry" />
+        </mxCell>
+        <mxCell id="e_fc_val" edge="1" parent="1" source="fc_net" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;" target="validated">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

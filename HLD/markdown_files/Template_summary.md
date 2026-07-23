@@ -1,0 +1,6 @@
+- [Preamble](Template_OCP-V_HLD_DecisionJourney_preamble.md)
+- [Phase 1](Template_OCP-V_HLD_DecisionJourney_phase1.md)
+- [Phase 2](Template_OCP-V_HLD_DecisionJourney_phase2.md)
+- [Phase 3](Template_OCP-V_HLD_DecisionJourney_phase3.md)
+- [Phase 4](Template_OCP-V_HLD_DecisionJourney_phase4.md)
+- [Appendix](Template_OCP-V_HLD_DecisionJourney_appendix.md)

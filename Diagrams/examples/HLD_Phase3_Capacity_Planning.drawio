@@ -1,0 +1,49 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.6.6 Chrome/144.0.7559.236 Electron/40.8.4 Safari/537.36" version="29.6.6">
+  <diagram id="phase3-cap" name="Phase 3 Capacity Planning">
+    <mxGraphModel dx="1095" dy="740" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1320" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="cap_n1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f2f2f2;fontColor=#151515;strokeColor=#c7c7c7;dashed=1;fontSize=13;fontStyle=1;shadow=1;" value="RVTools Baseline&#xa;7,741 VMs · 675 hosts · 8 sites" vertex="1">
+          <mxGeometry height="70" width="320" x="260" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="cap_n2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=13;fontStyle=1;shadow=1;" value="Calculate Node Ratios&#xa;CPU 70% target · 512 pods/node" vertex="1">
+          <mxGeometry height="70" width="320" x="260" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="cap_n3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=13;fontStyle=1;shadow=1;" value="Define Headroom&#xa;1 spare min · 2 to 3 preferred" vertex="1">
+          <mxGeometry height="70" width="320" x="260" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="cap_n4" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#F0AB00;fontColor=#151515;strokeColor=#C98A00;fontSize=13;fontStyle=1;shadow=1;" value="Set maxUnavailable&#xa;Per cluster size table" vertex="1">
+          <mxGeometry height="120" width="240" x="300" y="470" as="geometry" />
+        </mxCell>
+        <mxCell id="cap_n5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=13;fontStyle=1;shadow=1;" value="Validate in Sandbox" vertex="1">
+          <mxGeometry height="50" width="320" x="260" y="660" as="geometry" />
+        </mxCell>
+        <mxCell id="cap_n6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=13;fontStyle=1;shadow=1;" value="Monitor Post-Migration&#xa;Prometheus / Grafana dashboards" vertex="1">
+          <mxGeometry height="70" width="320" x="260" y="780" as="geometry" />
+        </mxCell>
+        <mxCell id="cap_n7" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#3E8635;fontColor=#FFFFFF;strokeColor=#2D6626;fontSize=13;fontStyle=1;shadow=1;" value="Right-Size VMs&#xa;Compare actual vs allocated" vertex="1">
+          <mxGeometry height="70" width="320" x="260" y="920" as="geometry" />
+        </mxCell>
+        <mxCell id="cap_e1" edge="1" parent="1" source="cap_n1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;endArrow=block;fontColor=#151515;labelBackgroundColor=#FFFFFF;" target="cap_n2" value="Ingest baseline">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cap_e2" edge="1" parent="1" source="cap_n2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;endArrow=block;fontColor=#151515;labelBackgroundColor=#FFFFFF;" target="cap_n3" value="Apply sizing model">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cap_e3" edge="1" parent="1" source="cap_n3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;endArrow=block;fontColor=#151515;labelBackgroundColor=#FFFFFF;" target="cap_n4" value="Reserve capacity">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cap_e4" edge="1" parent="1" source="cap_n4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;endArrow=block;fontColor=#151515;labelBackgroundColor=#FFFFFF;" target="cap_n5" value="Map to policy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cap_e5" edge="1" parent="1" source="cap_n5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;endArrow=block;fontColor=#151515;labelBackgroundColor=#FFFFFF;" target="cap_n6" value="Pre-production check">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cap_e6" edge="1" parent="1" source="cap_n6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;endArrow=block;fontColor=#151515;labelBackgroundColor=#FFFFFF;" target="cap_n7" value="Observe SLOs">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

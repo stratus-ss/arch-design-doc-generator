@@ -1,0 +1,82 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.6.6 Chrome/144.0.7559.236 Electron/40.8.4 Safari/537.36" version="29.6.6">
+  <diagram id="phase4-validation" name="Migration Validation Checkpoint">
+    <mxGraphModel dx="1499" dy="1013" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="1000" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" value="Migration Validation Checkpoint" vertex="1">
+          <mxGeometry height="40" width="400" x="40" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="complete" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ee0000;fontColor=#FFFFFF;strokeColor=#a60000;fontSize=11;fontStyle=1;shadow=1;" value="Migration Wave&#xa;Complete" vertex="1">
+          <mxGeometry height="50" width="160" x="380" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="net_v" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=11;fontStyle=1;shadow=1;" value="Network Validation&#xa;Ping, DNS, VLAN Reach" vertex="1">
+          <mxGeometry height="50" width="180" x="370" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="stor_v" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=11;fontStyle=1;shadow=1;" value="Storage Validation&#xa;I/O Test, PVC Health" vertex="1">
+          <mxGeometry height="50" width="180" x="370" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="app_v" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=11;fontStyle=1;shadow=1;" value="Application Validation&#xa;Endpoints, Health Checks" vertex="1">
+          <mxGeometry height="50" width="180" x="370" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="perf_v" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=11;fontStyle=1;shadow=1;" value="Performance Baseline&#xa;CPU, Memory, Disk I/O" vertex="1">
+          <mxGeometry height="50" width="180" x="370" y="480" as="geometry" />
+        </mxCell>
+        <mxCell id="gate" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe8cc;strokeColor=#f5921b;fontColor=#151515;fontSize=11;fontStyle=1;shadow=1;" value="All Checks&#xa;Pass?" vertex="1">
+          <mxGeometry height="100" width="120" x="400" y="590" as="geometry" />
+        </mxCell>
+        <mxCell id="signoff" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e9f7df;fontColor=#151515;strokeColor=#63993d;fontSize=11;fontStyle=1;shadow=1;" value="App Owner&#xa;Sign-Off" vertex="1">
+          <mxGeometry height="50" width="160" x="380" y="750" as="geometry" />
+        </mxCell>
+        <mxCell id="holdback" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe8cc;fontColor=#151515;strokeColor=#f5921b;fontSize=11;fontStyle=1;shadow=1;" value="Holdback Period&#xa;Source VM Powered Off" vertex="1">
+          <mxGeometry height="50" width="180" x="370" y="850" as="geometry" />
+        </mxCell>
+        <mxCell id="decom_v" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=11;fontStyle=1;shadow=1;" value="Source VM&#xa;Decommissioned" vertex="1">
+          <mxGeometry height="50" width="160" x="380" y="950" as="geometry" />
+        </mxCell>
+        <mxCell id="rollback" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#a60000;fontColor=#FFFFFF;strokeColor=#3f0000;fontSize=11;fontStyle=1;shadow=1;" value="Rollback Wave&#xa;Revert to Source" vertex="1">
+          <mxGeometry height="50" width="160" x="700" y="616" as="geometry" />
+        </mxCell>
+        <mxCell id="invest" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe8cc;fontColor=#151515;strokeColor=#f5921b;fontSize=11;fontStyle=1;shadow=1;" value="Investigate&#xa;and Remediate" vertex="1">
+          <mxGeometry height="50" width="160" x="700" y="750" as="geometry" />
+        </mxCell>
+        <mxCell id="retry" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=11;fontStyle=1;shadow=1;" value="Retry Wave" vertex="1">
+          <mxGeometry height="50" width="160" x="700" y="850" as="geometry" />
+        </mxCell>
+        <mxCell id="e01" edge="1" parent="1" source="complete" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#151515;strokeWidth=2;" target="net_v">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e02" edge="1" parent="1" source="net_v" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#151515;strokeWidth=2;" target="stor_v">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e03" edge="1" parent="1" source="stor_v" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#151515;strokeWidth=2;" target="app_v">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e04" edge="1" parent="1" source="app_v" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#151515;strokeWidth=2;" target="perf_v">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e05" edge="1" parent="1" source="perf_v" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#151515;strokeWidth=2;" target="gate">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e06" edge="1" parent="1" source="gate" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#63993d;strokeWidth=2;fontSize=11;fontColor=#63993d;" target="signoff" value="Yes">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e07" edge="1" parent="1" source="gate" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#a60000;strokeWidth=2;fontSize=11;fontColor=#a60000;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="rollback" value="No">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e08" edge="1" parent="1" source="signoff" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#151515;strokeWidth=2;" target="holdback">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e09" edge="1" parent="1" source="holdback" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#151515;strokeWidth=2;" target="decom_v">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" edge="1" parent="1" source="rollback" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#a60000;strokeWidth=2;" target="invest">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" edge="1" parent="1" source="invest" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#a60000;strokeWidth=2;" target="retry">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

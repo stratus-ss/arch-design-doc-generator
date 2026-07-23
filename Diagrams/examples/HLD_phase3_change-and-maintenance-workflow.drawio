@@ -1,0 +1,64 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.6.6 Chrome/144.0.7559.236 Electron/40.8.4 Safari/537.36" version="29.6.6">
+  <diagram id="phase3-change-maintenance-workflow" name="Phase 3 Change and Maintenance Workflow">
+    <mxGraphModel dx="1424" dy="962" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1100" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="chg_ticket" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#f2f2f2;fontColor=#151515;strokeColor=#c7c7c7;dashed=1;fontSize=13;fontStyle=1;shadow=1;" value="ServiceNow Change Request" vertex="1">
+          <mxGeometry height="60" width="160" x="80" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="chg_aap" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=13;fontStyle=1;shadow=1;" value="AAP Workflow" vertex="1">
+          <mxGeometry height="60" width="160" x="340" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="chg_eda" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=13;fontStyle=1;shadow=1;" value="EDA Status Automation" vertex="1">
+          <mxGeometry height="60" width="160" x="340" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="chg_nm" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=13;fontStyle=1;shadow=1;" value="NodeMaintenance CR" vertex="1">
+          <mxGeometry height="60" width="160" x="630" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="chg_cluster" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#f2f2f2;fontColor=#151515;strokeColor=#c7c7c7;dashed=1;fontSize=13;fontStyle=1;shadow=1;" value="Managed Cluster" vertex="1">
+          <mxGeometry height="60" width="160" x="900" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="chg_platform" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#f2f2f2;fontColor=#151515;strokeColor=#c7c7c7;dashed=1;fontSize=13;fontStyle=1;shadow=1;" value="Platform Team" vertex="1">
+          <mxGeometry height="60" width="160" x="900" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="chg_e1" edge="1" parent="1" source="chg_ticket" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515;endArrow=block;endFill=1;" target="chg_aap" value="approved">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="chg_e2" edge="1" parent="1" source="chg_aap" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515;endArrow=block;endFill=1;" target="chg_eda" value="trigger">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="430" y="230" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="chg_e3" edge="1" parent="1" source="chg_aap" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515;endArrow=block;endFill=1;" target="chg_nm" value="create / remove">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="chg_e4" edge="1" parent="1" source="chg_nm" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515;endArrow=block;endFill=1;" target="chg_cluster" value="cordon + evict">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="chg_e5" edge="1" parent="1" source="chg_cluster" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515;endArrow=block;endFill=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;" target="chg_eda" value="maintenance state">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="940" y="270" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="chg_e6" edge="1" parent="1" source="chg_eda" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515;endArrow=block;endFill=1;" target="chg_ticket" value="ticket updates">
+          <mxGeometry relative="1" x="-0.25" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="170" y="270" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="chg_e7" edge="1" parent="1" source="chg_cluster" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515;endArrow=block;endFill=1;" target="chg_platform" value="completion status">
+          <mxGeometry relative="1" x="0.4286" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,261 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.0.3 Chrome/140.0.7339.249 Electron/38.7.2 Safari/537.36" version="29.0.3">
+  <diagram name="DC Node Network" id="net-dc-1">
+    <mxGraphModel dx="1722" dy="1037" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value=" Network Architecture - Tier 1 / Tier 2 Node" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="170" y="10" width="480" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="net-internal" value="" style="endArrow=none;html=1;rounded=0;strokeWidth=4;strokeColor=#0000FF;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="30" y="50" as="sourcePoint" />
+            <mxPoint x="820" y="50" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="net-vm" value="" style="endArrow=none;html=1;rounded=0;strokeWidth=4;strokeColor=#FFA500;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="30" y="90" as="sourcePoint" />
+            <mxPoint x="820" y="90" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="net-livemig" value="" style="endArrow=none;html=1;rounded=0;strokeWidth=4;strokeColor=#008000;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="30" y="130" as="sourcePoint" />
+            <mxPoint x="820" y="130" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="net-storage" value="" style="endArrow=none;html=1;rounded=0;strokeWidth=4;strokeColor=#FF00FF;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="30" y="830" as="sourcePoint" />
+            <mxPoint x="820" y="830" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="net-fc" value="" style="endArrow=none;html=1;rounded=0;strokeWidth=4;strokeColor=#FF0000;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="30" y="870" as="sourcePoint" />
+            <mxPoint x="820" y="870" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lbl-internal" value="Internal / Mgmt" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="30" y="30" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl-vm" value="VM Data Traffic" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="30" y="70" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl-livemig" value="Live Migration" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="30" y="110" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl-storage" value="Storage (TCP/IP)" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="30" y="810" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl-fc" value="FC SAN" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="30" y="850" width="80" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="node-box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="180" y="190" width="480" height="570" as="geometry" />
+        </mxCell>
+        <mxCell id="node-label" value="OCP Node (Schedulable Master)" style="text;html=1;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="260" y="195" width="280" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="vnic0" value="NIC 0 (Fabric A)" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;strokeColor=#0000FF;" vertex="1" parent="1">
+          <mxGeometry x="200" y="160" width="100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="vnic1" value="NIC 1 (Fabric B)" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;strokeColor=#FFA500;" vertex="1" parent="1">
+          <mxGeometry x="330" y="160" width="100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="vnic2" value="NIC 2 (opt)" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;strokeColor=#008000;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="460" y="160" width="100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="e-vnic0-int" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#0000FF;" edge="1" parent="1" source="vnic0">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="250" y="50" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-vnic1-vm" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#FFA500;" edge="1" parent="1" source="vnic1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="380" y="90" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-vnic2-mig" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#008000;" edge="1" parent="1" source="vnic2">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="510" y="130" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="kube-api" value="Kube API" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="210" y="240" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ingress" value="Ingress Router" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="400" y="240" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="pod-net-lbl" value="Pod Network (10.128.0.0/17)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=0;strokeColor=none;fillColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="210" y="310" width="200" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pod-box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#FFA500;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="330" width="360" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="pod1" value="App Pod" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="220" y="350" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="pod2" value="App Pod" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="340" y="350" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-net-lbl" value="Service Network (10.128.128.0/18)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=0;strokeColor=none;fillColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="210" y="420" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-box" value="Services" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="200" y="440" width="360" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="vm-net-lbl" value="VM Networks (OVS Bridge + Multus NADs)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=0;strokeColor=none;fillColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="210" y="500" width="260" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="vm-box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#FF0000;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="520" width="360" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="vm1" value="VM 1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="220" y="540" width="80" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="vm2" value="VM 2" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="320" y="540" width="80" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="vm3" value="VM 3" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="420" y="540" width="80" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="bmc" value="BMC (Redfish)" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="210" y="680" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="mpio" value="MPIO" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="430" y="640" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="fcs-a" value="FCS-A" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;strokeColor=#FF0000;" vertex="1" parent="1">
+          <mxGeometry x="430" y="690" width="55" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="fcs-b" value="FCS-B" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;strokeColor=#FF0000;" vertex="1" parent="1">
+          <mxGeometry x="495" y="690" width="55" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="e-bmc-int" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#0000FF;" edge="1" parent="1" source="bmc">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="270" y="830" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-mpio-storage" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#FF00FF;" edge="1" parent="1" source="mpio">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="490" y="830" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-fcsa-fc" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#FF0000;" edge="1" parent="1" source="fcs-a">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="458" y="870" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-fcsb-fc" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#FF0000;" edge="1" parent="1" source="fcs-b">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="523" y="870" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bw-note" value="All Ethernet N Gbps&#xa;All FC N Gbps" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=3;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="640" y="170" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="mtu-note" value="MTU: Mgmt 1500 / Migration 9000" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;strokeColor=none;fillColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="630" y="215" width="200" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pci-note" value="PCI placement rules via Hardware Manager&#xa;(stable NIC naming)" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;strokeColor=none;fillColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="630" y="240" width="200" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ovs-note" value="OVS Bridge for VM data traffic&#xa;(no STP / BPDU issues)" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;strokeColor=none;fillColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="630" y="275" width="200" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="qos-note" value="QoS 90-95% ceiling on migration&#xa;traffic to protect etcd" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;strokeColor=none;fillColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="630" y="310" width="200" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="rubrik-note" value="Backup traffic via NIC 0&#xa;(Multus support pending)" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;strokeColor=none;fillColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="630" y="345" width="200" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="Tier 3 Node Network" id="net-tier 3 site-1">
+    <mxGraphModel dx="1722" dy="1037" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title2" value=" Network Architecture - Tier 3 Node (Tier 3 (Compact))" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="120" y="10" width="560" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="bnet-internal" value="" style="endArrow=none;html=1;rounded=0;strokeWidth=4;strokeColor=#0000FF;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="30" y="50" as="sourcePoint" />
+            <mxPoint x="820" y="50" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bnet-vm" value="" style="endArrow=none;html=1;rounded=0;strokeWidth=4;strokeColor=#FFA500;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="30" y="90" as="sourcePoint" />
+            <mxPoint x="820" y="90" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="blbl-internal" value="Internal / Mgmt" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="30" y="30" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="blbl-vm" value="VM Data Traffic" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="30" y="70" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="bnode-box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="180" y="170" width="420" height="400" as="geometry" />
+        </mxCell>
+        <mxCell id="bnode-label" value="Tier 3 Node (Edge)" style="text;html=1;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="240" y="175" width="300" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="beth0" value="eth0" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;strokeColor=#0000FF;" vertex="1" parent="1">
+          <mxGeometry x="260" y="140" width="80" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="beth1" value="eth1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;strokeColor=#FFA500;" vertex="1" parent="1">
+          <mxGeometry x="420" y="140" width="80" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="e-beth0-int" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#0000FF;" edge="1" parent="1" source="beth0">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="300" y="50" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-beth1-vm" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#FFA500;" edge="1" parent="1" source="beth1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="460" y="90" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bkube-api" value="Kube API" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="210" y="220" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="bingress" value="Ingress Router" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="380" y="220" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="bvm-box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#FF0000;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="340" width="360" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="bvm1" value="VM 1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="220" y="355" width="80" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="bvm2" value="VM 2" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="320" y="355" width="80" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="bvm3" value="VM 3" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="420" y="355" width="80" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="bodf" value="ODF (local NVMe, replica 3)" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="200" y="470" width="360" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="bvm-lbl" value="N VMs per site / OVS Bridge" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=0;strokeColor=none;fillColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="210" y="320" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="bnote1" value="No FC SAN (local NVMe only)" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;strokeColor=none;fillColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="630" y="200" width="190" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="bnote2" value="Shared subnet (no dedicated&#xa;OCP subnet at tier 3 sites)" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;strokeColor=none;fillColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="630" y="230" width="190" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="bnote3" value="OADP for backups (no Backup Platform&#xa;Edge - KVM not supported)" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;strokeColor=none;fillColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="630" y="270" width="190" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

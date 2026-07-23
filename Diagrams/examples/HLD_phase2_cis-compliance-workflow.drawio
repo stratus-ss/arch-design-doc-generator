@@ -1,0 +1,54 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.6.6 Chrome/144.0.7559.236 Electron/40.8.4 Safari/537.36" version="29.6.6">
+  <diagram id="phase2-cis-compliance-workflow" name="Phase 2 CIS Compliance Workflow">
+    <mxGraphModel dx="400" dy="300" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="380" pageHeight="260" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="n1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FBC5C5;fontColor=#151515;strokeColor=#EE0000;fontSize=9;fontStyle=1;shadow=1" value="Build Cluster (Day 0-1)" vertex="1">
+          <mxGeometry height="56" width="80" x="30" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="n2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;fontColor=#151515;strokeColor=#EE0000;fontSize=9;fontStyle=1;shadow=1" value="Deploy Platform (Day 2 Config)" vertex="1">
+          <mxGeometry height="56" width="80" x="30" y="84" as="geometry" />
+        </mxCell>
+        <mxCell id="n3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;fontColor=#151515;strokeColor=#EE0000;fontSize=9;fontStyle=1;shadow=1" value="Tenable CIS Scan (OCP + OCP-V)" vertex="1">
+          <mxGeometry height="56" width="80" x="140" y="84" as="geometry" />
+        </mxCell>
+        <mxCell id="n4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;fontColor=#151515;strokeColor=#EE0000;fontSize=9;fontStyle=1;shadow=1" value="Triage Findings (High to Medium to Low)" vertex="1">
+          <mxGeometry height="56" width="80" x="260" y="84" as="geometry" />
+        </mxCell>
+        <mxCell id="n5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;fontColor=#151515;strokeColor=#EE0000;fontSize=9;fontStyle=1;shadow=1" value="Remediate (High-Severity First)" vertex="1">
+          <mxGeometry height="56" width="80" x="30" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="n6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;fontColor=#151515;strokeColor=#EE0000;fontSize=9;fontStyle=1;shadow=1" value="Re-Scan (Validate Fixes)" vertex="1">
+          <mxGeometry height="56" width="80" x="140" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="n7" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#63993D;fontColor=#FFFFFF;strokeColor=#204D00;fontSize=10;fontStyle=1;shadow=1" value="Sign-Off (InfoSec Approval)" vertex="1">
+          <mxGeometry height="56" width="80" x="260" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="n1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#4D4D4D;fontColor=#4D4D4D" target="n2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="n2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#4D4D4D;fontColor=#4D4D4D" target="n3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="n3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#4D4D4D;fontColor=#4D4D4D;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" target="n4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="n4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#4D4D4D;fontColor=#4D4D4D;exitX=0.6;exitY=0.972;exitDx=0;exitDy=0;exitPerimeter=0;" target="n5">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="308" y="155" />
+              <mxPoint x="70" y="155" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="n5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#4D4D4D;fontColor=#4D4D4D" target="n6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="n6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#4D4D4D;fontColor=#4D4D4D" target="n7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

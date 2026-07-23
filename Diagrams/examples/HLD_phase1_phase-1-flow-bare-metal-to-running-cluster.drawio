@@ -1,0 +1,135 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.6.6 Chrome/144.0.7559.236 Electron/40.8.4 Safari/537.36" version="29.6.6">
+  <diagram id="p0-flow-v2" name="Phase 1 Flow - Bare Metal to Running Cluster">
+    <mxGraphModel dx="1056" dy="714" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="1550" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" value="Phase 1 Flow - Bare Metal to Running Cluster" vertex="1">
+          <mxGeometry height="40" width="480" x="40" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="certs" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;strokeColor=#0066cc;fontSize=11;fontStyle=1;shadow=1;" value="Get Certificates&#xa;API + Ingress TLS" vertex="1">
+          <mxGeometry height="60" width="200" x="15" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="fw" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;strokeColor=#0066cc;fontSize=11;fontStyle=1;shadow=1;" value="Firewall Rules&#xa;Configured" vertex="1">
+          <mxGeometry height="60" width="200" x="290" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="e_certs_drac" edge="1" parent="1" source="certs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" target="drac">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_fw_hw" edge="1" parent="1" source="fw" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" target="hw_prov">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="drac" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;strokeColor=#0066cc;fontSize=11;fontStyle=1;shadow=1;" value="BMC/DRAC&#xa;Configured via Hardware Manager" vertex="1">
+          <mxGeometry height="60" width="210" x="10" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="hw_prov" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ee0000;fontColor=#FFFFFF;strokeColor=#a60000;fontSize=11;fontStyle=1;shadow=1;" value="Hardware Provisioning&#xa;Hardware Manager Server Profiles" vertex="1">
+          <mxGeometry height="60" width="240" x="130" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="e_drac_hw" edge="1" parent="1" source="drac" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="hw_prov">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ip_res" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;strokeColor=#0066cc;fontSize=11;fontStyle=1;shadow=1;" value="IP Reservations&#xa;+ VIPs Allocated" vertex="1">
+          <mxGeometry height="50" width="220" x="140" y="430" as="geometry" />
+        </mxCell>
+        <mxCell id="e_hw_ip" edge="1" parent="1" source="hw_prov" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="ip_res">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dns" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;strokeColor=#0066cc;fontSize=11;fontStyle=1;shadow=1;" value="DNS Records&#xa;api, api-int, *.apps, nodes" vertex="1">
+          <mxGeometry height="50" width="220" x="140" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="e_ip_dns" edge="1" parent="1" source="ip_res" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="dns">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lb" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;strokeColor=#0066cc;fontSize=11;fontStyle=1;shadow=1;" value="VIP Config&#xa;keepalived/haproxy" vertex="1">
+          <mxGeometry height="50" width="220" x="140" y="615" as="geometry" />
+        </mxCell>
+        <mxCell id="e_dns_lb" edge="1" parent="1" source="dns" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="lb">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="net_fab" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;strokeColor=#0066cc;fontSize=11;fontStyle=1;shadow=1;" value="Network Fabric&#xa;Mgmt, Storage, Migration,&#xa;FC, Switch Zoning" vertex="1">
+          <mxGeometry height="60" width="220" x="140" y="705" as="geometry" />
+        </mxCell>
+        <mxCell id="e_lb_net" edge="1" parent="1" source="lb" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="net_fab">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="preflight" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#a60000;fontColor=#FFFFFF;strokeColor=#3f0000;fontSize=11;fontStyle=1;shadow=1;" value="Pre-Flight Validation&#xa;DNS, NTP, BMC, NICs" vertex="1">
+          <mxGeometry height="60" width="240" x="130" y="815" as="geometry" />
+        </mxCell>
+        <mxCell id="e_net_pre" edge="1" parent="1" source="net_fab" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="preflight">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tier" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ee0000;fontColor=#FFFFFF;strokeColor=#a60000;fontSize=12;fontStyle=1;shadow=1;" value="Select&#xa;Tier" vertex="1">
+          <mxGeometry height="100" width="140" x="430" y="795" as="geometry" />
+        </mxCell>
+        <mxCell id="e_pre_tier" edge="1" parent="1" source="preflight" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" target="tier">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dc_size" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;strokeColor=#0066cc;fontSize=11;fontStyle=1;shadow=1;" value="Size Tier 1 Cluster" vertex="1">
+          <mxGeometry height="50" width="170" x="640" y="720" as="geometry" />
+        </mxCell>
+        <mxCell id="cdf_size" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e9f7df;strokeColor=#63993d;fontSize=11;fontStyle=1;shadow=1;" value="Size Tier 2 Cluster" vertex="1">
+          <mxGeometry height="50" width="170" x="640" y="820" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_size" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe8cc;strokeColor=#f5921b;fontSize=11;fontStyle=1;shadow=1;" value="Size Tier 3 Cluster" vertex="1">
+          <mxGeometry height="50" width="170" x="640" y="900" as="geometry" />
+        </mxCell>
+        <mxCell id="e_tier_dc" edge="1" parent="1" source="tier" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="dc_size" value="Tier 1">
+          <mxGeometry relative="1" x="0.1577" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_tier_cdf" edge="1" parent="1" source="tier" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;" target="cdf_size" value="Tier 2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_tier_edge" edge="1" parent="1" source="tier" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="edge_size" value="Tier 3">
+          <mxGeometry relative="1" x="0.1767" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ipi" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ee0000;fontColor=#FFFFFF;strokeColor=#a60000;fontSize=12;fontStyle=1;shadow=1;" value="ACM ZTP Install" vertex="1">
+          <mxGeometry height="50" width="170" x="880" y="820" as="geometry" />
+        </mxCell>
+        <mxCell id="e_dc_ipi" edge="1" parent="1" source="dc_size" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;entryX=0;entryY=0.25;entryDx=0;entryDy=0;" target="ipi">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="840" y="745" />
+              <mxPoint x="840" y="833" />
+              <mxPoint x="880" y="833" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_cdf_ipi" edge="1" parent="1" source="cdf_size" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="ipi">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_edge_ztp" edge="1" parent="1" source="edge_size" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;entryX=0;entryY=0.75;entryDx=0;entryDy=0;" target="ipi">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="840" y="920" />
+              <mxPoint x="840" y="857" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="boot" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e9f7df;strokeColor=#63993d;fontSize=11;fontStyle=1;shadow=1;" value="Day 0-1&#xa;Install" vertex="1">
+          <mxGeometry height="50" width="170" x="880" y="920" as="geometry" />
+        </mxCell>
+        <mxCell id="e_ipi_boot" edge="1" parent="1" source="ipi" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;exitX=0.5;exitY=1;" target="boot">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="node_join" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e9f7df;strokeColor=#63993d;fontSize=11;shadow=1;" value="Nodes Join Cluster" vertex="1">
+          <mxGeometry height="40" width="150" x="890" y="1020" as="geometry" />
+        </mxCell>
+        <mxCell id="e_boot_join" edge="1" parent="1" source="boot" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" target="node_join">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="gate0" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#63993d;fontColor=#FFFFFF;strokeColor=#3d7317;fontSize=12;fontStyle=1;arcSize=50;shadow=1;" value="Gate 1&#xa;Cluster API Reachable" vertex="1">
+          <mxGeometry height="60" width="210" x="860" y="1120" as="geometry" />
+        </mxCell>
+        <mxCell id="e_join_gate" edge="1" parent="1" source="node_join" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="gate0">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="965" y="1130" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

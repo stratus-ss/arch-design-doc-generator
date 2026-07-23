@@ -1,0 +1,109 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.0.3 Chrome/140.0.7339.249 Electron/38.7.2 Safari/537.36" version="29.0.3">
+  <diagram name="GitOps and Automation" id="gitops-1">
+    <mxGraphModel dx="2066" dy="1244" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="GitOps &amp; Automation Architecture" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=18;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="200" y="10" width="400" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="gh-policies" value="Policies Repo" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="30" y="90" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="gh-siteconfig" value="SiteConfig Repo" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="200" y="90" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="gh-appmanifests" value="App Manifests" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="370" y="90" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="gh-installconfig" value="install-config Repo" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="540" y="90" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="gh-label" value="Git Platform (Source of Truth)" style="text;html=1;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="230" y="60" width="250" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="cyberark" value="Secrets Vault" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="710" y="90" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="argocd" value="Argo CD" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="180" y="230" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="aap" value="AAP" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="540" y="230" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e-pol-argo" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1;" edge="1" parent="1" source="gh-policies" target="argocd">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-site-argo" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1;" edge="1" parent="1" source="gh-siteconfig" target="argocd">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-app-argo" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1;" edge="1" parent="1" source="gh-appmanifests" target="argocd">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-ic-aap" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1;" edge="1" parent="1" source="gh-installconfig" target="aap">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-cyberark-aap" value="secrets" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;fontSize=10;" edge="1" parent="1" source="cyberark" target="aap">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="aap-ztp" value="ZTP Bridge" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="560" y="320" width="140" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="aap-ipi" value="IPI Workflow" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="560" y="370" width="140" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="aap-curator" value="ClusterCurator Hooks" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="560" y="420" width="140" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="e-aap-ztp" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1;" edge="1" parent="1" source="aap" target="aap-ztp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-aap-ipi" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1;" edge="1" parent="1" source="aap" target="aap-ipi">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-aap-curator" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1;" edge="1" parent="1" source="aap" target="aap-curator">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-ztp-gh" value="push SiteConfigs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;fontSize=10;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="aap-ztp" target="gh-siteconfig">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="430" y="338" />
+              <mxPoint x="430" y="165" />
+              <mxPoint x="340" y="165" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="acm-hub" value="ACM Hub (Primary)" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#A20025;fontColor=#ffffff;strokeColor=#6F0000;" vertex="1" parent="1">
+          <mxGeometry x="260" y="520" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e-argo-acm" value="apply CRs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;fontSize=10;" edge="1" parent="1" source="argocd" target="acm-hub">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-ipi-acm" value="register" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1;fontSize=10;" edge="1" parent="1" source="aap-ipi" target="acm-hub">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dc-clusters" value="DC (N)" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="110" y="680" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="tier2-clusters" value="Tier 2 Site (4)" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="300" y="680" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="tier 3 site-clusters" value="Tier 3 (N)" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="490" y="680" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="e-acm-dc" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;" edge="1" parent="1" source="acm-hub" target="dc-clusters">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-acm-tier2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;" edge="1" parent="1" source="acm-hub" target="tier2-clusters">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-acm-br" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;" edge="1" parent="1" source="acm-hub" target="tier 3 site-clusters">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-label" value="policies + apps + upgrades" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=2;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="230" y="630" width="200" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

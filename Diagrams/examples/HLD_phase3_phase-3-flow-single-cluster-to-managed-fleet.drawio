@@ -1,0 +1,67 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.6.6 Chrome/144.0.7559.236 Electron/40.8.4 Safari/537.36" version="29.6.6">
+  <diagram id="phase3-fleet-ops-flow" name="Phase 3 Fleet Operations Flow">
+    <mxGraphModel dx="400" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="320" pageHeight="650" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="g1" parent="1" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#EE0000;fontColor=#FFFFFF;strokeColor=#CC0000;fontSize=11;fontStyle=1;shadow=1" value="Gate 2 (Platform Configured)" vertex="1">
+          <mxGeometry height="36" width="280" x="20" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="p1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=10;fontStyle=1;shadow=1" value="Register Clusters&lt;br&gt;with Split ACM Hubs" vertex="1">
+          <mxGeometry height="40" width="280" x="20" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="p1b" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=10;fontStyle=1;shadow=1" value="Bootstrap ArgoCD&lt;br&gt;via ACM Label Policy" vertex="1">
+          <mxGeometry height="40" width="280" x="20" y="144" as="geometry" />
+        </mxCell>
+        <mxCell id="p2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=10;fontStyle=1;shadow=1" value="Configure GitOps Delivery&lt;br&gt;ArgoCD App-of-Apps + ACM Operator Policies" vertex="1">
+          <mxGeometry height="40" width="280" x="20" y="208" as="geometry" />
+        </mxCell>
+        <mxCell id="p3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=10;fontStyle=1;shadow=1" value="Define Upgrade Strategy&lt;br&gt;Canary + Staged Rollout" vertex="1">
+          <mxGeometry height="40" width="280" x="20" y="272" as="geometry" />
+        </mxCell>
+        <mxCell id="p4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=10;fontStyle=1;shadow=1" value="Configure Remediation&lt;br&gt;SNR + FAR + NMO" vertex="1">
+          <mxGeometry height="40" width="280" x="20" y="336" as="geometry" />
+        </mxCell>
+        <mxCell id="p5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=10;fontStyle=1;shadow=1" value="Configure Compute&lt;br&gt;Scheduling + Eviction + Capacity" vertex="1">
+          <mxGeometry height="40" width="280" x="20" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="p6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=10;fontStyle=1;shadow=1" value="Deploy Multicluster&lt;br&gt;Observability" vertex="1">
+          <mxGeometry height="40" width="280" x="20" y="464" as="geometry" />
+        </mxCell>
+        <mxCell id="p7" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=10;fontStyle=1;shadow=1" value="Operationalize Fleet&lt;br&gt;Compliance" vertex="1">
+          <mxGeometry height="40" width="280" x="20" y="528" as="geometry" />
+        </mxCell>
+        <mxCell id="g2" parent="1" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#EE0000;fontColor=#FFFFFF;strokeColor=#CC0000;fontSize=11;fontStyle=1;shadow=1" value="Gate 3 (Fleet Managed)" vertex="1">
+          <mxGeometry height="36" width="280" x="20" y="592" as="geometry" />
+        </mxCell>
+        <mxCell id="e01" edge="1" parent="1" source="g1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515" target="p1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e02" edge="1" parent="1" source="p1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515" target="p1b">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e02b" edge="1" parent="1" source="p1b" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515" target="p2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e03" edge="1" parent="1" source="p2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515" target="p3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e04" edge="1" parent="1" source="p3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515" target="p4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e05" edge="1" parent="1" source="p4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515" target="p5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e06" edge="1" parent="1" source="p5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515" target="p6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e07" edge="1" parent="1" source="p6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515" target="p7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e08" edge="1" parent="1" source="p7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515" target="g2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

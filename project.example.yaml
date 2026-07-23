@@ -1,0 +1,73 @@
+client_name: "{CLIENT}"
+# Set via: make setup CLIENT="Example Client" PROJECT="YOUR-CODE"
+project_code: "OCP-V"
+document_title_hld: "{CLIENT} OpenShift Virtualization — HLD"
+document_title_lld: "{CLIENT} OpenShift Virtualization — LLD"
+
+brand:
+  primary_color: "#003366"
+  secondary_color: "#005195"
+  header_font: '"Carlito", "Helvetica Neue", Arial, sans-serif'
+  code_font: '"Adwaita Mono", "Consolas", "Courier New", monospace'
+  footer_text: "Internal — Confidential"
+
+phases:
+  - id: phase1
+    name: "Foundation"
+    dir_name: "Phase1_Foundation"
+    lld_file: "{CLIENT_PREFIX}_OCP-V_LLD_Phase1_Foundation.md"
+  - id: phase1-hub
+    name: "Foundation — ACM Hub Deployment"
+    dir_name: "Phase1_ACM_Hub_Deployment"
+    lld_file: "{CLIENT_PREFIX}_OCP-V_LLD_Phase1_ACM_Hub_Deployment.md"
+  - id: phase2
+    name: "Platform Build"
+    dir_name: "Phase2_Platform_Build"
+    lld_file: "{CLIENT_PREFIX}_OCP-V_LLD_Phase2_Platform_Build.md"
+  - id: phase3
+    name: "Fleet Operations"
+    dir_name: "Phase3_Fleet_Operations"
+    lld_file: "{CLIENT_PREFIX}_OCP-V_LLD_Phase3_Fleet_Operations.md"
+  - id: phase4
+    name: "Migration"
+    dir_name: "Phase4_Migration"
+    lld_file: "{CLIENT_PREFIX}_OCP-V_LLD_Phase4_Migration.md"
+
+hld:
+  phase_files:
+    - "{CLIENT_PREFIX}_OCP-V_HLD_DecisionJourney_phase1.md"
+    - "{CLIENT_PREFIX}_OCP-V_HLD_DecisionJourney_phase2.md"
+    - "{CLIENT_PREFIX}_OCP-V_HLD_DecisionJourney_phase3.md"
+    - "{CLIENT_PREFIX}_OCP-V_HLD_DecisionJourney_phase4.md"
+  combined_files:
+    - "{CLIENT_PREFIX}_OCP-V_HLD_DecisionJourney_combined.md"
+    - "Template_OCP-V_HLD_DecisionJourney_combined.md"
+  summary_map:
+    Main:
+      summary: "{CLIENT_PREFIX}_summary.md"
+      output: "{CLIENT_PREFIX}_OCP-V_HLD_DecisionJourney_combined.md"
+    Template:
+      summary: "Template_summary.md"
+      output: "Template_OCP-V_HLD_DecisionJourney_combined.md"
+
+lld:
+  combined_file: "{CLIENT_PREFIX}_OCP-V_LLD_Combined.md"
+  combined_title: "{CLIENT} OpenShift Virtualization — Low-Level Design (Combined)"
+
+diagrams:
+  phase_dirs:
+    - "phase1"
+    - "phase1-hub"
+    - "phase2"
+    - "phase3"
+    - "phase4"
+  top_level_patterns:
+    - "HLD_*.drawio"
+    - "Migration_*.drawio"
+
+paths:
+  venv: "./venv"
+  diagrams: "./Diagrams"
+  hld_markdown: "./HLD/markdown_files"
+  lld: "./LLD"
+  work_items: "./Work_Items"

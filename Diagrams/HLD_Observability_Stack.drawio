@@ -1,0 +1,156 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.0.3 Chrome/140.0.7339.249 Electron/38.7.2 Safari/537.36" version="29.0.3">
+  <diagram name="Observability Stack" id="obs-1">
+    <mxGraphModel dx="2066" dy="1244" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="Observability &amp; Monitoring Architecture" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=18;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="180" y="10" width="460" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="spoke-box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="30" y="70" width="350" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="spoke-title" value="Per Managed Cluster (N)" style="text;html=1;align=left;verticalAlign=middle;fontSize=13;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="40" y="75" width="230" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="prom" value="Prometheus" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#A20025;fontColor=#ffffff;strokeColor=#6F0000;" vertex="1" parent="1">
+          <mxGeometry x="60" y="120" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="metrics-col" value="Metrics Collector" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#A20025;fontColor=#ffffff;strokeColor=#6F0000;" vertex="1" parent="1">
+          <mxGeometry x="220" y="120" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="log-col" value="Log Collector" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="60" y="190" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="klusterlet" value="Klusterlet Agent" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="220" y="190" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="spoke-note" value="Metrics forwarded to hub via Klusterlet (outbound pull)" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;strokeColor=none;fillColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="50" y="250" width="310" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="spoke-note2" value="OCP-V dashboards: per-VM CPU/mem/disk/net" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;strokeColor=none;fillColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="50" y="275" width="310" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="e-prom-mc" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1;" edge="1" parent="1" source="prom" target="metrics-col">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hub-box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#6F0000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="30" y="410" width="770" height="300" as="geometry" />
+        </mxCell>
+        <mxCell id="hub-title" value="ACM Hub - Multicluster Observability" style="text;html=1;align=left;verticalAlign=middle;fontSize=13;fontStyle=1;strokeColor=none;fillColor=none;fontColor=#6F0000;" vertex="1" parent="1">
+          <mxGeometry x="40" y="415" width="320" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="thanos-receive" value="Thanos Receive" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#A20025;fontColor=#ffffff;strokeColor=#6F0000;" vertex="1" parent="1">
+          <mxGeometry x="60" y="460" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="thanos-query" value="Thanos Query" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#A20025;fontColor=#ffffff;strokeColor=#6F0000;" vertex="1" parent="1">
+          <mxGeometry x="230" y="460" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="thanos-store" value="Thanos Store" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#A20025;fontColor=#ffffff;strokeColor=#6F0000;" vertex="1" parent="1">
+          <mxGeometry x="400" y="460" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="thanos-compact" value="Thanos Compactor" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#A20025;fontColor=#ffffff;strokeColor=#6F0000;" vertex="1" parent="1">
+          <mxGeometry x="570" y="460" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="grafana" value="Grafana" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#c92d39;fontColor=#ffffff;strokeColor=#6F0000;" vertex="1" parent="1">
+          <mxGeometry x="60" y="540" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="grafana-detail" value="OCP + OCP-V Dashboards&#xa;Perses (ACM 2.16)" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="60" y="595" width="200" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="loki" value="Loki" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#c92d39;fontColor=#ffffff;strokeColor=#6F0000;" vertex="1" parent="1">
+          <mxGeometry x="310" y="540" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="loki-detail" value="3-day local retention" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="310" y="595" width="140" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="netobserv" value="NetObserv" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="500" y="540" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="netobserv-detail" value="Network flow visibility&#xa;(ACM 2.16)" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="500" y="595" width="140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="hub-note" value="Single pane of glass: all N clusters visible from one Grafana" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;strokeColor=none;fillColor=none;fontColor=#6F0000;" vertex="1" parent="1">
+          <mxGeometry x="60" y="680" width="380" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="e-mc-thanos" value="metrics" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;fontSize=10;" edge="1" parent="1" source="metrics-col" target="thanos-receive">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-log-loki" value="logs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;fontSize=10;" edge="1" parent="1" source="log-col" target="loki">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-receive-query" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1;" edge="1" parent="1" source="thanos-receive" target="thanos-query">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-query-store" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1;" edge="1" parent="1" source="thanos-query" target="thanos-store">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-store-compact" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1;" edge="1" parent="1" source="thanos-store" target="thanos-compact">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-query-grafana" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;" edge="1" parent="1" source="thanos-query" target="grafana">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="icos" value="Object Storage (Primary)" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#f0a30a;strokeColor=#BD7000;" vertex="1" parent="1">
+          <mxGeometry x="460" y="770" width="180" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="icos-detail" value="Thanos long-term storage&#xa;Loki archive" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="460" y="815" width="180" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="e-store-icos" value="long-term" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1;fontSize=10;" edge="1" parent="1" source="thanos-store" target="icos">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-loki-icos" value="archive" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1;fontSize=10;" edge="1" parent="1" source="loki" target="icos">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="460" y="70" width="340" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-title" value="External Integrations" style="text;html=1;align=left;verticalAlign=middle;fontSize=13;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="470" y="75" width="200" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="splunk" value="Log Aggregation Platform" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="490" y="120" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="splunk-detail" value="Log aggregation" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="490" y="165" width="140" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="moogsoft" value="AIOps/Event Platform" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="660" y="120" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="moogsoft-detail" value="AIOps / Alerting" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="660" y="165" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="aria-note" value="Replaces: Legacy monitoring tools" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;strokeColor=none;fillColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="490" y="210" width="280" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="acm-note" value="ACM Multicluster Observability provides&#xa;native Grafana replacement for Legacy monitoring" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;strokeColor=none;fillColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="490" y="240" width="280" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="kubevirt-note" value="OCP-V VM dashboards since ACM 2.12" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;strokeColor=none;fillColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="490" y="275" width="280" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="e-grafana-splunk" value="logs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;fontSize=10;" edge="1" parent="1" source="grafana" target="splunk">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="160" y="740" />
+              <mxPoint x="170" y="740" />
+              <mxPoint x="170" y="380" />
+              <mxPoint x="560" y="380" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-grafana-moog" value="alerts" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;fontSize=10;" edge="1" parent="1" source="grafana" target="moogsoft">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="160" y="740" />
+              <mxPoint x="170" y="740" />
+              <mxPoint x="170" y="370" />
+              <mxPoint x="720" y="370" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

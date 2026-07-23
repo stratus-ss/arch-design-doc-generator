@@ -1,0 +1,59 @@
+# ── Project config (generated per-client, never committed) ──────────
+project.yaml
+
+# ── Client ADR files (generated per-engagement, never committed) ─────
+ADR/ADR_*.md
+!ADR/ADR_template.md
+!ADR/ADR_EXAMPLE.md
+
+# ── Build output ─────────────────────────────────────────────────────
+output/
+HLD/PDFs/
+LLD/PDFs/
+LLD/diagrams/
+HLD/diagrams/
+HLD/READOUT/
+Work_Items/
+Drawio_*.md
+*_combined_deterministic.md
+*.pdf
+
+# ── Diagram phase directories (seeded by make setup, not source) ─────
+Diagrams/phase1/
+Diagrams/phase2/
+Diagrams/phase3/
+Diagrams/phase4/
+# Keep examples — they are source-controlled
+!Diagrams/examples/
+
+# ── Exported PNGs (generated, not source) ────────────────────────────
+*.png
+
+# ── AI pipeline runtime state ────────────────────────────────────────
+drafts/
+drafts_deterministic/
+.deterministic/
+.cursor-sdk-venv/
+
+# ── Python ───────────────────────────────────────────────────────────
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.eggs/
+
+# ── Node ─────────────────────────────────────────────────────────────
+node_modules/
+dist/
+
+# ── OS ───────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Editor ───────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.cursor/

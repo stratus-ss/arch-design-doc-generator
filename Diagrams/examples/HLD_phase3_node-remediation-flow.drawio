@@ -1,0 +1,63 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.6.6 Chrome/144.0.7559.236 Electron/40.8.4 Safari/537.36" version="29.6.6">
+  <diagram id="phase3-node-remediation-flow" name="Phase 3 Node Remediation Flow">
+    <mxGraphModel dx="1424" dy="962" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="560" pageHeight="600" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="rm_nhc" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#F0AB00;fontColor=#151515;strokeColor=#C98A00;fontSize=11;fontStyle=1;shadow=1;" value="NodeHealthCheck&lt;br&gt;Detects unhealthy node" vertex="1">
+          <mxGeometry height="56" width="200" x="150" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="rm_snr" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=11;fontStyle=1;shadow=1;" value="Self Node Remediation&lt;br&gt;Software reboot via watchdog" vertex="1">
+          <mxGeometry height="56" width="200" x="150" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="rm_decision" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#F0AB00;fontColor=#151515;strokeColor=#C98A00;fontSize=10;fontStyle=1;" value="Node recovered&lt;br&gt;within timeout?" vertex="1">
+          <mxGeometry height="80" width="140" x="180" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="rm_rejoin" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#3E8635;fontColor=#FFFFFF;strokeColor=#2D6626;fontSize=11;fontStyle=1;shadow=1;" value="Node Rejoins Cluster" vertex="1">
+          <mxGeometry height="50" width="170" x="10" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="rm_drain" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=11;fontStyle=1;shadow=1;" value="Drain + Verify&lt;br&gt;Workload Balance" vertex="1">
+          <mxGeometry height="56" width="170" x="10" y="390" as="geometry" />
+        </mxCell>
+        <mxCell id="rm_esc" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#F0AB00;fontColor=#151515;strokeColor=#C98A00;fontSize=11;fontStyle=1;shadow=1;" value="NHC Escalates" vertex="1">
+          <mxGeometry height="50" width="170" x="340" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="rm_far" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=11;fontStyle=1;shadow=1;" value="Fence Agents Remediation&lt;br&gt;Hardware Manager BMC power-cycle" vertex="1">
+          <mxGeometry height="56" width="200" x="325" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="rm_vmsched" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=11;fontStyle=1;shadow=1;" value="VMs Rescheduled by KubeVirt" vertex="1">
+          <mxGeometry height="50" width="200" x="325" y="470" as="geometry" />
+        </mxCell>
+        <mxCell id="rm_vmrun" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#3E8635;fontColor=#FFFFFF;strokeColor=#2D6626;fontSize=11;fontStyle=1;shadow=1;" value="VMs Running on Healthy Nodes" vertex="1">
+          <mxGeometry height="50" width="200" x="325" y="540" as="geometry" />
+        </mxCell>
+        <mxCell id="rm_e1" edge="1" parent="1" source="rm_nhc" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515;endArrow=block;endFill=1;" target="rm_snr" value="order 0">
+          <mxGeometry relative="1" x="0.0909" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rm_e1b" edge="1" parent="1" source="rm_snr" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515;endArrow=block;endFill=1;" target="rm_decision">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rm_e2" edge="1" parent="1" source="rm_decision" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515;endArrow=block;endFill=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" target="rm_rejoin" value="Yes">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rm_e3" edge="1" parent="1" source="rm_decision" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" target="rm_esc" value="No">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rm_e4" edge="1" parent="1" source="rm_esc" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515;endArrow=block;endFill=1;" target="rm_far" value="order 1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rm_e5" edge="1" parent="1" source="rm_far" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515;endArrow=block;endFill=1;" target="rm_vmsched" value="node fenced">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rm_e6" edge="1" parent="1" source="rm_vmsched" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515;endArrow=block;endFill=1;" target="rm_vmrun">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rm_e7" edge="1" parent="1" source="rm_rejoin" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515;endArrow=block;endFill=1;" target="rm_drain">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

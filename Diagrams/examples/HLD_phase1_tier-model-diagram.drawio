@@ -1,0 +1,82 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.6.6 Chrome/144.0.7559.236 Electron/40.8.4 Safari/537.36" version="29.6.6">
+  <diagram id="tier-model" name="Deployment Tier Model">
+    <mxGraphModel dx="1424" dy="962" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="800" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" value="Deployment Tier Model" vertex="1">
+          <mxGeometry height="40" width="400" x="380" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="hubs" parent="1" style="swimlane;startSize=30;fillColor=#f2f2f2;strokeColor=#c7c7c7;rounded=1;arcSize=8;fontStyle=1;fontSize=13;container=1;collapsible=0;pointerEvents=0;" value="Split ACM Hubs" vertex="1">
+          <mxGeometry height="130" width="760" x="200" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="hub_dc" parent="hubs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ee0000;fontColor=#FFFFFF;strokeColor=#a60000;fontSize=12;fontStyle=1;shadow=1;" value="ACM Hub&#xa;Tier 1/Tier 2" vertex="1">
+          <mxGeometry height="60" width="200" x="30" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="hub_br" parent="hubs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ee0000;fontColor=#FFFFFF;strokeColor=#a60000;fontSize=12;fontStyle=1;shadow=1;" value="ACM Hub&#xa;Tier 3 sites" vertex="1">
+          <mxGeometry height="60" width="200" x="540" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="hub_sb" parent="hubs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ee0000;fontColor=#FFFFFF;strokeColor=#a60000;fontSize=12;fontStyle=1;shadow=1;" value="ACM Hub&#xa;Sandbox/Lab" vertex="1">
+          <mxGeometry height="60" width="200" x="280" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="dc" parent="1" style="swimlane;startSize=30;fillColor=#e0f0ff;strokeColor=#0066cc;rounded=1;arcSize=8;fontStyle=1;fontSize=13;container=1;collapsible=0;pointerEvents=0;" value="Tier 1" vertex="1">
+          <mxGeometry height="250" width="340" x="10" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="dc_cp" parent="dc" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;strokeColor=#0066cc;fontSize=11;fontStyle=1;shadow=1;" value="3 Control Plane&#xa;(schedulable)" vertex="1">
+          <mxGeometry height="60" width="140" x="20" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="dc_w" parent="dc" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;strokeColor=#0066cc;fontSize=11;fontStyle=1;shadow=1;" value="16+ Workers" vertex="1">
+          <mxGeometry height="60" width="140" x="180" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="dc_odf" parent="dc" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e9f7df;strokeColor=#63993d;fontSize=11;fontStyle=1;shadow=1;" value="Object Storage&lt;div&gt;&lt;br/&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="60" width="180" x="80" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="e_dccp_odf" edge="1" parent="dc" source="dc_cp" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="dc_odf">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_dcw_odf" edge="1" parent="dc" source="dc_w" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="dc_odf">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="reg" parent="1" style="swimlane;startSize=30;fillColor=#e9f7df;strokeColor=#63993d;rounded=1;arcSize=8;fontStyle=1;fontSize=13;container=1;collapsible=0;pointerEvents=0;" value="Regional / Tier 2 Site Tier" vertex="1">
+          <mxGeometry height="250" width="340" x="400" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="r_cp" parent="reg" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e9f7df;strokeColor=#63993d;fontSize=11;fontStyle=1;shadow=1;" value="3 Control Plane&#xa;(schedulable)" vertex="1">
+          <mxGeometry height="60" width="140" x="20" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r_w" parent="reg" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e9f7df;strokeColor=#63993d;fontSize=11;fontStyle=1;shadow=1;" value="Variable Workers" vertex="1">
+          <mxGeometry height="60" width="140" x="180" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r_odf" parent="reg" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e9f7df;strokeColor=#63993d;fontSize=11;fontStyle=1;shadow=1;" value="Object Storage" vertex="1">
+          <mxGeometry height="60" width="180" x="80" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="e_rcp_odf" edge="1" parent="reg" source="r_cp" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="r_odf">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_rw_odf" edge="1" parent="reg" source="r_w" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="r_odf">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_tier" parent="1" style="swimlane;startSize=30;fillColor=#ffe8cc;strokeColor=#f5921b;rounded=1;arcSize=8;fontStyle=1;fontSize=13;container=1;collapsible=0;pointerEvents=0;" value="Tier 3" vertex="1">
+          <mxGeometry height="170" width="340" x="770" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="e_n1" parent="edge_tier" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe8cc;strokeColor=#f5921b;fontSize=10;fontStyle=1;shadow=1;" value="Node 1&#xa;CP + Worker + ODF" vertex="1">
+          <mxGeometry height="70" width="100" x="15" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="e_n2" parent="edge_tier" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe8cc;strokeColor=#f5921b;fontSize=10;fontStyle=1;shadow=1;" value="Node 2&#xa;CP + Worker + ODF" vertex="1">
+          <mxGeometry height="70" width="100" x="125" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="e_n3" parent="edge_tier" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe8cc;strokeColor=#f5921b;fontSize=10;fontStyle=1;shadow=1;" value="Node 3&#xa;CP + Worker + ODF" vertex="1">
+          <mxGeometry height="70" width="100" x="235" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="e_hubdc_dc" edge="1" parent="1" source="hub_dc" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontSize=10;curved=1;" target="dc" value="ACM ZTP">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_hubdc_reg" edge="1" parent="1" source="hub_dc" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontSize=10;curved=1;" target="reg" value="ACM ZTP">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="M4UFh4L8vGoVR4hSFnus-2" edge="1" parent="1" source="hub_br" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;fontSize=10;curved=1;" target="edge_tier" value="ACM ZTP">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

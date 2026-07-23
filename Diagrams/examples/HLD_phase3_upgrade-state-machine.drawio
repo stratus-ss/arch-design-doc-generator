@@ -1,0 +1,87 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.6.6 Chrome/144.0.7559.236 Electron/40.8.4 Safari/537.36" version="29.6.6">
+  <diagram id="phase3-upgrade-state-machine" name="Upgrade State Machine">
+    <mxGraphModel dx="705" dy="964" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="600" pageHeight="620" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;fontSize=14;fontStyle=1;align=center;verticalAlign=middle;whiteSpace=wrap;" value=" OCP-V Upgrade State Machine" vertex="1">
+          <mxGeometry height="25" width="300" x="80" y="5" as="geometry" />
+        </mxCell>
+        <mxCell id="sm_start" parent="1" style="ellipse;fillColor=#1D1B20;strokeColor=#1D1B20;aspect=fixed;" value="" vertex="1">
+          <mxGeometry height="24" width="24" x="158" y="35" as="geometry" />
+        </mxCell>
+        <mxCell id="sm_plan" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=40;fillColor=#E8DEF8;strokeColor=#7C5CAD;fontSize=12;fontStyle=1;shadow=1;fontColor=#1D1B20;" value="Planning" vertex="1">
+          <mxGeometry height="40" width="140" x="100" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="sm_stage" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=40;fillColor=#E8DEF8;strokeColor=#7C5CAD;fontSize=12;fontStyle=1;shadow=1;fontColor=#1D1B20;" value="Staging" vertex="1">
+          <mxGeometry height="40" width="140" x="100" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="sm_canary" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=40;fillColor=#E8DEF8;strokeColor=#7C5CAD;fontSize=12;fontStyle=1;shadow=1;fontColor=#1D1B20;" value="CanaryUpgrade" vertex="1">
+          <mxGeometry height="40" width="140" x="100" y="220" as="geometry" />
+        </mxCell>
+        <mxCell id="sm_verify" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=40;fillColor=#E8DEF8;strokeColor=#7C5CAD;fontSize=12;fontStyle=1;shadow=1;fontColor=#1D1B20;" value="Verifying" vertex="1">
+          <mxGeometry height="40" width="140" x="100" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="sm_tier" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=40;fillColor=#E8DEF8;strokeColor=#7C5CAD;fontSize=12;fontStyle=1;shadow=1;fontColor=#1D1B20;" value="TierBatch" vertex="1">
+          <mxGeometry height="40" width="140" x="100" y="370" as="geometry" />
+        </mxCell>
+        <mxCell id="sm_verify2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=40;fillColor=#E8DEF8;strokeColor=#7C5CAD;fontSize=12;fontStyle=1;shadow=1;fontColor=#1D1B20;" value="Verifying2" vertex="1">
+          <mxGeometry height="40" width="140" x="100" y="445" as="geometry" />
+        </mxCell>
+        <mxCell id="sm_complete" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=40;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;fontStyle=1;shadow=1;fontColor=#1D1B20;" value="Complete" vertex="1">
+          <mxGeometry height="40" width="140" x="100" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="sm_rollback" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=40;fillColor=#F8CECC;strokeColor=#B85450;fontSize=12;fontStyle=1;shadow=1;fontColor=#1D1B20;" value="Rollback If Possible" vertex="1">
+          <mxGeometry height="40" width="120" x="380" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="sm_pause" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=40;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;fontStyle=1;shadow=1;fontColor=#1D1B20;" value="Pause" vertex="1">
+          <mxGeometry height="40" width="120" x="370" y="445" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="sm_start" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;" target="sm_plan" value="Upgrade available">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="sm_plan" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;" target="sm_stage" value="Change advisory approved">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="sm_stage" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;" target="sm_canary" value="Apply to canary cluster">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="sm_canary" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;" target="sm_verify" value="Nodes rebooting + VMs migrating">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="sm_verify" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="sm_tier" value="Canary checks pass">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="sm_verify" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="sm_rollback" value="Canary checks fail">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="sm_tier" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;" target="sm_verify2" value="Tier 1 then Tier 2 then Tier 3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="sm_verify2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="sm_complete" value="All clusters green">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" edge="1" parent="1" source="sm_verify2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="sm_pause" value="Issue detected">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" edge="1" parent="1" source="sm_pause" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="sm_tier" value="Resume after fix">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="540" y="465" />
+              <mxPoint x="540" y="390" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e11" edge="1" parent="1" source="sm_rollback" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="sm_plan" value="Investigate + retry">
+          <mxGeometry relative="1" x="0.4718" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="530" y="310" />
+              <mxPoint x="530" y="100" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

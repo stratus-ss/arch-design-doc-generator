@@ -1,0 +1,112 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.6.6 Chrome/144.0.7559.236 Electron/40.8.4 Safari/537.36" version="29.6.6">
+  <diagram id="phase3-spoke-bootstrap-flow" name="Spoke Cluster Bootstrap Flow">
+    <mxGraphModel dx="1663" dy="962" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1040" pageHeight="780" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="p_acm" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EE0000;fontColor=#FFFFFF;strokeColor=#A60000;fontSize=12;fontStyle=1;shadow=1;" value="ACM Hub" vertex="1">
+          <mxGeometry height="50" width="140" x="50" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="p_spoke" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EE0000;fontColor=#FFFFFF;strokeColor=#A60000;fontSize=12;fontStyle=1;shadow=1;" value="New Spoke Cluster" vertex="1">
+          <mxGeometry height="50" width="160" x="320" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="p_argo" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EE0000;fontColor=#FFFFFF;strokeColor=#A60000;fontSize=12;fontStyle=1;shadow=1;" value="ArgoCD on Hub" vertex="1">
+          <mxGeometry height="50" width="160" x="580" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="p_git" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EE0000;fontColor=#FFFFFF;strokeColor=#A60000;fontSize=12;fontStyle=1;shadow=1;" value="Git Repo" vertex="1">
+          <mxGeometry height="50" width="140" x="830" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="ll_acm" edge="1" parent="1" style="endArrow=none;startArrow=none;dashed=1;html=1;strokeWidth=3;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#C7C7C7;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="120" y="100" as="sourcePoint" />
+            <mxPoint x="120" y="680" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll_spoke" edge="1" parent="1" style="endArrow=none;startArrow=none;dashed=1;html=1;strokeWidth=3;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#C7C7C7;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="400" y="100" as="sourcePoint" />
+            <mxPoint x="400" y="680" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll_argo" edge="1" parent="1" style="endArrow=none;startArrow=none;dashed=1;html=1;strokeWidth=3;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#C7C7C7;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="660" y="100" as="sourcePoint" />
+            <mxPoint x="660" y="680" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll_git" edge="1" parent="1" style="endArrow=none;startArrow=none;dashed=1;html=1;strokeWidth=3;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#C7C7C7;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="900" y="100" as="sourcePoint" />
+            <mxPoint x="900" y="680" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m1" edge="1" parent="1" style="endArrow=block;endFill=1;html=1;strokeWidth=2;strokeColor=#EE0000;fontColor=#151515;" value="&lt;b&gt;Install via site config&lt;/b&gt;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="120" y="140" as="sourcePoint" />
+            <mxPoint x="390" y="140" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m2" edge="1" parent="1" style="endArrow=block;endFill=1;html=1;strokeWidth=2;strokeColor=#EE0000;fontColor=#151515;" value="&lt;b&gt;Check in with labels&lt;/b&gt;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="390" y="200" as="sourcePoint" />
+            <mxPoint x="120" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m3" edge="1" parent="1" style="endArrow=block;endFill=1;html=1;strokeWidth=2;strokeColor=#EE0000;fontColor=#151515;" value="&lt;b&gt;Label-triggered policy deploys ArgoCD Agent&lt;/b&gt;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="120" y="260" as="sourcePoint" />
+            <mxPoint x="400" y="260" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m4" edge="1" parent="1" style="endArrow=block;endFill=1;html=1;strokeWidth=2;strokeColor=#EE0000;fontColor=#151515;" value="&lt;b&gt;ArgoCD Agent registers with hub Argo&lt;/b&gt;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="400" y="320" as="sourcePoint" />
+            <mxPoint x="660" y="320" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m5" edge="1" parent="1" style="endArrow=block;endFill=1;html=1;strokeWidth=2;strokeColor=#EE0000;fontColor=#151515;" value="&lt;b&gt;Pull cluster + group config&lt;/b&gt;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="660" y="380" as="sourcePoint" />
+            <mxPoint x="900" y="380" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m6" edge="1" parent="1" style="endArrow=open;dashed=1;html=1;strokeWidth=2;strokeColor=#4D4D4D;fontColor=#151515;" value="&lt;b&gt;App-of-apps manifests&lt;/b&gt;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="900" y="440" as="sourcePoint" />
+            <mxPoint x="660" y="440" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m7" edge="1" parent="1" style="endArrow=block;endFill=1;html=1;strokeWidth=2;strokeColor=#EE0000;fontColor=#151515;" value="&lt;b&gt;Deploy Day 2 configuration&lt;/b&gt;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="660" y="500" as="sourcePoint" />
+            <mxPoint x="400" y="500" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m8" edge="1" parent="1" style="endArrow=block;endFill=1;html=1;strokeWidth=2;strokeColor=#EE0000;fontColor=#151515;" value="&lt;b&gt;Operator Policies enforce operator versions&lt;/b&gt;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="120" y="560" as="sourcePoint" />
+            <mxPoint x="400" y="560" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m9" edge="1" parent="1" style="endArrow=block;endFill=1;html=1;strokeWidth=2;strokeColor=#EE0000;fontColor=#151515;" value="&lt;b&gt;Governance policies enforce compliance&lt;/b&gt;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="120" y="620" as="sourcePoint" />
+            <mxPoint x="400" y="620" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pb_acm" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EE0000;fontColor=#FFFFFF;strokeColor=#A60000;fontSize=12;fontStyle=1;shadow=1;" value="ACM Hub" vertex="1">
+          <mxGeometry height="50" width="140" x="50" y="680" as="geometry" />
+        </mxCell>
+        <mxCell id="pb_spoke" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EE0000;fontColor=#FFFFFF;strokeColor=#A60000;fontSize=12;fontStyle=1;shadow=1;" value="New Spoke Cluster" vertex="1">
+          <mxGeometry height="50" width="160" x="320" y="680" as="geometry" />
+        </mxCell>
+        <mxCell id="pb_argo" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EE0000;fontColor=#FFFFFF;strokeColor=#A60000;fontSize=12;fontStyle=1;shadow=1;" value="ArgoCD on Hub" vertex="1">
+          <mxGeometry height="50" width="160" x="580" y="680" as="geometry" />
+        </mxCell>
+        <mxCell id="pb_git" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EE0000;fontColor=#FFFFFF;strokeColor=#A60000;fontSize=12;fontStyle=1;shadow=1;" value="Git Repo" vertex="1">
+          <mxGeometry height="50" width="140" x="830" y="680" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

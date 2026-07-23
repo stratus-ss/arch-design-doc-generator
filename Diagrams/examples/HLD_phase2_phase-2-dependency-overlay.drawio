@@ -1,0 +1,94 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.6.6 Chrome/144.0.7559.236 Electron/40.8.4 Safari/537.36" version="29.6.6">
+  <diagram id="phase2-dep" name="Phase 2 Dependency Overlay">
+    <mxGraphModel dx="1424" dy="962" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="1000" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="layer_top" parent="1" style="swimlane;startSize=32;rounded=1;whiteSpace=wrap;html=1;container=1;collapsible=0;pointerEvents=0;fillColor=#FBC5C5;strokeColor=#EE0000;fontColor=#151515;fontSize=12;fontStyle=1;shadow=1;" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;Phase 2 Capabilities&lt;/font&gt;" vertex="1">
+          <mxGeometry height="200" width="920" x="80" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="cap_storage" parent="layer_top" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;fontColor=#151515;strokeColor=#EE0000;fontSize=11;fontStyle=1;shadow=1;" value="&lt;font style=&quot;font-size: 13px;&quot;&gt;Persistent Storage&lt;/font&gt;" vertex="1">
+          <mxGeometry height="50" width="150" x="40" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="cap_net" parent="layer_top" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;fontColor=#151515;strokeColor=#EE0000;fontSize=11;fontStyle=1;shadow=1;" value="&lt;font style=&quot;font-size: 13px;&quot;&gt;VM Networking&lt;/font&gt;" vertex="1">
+          <mxGeometry height="50" width="150" x="220" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="cap_id" parent="layer_top" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;fontColor=#151515;strokeColor=#EE0000;fontSize=11;fontStyle=1;shadow=1;" value="&lt;font style=&quot;font-size: 13px;&quot;&gt;Identity and Access&lt;/font&gt;" vertex="1">
+          <mxGeometry height="50" width="170" x="586" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="cap_secret" parent="layer_top" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;fontColor=#151515;strokeColor=#EE0000;fontSize=11;fontStyle=1;shadow=1;" value="Secret Management" vertex="1">
+          <mxGeometry height="50" width="160" x="390" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="cap_obs" parent="layer_top" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;fontColor=#151515;strokeColor=#EE0000;fontSize=11;fontStyle=1;shadow=1;" value="&lt;font style=&quot;font-size: 13px;&quot;&gt;Observability&lt;/font&gt;" vertex="1">
+          <mxGeometry height="50" width="140" x="770" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="layer_mid" parent="1" style="swimlane;startSize=32;rounded=1;whiteSpace=wrap;html=1;container=1;collapsible=0;pointerEvents=0;fillColor=#ECE6FF;strokeColor=#5E40BE;fontColor=#151515;fontSize=12;fontStyle=1;shadow=1;" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;Shared Dependencies&lt;/font&gt;" vertex="1">
+          <mxGeometry height="240" width="920" x="80" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="dep_odf" parent="layer_mid" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f2f2f2;fontColor=#151515;strokeColor=#c7c7c7;dashed=1;fontSize=11;fontStyle=1;shadow=1;" value="&lt;font style=&quot;font-size: 13px;&quot;&gt;Storage Backend&lt;br&gt;(Enterprise Storage Array Tier 1/Tier 2&lt;br&gt;ODF Tier 3)&lt;/font&gt;" vertex="1">
+          <mxGeometry height="66" width="170" x="40" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="dep_api" parent="layer_mid" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f2f2f2;fontColor=#151515;strokeColor=#c7c7c7;dashed=1;fontSize=11;fontStyle=1;shadow=1;" value="&lt;font style=&quot;font-size: 13px;&quot;&gt;API Server / etcd&lt;/font&gt;" vertex="1">
+          <mxGeometry height="50" width="170" x="740" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="dep_physnet" parent="layer_mid" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f2f2f2;fontColor=#151515;strokeColor=#c7c7c7;dashed=1;fontSize=11;fontStyle=1;shadow=1;" value="&lt;font style=&quot;font-size: 13px;&quot;&gt;Physical Network&lt;/font&gt;" vertex="1">
+          <mxGeometry height="50" width="160" x="360" y="155" as="geometry" />
+        </mxCell>
+        <mxCell id="mgEAv0c4Oy-XQJT9mCik-15" edge="1" parent="layer_mid" source="dep_cyber" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" target="dep_physnet" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dep_cyber" parent="layer_mid" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f2f2f2;fontColor=#151515;strokeColor=#c7c7c7;dashed=1;fontSize=11;fontStyle=1;shadow=1;" value="&lt;font style=&quot;font-size: 13px;&quot;&gt;Secrets Vault&lt;/font&gt;" vertex="1">
+          <mxGeometry height="50" width="130" x="375" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="mgEAv0c4Oy-XQJT9mCik-12" edge="1" parent="layer_mid" source="dep_ldap" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="dep_physnet">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dep_ldap" parent="layer_mid" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f2f2f2;fontColor=#151515;strokeColor=#c7c7c7;dashed=1;fontSize=11;fontStyle=1;shadow=1;" value="&lt;font style=&quot;font-size: 13px;&quot;&gt;LDAP / SSO&lt;/font&gt;" vertex="1">
+          <mxGeometry height="50" width="130" x="590" y="51" as="geometry" />
+        </mxCell>
+        <mxCell id="mgEAv0c4Oy-XQJT9mCik-16" edge="1" parent="layer_mid" source="dep_api" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="dep_physnet">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="layer_bot" parent="1" style="swimlane;startSize=32;rounded=1;whiteSpace=wrap;html=1;container=1;collapsible=0;pointerEvents=0;fillColor=#E0F0FF;strokeColor=#0066CC;fontColor=#151515;fontSize=12;fontStyle=1;shadow=1;" value="Infrastructure Foundations" vertex="1">
+          <mxGeometry height="160" width="920" x="80" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="found_nvme" parent="layer_bot" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0F0FF;fontColor=#151515;strokeColor=#0066CC;fontSize=11;fontStyle=1;shadow=1;" value="&lt;font style=&quot;font-size: 13px;&quot;&gt;FC SAN (Tier 1/Tier 2)&lt;br&gt;NVMe (Tier 3)&lt;/font&gt;" vertex="1">
+          <mxGeometry height="50" width="180" x="35" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="found_nic" parent="layer_bot" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0F0FF;fontColor=#151515;strokeColor=#0066CC;fontSize=11;fontStyle=1;shadow=1;" value="&lt;font style=&quot;font-size: 13px;&quot;&gt;Physical NICs&lt;/font&gt;" vertex="1">
+          <mxGeometry height="50" width="160" x="720" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="cap_storage" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;endArrow=block;strokeColor=#4D4D4D;fontColor=#4D4D4D;" target="dep_odf" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="dep_odf" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;endArrow=block;strokeColor=#4D4D4D;fontColor=#4D4D4D;" target="found_nvme" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="dep_physnet" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;endArrow=block;strokeColor=#4D4D4D;fontColor=#4D4D4D;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="found_nic" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="mgEAv0c4Oy-XQJT9mCik-1" edge="1" parent="1" source="cap_net" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="dep_physnet">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="mgEAv0c4Oy-XQJT9mCik-8" edge="1" parent="1" source="cap_obs" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.588;entryY=0.1;entryDx=0;entryDy=0;entryPerimeter=0;" target="dep_api">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="mgEAv0c4Oy-XQJT9mCik-11" edge="1" parent="1" source="cap_secret" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="dep_cyber">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="550" y="258" />
+              <mxPoint x="640" y="258" />
+              <mxPoint x="640" y="400" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="juEpaeGwDcRVICxh_u7X-1" edge="1" parent="1" source="cap_id" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.343;entryY=0.051;entryDx=0;entryDy=0;entryPerimeter=0;" target="dep_api">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="juEpaeGwDcRVICxh_u7X-3" edge="1" parent="1" source="cap_id" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.626;entryY=0.091;entryDx=0;entryDy=0;entryPerimeter=0;" target="dep_ldap">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

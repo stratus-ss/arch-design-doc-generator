@@ -1,0 +1,82 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.6.6 Chrome/144.0.7559.236 Electron/40.8.4 Safari/537.36" version="29.6.6">
+  <diagram id="phase3-gitops-repo-structure" name="Phase 3 GitOps Repo Structure">
+    <mxGraphModel dx="1424" dy="962" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1100" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="git" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f2f2f2;fontColor=#151515;strokeColor=#c7c7c7;fontSize=13;fontStyle=1;dashed=1;shadow=1;" value="Git repo&lt;br&gt;platform-config" vertex="1">
+          <mxGeometry height="60" width="220" x="250" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="repo_box" parent="1" style="swimlane;startSize=36;rounded=1;arcSize=8;html=1;container=1;collapsible=0;pointerEvents=0;whiteSpace=wrap;fillColor=#f2f2f2;strokeColor=#c7c7c7;fontColor=#151515;fontSize=14;fontStyle=1" value="Red Hat COP GitOps Template" vertex="1">
+          <mxGeometry height="140" width="740" x="10" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="comp" parent="repo_box" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=12;fontStyle=1;shadow=1;" value="components/&#xa;operator + config separated" vertex="1">
+          <mxGeometry height="60" width="180" x="30" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="groups" parent="repo_box" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=12;fontStyle=1;shadow=1;" value="groups/&#xa;sandbox, lab, dc, tier2, tier 3 site" vertex="1">
+          <mxGeometry height="60" width="190" x="270" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="clusters" parent="repo_box" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=12;fontStyle=1;shadow=1;" value="clusters/&#xa;per-cluster overlays" vertex="1">
+          <mxGeometry height="60" width="180" x="530" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="B8jHCuWBQdhepk6jh4VM-8" edge="1" parent="1" source="argo_hub" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.75;exitDx=0;exitDy=0;curved=1;strokeColor=#4D4D4D;strokeWidth=2;" target="comp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="B8jHCuWBQdhepk6jh4VM-9" connectable="0" parent="B8jHCuWBQdhepk6jh4VM-8" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="sync" vertex="1">
+          <mxGeometry relative="1" x="-0.5676" y="6" as="geometry">
+            <mxPoint x="-30" y="29" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="argo_hub" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ee0000;fontColor=#FFFFFF;strokeColor=#a60000;fontSize=13;fontStyle=1;shadow=1;" value="ArgoCD on Hub&#xa;App-of-Apps" vertex="1">
+          <mxGeometry height="60" width="300" x="210" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="oppol_box" parent="1" style="swimlane;startSize=36;rounded=1;arcSize=8;html=1;container=1;collapsible=0;pointerEvents=0;whiteSpace=wrap;fillColor=#f2f2f2;strokeColor=#c7c7c7;fontColor=#151515;fontSize=14;fontStyle=1" value="ACM Operator Policies" vertex="1">
+          <mxGeometry height="140" width="740" x="10" y="440" as="geometry" />
+        </mxCell>
+        <mxCell id="op_pol" parent="oppol_box" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=12;fontStyle=1;shadow=1;" value="Operator Policy CRs&#xa;in components/" vertex="1">
+          <mxGeometry height="60" width="180" x="30" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ver_pin" parent="oppol_box" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=12;fontStyle=1;shadow=1;" value="Version Pinning&#xa;via overlay patches" vertex="1">
+          <mxGeometry height="60" width="180" x="530" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="spoke_cdf" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e9f7df;fontColor=#151515;strokeColor=#63993d;fontSize=13;fontStyle=1;shadow=1;" value="ACM Spokes" vertex="1">
+          <mxGeometry height="60" width="100" x="800" y="260" as="geometry" />
+        </mxCell>
+        <mxCell id="e_git_argo" edge="1" parent="1" source="git" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4D4D4D;strokeWidth=2;fontColor=#151515;" target="argo_hub">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_argo_groups" edge="1" parent="1" source="argo_hub" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4D4D4D;strokeWidth=2;fontColor=#151515;entryX=1;entryY=0.25;entryDx=0;entryDy=0;curved=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;" target="groups" value="target via">
+          <mxGeometry relative="1" x="-0.1364" y="-10" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="510" y="200" />
+              <mxPoint x="510" y="305" />
+            </Array>
+            <mxPoint x="500" y="200" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_argo_clusters" edge="1" parent="1" source="argo_hub" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4D4D4D;strokeWidth=2;fontColor=#151515;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;curved=1;" target="clusters" value="overlay">
+          <mxGeometry relative="1" x="0.3778" y="-20" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="630" y="185" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_comp_oppol" edge="1" parent="1" source="comp" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4D4D4D;strokeWidth=2;fontColor=#151515;" target="op_pol">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_clusters_verpin" edge="1" parent="1" source="clusters" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4D4D4D;strokeWidth=2;fontColor=#151515;" target="ver_pin">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_argo_cdf" edge="1" parent="1" source="argo_hub" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4D4D4D;strokeWidth=2;fontColor=#151515;curved=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="spoke_cdf" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="850" y="170" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

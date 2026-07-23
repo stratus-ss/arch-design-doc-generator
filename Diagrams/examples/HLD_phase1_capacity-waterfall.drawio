@@ -1,0 +1,46 @@
+<mxfile host="Cursor" agent="Cursor AI" version="29.0.3">
+  <diagram id="cap-waterfall" name="Capacity Waterfall">
+    <mxGraphModel dx="1500" dy="400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="350" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="Capacity &amp; Headroom Waterfall" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="40" y="20" width="500" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="raw" value="Raw Node&#xa;Resources&#xa;100%" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#333333;fontColor=#FFFFFF;strokeColor=#333333;fontSize=12;fontStyle=1;shadow=1;" parent="1" vertex="1">
+          <mxGeometry x="40" y="100" width="170" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="sys" value="System&#xa;Reserved&#xa;10-15%" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CC0000;fontColor=#FFFFFF;strokeColor=#990000;fontSize=12;fontStyle=1;shadow=1;" parent="1" vertex="1">
+          <mxGeometry x="260" y="100" width="170" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="e_raw_sys" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" parent="1" source="raw" target="sys" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="odf_r" value="ODF&#xa;Reserved&#xa;(storage nodes)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#A20025;fontColor=#FFFFFF;strokeColor=#6F0000;fontSize=12;fontStyle=1;shadow=1;" parent="1" vertex="1">
+          <mxGeometry x="480" y="100" width="170" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sys_odf" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" parent="1" source="sys" target="odf_r" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="infra_wl" value="Infra&#xa;Workloads&#xa;monitoring, logging" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;fontStyle=1;shadow=1;" parent="1" vertex="1">
+          <mxGeometry x="700" y="100" width="170" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="e_odf_infra" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" parent="1" source="odf_r" target="infra_wl" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="alloc" value="VM Allocatable&#xa;Target 60-70%" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#81C784;fontSize=12;fontStyle=1;shadow=1;" parent="1" vertex="1">
+          <mxGeometry x="920" y="100" width="170" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="e_infra_alloc" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" parent="1" source="infra_wl" target="alloc" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="head" value="Headroom&#xa;1-3 spare nodes" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;fontColor=#FFFFFF;strokeColor=#388E3C;fontSize=12;fontStyle=1;shadow=1;" parent="1" vertex="1">
+          <mxGeometry x="1140" y="100" width="170" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="e_alloc_head" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;" parent="1" source="alloc" target="head" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

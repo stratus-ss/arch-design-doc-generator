@@ -1,0 +1,73 @@
+<mxfile host="Cursor" agent="Cursor AI" version="29.0.3">
+  <diagram id="phase4-flow" name="Phase 4 Flow - Source to Validated Migration">
+    <mxGraphModel dx="400" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="320" pageHeight="750" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="gate3" parent="1" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#EE0000;fontColor=#FFFFFF;strokeColor=#CC0000;fontSize=11;fontStyle=1;shadow=1" value="Gate 3 (Fleet Managed)" vertex="1">
+          <mxGeometry x="20" y="20" width="280" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="disc" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=10;fontStyle=1;shadow=1" value="Discover VMs&lt;br&gt;vCenter Inventory" vertex="1">
+          <mxGeometry x="20" y="80" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="triage" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=10;fontStyle=1;shadow=1" value="Triage&lt;br&gt;Migrate / Rebuild / Decommission" vertex="1">
+          <mxGeometry x="20" y="144" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="dr" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=10;fontStyle=1;shadow=1" value="Setup Backup/DR&lt;br&gt;Backup Platform + Enterprise Storage Array" vertex="1">
+          <mxGeometry x="20" y="208" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="pilot" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ee0000;fontColor=#FFFFFF;strokeColor=#a60000;fontSize=10;fontStyle=1;shadow=1" value="Pilot Wave&lt;br&gt;N VMs" vertex="1">
+          <mxGeometry x="20" y="272" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="pvalid" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e9f7df;fontColor=#151515;strokeColor=#63993d;fontSize=10;fontStyle=1;shadow=1" value="Validate Pilot" vertex="1">
+          <mxGeometry x="20" y="336" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="prod" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ee0000;fontColor=#FFFFFF;strokeColor=#a60000;fontSize=10;fontStyle=1;shadow=1" value="Production Waves&lt;br&gt;App-Grouped" vertex="1">
+          <mxGeometry x="20" y="400" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="wvalid" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e9f7df;fontColor=#151515;strokeColor=#63993d;fontSize=10;fontStyle=1;shadow=1" value="Validate Each Wave" vertex="1">
+          <mxGeometry x="20" y="464" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="hold" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe8cc;fontColor=#151515;strokeColor=#f5921b;fontSize=10;fontStyle=1;shadow=1" value="Holdback Period&lt;br&gt;Source Powered Off" vertex="1">
+          <mxGeometry x="20" y="528" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="decom" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=10;fontStyle=1;shadow=1" value="Source VM&lt;br&gt;Decommissioned" vertex="1">
+          <mxGeometry x="20" y="592" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="gate4" parent="1" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#63993d;fontColor=#FFFFFF;strokeColor=#3d7317;fontSize=11;fontStyle=1;shadow=1" value="Migration Validated" vertex="1">
+          <mxGeometry x="20" y="656" width="280" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="e01" edge="1" parent="1" source="gate3" target="disc" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e02" edge="1" parent="1" source="disc" target="triage" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e03" edge="1" parent="1" source="triage" target="dr" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e04" edge="1" parent="1" source="dr" target="pilot" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e05" edge="1" parent="1" source="pilot" target="pvalid" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e06" edge="1" parent="1" source="pvalid" target="prod" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e07" edge="1" parent="1" source="prod" target="wvalid" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e08" edge="1" parent="1" source="wvalid" target="hold" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e09" edge="1" parent="1" source="hold" target="decom" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" edge="1" parent="1" source="decom" target="gate4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fontColor=#151515">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

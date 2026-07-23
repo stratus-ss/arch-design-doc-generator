@@ -1,0 +1,64 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.6.6 Chrome/144.0.7559.236 Electron/40.8.4 Safari/537.36" version="29.6.6">
+  <diagram id="phase2-storage-topology-tier" name="Storage Topology by Tier">
+    <mxGraphModel dx="946" dy="789" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="580" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="swim_dc" parent="1" style="swimlane;startSize=30;rounded=1;html=1;container=1;collapsible=0;pointerEvents=0;whiteSpace=wrap;fillColor=#E0F0FF;strokeColor=#0066CC;fontColor=#0066CC;fontSize=10;fontStyle=1;shadow=1" value="Tier 1 / Tier 2 Tier With Object Storage Access" vertex="1">
+          <mxGeometry height="200" width="300" x="30" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="csi_dc" parent="swim_dc" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;fontColor=#151515;strokeColor=#EE0000;fontSize=9;fontStyle=1;shadow=1" value="Block&#xa;CSI Driver" vertex="1">
+          <mxGeometry height="50" width="120" x="20" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="flash_dc" parent="swim_dc" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0F0FF;fontColor=#151515;strokeColor=#0066CC;fontSize=9;fontStyle=1;shadow=1" value="Enterprise Storage Array&#xa;FC SAN" vertex="1">
+          <mxGeometry height="50" width="120" x="20" y="125" as="geometry" />
+        </mxCell>
+        <mxCell id="icos_dc" parent="swim_dc" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;fontColor=#151515;strokeColor=#EE0000;fontSize=9;fontStyle=1;shadow=1" value="Object Storage S3&#xa;Object Storage" vertex="1">
+          <mxGeometry height="50" width="110" x="170" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="swim_cdf" parent="1" style="swimlane;startSize=30;rounded=1;html=1;container=1;collapsible=0;pointerEvents=0;whiteSpace=wrap;fillColor=#E9F7DF;strokeColor=#63993D;fontColor=#63993D;fontSize=10;fontStyle=1;shadow=1" value="Tier 2 Site without Local Object Storage" vertex="1">
+          <mxGeometry height="200" width="300" x="360" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="csi_cdf" parent="swim_cdf" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;fontColor=#151515;strokeColor=#EE0000;fontSize=9;fontStyle=1;shadow=1" value="Block&#xa;CSI Driver" vertex="1">
+          <mxGeometry height="50" width="120" x="20" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="flash_cdf" parent="swim_cdf" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0F0FF;fontColor=#151515;strokeColor=#0066CC;fontSize=9;fontStyle=1;shadow=1" value="Enterprise Storage Array&#xa;FC SAN" vertex="1">
+          <mxGeometry height="50" width="120" x="20" y="125" as="geometry" />
+        </mxCell>
+        <mxCell id="s3wan_cdf" parent="swim_cdf" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;fontColor=#151515;strokeColor=#EE0000;fontSize=9;fontStyle=1;shadow=1" value="S3 via WAN&#xa;(Nearest Tier 1 Object Storage)" vertex="1">
+          <mxGeometry height="50" width="120" x="165" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="swim_br" parent="1" style="swimlane;startSize=30;rounded=1;html=1;container=1;collapsible=0;pointerEvents=0;whiteSpace=wrap;fillColor=#FFE8CC;strokeColor=#F5921B;fontColor=#F5921B;fontSize=10;fontStyle=1;shadow=1" value="Tier 3 (Compact)" vertex="1">
+          <mxGeometry height="260" width="300" x="195" y="250" as="geometry" />
+        </mxCell>
+        <mxCell id="op_br" parent="swim_br" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;fontColor=#151515;strokeColor=#EE0000;fontSize=9;fontStyle=1;shadow=1" value="ODF Operator" vertex="1">
+          <mxGeometry height="42" width="110" x="95" y="38" as="geometry" />
+        </mxCell>
+        <mxCell id="ceph_br" parent="swim_br" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;fontColor=#151515;strokeColor=#EE0000;fontSize=9;fontStyle=1;shadow=1" value="Ceph Cluster&#xa;(internal mode)" vertex="1">
+          <mxGeometry height="50" width="120" x="25" y="105" as="geometry" />
+        </mxCell>
+        <mxCell id="nvme_br" parent="swim_br" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0F0FF;fontColor=#151515;strokeColor=#0066CC;fontSize=9;fontStyle=1;shadow=1" value="Local NVMe&#xa;(replica 3 N TB)" vertex="1">
+          <mxGeometry height="50" width="120" x="25" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="rgw_br" parent="swim_br" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;fontColor=#151515;strokeColor=#EE0000;fontSize=9;fontStyle=1;shadow=1" value="RGW S3&#xa;(local ODF)" vertex="1">
+          <mxGeometry height="50" width="120" x="165" y="105" as="geometry" />
+        </mxCell>
+        <mxCell id="e_dc_csi_flash" edge="1" parent="1" source="csi_dc" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#4D4D4D;fontColor=#4D4D4D;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0" target="flash_dc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_cdf_csi_flash" edge="1" parent="1" source="csi_cdf" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#4D4D4D;fontColor=#4D4D4D;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0" target="flash_cdf">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_br_op_ceph" edge="1" parent="1" source="op_br" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#4D4D4D;fontColor=#4D4D4D;exitX=0.35;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0" target="ceph_br">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_br_ceph_nvme" edge="1" parent="1" source="ceph_br" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#4D4D4D;fontColor=#4D4D4D;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0" target="nvme_br">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_br_op_rgw" edge="1" parent="1" source="op_br" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#4D4D4D;fontColor=#4D4D4D;exitX=0.65;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0" target="rgw_br">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

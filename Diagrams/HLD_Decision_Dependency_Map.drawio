@@ -1,0 +1,96 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.6.6 Chrome/144.0.7559.236 Electron/40.8.4 Safari/537.36" version="29.6.6">
+  <diagram id="dep-overlay" name="Phase 1 Dependency Overlay">
+    <mxGraphModel dx="1424" dy="962" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="800" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" value="Phase 1 Dependency Overlay" vertex="1">
+          <mxGeometry height="30" width="320" x="20" y="15" as="geometry" />
+        </mxCell>
+        <mxCell id="goal_box" parent="1" style="swimlane;startSize=25;fillColor=none;strokeColor=#3d7317;rounded=1;arcSize=8;fontStyle=1;fontSize=12;container=1;collapsible=0;pointerEvents=0;strokeWidth=2;fontColor=#3d7317;" value="Phase 1 Goal" vertex="1">
+          <mxGeometry height="100" width="280" x="300" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="cluster" parent="goal_box" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#63993d;fontColor=#FFFFFF;strokeColor=#3d7317;fontSize=12;fontStyle=1;shadow=1;" value="Running OCP Cluster" vertex="1">
+          <mxGeometry height="50" width="200" x="40" y="35" as="geometry" />
+        </mxCell>
+        <mxCell id="infra_box" parent="1" style="swimlane;startSize=25;fillColor=none;strokeColor=#3f0000;rounded=1;arcSize=8;fontStyle=1;fontSize=12;container=1;collapsible=0;pointerEvents=0;strokeWidth=2;fontColor=#3f0000;" value="Infrastructure Prerequisites" vertex="1">
+          <mxGeometry height="220" width="270" x="20" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="certs_d" parent="infra_box" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;strokeColor=#0066cc;fontSize=10;fontStyle=1;shadow=1;" value="TLS Certificates&#xa;API + Ingress" vertex="1">
+          <mxGeometry height="55" width="120" x="10" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="fw_d" parent="infra_box" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;strokeColor=#0066cc;fontSize=10;fontStyle=1;shadow=1;" value="Firewall Rules&#xa;All Required Ports" vertex="1">
+          <mxGeometry height="55" width="120" x="140" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="hw_box" parent="1" style="swimlane;startSize=25;fillColor=none;strokeColor=#151515;rounded=1;arcSize=8;fontStyle=1;fontSize=12;container=1;collapsible=0;pointerEvents=0;strokeWidth=2;" value="Hardware and Network Fabric" vertex="1">
+          <mxGeometry height="220" width="840" x="21" y="450" as="geometry" />
+        </mxCell>
+        <mxCell id="bmc_d" parent="hw_box" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#151515;fontColor=#FFFFFF;strokeColor=#151515;fontSize=10;fontStyle=1;shadow=1;" value="BMC / Redfish&#xa;via Hardware Manager" vertex="1">
+          <mxGeometry height="55" width="170" x="20" y="35" as="geometry" />
+        </mxCell>
+        <mxCell id="mgmt_d" parent="hw_box" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#151515;fontColor=#FFFFFF;strokeColor=#151515;fontSize=10;fontStyle=1;shadow=1;" value="Management Network&#xa;DNS + NTP" vertex="1">
+          <mxGeometry height="55" width="170" x="460" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nic_d" parent="hw_box" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#151515;fontColor=#FFFFFF;strokeColor=#151515;fontSize=10;fontStyle=1;shadow=1;" value="Physical NICs&#xa;Cabled + Trunked" vertex="1">
+          <mxGeometry height="55" width="160" x="260" y="35" as="geometry" />
+        </mxCell>
+        <mxCell id="disk_d" parent="hw_box" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#a60000;fontColor=#FFFFFF;strokeColor=#3f0000;fontSize=10;fontStyle=1;shadow=1;" value="NVMe / SSD&#xa;RHCOS Install Target" vertex="1">
+          <mxGeometry height="55" width="170" x="650" y="35" as="geometry" />
+        </mxCell>
+        <mxCell id="isp_d" parent="hw_box" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ee0000;fontColor=#FFFFFF;strokeColor=#a60000;fontSize=10;fontStyle=1;shadow=1;" value="Hardware Manager&#xa;Server Profiles" vertex="1">
+          <mxGeometry height="55" width="160" x="25" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="e_bmc_isp" edge="1" parent="hw_box" source="bmc_d" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="isp_d">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="sw_fab_d" parent="hw_box" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#a60000;fontColor=#FFFFFF;strokeColor=#3f0000;fontSize=10;fontStyle=1;shadow=1;" value="Switch Fabric&#xa;VLAN Trunking" vertex="1">
+          <mxGeometry height="55" width="170" x="255" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="e_nic_sw" edge="1" parent="hw_box" source="nic_d" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="sw_fab_d">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="net_box" parent="1" style="swimlane;startSize=25;fillColor=none;strokeColor=#0066cc;rounded=1;arcSize=8;fontStyle=1;fontSize=12;container=1;collapsible=0;pointerEvents=0;strokeWidth=2;fontColor=#0066cc;" value="Network Services" vertex="1">
+          <mxGeometry height="210" width="310" x="411" y="700" as="geometry" />
+        </mxCell>
+        <mxCell id="dns_dd" parent="net_box" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;strokeColor=#0066cc;fontSize=10;fontStyle=1;shadow=1;" value="DNS Records&#xa;IPAM" vertex="1">
+          <mxGeometry height="55" width="135" x="15" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="ip_dd" parent="net_box" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;strokeColor=#0066cc;fontSize=10;fontStyle=1;shadow=1;" value="Static IP Reservations&#xa;IPAM" vertex="1">
+          <mxGeometry height="55" width="135" x="160" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="ntp_dd" parent="net_box" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;strokeColor=#0066cc;fontSize=10;fontStyle=1;shadow=1;" value="NTP Servers&#xa;Internal" vertex="1">
+          <mxGeometry height="55" width="135" x="15" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="vip_dd" parent="net_box" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;strokeColor=#0066cc;fontSize=10;fontStyle=1;shadow=1;" value="API + Ingress VIPs&#xa;Reserved" vertex="1">
+          <mxGeometry height="55" width="135" x="160" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_box" parent="1" style="swimlane;startSize=25;fillColor=none;strokeColor=#f5921b;rounded=1;arcSize=8;fontStyle=1;fontSize=12;container=1;collapsible=0;pointerEvents=0;strokeWidth=2;fontColor=#f5921b;" value="ACM Hub (All Tiers)" vertex="1">
+          <mxGeometry height="210" width="260" x="580" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="acm_hub_d" parent="edge_box" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe8cc;strokeColor=#f5921b;fontSize=10;fontStyle=1;shadow=1;" value="ACM Hub&#xa;Running + Reachable" vertex="1">
+          <mxGeometry height="55" width="200" x="30" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="assist_d" parent="edge_box" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe8cc;strokeColor=#f5921b;fontSize=10;fontStyle=1;shadow=1;" value="Assisted Installer&#xa;Service" vertex="1">
+          <mxGeometry height="55" width="200" x="30" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="e_acm_assist" edge="1" parent="edge_box" source="acm_hub_d" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="assist_d">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_cl_infra" edge="1" parent="1" source="goal_box" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;curved=1;" target="infra_box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="2u7da9m1Jy1mjUG8cBxH-1" edge="1" parent="1" source="goal_box" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;curved=1;" target="edge_box">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="620" y="110" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="2u7da9m1Jy1mjUG8cBxH-2" edge="1" parent="1" source="mgmt_d" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="net_box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="2u7da9m1Jy1mjUG8cBxH-4" edge="1" parent="1" source="cluster" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="hw_box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

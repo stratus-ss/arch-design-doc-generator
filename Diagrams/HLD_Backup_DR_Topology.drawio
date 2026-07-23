@@ -1,0 +1,71 @@
+<mxfile host="Cursor" agent="Cursor AI" version="29.0.3">
+  <diagram id="phase4-backup-dr" name="Backup and DR Topology">
+    <mxGraphModel dx="1400" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1000" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" value="Backup &amp; DR Topology" vertex="1">
+          <mxGeometry x="40" y="20" width="400" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c_primary" parent="1" style="swimlane;startSize=30;fillColor=none;strokeColor=#0066cc;rounded=1;fontStyle=1;fontSize=14;container=1;collapsible=0;pointerEvents=0;fontColor=#0066cc;strokeWidth=2;" value="Primary Site - Primary Site" vertex="1">
+          <mxGeometry x="40" y="80" width="360" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="vm_p" parent="c_primary" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ee0000;fontColor=#FFFFFF;strokeColor=#a60000;fontSize=11;fontStyle=1;shadow=1;" value="VMs" vertex="1">
+          <mxGeometry x="30" y="60" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="fs_p" parent="c_primary" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=11;fontStyle=1;shadow=1;" value="Enterprise Storage Array" vertex="1">
+          <mxGeometry x="200" y="60" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e_vm_fs" edge="1" parent="c_primary" source="vm_p" target="fs_p" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#151515;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c_secondary" parent="1" style="swimlane;startSize=30;fillColor=none;strokeColor=#0066cc;rounded=1;fontStyle=1;fontSize=14;container=1;collapsible=0;pointerEvents=0;fontColor=#0066cc;strokeWidth=2;" value="Secondary Site - DR Site" vertex="1">
+          <mxGeometry x="500" y="80" width="340" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="fs_s" parent="c_secondary" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=11;fontStyle=1;shadow=1;" value="Enterprise Storage Array&#xa;Async Replication" vertex="1">
+          <mxGeometry x="70" y="60" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e_repl" edge="1" parent="1" source="fs_p" target="fs_s" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#a60000;strokeWidth=2;fontColor=#a60000;fontSize=11;" value="async replication&#xa;15-min RPO">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="440" y="170" />
+              <mxPoint x="480" y="170" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c_backup" parent="1" style="swimlane;startSize=30;fillColor=none;strokeColor=#3f0000;rounded=1;fontStyle=1;fontSize=14;container=1;collapsible=0;pointerEvents=0;fontColor=#3f0000;strokeWidth=2;" value="Backup Targets" vertex="1">
+          <mxGeometry x="40" y="360" width="500" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="rubrik" parent="c_backup" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ee0000;fontColor=#FFFFFF;strokeColor=#a60000;fontSize=11;fontStyle=1;shadow=1;" value="Backup Platform CDM&#xa;VM Disk Snapshots" vertex="1">
+          <mxGeometry x="40" y="60" width="170" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="icos" parent="c_backup" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=11;fontStyle=1;shadow=1;" value="Object Storage&#xa;Long-term Retention" vertex="1">
+          <mxGeometry x="280" y="60" width="170" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e_rubrik_icos" edge="1" parent="c_backup" source="rubrik" target="icos" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#151515;fontSize=11;strokeWidth=2;" value="extended retention">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_vm_rubrik" edge="1" parent="1" source="vm_p" target="rubrik" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#151515;strokeWidth=2;fontSize=11;" value="daily backup">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="100" y="320" />
+              <mxPoint x="165" y="320" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c_branch" parent="1" style="swimlane;startSize=30;fillColor=none;strokeColor=#f5921b;rounded=1;fontStyle=1;fontSize=14;container=1;collapsible=0;pointerEvents=0;fontColor=#f5921b;strokeWidth=2;" value="Tier 3 Backup" vertex="1">
+          <mxGeometry x="640" y="360" width="360" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="br_vm" parent="c_branch" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe8cc;fontColor=#151515;strokeColor=#f5921b;fontSize=11;fontStyle=1;shadow=1;" value="Tier 3 VMs" vertex="1">
+          <mxGeometry x="30" y="60" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="rubrik_dc" parent="c_branch" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=11;fontStyle=1;shadow=1;" value="Backup Platform CDM&#xa;at DC" vertex="1">
+          <mxGeometry x="210" y="55" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e_br_rubrik" edge="1" parent="c_branch" source="br_vm" target="rubrik_dc" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#151515;fontSize=11;strokeWidth=2;" value="WAN backup">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,123 @@
+<mxfile host="Cursor" agent="Cursor AI" version="29.0.3">
+  <diagram id="phase4-dep-overlay" name="Phase 4 Dependency Overlay">
+    <mxGraphModel dx="1424" dy="962" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" value="Phase 4 Dependency Overlay" vertex="1">
+          <mxGeometry x="40" y="20" width="400" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="layer_top" value="Phase 4 Capabilities" style="swimlane;startSize=32;rounded=1;whiteSpace=wrap;html=1;container=1;collapsible=0;pointerEvents=0;fillColor=#F5F5F5;strokeColor=#CC0000;fontColor=#151515;fontSize=14;fontStyle=1;shadow=1;" parent="1" vertex="1">
+          <mxGeometry x="60" y="80" width="1400" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="cap_livemig" value="Live Migration" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=13;fontStyle=1;shadow=1;" parent="layer_top" vertex="1">
+          <mxGeometry x="80" y="50" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="cap_backup" value="Backup and DR" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=13;fontStyle=1;shadow=1;" parent="layer_top" vertex="1">
+          <mxGeometry x="540" y="50" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="cap_waves" value="Migration Waves" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=13;fontStyle=1;shadow=1;" parent="layer_top" vertex="1">
+          <mxGeometry x="1040" y="50" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="layer_mid" value="Shared Dependencies" style="swimlane;startSize=32;rounded=1;whiteSpace=wrap;html=1;container=1;collapsible=0;pointerEvents=0;fillColor=#F5F5F5;strokeColor=#CC0000;fontColor=#151515;fontSize=14;fontStyle=1;shadow=1;" parent="1" vertex="1">
+          <mxGeometry x="60" y="330" width="1400" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="dep_stor" value="Enterprise Storage Array / ODF&#xa;RWX" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=13;fontStyle=1;shadow=1;" parent="layer_mid" vertex="1">
+          <mxGeometry x="80" y="50" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="dep_mtv" value="MTV Operator" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ee0000;fontColor=#FFFFFF;strokeColor=#a60000;fontSize=13;fontStyle=1;shadow=1;" parent="layer_mid" vertex="1">
+          <mxGeometry x="430" y="50" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="dep_rubrik" value="Backup Platform CDM" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=13;fontStyle=1;shadow=1;" parent="layer_mid" vertex="1">
+          <mxGeometry x="750" y="50" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="dep_wan" value="WAN Link" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f0ff;fontColor=#151515;strokeColor=#0066cc;fontSize=13;fontStyle=1;shadow=1;" parent="layer_mid" vertex="1">
+          <mxGeometry x="1080" y="50" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="layer_bot" value="Foundations" style="swimlane;startSize=32;rounded=1;whiteSpace=wrap;html=1;container=1;collapsible=0;pointerEvents=0;fillColor=#F5F5F5;strokeColor=#CC0000;fontColor=#151515;fontSize=14;fontStyle=1;shadow=1;" parent="1" vertex="1">
+          <mxGeometry x="60" y="580" width="1400" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="fnd_vcenter" value="vCenter Source" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f2f2f2;fontColor=#151515;strokeColor=#c7c7c7;dashed=1;fontSize=13;fontStyle=1;shadow=1;" parent="layer_bot" vertex="1">
+          <mxGeometry x="80" y="50" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="fnd_net" value="Physical Network" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f2f2f2;fontColor=#151515;strokeColor=#c7c7c7;dashed=1;fontSize=13;fontStyle=1;shadow=1;" parent="layer_bot" vertex="1">
+          <mxGeometry x="540" y="50" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="fnd_nvme" value="NVMe / SSD" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f2f2f2;fontColor=#151515;strokeColor=#c7c7c7;dashed=1;fontSize=13;fontStyle=1;shadow=1;" parent="layer_bot" vertex="1">
+          <mxGeometry x="1000" y="50" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e_livemig_stor" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#151515;strokeWidth=2;" parent="1" source="cap_livemig" target="dep_stor" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_livemig_net" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#151515;strokeWidth=2;" parent="1" source="cap_livemig" target="fnd_net" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="220" y="270" />
+              <mxPoint x="680" y="270" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_backup_stor" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#151515;strokeWidth=2;" parent="1" source="cap_backup" target="dep_stor" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="680" y="270" />
+              <mxPoint x="230" y="270" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_backup_rubrik" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#151515;strokeWidth=2;" parent="1" source="cap_backup" target="dep_rubrik" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_backup_wan" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#151515;strokeWidth=2;" parent="1" source="cap_backup" target="dep_wan" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="680" y="280" />
+              <mxPoint x="1215" y="280" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_waves_mtv" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#151515;strokeWidth=2;" parent="1" source="cap_waves" target="dep_mtv" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1180" y="270" />
+              <mxPoint x="565" y="270" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_waves_vcenter" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#151515;strokeWidth=2;" parent="1" source="cap_waves" target="fnd_vcenter" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1180" y="540" />
+              <mxPoint x="220" y="540" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_mtv_stor" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#151515;strokeWidth=2;" parent="1" source="dep_mtv" target="dep_stor" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_stor_nvme" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#151515;strokeWidth=2;" parent="1" source="dep_stor" target="fnd_nvme" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="230" y="520" />
+              <mxPoint x="1140" y="520" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_rubrik_net" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#151515;strokeWidth=2;" parent="1" source="dep_rubrik" target="fnd_net" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_vcenter_net" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#151515;strokeWidth=2;" parent="1" source="fnd_vcenter" target="fnd_net" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wan_net" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#151515;strokeWidth=2;" parent="1" source="dep_wan" target="fnd_net" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1215" y="530" />
+              <mxPoint x="680" y="530" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

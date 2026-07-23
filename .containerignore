@@ -1,0 +1,47 @@
+# Files/dirs excluded from the container build context
+# (keeps the image build fast and lean)
+
+# Runtime state — never needed in image
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.cursor-sdk-venv/
+.deterministic/
+drafts/
+drafts_deterministic/
+output/
+
+# Generated artifacts
+HLD/PDFs/
+LLD/PDFs/
+LLD/diagrams/
+HLD/diagrams/
+HLD/READOUT/assets/
+Work_Items/
+*.pdf
+*.png
+
+# Diagram phase dirs (large; not needed in image)
+Diagrams/phase1/
+Diagrams/phase2/
+Diagrams/phase3/
+Diagrams/phase4/
+
+# Node modules
+node_modules/
+
+# Version control and editor
+.git/
+.gitignore
+.vscode/
+.idea/
+*.swp
+*.swo
+.cursor/
+
+# Secrets / per-client config
+project.yaml
+
+# Test and development artifacts
+.deterministic/

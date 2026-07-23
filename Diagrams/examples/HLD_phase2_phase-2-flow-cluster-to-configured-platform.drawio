@@ -1,0 +1,61 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.6.6 Chrome/144.0.7559.236 Electron/40.8.4 Safari/537.36" version="29.6.6">
+  <diagram id="phase2-platform-build" name="Phase 2 Platform Build Flow">
+    <mxGraphModel dx="1424" dy="962" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="n1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#A60000;fontColor=#FFFFFF;strokeColor=#3F0000;fontSize=11;fontStyle=1;shadow=1" value="Gate 1 (Cluster Running)" vertex="1">
+          <mxGeometry height="40" width="280" x="290" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="n2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;fontColor=#151515;strokeColor=#EE0000;fontSize=10;fontStyle=1;shadow=1" value="Deploy Storage Backend" vertex="1">
+          <mxGeometry height="42" width="280" x="290" y="74" as="geometry" />
+        </mxCell>
+        <mxCell id="n3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;fontColor=#151515;strokeColor=#EE0000;fontSize=10;fontStyle=1;shadow=1" value="Configure Networks (Bonds + VLANs + NADs)" vertex="1">
+          <mxGeometry height="42" width="280" x="290" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="n4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;fontColor=#151515;strokeColor=#EE0000;fontSize=10;fontStyle=1;shadow=1" value="Integrate Identity (OAuth + LDAP)" vertex="1">
+          <mxGeometry height="42" width="280" x="290" y="206" as="geometry" />
+        </mxCell>
+        <mxCell id="n5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;fontColor=#151515;strokeColor=#EE0000;fontSize=10;fontStyle=1;shadow=1" value="Deploy Secret Mgmt (ESO + Secrets Vault)" vertex="1">
+          <mxGeometry height="42" width="280" x="290" y="272" as="geometry" />
+        </mxCell>
+        <mxCell id="n6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;fontColor=#151515;strokeColor=#EE0000;fontSize=10;fontStyle=1;shadow=1" value="Security Foundations (etcd Enc + TLS + CIS)" vertex="1">
+          <mxGeometry height="42" width="280" x="290" y="338" as="geometry" />
+        </mxCell>
+        <mxCell id="n7" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;fontColor=#151515;strokeColor=#EE0000;fontSize=10;fontStyle=1;shadow=1" value="VM Runtime Config (Scheduling + Eviction + Hot-Plug)" vertex="1">
+          <mxGeometry height="42" width="280" x="290" y="404" as="geometry" />
+        </mxCell>
+        <mxCell id="n8" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;fontColor=#151515;strokeColor=#EE0000;fontSize=10;fontStyle=1;shadow=1" value="Deploy Observability (Prometheus + Log Aggregation Platform + AIOps/Event Platform)" vertex="1">
+          <mxGeometry height="42" width="280" x="290" y="470" as="geometry" />
+        </mxCell>
+        <mxCell id="n9" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#A60000;fontColor=#FFFFFF;strokeColor=#3F0000;fontSize=11;fontStyle=1;shadow=1" value="Gate 2 (Platform Configured)" vertex="1">
+          <mxGeometry height="40" width="280" x="290" y="536" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="n1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#4D4D4D;fontColor=#4D4D4D" target="n2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="n2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#4D4D4D;fontColor=#4D4D4D" target="n3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="n3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#4D4D4D;fontColor=#4D4D4D" target="n4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="n4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#4D4D4D;fontColor=#4D4D4D" target="n5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="n5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#4D4D4D;fontColor=#4D4D4D" target="n6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="n6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#4D4D4D;fontColor=#4D4D4D" target="n7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="n7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#4D4D4D;fontColor=#4D4D4D" target="n8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="n8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#4D4D4D;fontColor=#4D4D4D" target="n9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
