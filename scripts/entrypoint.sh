@@ -11,6 +11,9 @@ WORKSPACE="/workspace"
 OUTPUT="/output"
 cd "$WORKSPACE"
 
+export PROJECT_ROOT="$WORKSPACE"
+export PYTHONPATH="$WORKSPACE/scripts/shared/lib:/toolkit/shared/lib:${PYTHONPATH:-}"
+
 green()  { printf '\033[32m%s\033[0m\n' "$*"; }
 red()    { printf '\033[31m%s\033[0m\n' "$*"; }
 yellow() { printf '\033[33m%s\033[0m\n' "$*"; }
@@ -27,7 +30,7 @@ require_project_yaml() {
 }
 
 validate_hld_generated_placeholders() {
-    local md_dir="$WORKSPACE/HLD/markdown_files"
+    local md_dir="$WORKSPACE/output/HLD/markdown_files"
     [[ -d "$md_dir" ]] || return 0
 
     local files=()
@@ -58,89 +61,34 @@ validate_hld_generated_placeholders() {
         return 0
     fi
 
-    python3 "$WORKSPACE/scripts/lib/validate_placeholders.py" \
+    python3 "/toolkit/shared/lib/validate_placeholders.py" \
         --context "generated HLD output" \
         "${files[@]}"
 }
 
-# Collect generated artifacts into /output (if mounted)
+# Collect generated artifacts into /output (if mounted).
+# Builds already write under $WORKSPACE/output, which is typically the same
+# bind mount as /output. Sync only when the two paths differ.
 collect_outputs() {
     [[ -d "$OUTPUT" ]] || return 0
 
     bold "Collecting outputs to output/..."
 
-    move_or_copy() {
-        local src="$1"
-        local dst="$2"
-        mkdir -p "$(dirname "$dst")"
-        mv "$src" "$dst" 2>/dev/null || { cp "$src" "$dst" && rm -f "$src"; }
-    }
-
-    # PDFs
-    if ls "$WORKSPACE"/HLD/PDFs/*.pdf &>/dev/null; then
-        mkdir -p "$OUTPUT/HLD/PDFs"
-        mv "$WORKSPACE"/HLD/PDFs/*.pdf "$OUTPUT/HLD/PDFs/"
-    fi
-    if ls "$WORKSPACE"/LLD/PDFs/*.pdf &>/dev/null; then
-        mkdir -p "$OUTPUT/LLD/PDFs"
-        mv "$WORKSPACE"/LLD/PDFs/*.pdf "$OUTPUT/LLD/PDFs/"
+    local ws_out="$WORKSPACE/output"
+    if [[ ! -d "$ws_out" ]]; then
+        yellow "No workspace output/ directory to collect."
+        return 0
     fi
 
-    # Combined / stitched markdown
-    for f in "$WORKSPACE"/HLD/markdown_files/*_combined.md; do
-        [[ -f "$f" ]] || continue
-        move_or_copy "$f" "$OUTPUT/HLD/markdown_files/$(basename "$f")"
-    done
-    for f in "$WORKSPACE"/HLD/markdown_files/Drawio_*.md; do
-        [[ -f "$f" ]] || continue
-        move_or_copy "$f" "$OUTPUT/HLD/markdown_files/$(basename "$f")"
-    done
-    for f in "$WORKSPACE"/LLD/*_Combined.md; do
-        [[ -f "$f" ]] || continue
-        move_or_copy "$f" "$OUTPUT/LLD/$(basename "$f")"
-    done
-    for f in "$WORKSPACE"/LLD/Drawio_*.md; do
-        [[ -f "$f" ]] || continue
-        move_or_copy "$f" "$OUTPUT/LLD/$(basename "$f")"
-    done
-
-    # Diagram PNGs
-    for dir in "$WORKSPACE"/Diagrams/phase*/; do
-        [[ -d "$dir" ]] || continue
-        local phase
-        phase="$(basename "$dir")"
-        if ls "$dir"/*.png &>/dev/null; then
-            mkdir -p "$OUTPUT/Diagrams/$phase"
-            cp "$dir"/*.png "$OUTPUT/Diagrams/$phase/"
-        fi
-    done
-    if [[ -d "$WORKSPACE/LLD/diagrams" ]]; then
-        cp -r "$WORKSPACE/LLD/diagrams" "$OUTPUT/LLD/" 2>/dev/null || true
-    fi
-    if [[ -d "$WORKSPACE/HLD/diagrams" ]]; then
-        cp -r "$WORKSPACE/HLD/diagrams" "$OUTPUT/HLD/" 2>/dev/null || true
+    # /workspace/output and /output are often the same host dir bind-mounted twice.
+    if [[ "$ws_out" -ef "$OUTPUT" ]]; then
+        green "Outputs already under output/ (same mount as /output)."
+        return 0
     fi
 
-    # READOUT assets
-    if [[ -d "$WORKSPACE/HLD/READOUT/assets" ]] && ls "$WORKSPACE"/HLD/READOUT/assets/*.png &>/dev/null; then
-        mkdir -p "$OUTPUT/HLD/READOUT/assets"
-        cp "$WORKSPACE"/HLD/READOUT/assets/*.png "$OUTPUT/HLD/READOUT/assets/"
-    fi
-
-    # Work items
-    if [[ -d "$WORKSPACE/Work_Items" ]] && [[ "$(ls -A "$WORKSPACE/Work_Items" 2>/dev/null)" ]]; then
-        cp -r "$WORKSPACE/Work_Items" "$OUTPUT/"
-    fi
-
-    # Clean transient artifacts from source tree
-    rm -rf "$WORKSPACE"/HLD/PDFs "$WORKSPACE"/LLD/PDFs
-    rm -rf "$WORKSPACE"/LLD/diagrams
-    rm -rf "$WORKSPACE"/HLD/diagrams
-    find "$WORKSPACE/Diagrams" -name "*.png" -delete 2>/dev/null || true
-    rm -rf "$WORKSPACE"/HLD/READOUT/assets
-    rm -rf "$WORKSPACE"/Work_Items
-
-    green "Outputs written to output/"
+    mkdir -p "$OUTPUT"
+    cp -a "$ws_out"/. "$OUTPUT"/
+    green "Outputs synced to /output from workspace/output/"
 }
 
 SKIP_COLLECT=false
@@ -149,14 +97,22 @@ SKIP_COLLECT=false
 
 cmd_setup() {
     local client="${1:-}"
-    local project_code="${2:-OCP-V}"
     if [[ -z "$client" ]]; then
         red "Error: client name is required."
-        echo "Usage: make setup CLIENT=\"Your Client Name\" PROJECT=\"OCP-V\""
+        echo "Usage: make setup CLIENT=\"Your Client Name\" PROJECT=\"OCP-V\" [FORCE=1]"
         exit 1
     fi
+    shift
+    local project_code="OCP-V"
+    if [[ $# -gt 0 && "${1:-}" != --* ]]; then
+        project_code="$1"
+        shift
+    fi
+    if [[ "${SETUP_FORCE:-}" == "1" ]]; then
+        set -- "$@" --force
+    fi
     bold "=== Setting up project for: ${client} (${project_code}) ==="
-    python3 "$WORKSPACE/scripts/setup_project.py" "$WORKSPACE" "$client" "$project_code"
+    python3 "/toolkit/setup_project.py" "$WORKSPACE" "$client" "$project_code" "$@"
     green "Setup complete."
 }
 
@@ -166,23 +122,23 @@ cmd_build_hld() {
     echo ""
 
     bold "[1/6] Stitching phase files into combined HLD..."
-    bash "$WORKSPACE/scripts/build/stitch_hld.sh"
+    bash "/toolkit/hld_lld/build/stitch_hld.sh"
     echo ""
 
     bold "[2/6] Exporting .drawio diagrams to PNG..."
-    bash "$WORKSPACE/scripts/build/export_drawio.sh"
+    bash "/toolkit/hld_lld/build/export_drawio.sh"
     echo ""
 
     bold "[3/6] Exporting mermaid diagrams to PNG..."
-    bash "$WORKSPACE/scripts/build/export_mermaid.sh" --type hld
+    bash "/toolkit/hld_lld/build/export_mermaid.sh" --type hld
     echo ""
 
     bold "[4/6] Generating Drawio markdown variants..."
-    python3 "$WORKSPACE/scripts/build/generate_drawio_variants.py" --type hld
+    python3 "/toolkit/hld_lld/build/generate_drawio_variants.py" --type hld
     echo ""
 
     bold "[5/6] Generating HLD PDFs..."
-    python3 "$WORKSPACE/scripts/build/generate_pdfs.py" --type hld --pdf-only
+    python3 "/toolkit/hld_lld/build/generate_pdfs.py" --type hld --pdf-only
     echo ""
 
     bold "[6/6] Validating generated HLD placeholders..."
@@ -199,19 +155,19 @@ cmd_build_lld() {
     echo ""
 
     bold "[1/4] Stitching phase files into combined LLD..."
-    bash "$WORKSPACE/scripts/build/stitch_lld.sh"
+    bash "/toolkit/hld_lld/build/stitch_lld.sh"
     echo ""
 
     bold "[2/4] Exporting mermaid diagrams to PNG..."
-    bash "$WORKSPACE/scripts/build/export_mermaid.sh" --type lld
+    bash "/toolkit/hld_lld/build/export_mermaid.sh" --type lld
     echo ""
 
     bold "[3/4] Generating Drawio markdown variants..."
-    python3 "$WORKSPACE/scripts/build/generate_drawio_variants.py" --type lld
+    python3 "/toolkit/hld_lld/build/generate_drawio_variants.py" --type lld
     echo ""
 
     bold "[4/4] Generating LLD PDFs..."
-    python3 "$WORKSPACE/scripts/build/generate_pdfs.py" --type lld --pdf-only
+    python3 "/toolkit/hld_lld/build/generate_pdfs.py" --type lld --pdf-only
     echo ""
 
     [[ "$SKIP_COLLECT" == true ]] || collect_outputs
@@ -230,7 +186,7 @@ cmd_build_all() {
     echo ""
 
     bold "=== Generating work items ==="
-    python3 "$WORKSPACE/scripts/tools/lld_to_workitems.py" --format both --output-dir "$OUTPUT/Work_Items"
+    python3 "/toolkit/hld_lld/lld_to_workitems.py" --format both --output-dir "$OUTPUT/Work_Items"
     echo ""
 
     SKIP_COLLECT=false
@@ -244,15 +200,15 @@ cmd_diagrams() {
     echo ""
 
     bold "HLD diagrams (.drawio -> PNG)..."
-    bash "$WORKSPACE/scripts/build/export_drawio.sh"
+    bash "/toolkit/hld_lld/build/export_drawio.sh"
     echo ""
 
     bold "HLD diagrams (mermaid -> PNG)..."
-    bash "$WORKSPACE/scripts/build/export_mermaid.sh" --type hld
+    bash "/toolkit/hld_lld/build/export_mermaid.sh" --type hld
     echo ""
 
     bold "LLD diagrams (mermaid -> PNG)..."
-    bash "$WORKSPACE/scripts/build/export_mermaid.sh" --type lld
+    bash "/toolkit/hld_lld/build/export_mermaid.sh" --type lld
     echo ""
 
     collect_outputs
@@ -265,13 +221,13 @@ cmd_pdfs() {
     echo ""
 
     bold "HLD PDFs..."
-    python3 "$WORKSPACE/scripts/build/generate_drawio_variants.py" --type hld
-    python3 "$WORKSPACE/scripts/build/generate_pdfs.py" --type hld --pdf-only
+    python3 "/toolkit/hld_lld/build/generate_drawio_variants.py" --type hld
+    python3 "/toolkit/hld_lld/build/generate_pdfs.py" --type hld --pdf-only
     echo ""
 
     bold "LLD PDFs..."
-    python3 "$WORKSPACE/scripts/build/generate_drawio_variants.py" --type lld
-    python3 "$WORKSPACE/scripts/build/generate_pdfs.py" --type lld --pdf-only
+    python3 "/toolkit/hld_lld/build/generate_drawio_variants.py" --type lld
+    python3 "/toolkit/hld_lld/build/generate_pdfs.py" --type lld --pdf-only
     echo ""
 
     collect_outputs
@@ -281,7 +237,7 @@ cmd_pdfs() {
 cmd_workitems() {
     require_project_yaml
     bold "=== Generating work items from LLD ==="
-    python3 "$WORKSPACE/scripts/tools/lld_to_workitems.py" --format both --output-dir "$OUTPUT/Work_Items"
+    python3 "/toolkit/hld_lld/lld_to_workitems.py" --format both --output-dir "$OUTPUT/Work_Items"
     collect_outputs
     green "Work items written to output/Work_Items/"
 }
@@ -303,16 +259,16 @@ cmd_rvtools() {
         fi
     done
     if [[ "$has_output" == true ]]; then
-        python3 "$WORKSPACE/scripts/tools/rvtools_to_schedule.py" "${shift_args[@]}"
+        python3 "/toolkit/rvtools/rvtools_to_schedule.py" "${shift_args[@]}"
     else
-        python3 "$WORKSPACE/scripts/tools/rvtools_to_schedule.py" "${shift_args[@]}" -o "$OUTPUT/Migration_Weekly_Schedule.xlsx"
+        python3 "/toolkit/rvtools/rvtools_to_schedule.py" "${shift_args[@]}" -o "$OUTPUT/Migration_Weekly_Schedule.xlsx"
     fi
     collect_outputs
     green "Migration schedule generated."
 }
 
 cmd_status() {
-    python3 "$WORKSPACE/scripts/setup_project.py" "$WORKSPACE" --status
+    python3 "/toolkit/setup_project.py" "$WORKSPACE" --status
 }
 
 cmd_help() {

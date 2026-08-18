@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-setup_project.py — First-time project setup and health check.
+setup_project.py — First-time project setup and status check.
 
 Called by the container entrypoint during `make setup`.
 Handles: project.yaml creation, {CLIENT} placeholder replacement,
@@ -14,12 +14,26 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import re
 import shutil
 import sys
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import yaml
-
+from client_prefix import derive_hld_lld_file_prefix
+from config import get_client_identity
+from diagram_layout import PHASE_DIAGRAM_PREFIXES, TOP_LEVEL_PREFIXES
+from setup_status import (
+    _print_optional,
+    _print_step_adr,
+    _print_step_ai,
+    _print_step_lld,
+    _print_step_publish,
+    _print_step_setup,
+    _print_step_workitems,
+    run_status,
+)
 
 # ── Helpers ──────────────────────────────────────────────────────────
 
@@ -51,56 +65,85 @@ def heading(msg: str) -> None:
     print(f"\n{BOLD}{msg}{RESET}")
 
 
-def derive_file_prefix(client_name: str) -> str:
-    """Derive the filename prefix from a client name.
+# ── Project type registry ────────────────────────────────────────────
+#
+# Each engagement type (OCP-V, future types) is a first-class
+# entry here. Adding a new type requires: one ProjectType entry below, one
+# project.example.<type>.yaml template file, and nothing else — run_setup()
+# and run_status() dispatch purely off these fields.
 
-    'Example Client' -> 'Example'     (first word)
-    'Globex'    -> 'Globex'            (single word)
-    'Contoso North America' -> 'ContosoNorth'  (first two words joined)
-    """
-    words = client_name.split()
-    if len(words) == 1:
-        return words[0]
-    if len(words) == 2:
-        return words[0]
-    return "".join(words[:2])
+
+@dataclass(frozen=True)
+class ProjectType:
+    """Describes everything setup/status need to know about an engagement type."""
+
+    engagement_type: str
+    template_file: str
+    scaffold_dirs: tuple[str, ...]
+    template_dirs: tuple[str, ...]
+    has_hld_templates: bool
+    has_diagram_seeding: bool
+    has_hld_status: bool
+    status_steps: tuple
+    next_steps: tuple[str, ...]
+    next_step_groups: tuple[tuple[str, tuple[str, ...]], ...] = field(default_factory=tuple)
+    project_code_placeholder: str | None = None
+    aliases: tuple[str, ...] = field(default_factory=tuple)
 
 
 # ── project.yaml creation ───────────────────────────────────────────
 
-def create_project_yaml(workspace: Path, client_name: str, project_code: str) -> dict:
-    """Create project.yaml from the example, substituting client values."""
-    example = workspace / "project.example.yaml"
+
+def create_project_yaml(workspace: Path, client_name: str, project_code: str, project_type: ProjectType) -> dict:
+    """Create project.yaml from the type's template, substituting client values."""
+    example = workspace / project_type.template_file
     target = workspace / "project.yaml"
 
     if target.exists():
         with open(target, encoding="utf-8") as f:
-            existing = yaml.safe_load(f)
+            existing = yaml.safe_load(f) or {}
         existing_client = existing.get("client_name", "")
+        existing_engagement_type = str(existing.get("engagement_type", "ocp-v")).strip() or "ocp-v"
+        expected_engagement_type = project_type.engagement_type
+        recreate_existing = False
         if existing_client == client_name:
-            info("project.yaml already exists with correct client, loading it.")
-            return existing
-        if "{CLIENT}" not in existing_client and "{CLIENT_PREFIX}" not in existing_client:
+            if existing_engagement_type != expected_engagement_type:
+                safe_old_type = re.sub(r"[^A-Za-z0-9._-]+", "-", existing_engagement_type) or "unknown"
+                backup_path = workspace / f"project.yaml.bak.{safe_old_type}"
+                shutil.copy2(target, backup_path)
+                warn(
+                    "project.yaml engagement type mismatch "
+                    f"('{existing_engagement_type}' -> '{expected_engagement_type}'); "
+                    f"recreating from {project_type.template_file} (backup: {backup_path.name})."
+                )
+                recreate_existing = True
+            else:
+                info("project.yaml already exists with correct client, loading it.")
+                return existing
+        elif "{CLIENT}" not in existing_client and "{CLIENT_PREFIX}" not in existing_client:
             info(f"project.yaml already exists (client: {existing_client}), loading it.")
             return existing
-        info(f"project.yaml has placeholder client '{existing_client}', recreating...")
-        target.unlink()
+        else:
+            info(f"project.yaml has placeholder client '{existing_client}', recreating...")
+            recreate_existing = True
+
+        if recreate_existing and target.exists():
+            target.unlink()
 
     if not example.exists():
-        print(f"{RED}Error: project.example.yaml not found in {workspace}{RESET}")
+        print(f"{RED}Error: {project_type.template_file} not found in {workspace}{RESET}")
         sys.exit(1)
 
     with open(example, encoding="utf-8") as f:
         content = f.read()
 
-    file_prefix = derive_file_prefix(client_name)
+    file_prefix = derive_hld_lld_file_prefix(client_name)
 
     content = content.replace("{CLIENT}", client_name)
     content = content.replace("{CLIENT_PREFIX}", file_prefix)
-    # Backward compatibility for older project.example.yaml variants.
-    content = content.replace("Acme_", f"{file_prefix}_")
-    content = content.replace('"Acme_', f'"{file_prefix}_')
-    content = content.replace("OCP-V", project_code) if project_code != "OCP-V" else content
+    placeholder = project_type.project_code_placeholder
+    if placeholder and project_code != placeholder:
+        content = content.replace(placeholder, project_code)
 
     with open(target, "w", encoding="utf-8") as f:
         f.write(content)
@@ -112,12 +155,6 @@ def create_project_yaml(workspace: Path, client_name: str, project_code: str) ->
 
 
 # ── Template file processing ────────────────────────────────────────
-
-TEMPLATE_DIRS = [
-    "ADR",
-    "HLD/markdown_files",
-    "LLD",
-]
 
 TEMPLATE_EXTENSIONS = {".md"}
 
@@ -139,9 +176,10 @@ def replace_placeholders_in_file(path: Path, replacements: dict[str, str]) -> bo
     return False
 
 
-def process_templates(workspace: Path, client_name: str, file_prefix: str) -> None:
-    """Replace {CLIENT} placeholders in all template markdown files."""
-    heading("Replacing placeholders in template files...")
+def process_templates(workspace: Path, client_name: str, file_prefix: str, template_dirs: tuple[str, ...]) -> None:
+    """Replace {CLIENT} placeholders in client working markdown (never mutate templates/)."""
+    heading("Replacing placeholders in client working files...")
+    _ = file_prefix
 
     replacements = {
         "{CLIENT}": client_name,
@@ -149,7 +187,7 @@ def process_templates(workspace: Path, client_name: str, file_prefix: str) -> No
     }
 
     changed = 0
-    for dir_rel in TEMPLATE_DIRS:
+    for dir_rel in template_dirs:
         dir_path = workspace / dir_rel
         if not dir_path.exists():
             continue
@@ -166,59 +204,112 @@ def process_templates(workspace: Path, client_name: str, file_prefix: str) -> No
 HLD_TEMPLATE_PREFIX = "Template_OCP-V_HLD_DecisionJourney"
 LLD_TEMPLATE_PREFIX = "Template_OCP-V_LLD"
 
+TEMPLATES_HLD_MD = Path("templates") / "HLD" / "markdown_files"
+TEMPLATES_LLD = Path("templates") / "LLD"
+TEMPLATES_ADR = Path("templates") / "ADR"
+TEMPLATES_DIAGRAMS_EXAMPLES = Path("templates") / "Diagrams" / "examples"
+OUTPUT_HLD_MD = Path("output") / "HLD" / "markdown_files"
+OUTPUT_LLD = Path("output") / "LLD"
+OUTPUT_DIAGRAMS = Path("output") / "Diagrams"
+
+
+def collect_working_copy_conflicts(workspace: Path, file_prefix: str, project_code: str) -> list[Path]:
+    """Return existing HLD/LLD/ADR working copies that setup would overwrite."""
+    conflicts: list[Path] = []
+    hld_src = workspace / TEMPLATES_HLD_MD
+    hld_dest = workspace / OUTPUT_HLD_MD
+    if hld_src.exists():
+        client_hld_prefix = f"{file_prefix}_{project_code}_HLD_DecisionJourney"
+        for src in sorted(hld_src.glob(f"{HLD_TEMPLATE_PREFIX}*.md")):
+            suffix_part = src.name[len(HLD_TEMPLATE_PREFIX) :]
+            dest = hld_dest / f"{client_hld_prefix}{suffix_part}"
+            if dest.exists():
+                conflicts.append(dest)
+    lld_src = workspace / TEMPLATES_LLD
+    lld_dest = workspace / OUTPUT_LLD
+    if lld_src.exists():
+        for src in sorted(lld_src.glob(f"{LLD_TEMPLATE_PREFIX}*.md")):
+            dest = lld_dest / src.name.replace("Template_", f"{file_prefix}_")
+            if dest.exists():
+                conflicts.append(dest)
+    adr_client = workspace / "ADR" / f"ADR_{file_prefix.lower()}.md"
+    if adr_client.exists():
+        conflicts.append(adr_client)
+    return conflicts
+
+
+def _refuse_existing_working_copies(workspace: Path, conflicts: list[Path]) -> None:
+    heading("Working copies already exist")
+    warn("Setup will not overwrite existing markdown working copies.")
+    for path in conflicts:
+        try:
+            rel = path.relative_to(workspace)
+        except ValueError:
+            rel = path
+        warn(str(rel))
+    print("Re-run with FORCE=1 (or --force) to overwrite working copies from templates.")
+    sys.exit(1)
+
 
 def rename_templates(workspace: Path, cfg: dict, file_prefix: str, project_code: str) -> None:
-    """Create client-named copies of Template_* files."""
+    """Create client-named copies of Template_* files under output/ (ADR under ADR/)."""
     heading("Creating client-named copies of templates...")
+    _ = cfg
 
     count = 0
 
-    # HLD phase + preamble + appendix files
-    hld_md = workspace / "HLD" / "markdown_files"
-    if hld_md.exists():
+    # HLD phase + preamble + appendix files: templates → output
+    hld_src = workspace / TEMPLATES_HLD_MD
+    hld_dest = workspace / OUTPUT_HLD_MD
+    if hld_src.exists():
+        hld_dest.mkdir(parents=True, exist_ok=True)
         client_hld_prefix = f"{file_prefix}_{project_code}_HLD_DecisionJourney"
-        for f in sorted(hld_md.glob(f"{HLD_TEMPLATE_PREFIX}*.md")):
-            suffix_part = f.name[len(HLD_TEMPLATE_PREFIX):]  # e.g. "_phase1.md"
+        for f in sorted(hld_src.glob(f"{HLD_TEMPLATE_PREFIX}*.md")):
+            suffix_part = f.name[len(HLD_TEMPLATE_PREFIX) :]  # e.g. "_phase1.md"
             new_name = f"{client_hld_prefix}{suffix_part}"
-            dest = hld_md / new_name
-            if not dest.exists():
-                shutil.copy2(f, dest)
-                info(f"  {f.name} -> {new_name}")
-                count += 1
-
-    # LLD phase files
-    lld_dir = workspace / "LLD"
-    if lld_dir.exists():
-        for f in sorted(lld_dir.glob(f"{LLD_TEMPLATE_PREFIX}*.md")):
-            new_name = f.name.replace("Template_", f"{file_prefix}_")
-            dest = lld_dir / new_name
-            if not dest.exists():
-                shutil.copy2(f, dest)
-                info(f"  {f.name} -> {new_name}")
-                count += 1
-
-    # ADR template
-    adr_dir = workspace / "ADR"
-    if adr_dir.exists():
-        adr_template = adr_dir / "ADR_template.md"
-        adr_client = adr_dir / f"ADR_{file_prefix.lower()}.md"
-        if adr_template.exists() and not adr_client.exists():
-            shutil.copy2(adr_template, adr_client)
-            info(f"  ADR_template.md -> {adr_client.name}")
+            dest = hld_dest / new_name
+            shutil.copy2(f, dest)
+            info(f"  {f.name} -> output/HLD/markdown_files/{new_name}")
             count += 1
+
+    # LLD phase files: templates → output
+    lld_src = workspace / TEMPLATES_LLD
+    lld_dest = workspace / OUTPUT_LLD
+    if lld_src.exists():
+        lld_dest.mkdir(parents=True, exist_ok=True)
+        for f in sorted(lld_src.glob(f"{LLD_TEMPLATE_PREFIX}*.md")):
+            new_name = f.name.replace("Template_", f"{file_prefix}_")
+            dest = lld_dest / new_name
+            shutil.copy2(f, dest)
+            info(f"  {f.name} -> output/LLD/{new_name}")
+            count += 1
+
+    # ADR template: templates/ADR → ADR/ (filled engagement ADR stays at repo root)
+    adr_src = workspace / TEMPLATES_ADR
+    adr_dir = workspace / "ADR"
+    adr_dir.mkdir(parents=True, exist_ok=True)
+    adr_template = adr_src / "ADR_template.md"
+    adr_client = adr_dir / f"ADR_{file_prefix.lower()}.md"
+    if adr_template.exists():
+        shutil.copy2(adr_template, adr_client)
+        info(f"  ADR_template.md -> ADR/{adr_client.name}")
+        count += 1
 
     info(f"Created {count} client-named file(s).")
 
 
 # ── Stitchmd summary file ───────────────────────────────────────────
 
-def create_summary_file(workspace: Path, cfg: dict, file_prefix: str, project_code: str) -> None:
+
+def create_summary_file(
+    workspace: Path, cfg: dict, file_prefix: str, project_code: str, force: bool = False
+) -> None:
     """Generate a client-specific stitchmd summary file for HLD assembly."""
     heading("Creating stitchmd summary file...")
 
-    hld_md = workspace / "HLD" / "markdown_files"
+    hld_md = workspace / OUTPUT_HLD_MD
     if not hld_md.exists():
-        warn("HLD/markdown_files/ not found, skipping summary.")
+        warn("output/HLD/markdown_files/ not found, skipping summary.")
         return
 
     client_hld_prefix = f"{file_prefix}_{project_code}_HLD_DecisionJourney"
@@ -238,19 +329,18 @@ def create_summary_file(workspace: Path, cfg: dict, file_prefix: str, project_co
 
     summary_name = f"{file_prefix}_summary.md"
     summary_path = hld_md / summary_name
-    if summary_path.exists():
+    if summary_path.exists() and not force:
         info(f"{summary_name} already exists, skipping.")
         return
 
     summary_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     info(f"Created {summary_name} ({len(lines)} entries)")
-
     # Update project.yaml summary_map
     yaml_path = workspace / "project.yaml"
     with open(yaml_path, encoding="utf-8") as f:
         raw = yaml.safe_load(f)
 
-    summary_map = raw.get("hld", {}).get("summary_map", {})
+    summary_map = raw.setdefault("hld", {}).setdefault("summary_map", {})
     combined_name = f"{client_hld_prefix}_combined.md"
 
     existing_summaries = {v.get("summary") for v in summary_map.values()}
@@ -272,7 +362,6 @@ def create_summary_file(workspace: Path, cfg: dict, file_prefix: str, project_co
             "summary": summary_name,
             "output": combined_name,
         }
-        raw["hld"]["summary_map"] = summary_map
 
         combined = raw["hld"].get("combined_files", [])
         if combined_name not in combined:
@@ -286,34 +375,22 @@ def create_summary_file(workspace: Path, cfg: dict, file_prefix: str, project_co
 
 # ── Diagram seeding ─────────────────────────────────────────────────
 
-PHASE_DIAGRAM_PREFIXES = {
-    "phase1": ["HLD_Phase1_", "LLD_Phase1_", "HLD_phase1_", "LLD_phase1_"],
-    "phase2": ["HLD_Phase2_", "LLD_Phase2_", "HLD_phase2_", "LLD_phase2_"],
-    "phase3": ["HLD_Phase3_", "LLD_Phase3_", "HLD_phase3_", "LLD_phase3_"],
-    "phase4": ["HLD_Phase4_", "LLD_Phase4_", "HLD_phase4_", "LLD_phase4_"],
-}
-
-TOP_LEVEL_PREFIXES = [
-    "HLD_Network_", "HLD_Storage_", "HLD_Physical_", "HLD_Observability_",
-    "HLD_Provisioning_", "HLD_GitOps_", "HLD_ACM_", "HLD_RBAC_",
-    "HLD_Platform_", "HLD_External_", "HLD_Backup_", "HLD_Fleet_",
-    "HLD_Migration_", "HLD_Decision_", "HLD_Master_",
-]
-
-
-def seed_diagrams(workspace: Path) -> None:
-    """Copy example .drawio files into working phase and top-level directories."""
+def seed_diagrams(workspace: Path, force: bool = False) -> None:
+    """Copy example .drawio files into output/Diagrams working directories."""
     heading("Seeding diagram directories from examples...")
 
-    examples_dir = workspace / "Diagrams" / "examples"
+    examples_dir = workspace / TEMPLATES_DIAGRAMS_EXAMPLES
     if not examples_dir.exists():
-        warn("Diagrams/examples/ not found, skipping diagram seeding.")
+        warn("templates/Diagrams/examples/ not found, skipping diagram seeding.")
         return
 
     examples = list(examples_dir.glob("*.drawio"))
     if not examples:
         warn("No .drawio examples found.")
         return
+
+    diag_root = workspace / OUTPUT_DIAGRAMS
+    diag_root.mkdir(parents=True, exist_ok=True)
 
     phase_count = 0
     top_count = 0
@@ -322,10 +399,10 @@ def seed_diagrams(workspace: Path) -> None:
         for phase, prefixes in PHASE_DIAGRAM_PREFIXES.items():
             for prefix in prefixes:
                 if drawio.name.startswith(prefix):
-                    dest_dir = workspace / "Diagrams" / phase
+                    dest_dir = diag_root / phase
                     dest_dir.mkdir(parents=True, exist_ok=True)
                     dest = dest_dir / drawio.name
-                    if not dest.exists():
+                    if force or not dest.exists():
                         shutil.copy2(drawio, dest)
                         phase_count += 1
                     placed = True
@@ -336,298 +413,158 @@ def seed_diagrams(workspace: Path) -> None:
         if not placed:
             for prefix in TOP_LEVEL_PREFIXES:
                 if drawio.name.startswith(prefix):
-                    dest = workspace / "Diagrams" / drawio.name
-                    if not dest.exists():
+                    dest = diag_root / drawio.name
+                    if force or not dest.exists():
                         shutil.copy2(drawio, dest)
                         top_count += 1
                     placed = True
                     break
 
-    info(f"Seeded {phase_count} diagram(s) into phase directories.")
+    info(f"Seeded {phase_count} diagram(s) into output/Diagrams phase directories.")
     if top_count:
-        info(f"Seeded {top_count} top-level diagram(s) into Diagrams/.")
+        info(f"Seeded {top_count} top-level diagram(s) into output/Diagrams/.")
 
 
 # ── Directory scaffolding ────────────────────────────────────────────
 
-SCAFFOLD_DIRS = [
-    "Work_Items",
-    "RVTools",
-    "HLD/PDFs",
-    "HLD/diagrams",
-    "LLD/PDFs",
-    "LLD/diagrams",
-    "Diagrams/phase1",
-    "Diagrams/phase2",
-    "Diagrams/phase3",
-    "Diagrams/phase4",
-]
 
-
-def scaffold_directories(workspace: Path) -> None:
+def scaffold_directories(workspace: Path, dirs: tuple[str, ...]) -> None:
     """Create working directories if they don't exist."""
     heading("Scaffolding directories...")
 
     created = 0
-    for d in SCAFFOLD_DIRS:
+    for d in dirs:
         path = workspace / d
         if not path.exists():
             path.mkdir(parents=True, exist_ok=True)
             (path / ".gitkeep").touch()
             created += 1
 
-    info(f"Ensured {len(SCAFFOLD_DIRS)} directories exist ({created} created).")
+    info(f"Ensured {len(dirs)} directories exist ({created} created).")
 
 
-# ── Status / health check ───────────────────────────────────────────
-
-def _count_drawio(workspace: Path, cfg: dict) -> tuple:
-    """Return (phase_count, top_level_count) of .drawio files."""
-    diag_root = workspace / "Diagrams"
-    phase_count = 0
-    for phase in cfg.get("diagrams", {}).get("phase_dirs", []):
-        phase_dir = diag_root / phase
-        if phase_dir.exists():
-            phase_count += len(list(phase_dir.glob("*.drawio")))
-    top_count = len(list(diag_root.glob("*.drawio"))) if diag_root.exists() else 0
-    return phase_count, top_count
+# ── Project type registry (after step printers for status_steps refs) ─
 
 
-def run_status(workspace: Path) -> None:
-    """Print a plain-language project health report."""
-    yaml_path = workspace / "project.yaml"
+PROJECT_TYPES: dict[str, ProjectType] = {
+    "ocp-v": ProjectType(
+        engagement_type="ocp-v",
+        template_file="project.example.yaml",
+        scaffold_dirs=(
+            "output/Work_Items",
+            "RVTools",
+            "output/HLD/PDFs",
+            "output/HLD/diagrams",
+            "output/HLD/markdown_files",
+            "output/LLD/PDFs",
+            "output/LLD/diagrams",
+            "output/LLD",
+            "output/Diagrams/phase1",
+            "output/Diagrams/phase2",
+            "output/Diagrams/phase3",
+            "output/Diagrams/phase4",
+            "ADR",
+        ),
+        # Placeholder replacement targets (immutable sources live under templates/)
+        template_dirs=("ADR", "output/HLD/markdown_files", "output/LLD"),
+        has_hld_templates=True,
+        has_diagram_seeding=True,
+        has_hld_status=True,
+        status_steps=(
+            _print_step_setup,
+            _print_step_adr,
+            _print_step_ai,
+            _print_step_publish,
+            _print_step_lld,
+            _print_step_workitems,
+            _print_optional,
+        ),
+        next_steps=(
+            "make build-hld-from-adr  — AI prepare HLD inputs from ADR",
+            "make publish             — publish HLD (stitch + diagrams + PDFs)",
+            "make prepare-and-publish — run AI prepare, then publish HLD",
+            "make build       — build everything",
+        ),
+        project_code_placeholder="OCP-V",
+    ),
+}
 
-    heading("Project Status")
 
-    if not yaml_path.exists():
-        fail('project.yaml not found — run: make setup CLIENT="Your Client" PROJECT="OCP-V"')
-        return
-
-    with open(yaml_path, encoding="utf-8") as f:
-        cfg = yaml.safe_load(f)
-
-    client = cfg.get("client_name", "Unknown")
-    code = cfg.get("project_code", "OCP-V")
-    print(f"\n  Project: {BOLD}{client}{RESET} ({code})")
-    print(f"  {'─' * 50}\n")
-
-    # ── Gather all state up front ─────────────────────────────────
-    hld_md = workspace / "HLD" / "markdown_files"
-    lld_dir = workspace / "LLD"
-
-    # Setup state
-    hld_phases = cfg.get("hld", {}).get("phase_files", [])
-    hld_found = sum(1 for f in hld_phases if (hld_md / f).exists()) if hld_md.exists() else 0
-    lld_phases_cfg = [p.get("lld_file", "") for p in cfg.get("phases", [])]
-    lld_found = sum(1 for f in lld_phases_cfg if (lld_dir / f).exists()) if lld_dir.exists() else 0
-    phase_drawio, top_drawio = _count_drawio(workspace, cfg)
-    adr_dir = workspace / "ADR"
-    _adr_excluded = {"ADR_template.md", "ADR_EXAMPLE.md"}
-    adr_files = [f for f in adr_dir.glob("ADR_*.md") if f.name not in _adr_excluded] if adr_dir.exists() else []
-
-    setup_ok = (
-        hld_found == len(hld_phases) and hld_found > 0
-        and lld_found == len(lld_phases_cfg) and lld_found > 0
-        and (phase_drawio + top_drawio) > 0
-        and len(adr_files) > 0
-    )
-
-    # AI state
-    det_dir = workspace / ".deterministic"
-    out_det_dir = workspace / "output" / ".deterministic"
-    slots_file = det_dir / "slots" / "slot_map.json"
-    if not slots_file.exists():
-        slots_file = out_det_dir / "slots" / "slot_map.json"
-    drafts_det = workspace / "drafts_deterministic"
-    if not drafts_det.exists():
-        drafts_det = workspace / "output" / "drafts_deterministic"
-    drafts_prose = workspace / "drafts"
-    det_hld_files = list(drafts_det.rglob("*.md")) if drafts_det.exists() else []
-    has_slots = slots_file.exists()
-    prose_files = list(drafts_prose.rglob("*.md")) if drafts_prose.exists() else []
-    ai_done = has_slots and len(det_hld_files) > 0
-
-    # Build state — check both in-tree and output/ (container writes to output/)
-    def _count_glob(base: Path, pattern: str) -> int:
-        return len(list(base.rglob(pattern))) if base.exists() else 0
-
-    out = workspace / "output"
-    hld_combined = cfg.get("hld", {}).get("combined_files", [])
-    hld_stitched = False
-    if hld_md.exists():
-        hld_stitched = any((hld_md / f).exists() for f in hld_combined)
-    if not hld_stitched and (out / "HLD" / "markdown_files").exists():
-        hld_stitched = any((out / "HLD" / "markdown_files" / f).exists() for f in hld_combined)
-    hld_pdfs = _count_glob(workspace / "HLD" / "PDFs", "*.pdf") + _count_glob(out / "HLD" / "PDFs", "*.pdf")
-    hld_pngs = _count_glob(workspace / "HLD" / "diagrams", "*.png") + _count_glob(out / "HLD" / "diagrams", "*.png")
-    hld_drawio_md = _count_glob(workspace / "HLD" / "markdown_files", "Drawio_*.md") + _count_glob(out / "HLD" / "markdown_files", "Drawio_*.md")
-
-    lld_combined_file = cfg.get("lld", {}).get("combined_file", "")
-    lld_stitched = bool(lld_combined_file and (lld_dir / lld_combined_file).exists())
-    if not lld_stitched and lld_combined_file:
-        lld_stitched = (out / "LLD" / lld_combined_file).exists()
-    lld_pdfs = _count_glob(workspace / "LLD" / "PDFs", "*.pdf") + _count_glob(out / "LLD" / "PDFs", "*.pdf")
-    lld_pngs = _count_glob(workspace / "LLD" / "diagrams", "*.png") + _count_glob(out / "LLD" / "diagrams", "*.png")
-    lld_drawio_md = _count_glob(workspace / "LLD", "Drawio_*.md") + _count_glob(out / "LLD", "Drawio_*.md")
-
-    hld_built = hld_stitched or hld_pdfs > 0 or hld_pngs > 0
-    lld_built = lld_stitched or lld_pdfs > 0 or lld_pngs > 0
-
-    # Extras state
-    wi_dir = workspace / "Work_Items"
-    wi_out = out / "Work_Items"
-    wi_files = list(wi_dir.rglob("*.md")) if wi_dir.exists() else []
-    wi_files += list(wi_out.rglob("*.md")) if wi_out.exists() else []
-
-    # ── Determine next action ─────────────────────────────────────
-    ARROW = "\033[1;36m>>>\033[0m"
-
-    # ── Step 1: make setup ────────────────────────────────────────
-    step_label = f"{ARROW} " if not setup_ok else "   "
-    print(f'  {step_label}{BOLD}Step 1:{RESET}  make setup CLIENT="..." PROJECT="..."')
-    if setup_ok:
-        parts = [f"HLD {hld_found}/{len(hld_phases)}", f"LLD {lld_found}/{len(lld_phases_cfg)}",
-                 f"{phase_drawio + top_drawio} diagrams", f"ADR: {adr_files[0].name}"]
-        ok(f"Done — {', '.join(parts)}")
-    else:
-        if hld_found < len(hld_phases):
-            warn(f"HLD templates: {hld_found}/{len(hld_phases)}")
-        if lld_found < len(lld_phases_cfg):
-            warn(f"LLD templates: {lld_found}/{len(lld_phases_cfg)}")
-        if phase_drawio + top_drawio == 0:
-            warn("No diagrams seeded")
-        if not adr_files:
-            warn("No client ADR file — fill in ADR/<client>.md after setup")
-    print()
-
-    # ── Step 2: Fill in ADR ───────────────────────────────────────
-    adr_has_content = False
-    adr_filled_decisions = 0
-    adr_total_decisions = 0
-    adr_heading_count = 0
-    if adr_files:
-        adr_text = adr_files[0].read_text(encoding="utf-8")
-        for raw_line in adr_text.splitlines():
-            line = raw_line.strip()
-            if line.startswith("### ADR "):
-                adr_heading_count += 1
-            if line.startswith("- **Decision**:"):
-                adr_total_decisions += 1
-                if line != "- **Decision**:":
-                    adr_filled_decisions += 1
-        adr_has_content = adr_filled_decisions > 0
-    step_label = f"{ARROW} " if setup_ok and not adr_has_content else "   "
-    print(f"  {step_label}{BOLD}Step 2:{RESET}  Edit ADR/<client>.md with architecture decisions")
-    if adr_has_content:
-        if adr_heading_count:
-            ok(f"Done — {adr_files[0].name} ({adr_heading_count} ADRs, {adr_filled_decisions}/{adr_total_decisions} decisions filled)")
-        else:
-            ok(f"Done — {adr_files[0].name}")
-    elif adr_files:
-        if adr_total_decisions:
-            warn(f"{adr_files[0].name} has no decisions filled in yet ({adr_filled_decisions}/{adr_total_decisions}) — fill in your architecture decisions")
-        else:
-            warn(f"{adr_files[0].name} exists but no Decision fields were found — verify ADR template format")
-    else:
-        warn("No ADR file yet (created by Step 1)")
-    print()
-
-    # ── Step 3: make build-hld-from-adr ───────────────────────────
-    step_label = f"{ARROW} " if setup_ok and adr_has_content and not ai_done else "   "
-    print(f"  {step_label}{BOLD}Step 3:{RESET}  make build-hld-from-adr")
-    if has_slots and det_hld_files:
-        ok(f"Done — slots extracted, {len(det_hld_files)} draft(s) rendered")
-    elif has_slots:
-        warn("Slots extracted but drafts not rendered — re-run to complete")
-    else:
-        warn("Not run yet — AI extracts data from ADR and renders HLD drafts")
-    print()
-
-    # ── Step 4: make publish ──────────────────────────────────────
-    step_label = f"{ARROW} " if ai_done and not hld_built else "   "
-    print(f"  {step_label}{BOLD}Step 4:{RESET}  make publish  (runs in container)")
-    if hld_built:
-        parts = []
-        if hld_stitched: parts.append("stitched")
-        if hld_drawio_md: parts.append(f"{hld_drawio_md} Drawio md")
-        if hld_pngs: parts.append(f"{hld_pngs} PNG(s)")
-        if hld_pdfs: parts.append(f"{hld_pdfs} PDF(s)")
-        ok(f"Done — {', '.join(parts)}")
-    else:
-        warn("Not built yet — stitches phases, exports diagrams, generates PDFs")
-    print()
-
-    # ── Step 5: make build-lld ────────────────────────────────────
-    step_label = f"{ARROW} " if hld_built and not lld_built else "   "
-    print(f"  {step_label}{BOLD}Step 5:{RESET}  make build-lld  (runs in container)")
-    if lld_built:
-        parts = []
-        if lld_stitched: parts.append("stitched")
-        if lld_drawio_md: parts.append(f"{lld_drawio_md} Drawio md")
-        if lld_pngs: parts.append(f"{lld_pngs} PNG(s)")
-        if lld_pdfs: parts.append(f"{lld_pdfs} PDF(s)")
-        ok(f"Done — {', '.join(parts)}")
-    else:
-        warn("Not built yet — stitches phases, exports diagrams, generates PDFs")
-    print()
-
-    # ── Step 6: make workitems ────────────────────────────────────
-    step_label = f"{ARROW} " if lld_built and not wi_files else "   "
-    print(f"  {step_label}{BOLD}Step 6:{RESET}  make workitems")
-    if wi_files:
-        ok(f"Done — {len(wi_files)} work item(s)")
-    else:
-        warn("Not run yet — extracts sprint work items from LLD")
-    print()
-
-    # ── Optional targets ──────────────────────────────────────────
-    print(f"  {BOLD}Optional:{RESET}")
-    if prose_files:
-        info(f"  Legacy prose drafts detected: {len(prose_files)} file(s)")
-    info("  make rvtools FILES=\"...\"    — process RVTools XLSX into migration schedule")
-
-    print()
+def get_project_type(project_code: str) -> ProjectType:
+    """Resolve a PROJECT= code to its ProjectType. Unknown codes default to ocp-v."""
+    raw_key = (project_code or "").strip().upper()
+    key = re.sub(r"[-_\s]+", "-", raw_key)
+    for type_key, pt in PROJECT_TYPES.items():
+        if key == type_key.upper() or key in pt.aliases:
+            return pt
+    if key.startswith("OCP-V"):
+        return PROJECT_TYPES["ocp-v"]
+    if key and key != "OCP-V":
+        warn(f'Unknown PROJECT="{project_code}" — defaulting to OCP-V')
+    return PROJECT_TYPES["ocp-v"]
 
 
 # ── Main setup flow ─────────────────────────────────────────────────
 
-def run_setup(workspace: Path, client_name: str, project_code: str = "OCP-V") -> None:
+
+def run_setup(workspace: Path, client_name: str, project_code: str = "OCP-V", force: bool = False) -> None:
     """Execute the full project setup."""
     project_code = project_code or "OCP-V"
-    file_prefix = derive_file_prefix(client_name)
+    project_type = get_project_type(project_code)
+    file_prefix = derive_hld_lld_file_prefix(client_name)
 
     heading("Configuration")
-    cfg = create_project_yaml(workspace, client_name, project_code)
-    file_prefix = derive_file_prefix(cfg.get("client_name", client_name))
+    cfg = create_project_yaml(workspace, client_name, project_code, project_type)
+    file_prefix = derive_hld_lld_file_prefix(cfg.get("client_name", client_name))
     project_code = cfg.get("project_code", project_code)
 
-    scaffold_directories(workspace)
-    process_templates(workspace, client_name, file_prefix)
-    rename_templates(workspace, cfg, file_prefix, project_code)
-    create_summary_file(workspace, cfg, file_prefix, project_code)
-    seed_diagrams(workspace)
+    scaffold_directories(workspace, project_type.scaffold_dirs)
+
+    # Copy immutable templates → client working files first, then replace placeholders
+    # only in those copies (never mutate templates/).
+    if project_type.has_hld_templates:
+        conflicts = collect_working_copy_conflicts(workspace, file_prefix, project_code)
+        if conflicts and not force:
+            _refuse_existing_working_copies(workspace, conflicts)
+        rename_templates(workspace, cfg, file_prefix, project_code)
+        create_summary_file(workspace, cfg, file_prefix, project_code, force=force)
+    if project_type.template_dirs:
+        process_templates(workspace, client_name, file_prefix, project_type.template_dirs)
+    if project_type.has_diagram_seeding:
+        seed_diagrams(workspace, force=force)
 
     heading("Done!")
     info(f"Project '{client_name}' is ready.")
     info("Next steps:")
     info("  make status      — see what's set up")
-    info("  make build-hld-from-adr  — AI prepare HLD inputs from ADR")
-    info("  make publish             — publish HLD (stitch + diagrams + PDFs)")
-    info("  make prepare-and-publish — run AI prepare, then publish HLD")
-    info("  make build       — build everything")
+    if project_type.next_step_groups:
+        print(f"  {BOLD}Choose one collection path:{RESET}")
+        print()
+        for title, steps in project_type.next_step_groups:
+            print(f"  {BOLD}{title}{RESET}")
+            for idx, line in enumerate(steps, start=1):
+                info(f"    {idx}) {line}")
+            print()
+    else:
+        for line in project_type.next_steps:
+            info(f"  {line}")
     print()
 
 
 # ── CLI ──────────────────────────────────────────────────────────────
 
+
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Project setup bootstrap and health status command."
-    )
+    parser = argparse.ArgumentParser(description="Project setup bootstrap and health status command.")
     parser.add_argument("workspace", type=Path, help="Workspace directory")
     parser.add_argument("client_name", nargs="?", help="Client name for setup mode")
     parser.add_argument("project_code", nargs="?", default="OCP-V", help="Project code for setup mode (default: OCP-V)")
     parser.add_argument("--status", action="store_true", help="Show project status only")
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite existing HLD/LLD/ADR working copies from templates",
+    )
     args = parser.parse_args()
 
     if args.status:
@@ -638,7 +575,7 @@ def main() -> None:
     else:
         if not args.client_name:
             parser.error("Missing <client_name> (or use --status)")
-        run_setup(args.workspace, args.client_name, args.project_code)
+        run_setup(args.workspace, args.client_name, args.project_code, force=args.force)
 
 
 if __name__ == "__main__":
