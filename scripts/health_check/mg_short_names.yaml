@@ -1,0 +1,70 @@
+# Must-gather short-name resolution for hc_skip_summary.py.
+#
+# `patterns` maps a short label to a list of keywords. Matching runs against
+# the lowercased, unmodified mg_source string — the first pattern whose
+# keyword is a substring wins.
+#
+# When no pattern matches, hc_skip_summary.py falls back to a heuristic:
+# strip the "-sha256-<hex>" digest suffix, strip a matching registry_prefixes
+# entry, strip a matching strip_suffixes entry, then take the last 2
+# dash-separated segments of what remains. A WARN is printed in that case —
+# add a new keyword under `patterns` so future runs resolve directly instead.
+
+registry_prefixes:
+  - quay-io-
+  - registry-redhat-io-
+  - registry-connect-redhat-com-
+
+strip_suffixes:
+  - -must-gather-rhel9
+  - -must-gather-rhel8
+  - -must-gather
+
+# Standard must-gather inventory used by HC report section 5.2.
+# requirement:
+#   - mandatory: always expected for supportshell standard collection
+#   - required: expected when the corresponding product is in scope
+#   - optional: only expected when explicitly collected
+standard_must_gathers:
+  - label: ocp
+    image: openshift/must-gather
+    requirement: mandatory
+  - label: phase-gate
+    image: pg-next-pg-must-gather
+    requirement: mandatory
+  - label: logging
+    image: cluster-logging-must-gather
+    requirement: optional
+  - label: local-storage
+    image: ose-local-storage-mustgather
+    requirement: optional
+  - label: odf
+    image: odf4-ocs-must-gather
+    requirement: optional
+  - label: cnv
+    image: container-native-virtualization-cnv-must-gather
+    requirement: required
+  - label: sandboxed-containers
+    image: sandboxed-containers-osc-must-gather
+    requirement: optional
+  - label: compliance
+    image: compliance-operator-must-gather
+    requirement: optional
+  - label: servicemesh
+    image: istio-must-gather
+    requirement: optional
+
+patterns:
+  cnv: ["container-native-virtualization", "cnv-must-gather"]
+  acm: ["open-cluster-management", "acm-must-gather"]
+  acs: ["stackrox", "acs-must-gather"]
+  logging: ["cluster-logging", "logging-must-gather"]
+  pipelines: ["openshift-pipelines", "pipelines-must-gather"]
+  servicemesh: ["istio", "servicemesh-must-gather"]
+  serverless: ["knative", "serverless-must-gather"]
+  phase-gate: ["pg-must-gather", "pg-next-pg"]
+  ocp: ["openshift-release-dev", "ocp-v4"]
+  local-storage: ["local-storage-mustgather", "local-storage-must-gather"]
+  odf: ["odf4-ocs-must-gather", "odf-must-gather", "rook-ceph"]
+  sandboxed-containers: ["sandboxed-containers-osc-must-gather", "sandboxed-containers"]
+  compliance: ["compliance-operator-must-gather"]

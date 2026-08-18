@@ -18,7 +18,7 @@
 
 
 # ── Python path for host-side targets ────────────────────────────────
-export PYTHONPATH := scripts/shared/lib:$(PYTHONPATH)
+export PYTHONPATH := scripts/shared/lib:scripts/health_check:$(PYTHONPATH)
 
 # ── Container engine ─────────────────────────────────────────────────
 # Detects podman first, falls back to docker.  Override: make build ENGINE=docker
@@ -48,6 +48,19 @@ _FORCE_ON := $(filter 1 true yes TRUE YES,$(FORCE))
 # ── Makefile config ──────────────────────────────────────────────────
 .DEFAULT_GOAL := help
 
+# Canned recipe: fail with a usage message if the named variable is empty.
+define require
+	@if [ -z "$($(1))" ]; then echo "$(if $(2),$(2),Error: set $(1)=...)"; exit 1; fi
+endef
+
+# Collect/fetch/merge do not require project.yaml; remind the operator if it is missing.
+define warn_missing_project_yaml
+	@if [ ! -f project.yaml ]; then \
+		echo "Note: project.yaml not found yet — collect/fetch do not require it."; \
+		echo "      Run 'make setup CLIENT=\"Your Client Name\" PROJECT=\"HC\"' whenever convenient (not required for this step)."; \
+	fi
+endef
+
 .PHONY: help force \
         image setup build rebuild publish prepare-and-publish build-hld build-hld-from-adr build-lld \
         diagrams pdfs workitems rvtools status lld-closeness \
@@ -56,6 +69,7 @@ _FORCE_ON := $(filter 1 true yes TRUE YES,$(FORCE))
         inspect-slots inspect-chunks validate-slots \
         combine-drawio sanitize-diagrams sample-schedule check-annotations package \
         force-image \
+        hc-collect hc-push-scripts hc-collect-remote hc-fetch-results hc-merge clean-hc \
         clean clean-build clean-hld clean-lld clean-pdfs clean-diagrams clean-workitems clean-ai clean-setup push
 
 # Extra goal: `make build-hld-from-adr force` (GNU make cannot take --force).
@@ -101,6 +115,14 @@ help: ## Show this help
 	print_target sanitize-diagrams; \
 	print_target check-annotations; \
 	print_target package; \
+	echo ""; \
+	echo "  Health Check (host):"; \
+	print_target hc-collect; \
+	print_target hc-push-scripts; \
+	print_target hc-collect-remote; \
+	print_target hc-fetch-results; \
+	print_target hc-merge; \
+	print_target clean-hc; \
 	echo ""; \
 	echo "  Maintenance:"; \
 	print_target image; \
@@ -297,6 +319,63 @@ lld-closeness: ## Compare rendered LLD vs canonical fixture (CANONICAL=/path/to/
 
 package: ## Zip up only what's needed to run make targets on a fresh host (set PACKAGE_OUTPUT=path/to.zip)
 	@bash scripts/shared/tools/package_release.sh $(if $(PACKAGE_OUTPUT),"$(PACKAGE_OUTPUT)")
+
+# ── Health Check (host only, no container) ───────────────────────────
+HC_COLLECT_OUT ?= output/hc_collect
+# HC_SSH_HOST:    user@hostname of the support shell server (required)
+# HC_SSH_RESULTS: path to hc_results on remote   (default ~/hc_results)
+# HC_SSH_SCRIPTS: path to deploy scripts on remote (default ~/hc_supportshell)
+# HC_MG_INPUT:    must-gather or case dir on remote, for hc-collect-remote
+HC_SSH_HOST    ?=
+HC_SSH_RESULTS ?= ~/hc_results
+HC_SSH_SCRIPTS ?= ~/hc_supportshell
+HC_MG_INPUT    ?=
+HC_FETCH_DATE  := $(shell date +%F)
+HC_FETCH_STAGE := $(HC_COLLECT_OUT)/$(HC_FETCH_DATE)
+
+hc-collect: ## Collect cluster data against live cluster — runs on host (set KUBECONFIG=)
+	@bash scripts/health_check/collect/hc_collect.sh \
+		$(if $(KUBECONFIG),--kubeconfig "$(KUBECONFIG)") \
+		--output-dir "$(HC_COLLECT_OUT)"
+
+hc-push-scripts: ## Push supportshell collection scripts to remote server (set HC_SSH_HOST=user@host)
+	$(call require,HC_SSH_HOST,Error: set HC_SSH_HOST=user@host)
+	$(call warn_missing_project_yaml)
+	@echo "Pushing scripts → $(HC_SSH_HOST):$(HC_SSH_SCRIPTS)/"
+	@ssh "$(HC_SSH_HOST)" "mkdir -p $(HC_SSH_SCRIPTS)"
+	@rsync -av --delete scripts/health_check/supportshell/ "$(HC_SSH_HOST):$(HC_SSH_SCRIPTS)/"
+	@echo "Done. Scripts are at $(HC_SSH_SCRIPTS)/ on the remote server."
+	@echo ""
+	@echo "Next steps (manual — 'yank' is an interactive tool and cannot be automated):"
+	@echo "  1. ssh $(HC_SSH_HOST)"
+	@echo "  2. yank <case-number>   (extracts the support case / must-gather bundle)"
+	@echo "  3. Then from your workstation:"
+	@echo "       make hc-collect-remote HC_SSH_HOST=$(HC_SSH_HOST) HC_MG_INPUT=<absolute-path-from-yank>"
+
+hc-collect-remote: ## Run supportshell collection on the remote server via SSH (set HC_SSH_HOST=user@host HC_MG_INPUT=<case-or-must-gather-path>)
+	$(call require,HC_SSH_HOST,Error: set HC_SSH_HOST=user@host)
+	$(call require,HC_MG_INPUT,Error: set HC_MG_INPUT=<must-gather-path-on-remote> — run 'yank <case>' on the server first)
+	$(call warn_missing_project_yaml)
+	@ssh -t "$(HC_SSH_HOST)" "if [ ! -e $(HC_MG_INPUT) ]; then echo \"[ERROR] HC_MG_INPUT not found: $(HC_MG_INPUT)\" >&2; echo \"Hint: run 'yank <case-number>' on the remote host, then pass the exact extracted path.\" >&2; echo \"Example: make hc-collect-remote HC_SSH_HOST=$(HC_SSH_HOST) HC_MG_INPUT=<absolute-path-from-yank>\" >&2; exit 1; fi; bash $(HC_SSH_SCRIPTS)/hc_collect_multi.sh --input $(HC_MG_INPUT) --output-dir $(HC_SSH_RESULTS) --tar"
+	@echo "Done. Run 'make hc-fetch-results HC_SSH_HOST=$(HC_SSH_HOST)' to copy results."
+
+hc-fetch-results: ## Fetch hc_results from remote support shell server — tarball preferred, raw dir fallback (set HC_SSH_HOST=user@host)
+	$(call require,HC_SSH_HOST,Error: set HC_SSH_HOST=user@host)
+	@bash scripts/health_check/hc_fetch_results.sh \
+		--ssh-host "$(HC_SSH_HOST)" \
+		--remote-results "$(HC_SSH_RESULTS)" \
+		--staging-dir "$(HC_FETCH_STAGE)"
+	@echo "Done. Results staged at $(HC_FETCH_STAGE)."
+
+hc-merge: ## Merge multiple hc_results dirs on the host (set MERGE_INPUTS="dir1 dir2")
+	$(call require,MERGE_INPUTS,Error: set MERGE_INPUTS=\"dir1 dir2 ...\")
+	@$(PYTHON) scripts/health_check/supportshell/hc_merge.py $(MERGE_INPUTS) -o "$(HC_COLLECT_OUT)"
+	@echo "Merged results → $(HC_COLLECT_OUT)"
+
+clean-hc: ## Remove health check pipeline output
+	@echo "Cleaning health check output..."
+	@rm -rf output/hc_collect output/Health_Check_Report
+	@echo "Done."
 
 # ── Housekeeping ─────────────────────────────────────────────────────
 

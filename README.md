@@ -73,6 +73,22 @@ Run `make help` or `make status` at any time to see available targets and curren
 | `make push REGISTRY=...` | Push container image to a registry |
 | `make clean` | Reset generated artifacts |
 
+## Health Check collection (host)
+
+A second engagement type (`PROJECT=HC`) provides OpenShift cluster health-check data collection without the HLD/LLD pipeline. Report generation, PDF/HTML output, and AI are **not included** on this branch — a later plan adds those.
+
+| Target | Purpose |
+|---|---|
+| `make setup CLIENT="..." PROJECT="HC"` | Bootstrap `project.yaml` from `project.example.hc.yaml` and scaffold `output/hc_collect` + `output/Health_Check_Report` |
+| `make hc-collect KUBECONFIG=<path>` | Collect cluster JSON via live `oc` CLI |
+| `make hc-push-scripts HC_SSH_HOST=user@host` | Push supportshell scripts to a remote server |
+| `make hc-collect-remote HC_SSH_HOST=... HC_MG_INPUT=<path>` | Run `hc_collect_multi.sh` on the remote via SSH |
+| `make hc-fetch-results HC_SSH_HOST=...` | Fetch results tarball from remote into `output/hc_collect/<date>` |
+| `make hc-merge MERGE_INPUTS="dir1 dir2"` | Merge multiple `hc_results` dirs on the host |
+| `make clean-hc` | Remove `output/hc_collect` and `output/Health_Check_Report` |
+
+`project.example.hc.yaml` is the HC template; never commit `project.yaml` or kubeconfigs.
+
 ## Key Variables
 
 ```text

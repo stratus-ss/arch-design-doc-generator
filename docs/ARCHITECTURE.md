@@ -71,6 +71,20 @@ flowchart TD
 - `scripts/shared/lib/config.py` is the single configuration adapter used by Python and bash workflows.
 - `scripts/shared/lib/common.sh` bridges bash scripts to the same config source.
 
+## Health Check Collection
+
+```mermaid
+flowchart LR
+    Live[Live oc CLI] -->|hc_collect.sh| CollectOut[output/hc_collect]
+    MG[Supportshell omc] -->|hc_collect_multi.sh| Remote[remote hc_results]
+    Remote -->|hc_fetch_results.sh| CollectOut
+    CollectOut --> Loader[hc_report/loader.py]
+    Loader --> Metadata[hc_report/metadata.py]
+    Metadata --> MetaJSON[cluster metadata JSON]
+```
+
+The Health Check subsystem collects OpenShift cluster data as JSON files (live `oc` or offline `omc`), loads them via `hc_report.loader.load_results`, and derives cluster metadata via `hc_report.metadata.derive_metadata`. Container-based report generation is future work.
+
 ## Key Dependencies
 
 - **Core runtime:** Python 3, PyYAML, make

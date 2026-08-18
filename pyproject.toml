@@ -14,4 +14,5 @@ pythonpath = [
     "scripts/hld_lld/ai/deterministic",
     "scripts/hld_lld/ai",
     "scripts/shared/tools",
+    "scripts/health_check",
 ]

@@ -57,6 +57,24 @@ def load_config(path: Path | None = None) -> dict:
         return yaml.safe_load(f)
 
 
+def get_engagement_type(cfg: dict) -> str:
+    return cfg.get("engagement_type", "ocp-v")
+
+
+def is_health_check(cfg: dict) -> bool:
+    return get_engagement_type(cfg) == "health-check"
+
+
+def get_health_check_config(cfg: dict) -> dict:
+    return cfg.get("health_check", {})
+
+
+def get_template_dir(cfg: dict) -> str:
+    if is_health_check(cfg):
+        return "templates/Health_Check"
+    return "templates/HLD/markdown_files"
+
+
 def resolve_key(cfg: dict, key: str):
     """Resolve a dot-separated key path, with [] suffix for list extraction."""
     if "[]." in key:
@@ -291,8 +309,15 @@ def main() -> None:
     cfg = load_config(args.config)
 
     if args.command == "get":
-        val = resolve_key(cfg, args.key)
-        print(val)
+        if args.key == "engagement_type":
+            print(get_engagement_type(cfg))
+        elif args.key == "is_health_check":
+            print("true" if is_health_check(cfg) else "false")
+        elif args.key == "template_dir":
+            print(get_template_dir(cfg))
+        else:
+            val = resolve_key(cfg, args.key)
+            print(val)
     elif args.command == "get-list":
         val = resolve_key(cfg, args.key)
         if isinstance(val, list):
