@@ -1,13 +1,22 @@
-# ── Project config (generated per-client, never committed) ──────────
-project.yaml
+# ── Client config (any directory; never commit) ─────────────────────
+**/project.yaml
+**/project.yaml.bak.*
+.env
+.env.*
+!.env.example
 
-# ── Client ADR files (generated per-engagement, never committed) ─────
-ADR/ADR_*.md
-!ADR/ADR_template.md
-!ADR/ADR_EXAMPLE.md
+# ── Filled slot maps (any directory, including repo root) ───────────
+**/slot_map.json
+**/slot_map.fingerprint.json
 
-# ── Build output ─────────────────────────────────────────────────────
+# ── Engagement ADR working copies (repo-root only) ───────────────────
+# Templates are git-tracked under templates/ADR/. Do not use unanchored
+# ADR/ — that would also ignore templates/ADR/.
+/ADR/
+
+# ── Build output (default and alternate roots, e.g. output-claude/) ─
 output/
+output-*/
 HLD/PDFs/
 LLD/PDFs/
 LLD/diagrams/
@@ -18,16 +27,12 @@ Drawio_*.md
 *_combined_deterministic.md
 *.pdf
 
-# ── Diagram phase directories (seeded by make setup, not source) ─────
-Diagrams/phase1/
-Diagrams/phase2/
-Diagrams/phase3/
-Diagrams/phase4/
-# Keep examples — they are source-controlled
-!Diagrams/examples/
-
 # ── Exported PNGs (generated, not source) ────────────────────────────
 *.png
+
+# ── Client RVTools dumps (never source) ──────────────────────────────
+RVTools/
+*.xlsx
 
 # ── AI pipeline runtime state ────────────────────────────────────────
 drafts/
@@ -42,6 +47,8 @@ __pycache__/
 *.pyo
 *.egg-info/
 .eggs/
+.pytest_cache/
+.ruff_cache/
 
 # ── Node ─────────────────────────────────────────────────────────────
 node_modules/
@@ -57,3 +64,13 @@ Thumbs.db
 *.swp
 *.swo
 .cursor/
+
+# ── Local planning / scratch (do not commit) ────────────────────────
+# Session execution state never ships — keep this rule even if agent_planning/
+# is later tracked. Listed after agent_planning/ so it remains last-match.
+agent_planning/
+**/agent_planning/execution/
+cursor_plans/
+.buddy/
+google-cloud-sdk/
+tmp/

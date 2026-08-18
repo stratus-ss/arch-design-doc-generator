@@ -11,6 +11,7 @@ __pycache__/
 drafts/
 drafts_deterministic/
 output/
+output-*/
 
 # Generated artifacts
 HLD/PDFs/
@@ -40,8 +41,26 @@ node_modules/
 *.swo
 .cursor/
 
-# Secrets / per-client config
-project.yaml
+# Secrets / per-client config (any directory)
+**/project.yaml
+**/project.yaml.bak.*
+**/slot_map.json
+**/slot_map.fingerprint.json
+.env
+.env.*
+RVTools/
+*.xlsx
+# Repo-root engagement ADR only — do not use unanchored ADR/ (would drop templates/ADR/)
+/ADR/
+
+# Local planning / scratch — never part of the image
+# Session execution state never ships — keep even if agent_planning/ is later included
+agent_planning/
+**/agent_planning/execution/
+cursor_plans/
+.buddy/
+google-cloud-sdk/
+tmp/
 
 # Test and development artifacts
 .deterministic/

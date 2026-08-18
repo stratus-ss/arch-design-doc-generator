@@ -13,13 +13,20 @@
 #
 # Quick start:
 #   1. make setup CLIENT="Example Client" PROJECT="OCP-V"   # bootstrap project
-#   2. Fill in ADR/<client>.md           # record architecture decisions
+#   2. Fill in ADR/<client>.md from templates/ADR/   # gitignored working copy
 #   3. make build                        # AI draft + stitch + diagrams + PDFs + work items
+
+
+# ── Python path for host-side targets ────────────────────────────────
+export PYTHONPATH := scripts/shared/lib:$(PYTHONPATH)
 
 # ── Container engine ─────────────────────────────────────────────────
 # Detects podman first, falls back to docker.  Override: make build ENGINE=docker
 ENGINE ?= $(shell command -v podman 2>/dev/null || echo docker)
 IMAGE  ?= arch-doc-gen
+
+# Hash of Containerfile + scripts/ tree (path + mtime per file).
+_SCRIPTS_HASH := $(shell { find scripts Containerfile -type f -not -path '*/__pycache__/*' -not -name '*.pyc' -not -name '*.pyo' -printf '%p %T@\n'; } | sort | sha256sum | cut -d' ' -f1)
 
 _RUN    := $(ENGINE) run --rm -v "$$(pwd)":/workspace:Z --entrypoint /workspace/scripts/entrypoint.sh $(IMAGE)
 _RUNOUT := $(ENGINE) run --rm -v "$$(pwd)":/workspace:Z -v "$$(pwd)/output":/output:Z --entrypoint /workspace/scripts/entrypoint.sh $(IMAGE)
@@ -28,18 +35,32 @@ _RUNOUT := $(ENGINE) run --rm -v "$$(pwd)":/workspace:Z -v "$$(pwd)/output":/out
 PYTHON ?= python3
 OUTPUT_ROOT ?= output
 PROJECT ?= OCP-V
+FORCE ?=
+
+# GNU make rejects `--force` as an option (`make: unrecognized option '--force'`).
+# Use FORCE=1 or an extra `force` goal: `make build-hld-from-adr FORCE=1`
+# or `make build-hld-from-adr force`.
+ifneq ($(filter force,$(MAKECMDGOALS)),)
+FORCE := 1
+endif
+_FORCE_ON := $(filter 1 true yes TRUE YES,$(FORCE))
 
 # ── Makefile config ──────────────────────────────────────────────────
 .DEFAULT_GOAL := help
 
-.PHONY: help \
+.PHONY: help force \
         image setup build rebuild publish prepare-and-publish build-hld build-hld-from-adr build-lld \
-        diagrams pdfs workitems rvtools status \
+        diagrams pdfs workitems rvtools status lld-closeness \
         prepare-hld-ai draft-hld-ai-normalize validate-hld-ai-normalize \
         test-hld-ai-repeatability \
         inspect-slots inspect-chunks validate-slots \
-        combine-drawio sanitize-diagrams sample-schedule \
+        combine-drawio sanitize-diagrams sample-schedule check-annotations package \
+        force-image \
         clean clean-build clean-hld clean-lld clean-pdfs clean-diagrams clean-workitems clean-ai clean-setup push
+
+# Extra goal: `make build-hld-from-adr force` (GNU make cannot take --force).
+force:
+	@:
 
 # ── Help ─────────────────────────────────────────────────────────────
 
@@ -78,9 +99,12 @@ help: ## Show this help
 	echo "  Utilities:"; \
 	print_target combine-drawio; \
 	print_target sanitize-diagrams; \
+	print_target check-annotations; \
+	print_target package; \
 	echo ""; \
 	echo "  Maintenance:"; \
 	print_target image; \
+	print_target force-image; \
 	print_target push; \
 	print_target clean; \
 	print_target clean-build; \
@@ -94,32 +118,50 @@ help: ## Show this help
 	@echo ""
 	@echo "  Quick start:"
 	@echo "    1. make setup CLIENT=\"Example Client\" PROJECT=\"OCP-V\""
-	@echo "    2. Fill in ADR/<client>.md"
+	@echo "    2. Fill in ADR/<client>.md (template: templates/ADR/)"
 	@echo "    3. make prepare-and-publish   (AI prep + publish HLD)"
 	@echo "    4. make build-lld             (publish LLD)"
 	@echo "    5. make workitems"
 	@echo ""
+	@echo "  Overwrite / re-extract (GNU make does not accept --force):"
+	@echo "    make setup CLIENT=\"Example Client\" FORCE=1"
+	@echo "    make build-hld-from-adr FORCE=1"
+	@echo "    make build-hld-from-adr force"
+	@echo ""
+	@echo "  Note: 'make publish' writes local output/ (gitignored). It does not git push"
+	@echo "  or push a container image. Use 'make push' to push the image to a registry."
+	@echo ""
 
 # ── Container image ──────────────────────────────────────────────────
 
-image: Containerfile ## Build the container image (auto-built on first use)
-	@if ! $(ENGINE) image exists $(IMAGE) 2>/dev/null; then \
+image: ## Build the container image (auto-built on first use, rebuilds if scripts/Containerfile changed)
+	@image_hash="$$($(ENGINE) image inspect $(IMAGE) --format '{{ index .Config.Labels "org.opencontainers.image.scripts-hash" }}' 2>/dev/null || true)"; \
+	if [ -z "$$image_hash" ]; then \
 		echo "Building container image '$(IMAGE)'..."; \
-		$(ENGINE) build -t $(IMAGE) .; \
+		$(ENGINE) build --build-arg SCRIPTS_HASH=$(_SCRIPTS_HASH) -t $(IMAGE) .; \
+	elif [ "$$image_hash" != "$(_SCRIPTS_HASH)" ]; then \
+		echo "Image '$(IMAGE)' is stale (Containerfile or scripts/ changed since last build) — rebuilding..."; \
+		$(ENGINE) build --build-arg SCRIPTS_HASH=$(_SCRIPTS_HASH) -t $(IMAGE) .; \
 	else \
-		echo "Image '$(IMAGE)' already exists. Rebuild: $(ENGINE) build -t $(IMAGE) ."; \
+		echo "Image '$(IMAGE)' is up to date."; \
 	fi
+
+force-image: ## Force rebuild the container image
+	@echo "Rebuilding container image '$(IMAGE)'..."
+	@$(ENGINE) build --build-arg SCRIPTS_HASH=$(_SCRIPTS_HASH) -t $(IMAGE) .
 
 # ── Project setup ────────────────────────────────────────────────────
 
-setup: image ## First-time project setup — provide CLIENT="Your Client Name" (optional PROJECT="OCP-V")
+setup: image ## First-time project setup — provide CLIENT="Your Client Name" (optional PROJECT="OCP-V" FORCE=1)
 	@if [ -z "$(CLIENT)" ]; then \
 		echo ""; \
-		echo "  Usage: make setup CLIENT=\"Your Client Name\" PROJECT=\"OCP-V\""; \
+		echo "  Usage: make setup CLIENT=\"Your Client Name\" PROJECT=\"OCP-V\" [FORCE=1]"; \
 		echo ""; \
 		exit 1; \
 	fi
-	@$(_RUN) setup "$(CLIENT)" "$(PROJECT)"
+	@force_arg=""; \
+	if [ -n "$(_FORCE_ON)" ]; then force_arg="--force"; fi; \
+	$(_RUN) setup "$(CLIENT)" "$(PROJECT)" $$force_arg
 
 status: ## Check what's configured, what's built, what's missing
 	@$(PYTHON) scripts/setup_project.py . --status
@@ -174,19 +216,22 @@ push: ## Push container image to registry (set IMAGE= and REGISTRY=)
 # ── Host AI targets ──────────────────────────────────────────────────
 # Variables:
 #   PHASE           phase1 | phase2 | phase3 | phase4
-#   FORCE           1  (overwrite existing drafts)
+#   FORCE           1  (re-extract slots even when inputs are unchanged; also: make <target> force)
 #   RUNS            number of repeatability test runs (default: 3)
 #   AI_TOOL         claude | codex | cursor (default: cursor)
 #   AI_MODEL        model name (default: claude-sonnet-4-6)
-#   AI_MAX_CHARS    max chars per ADR chunk (default: 12000)
-#   AI_MAX_CHUNKS   max ADR chunks for Prompt A (default: 8)
+#   AI_TIMEOUT      per-call timeout seconds (default: 900; single-pass Prompt A)
+#   AI_MAX_CHARS    max chars per ADR chunk in chunked mode (default: 12000)
+#   AI_MAX_CHUNKS   max ADR chunks in chunked mode (default: 8)
+#   ADR_MODE        auto | chunked (default: auto = full ADR then 8x12k fallback)
+#   REFINE_PHASES   1  (opt in to Prompt B per-phase refine; off by default)
 #   CANONICAL_DIR   optional path to canonical files for benchmark mode
 
 prepare-hld-ai: ## AI extract/render/write-back for HLD inputs (host only)
-	@mkdir -p $(OUTPUT_ROOT)
-	@OUTPUT_ROOT="$(OUTPUT_ROOT)" $(PYTHON) scripts/ai/ai_draft_deterministic.py hld --extractor ai \
+	@mkdir -p "$(OUTPUT_ROOT)"
+	@OUTPUT_ROOT="$(OUTPUT_ROOT)" $(PYTHON) scripts/hld_lld/ai/ai_draft_deterministic.py hld --extractor ai \
 		$(if $(PHASE),--phase $(PHASE)) \
-		$(if $(FORCE),--force) \
+		$(if $(_FORCE_ON),--force) \
 		$(if $(AI_TOOL),--ai-tool $(AI_TOOL)) \
 		$(if $(AI_MODEL),--ai-model $(AI_MODEL)) \
 		$(if $(AI_MAX_CHARS),--ai-max-chars $(AI_MAX_CHARS)) \
@@ -194,19 +239,20 @@ prepare-hld-ai: ## AI extract/render/write-back for HLD inputs (host only)
 		$(if $(AI_PHASE_MAX_CHARS),--ai-phase-max-chars $(AI_PHASE_MAX_CHARS)) \
 		$(if $(AI_RETRIES),--ai-retries $(AI_RETRIES)) \
 		$(if $(AI_TIMEOUT),--ai-timeout $(AI_TIMEOUT)) \
-		$(if $(SKIP_PHASE_REFINE),--skip-phase-refine) \
+		$(if $(ADR_MODE),--adr-mode $(ADR_MODE)) \
+		$(if $(REFINE_PHASES),--refine-phases) \
 		$(if $(CANONICAL_DIR),--canonical-dir $(CANONICAL_DIR))
 
 draft-hld-ai-normalize: prepare-hld-ai
 
 validate-hld-ai-normalize: ## Validate AI-normalized HLD outputs
-	@mkdir -p $(OUTPUT_ROOT)
-	@OUTPUT_ROOT="$(OUTPUT_ROOT)" $(PYTHON) scripts/ai/ai_draft_deterministic.py hld --extractor ai --validate-only \
+	@mkdir -p "$(OUTPUT_ROOT)"
+	@OUTPUT_ROOT="$(OUTPUT_ROOT)" $(PYTHON) scripts/hld_lld/ai/ai_draft_deterministic.py hld --extractor ai --validate-only \
 		$(if $(PHASE),--phase $(PHASE)) \
 		$(if $(CANONICAL_DIR),--canonical-dir $(CANONICAL_DIR))
 
 test-hld-ai-repeatability: ## Run AI extraction+render N times and compare hashes (RUNS=3)
-	@$(PYTHON) scripts/ai/deterministic/cli.py test-repeatability \
+	@$(PYTHON) scripts/hld_lld/ai/deterministic/cli.py test-repeatability \
 		--project-root . \
 		$(if $(PHASE),--phase $(PHASE)) \
 		$(if $(RUNS),--runs $(RUNS)) \
@@ -215,28 +261,42 @@ test-hld-ai-repeatability: ## Run AI extraction+render N times and compare hashe
 		$(if $(CANONICAL_DIR),--canonical-dir $(CANONICAL_DIR))
 
 inspect-slots: ## Show extracted slot values (run after prepare-hld-ai)
-	@$(PYTHON) scripts/ai/deterministic/cli.py inspect-slots --slots "$(OUTPUT_ROOT)/.deterministic/slots/slot_map.json"
+	@$(PYTHON) scripts/hld_lld/ai/deterministic/cli.py inspect-slots --slots "$(OUTPUT_ROOT)/.deterministic/slots/slot_map.json"
 
 inspect-chunks: ## Show how ADR files will be split into AI prompt chunks
-	@$(PYTHON) scripts/ai/deterministic/cli.py inspect-chunks \
+	@$(PYTHON) scripts/hld_lld/ai/deterministic/cli.py inspect-chunks \
 		--adr-dir ADR \
 		$(if $(AI_MAX_CHARS),--max-chars $(AI_MAX_CHARS)) \
 		$(if $(AI_MAX_CHUNKS),--max-chunks $(AI_MAX_CHUNKS))
 
 validate-slots: ## Validate extracted slot JSON against schema
-	@$(PYTHON) scripts/ai/deterministic/cli.py validate-slots \
+	@$(PYTHON) scripts/hld_lld/ai/deterministic/cli.py validate-slots \
 		--slots "$(OUTPUT_ROOT)/.deterministic/slots/slot_map.json" \
 		--phases phase1 phase2 phase3 phase4
 
 combine-drawio: ## Combine .drawio files by prefix group
-	@$(PYTHON) scripts/tools/combine_drawio.py Diagrams
+	@$(PYTHON) scripts/shared/tools/combine_drawio.py "$(OUTPUT_ROOT)/Diagrams"
 
 sanitize-diagrams: ## Sanitize client-specific drawio examples
-	@$(PYTHON) scripts/tools/sanitize_diagrams.py
+	@$(PYTHON) scripts/shared/tools/sanitize_diagrams.py
 
 sample-schedule: ## Generate sample migration schedule workbook
 	@mkdir -p "$(OUTPUT_ROOT)"
-	@$(PYTHON) scripts/tools/generate_sample_schedule.py -o "$(OUTPUT_ROOT)/Sample_Migration_Weekly_Schedule.xlsx"
+	@$(PYTHON) scripts/rvtools/generate_sample_schedule.py -o "$(OUTPUT_ROOT)/Sample_Migration_Weekly_Schedule.xlsx"
+
+
+check-annotations: ## Check HLD source files for drawio annotations (host only, no container)
+	@$(PYTHON) scripts/hld_lld/build/check_annotations.py
+
+lld-closeness: ## Compare rendered LLD vs canonical fixture (CANONICAL=/path/to/LLD)
+	@if [ -z "$(CANONICAL)" ]; then \
+		echo "Usage: make lld-closeness CANONICAL=/path/to/canonical/LLD"; \
+		exit 1; \
+	fi
+	@$(PYTHON) scripts/hld_lld/report_lld_closeness.py --canonical-dir "$(CANONICAL)"
+
+package: ## Zip up only what's needed to run make targets on a fresh host (set PACKAGE_OUTPUT=path/to.zip)
+	@bash scripts/shared/tools/package_release.sh $(if $(PACKAGE_OUTPUT),"$(PACKAGE_OUTPUT)")
 
 # ── Housekeeping ─────────────────────────────────────────────────────
 
@@ -250,32 +310,26 @@ clean-build: ## Remove all build output (output/)
 clean-hld: ## Remove HLD build output only
 	@echo "Cleaning HLD output..."
 	@rm -rf output/HLD
-	@rm -f HLD/markdown_files/*_combined.md HLD/markdown_files/Drawio_*.md
-	@rm -rf HLD/PDFs HLD/diagrams
 	@echo "Done."
 
 clean-lld: ## Remove LLD build output only
 	@echo "Cleaning LLD output..."
 	@rm -rf output/LLD
-	@rm -f LLD/*_Combined.md LLD/Drawio_*.md
-	@rm -rf LLD/PDFs LLD/diagrams
 	@echo "Done."
 
 clean-pdfs: ## Remove generated PDFs only (HLD + LLD)
 	@echo "Cleaning PDFs..."
-	@rm -rf output/HLD/PDFs output/LLD/PDFs HLD/PDFs LLD/PDFs
+	@rm -rf output/HLD/PDFs output/LLD/PDFs
 	@echo "Done."
 
 clean-diagrams: ## Remove exported diagram PNGs only
 	@echo "Cleaning diagrams..."
 	@rm -rf output/Diagrams output/HLD/diagrams output/LLD/diagrams
-	@rm -rf HLD/diagrams LLD/diagrams
-	@find Diagrams -name "*.png" -delete 2>/dev/null || true
 	@echo "Done."
 
 clean-workitems: ## Remove generated work items only
 	@echo "Cleaning work items..."
-	@rm -rf output/Work_Items Work_Items
+	@rm -rf output/Work_Items
 	@echo "Done."
 
 clean-ai: ## Remove AI drafts and deterministic state only
@@ -285,21 +339,14 @@ clean-ai: ## Remove AI drafts and deterministic state only
 
 clean-setup: ## Remove setup artifacts (project.yaml, client files, work items, scaffolded dirs)
 	@echo "Cleaning setup artifacts..."
-	@# Client-named files: anything not starting with "Template_" in HLD/markdown_files
-	@find HLD/markdown_files -maxdepth 1 -name '*.md' ! -name 'Template_*' -delete 2>/dev/null || true
-	@# Combined template docs are regenerated by stitch, remove them too
-	@rm -f HLD/markdown_files/Template_*_combined.md
-	@rm -f HLD/markdown_files/*_combined_deterministic.md HLD/markdown_files/Drawio_*.md
-	@# Client LLD files (not templates)
-	@find LLD -maxdepth 1 -name '*.md' ! -name 'Template_*' -delete 2>/dev/null || true
-	@rm -f LLD/Drawio_*.md
-	@# Client ADR files (not the template)
-	@find ADR -maxdepth 1 -name 'ADR_*.md' ! -name 'ADR_template.md' -delete 2>/dev/null || true
-	@# Scaffolded / generated directories
-	@rm -rf Work_Items HLD/PDFs HLD/diagrams HLD/READOUT LLD/PDFs LLD/diagrams RVTools
-	@rm -rf Diagrams/phase1 Diagrams/phase2 Diagrams/phase3 Diagrams/phase4
-	@rm -rf Diagrams/tools
-	@find Diagrams -maxdepth 1 -name '*.drawio' -not -path 'Diagrams/examples/*' -delete 2>/dev/null || true
+	@# Client working copies under output/ (templates/ is immutable)
+	@rm -rf output/HLD/markdown_files output/LLD
+	@rm -rf output/Diagrams/phase1 output/Diagrams/phase2 output/Diagrams/phase3 output/Diagrams/phase4
+	@find output/Diagrams -maxdepth 1 -name '*.drawio' -delete 2>/dev/null || true
+	@rm -rf output/Work_Items output/HLD/PDFs output/HLD/diagrams output/HLD/READOUT output/LLD/PDFs output/LLD/diagrams
+	@# Client ADR files at repo root (templates live under templates/ADR/)
+	@find ADR -maxdepth 1 -name 'ADR_*.md' ! -name 'ADR_template.md' ! -name 'ADR_EXAMPLE.md' -delete 2>/dev/null || true
+	@rm -rf RVTools
 	@# Project config
 	@rm -f project.yaml
 	@echo "Done."
