@@ -16,22 +16,22 @@ BOLD = RESET = ""
 
 
 def _ui():
-    import setup_project as sp
-    return sp
+    import setup_project as setup_module
+    return setup_module
 
 
 def _bootstrap_ui() -> None:
     global ok, warn, info, fail, heading, BOLD, RESET
-    sp = _ui()
-    ok, warn, info, fail, heading = sp.ok, sp.warn, sp.info, sp.fail, sp.heading
-    BOLD, RESET = sp.BOLD, sp.RESET
+    setup_module = _ui()
+    ok, warn, info, fail, heading = setup_module.ok, setup_module.warn, setup_module.info, setup_module.fail, setup_module.heading
+    BOLD, RESET = setup_module.BOLD, setup_module.RESET
 
 
-def _count_drawio(workspace: Path, cfg: dict) -> tuple:
+def _count_drawio(workspace: Path, config: dict) -> tuple:
     """Return (phase_count, top_level_count) of .drawio files under output/Diagrams."""
     diag_root = workspace / OUTPUT_DIAGRAMS
     phase_count = 0
-    for phase in cfg.get("diagrams", {}).get("phase_dirs", []):
+    for phase in config.get("diagrams", {}).get("phase_dirs", []):
         phase_dir = diag_root / phase
         if phase_dir.exists():
             phase_count += len(list(phase_dir.glob("*.drawio")))
@@ -66,22 +66,22 @@ def _count_glob(base: Path, pattern: str) -> int:
     return len(list(base.rglob(pattern))) if base.exists() else 0
 
 
-def _setup_state(workspace: Path, cfg: dict) -> dict:
+def _setup_state(workspace: Path, config: dict) -> dict:
     """Compute HLD/LLD/diagram/ADR presence state (the 'is setup complete' checks)."""
     hld_md = workspace / OUTPUT_HLD_MD
     lld_dir = workspace / OUTPUT_LLD
-    hld_phases = cfg.get("hld", {}).get("phase_files", [])
-    hld_found = sum(1 for f in hld_phases if (hld_md / f).exists()) if hld_md.exists() else 0
-    lld_phases_cfg = [p.get("lld_file", "") for p in cfg.get("phases", [])]
-    lld_found = sum(1 for f in lld_phases_cfg if (lld_dir / f).exists()) if lld_dir.exists() else 0
-    phase_drawio, top_drawio = _count_drawio(workspace, cfg)
+    hld_phases = config.get("hld", {}).get("phase_files", [])
+    hld_found = sum(1 for filename in hld_phases if (hld_md / filename).exists()) if hld_md.exists() else 0
+    lld_phase_files = [phase.get("lld_file", "") for phase in config.get("phases", [])]
+    lld_found = sum(1 for filename in lld_phase_files if (lld_dir / filename).exists()) if lld_dir.exists() else 0
+    phase_drawio, top_drawio = _count_drawio(workspace, config)
     adr_dir = workspace / "ADR"
     _adr_excluded = {"ADR_template.md", "ADR_EXAMPLE.md"}
-    adr_files = [f for f in adr_dir.glob("ADR_*.md") if f.name not in _adr_excluded] if adr_dir.exists() else []
+    adr_files = [filename for filename in adr_dir.glob("ADR_*.md") if filename.name not in _adr_excluded] if adr_dir.exists() else []
     setup_ok = (
         hld_found == len(hld_phases)
         and hld_found > 0
-        and lld_found == len(lld_phases_cfg)
+        and lld_found == len(lld_phase_files)
         and lld_found > 0
         and (phase_drawio + top_drawio) > 0
         and len(adr_files) > 0
@@ -91,7 +91,7 @@ def _setup_state(workspace: Path, cfg: dict) -> dict:
     return {
         "hld_phases": hld_phases,
         "hld_found": hld_found,
-        "lld_phases_cfg": lld_phases_cfg,
+        "lld_phase_files": lld_phase_files,
         "lld_found": lld_found,
         "phase_drawio": phase_drawio,
         "top_drawio": top_drawio,
@@ -104,16 +104,16 @@ def _setup_state(workspace: Path, cfg: dict) -> dict:
     }
 
 
-def _ai_state(workspace: Path, out: Path) -> dict:
+def _ai_state(workspace: Path, output_dir: Path) -> dict:
     """Compute AI-draft/deterministic-slot presence state."""
     det_dir = workspace / ".deterministic"
-    out_det_dir = out / ".deterministic"
+    out_det_dir = output_dir / ".deterministic"
     slots_file = det_dir / "slots" / "slot_map.json"
     if not slots_file.exists():
         slots_file = out_det_dir / "slots" / "slot_map.json"
     drafts_det = workspace / "drafts_deterministic"
     if not drafts_det.exists():
-        drafts_det = out / "drafts_deterministic"
+        drafts_det = output_dir / "drafts_deterministic"
     drafts_prose = workspace / "drafts"
     det_hld_files = list(drafts_det.rglob("*.md")) if drafts_det.exists() else []
     has_slots = slots_file.exists()
@@ -128,24 +128,24 @@ def _ai_state(workspace: Path, out: Path) -> dict:
     }
 
 
-def _build_state(workspace: Path, cfg: dict, out: Path) -> dict:
+def _build_state(workspace: Path, config: dict, output_dir: Path) -> dict:
     """Compute HLD/LLD stitched/PDF/PNG build-output state under output/."""
     _ = workspace
-    hld_md = out / "HLD" / "markdown_files"
-    lld_dir = out / "LLD"
-    hld_combined = cfg.get("hld", {}).get("combined_files", [])
+    hld_md = output_dir / "HLD" / "markdown_files"
+    lld_dir = output_dir / "LLD"
+    hld_combined = config.get("hld", {}).get("combined_files", [])
     hld_stitched = False
     if hld_md.exists():
-        hld_stitched = any((hld_md / f).exists() for f in hld_combined)
-    hld_pdfs = _count_glob(out / "HLD" / "PDFs", "*.pdf")
-    hld_pngs = _count_glob(out / "HLD" / "diagrams", "*.png")
-    hld_drawio_md = _count_glob(out / "HLD" / "markdown_files", "Drawio_*.md")
+        hld_stitched = any((hld_md / filename).exists() for filename in hld_combined)
+    hld_pdfs = _count_glob(output_dir / "HLD" / "PDFs", "*.pdf")
+    hld_pngs = _count_glob(output_dir / "HLD" / "diagrams", "*.png")
+    hld_drawio_md = _count_glob(output_dir / "HLD" / "markdown_files", "Drawio_*.md")
 
-    lld_combined_file = cfg.get("lld", {}).get("combined_file", "")
+    lld_combined_file = config.get("lld", {}).get("combined_file", "")
     lld_stitched = bool(lld_combined_file and (lld_dir / lld_combined_file).exists())
-    lld_pdfs = _count_glob(out / "LLD" / "PDFs", "*.pdf")
-    lld_pngs = _count_glob(out / "LLD" / "diagrams", "*.png")
-    lld_drawio_md = _count_glob(out / "LLD", "Drawio_*.md")
+    lld_pdfs = _count_glob(output_dir / "LLD" / "PDFs", "*.pdf")
+    lld_pngs = _count_glob(output_dir / "LLD" / "diagrams", "*.png")
+    lld_drawio_md = _count_glob(output_dir / "LLD", "Drawio_*.md")
 
     hld_built = hld_stitched or hld_pdfs > 0 or hld_pngs > 0
     lld_built = lld_stitched or lld_pdfs > 0 or lld_pngs > 0
@@ -164,23 +164,25 @@ def _build_state(workspace: Path, cfg: dict, out: Path) -> dict:
     }
 
 
-def _extras_state(workspace: Path, out: Path) -> dict:
+def _extras_state(workspace: Path, output_dir: Path) -> dict:
     """Compute work-items presence state."""
     _ = workspace
-    wi_out = out / "Work_Items"
-    wi_files = list(wi_out.rglob("*.md")) if wi_out.exists() else []
+    work_items_dir = output_dir / "Work_Items"
+    wi_files = list(work_items_dir.rglob("*.md")) if work_items_dir.exists() else []
     return {"wi_files": wi_files}
 
 
-def _hc_state(workspace: Path, cfg: dict) -> dict:
+def _hc_state(workspace: Path, config: dict) -> dict:
     """Compute Health Check collection state (report fields unused this plan)."""
-    hc_cfg = cfg.get("health_check", {})
-    collect_rel = hc_cfg.get("output_collect_path", "output/hc_collect/")
-    collect_root = Path(collect_rel)
+    health_check_config = config.get("health_check", {})
+    collect_relative_path = health_check_config.get("output_collect_path", "output/hc_collect/")
+    collect_root = Path(collect_relative_path)
     if not collect_root.is_absolute():
-        collect_root = workspace / collect_rel
+        collect_root = workspace / collect_relative_path
     collect_root = collect_root.resolve()
-    collect_dirs = sorted(p for p in collect_root.iterdir() if p.is_dir()) if collect_root.exists() else []
+    collect_dirs = sorted(
+        collect_dir for collect_dir in collect_root.iterdir() if collect_dir.is_dir()
+    ) if collect_root.exists() else []
     latest_collect = collect_dirs[-1] if collect_dirs else None
     return {
         "hc_collect_dirs": collect_dirs,
@@ -191,16 +193,16 @@ def _hc_state(workspace: Path, cfg: dict) -> dict:
     }
 
 
-def _gather_state(workspace: Path, cfg: dict, project_type=None) -> dict:
+def _gather_state(workspace: Path, config: dict, project_type=None) -> dict:
     """Compute all filesystem/config state needed to render the status report."""
     if project_type is not None and getattr(project_type, "has_hld_status", True) is False:
-        return _hc_state(workspace, cfg)
+        return _hc_state(workspace, config)
     state: dict = {}
-    out = workspace / "output"
-    state.update(_setup_state(workspace, cfg))
-    state.update(_ai_state(workspace, out))
-    state.update(_build_state(workspace, cfg, out))
-    state.update(_extras_state(workspace, out))
+    output_dir = workspace / "output"
+    state.update(_setup_state(workspace, config))
+    state.update(_ai_state(workspace, output_dir))
+    state.update(_build_state(workspace, config, output_dir))
+    state.update(_extras_state(workspace, output_dir))
     return state
 
 
@@ -210,7 +212,7 @@ def _gather_state(workspace: Path, cfg: dict, project_type=None) -> dict:
 def _print_step_setup(state: dict) -> None:
     """Step 1: make setup."""
     setup_ok, hld_found, hld_phases = state["setup_ok"], state["hld_found"], state["hld_phases"]
-    lld_found, lld_phases_cfg = state["lld_found"], state["lld_phases_cfg"]
+    lld_found, lld_phase_files = state["lld_found"], state["lld_phase_files"]
     diagrams = state["phase_drawio"] + state["top_drawio"]
     adr_files = state["adr_files"]
 
@@ -219,7 +221,7 @@ def _print_step_setup(state: dict) -> None:
     if setup_ok:
         parts = [
             f"HLD {hld_found}/{len(hld_phases)}",
-            f"LLD {lld_found}/{len(lld_phases_cfg)}",
+            f"LLD {lld_found}/{len(lld_phase_files)}",
             f"{diagrams} diagrams",
             f"ADR: {adr_files[0].name}",
         ]
@@ -227,8 +229,8 @@ def _print_step_setup(state: dict) -> None:
     else:
         if hld_found < len(hld_phases):
             warn(f"HLD templates: {hld_found}/{len(hld_phases)}")
-        if lld_found < len(lld_phases_cfg):
-            warn(f"LLD templates: {lld_found}/{len(lld_phases_cfg)}")
+        if lld_found < len(lld_phase_files):
+            warn(f"LLD templates: {lld_found}/{len(lld_phase_files)}")
         if diagrams == 0:
             warn("No diagrams seeded")
         if not adr_files:
@@ -377,17 +379,17 @@ def run_status(workspace: Path, project_type=None) -> None:
         fail('project.yaml not found — run: make setup CLIENT="Your Client" PROJECT="OCP-V" or PROJECT="HC"')
         return
 
-    with open(yaml_path, encoding="utf-8") as f:
-        cfg = yaml.safe_load(f)
+    with open(yaml_path, encoding="utf-8") as yaml_file:
+        config = yaml.safe_load(yaml_file)
 
-    client, code = get_client_identity(cfg)
+    client, code = get_client_identity(config)
     client = client or "Unknown"
-    engagement = cfg.get("engagement_type", "ocp-v")
+    engagement = config.get("engagement_type", "ocp-v")
     if project_type is None:
         project_type = _ui().get_project_type(engagement)
     print(f"\n  Project: {BOLD}{client}{RESET} ({code})")
     print(f"  {'─' * 50}\n")
 
-    state = _gather_state(workspace, cfg, project_type)
-    for step_fn in project_type.status_steps:
-        step_fn(state)
+    state = _gather_state(workspace, config, project_type)
+    for step_function in project_type.status_steps:
+        step_function(state)

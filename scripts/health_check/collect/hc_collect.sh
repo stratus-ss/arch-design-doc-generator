@@ -89,8 +89,8 @@ if [[ -n "$RUN_CATEGORIES" ]]; then
     IFS=',' read -ra REQUESTED <<< "$RUN_CATEGORIES"
     for script in "${ALL_SCRIPTS[@]}"; do
         prefix="${script%%_*}"
-        for req in "${REQUESTED[@]}"; do
-            if [[ "$prefix" == "$req" ]]; then
+        for requested_prefix in "${REQUESTED[@]}"; do
+            if [[ "$prefix" == "$requested_prefix" ]]; then
                 SCRIPTS_TO_RUN+=("$script")
                 break
             fi
@@ -146,22 +146,22 @@ MANIFEST_FILE="${HC_RESULTS_DIR}/manifest.json"
 
     # Categories array
     printf '  "categories": ['
-    first_cat=1
-    for cat in "${CATEGORIES_RUN[@]}"; do
-        [[ $first_cat -eq 0 ]] && printf ', '
-        printf '"%s"' "$cat"
-        first_cat=0
+    is_first_category=1
+    for category in "${CATEGORIES_RUN[@]}"; do
+        [[ $is_first_category -eq 0 ]] && printf ', '
+        printf '"%s"' "$category"
+        is_first_category=0
     done
     printf '],\n'
 
     # Files array
     printf '  "files": ['
-    first_file=1
-    while IFS= read -r -d '' f; do
-        rel="${f#"${HC_RESULTS_DIR}/"}"
-        [[ $first_file -eq 0 ]] && printf ','
-        printf '\n    "%s"' "$rel"
-        first_file=0
+    is_first_file=1
+    while IFS= read -r -d '' json_path; do
+        relative_path="${json_path#"${HC_RESULTS_DIR}/"}"
+        [[ $is_first_file -eq 0 ]] && printf ','
+        printf '\n    "%s"' "$relative_path"
+        is_first_file=0
     done < <(find "$HC_RESULTS_DIR" -name '*.json' ! -name 'manifest.json' ! -name '*.meta.json' -print0 | sort -z)
     printf '\n  ]\n'
     printf '}\n'

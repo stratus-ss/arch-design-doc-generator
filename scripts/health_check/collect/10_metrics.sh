@@ -42,18 +42,18 @@ _find_thanos_pod() {
 
 hc_prometheus_query() {
     local category="$1"
-    local name="$2"
+    local check_name="$2"
     local query="$3"
-    local out="${HC_RESULTS_DIR}/${category}/${name}.json"
+    local output_path="${HC_RESULTS_DIR}/${category}/${check_name}.json"
 
-    hc_info "  prom-query: ${name} → ${category}/${name}.json"
+    hc_info "  prom-query: ${check_name} → ${category}/${check_name}.json"
 
     local thanos_pod
     thanos_pod="$(_find_thanos_pod)"
     if [[ -z "$thanos_pod" ]]; then
         printf '{"_hc_error": true, "note": "Thanos querier pod not found", "timestamp": "%s"}\n' \
-            "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "$out"
-        hc_warn "  Thanos querier not found — skipping ${name}"
+            "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "$output_path"
+        hc_warn "  Thanos querier not found — skipping ${check_name}"
         return
     fi
 
@@ -76,12 +76,12 @@ print(urllib.parse.quote(sys.stdin.read(), safe=''))
         curl -s "http://localhost:9090/api/v1/query?query=${encoded_query}" 2>/dev/null)" || exit_code=$?
 
     if [[ $exit_code -eq 0 && -n "$result" ]]; then
-        printf '%s\n' "$result" > "$out"
+        printf '%s\n' "$result" > "$output_path"
         HC_COLLECTED=$((HC_COLLECTED + 1))
     else
         printf '{"_hc_error": true, "note": "prometheus query failed (exit %d)", "timestamp": "%s"}\n' \
-            "$exit_code" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "$out"
-        hc_warn "  prometheus query failed (exit_code=${exit_code}): ${name}"
+            "$exit_code" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "$output_path"
+        hc_warn "  prometheus query failed (exit_code=${exit_code}): ${check_name}"
         HC_ERRORS=$((HC_ERRORS + 1))
     fi
 }
@@ -98,18 +98,18 @@ _find_etcd_pod() {
 
 hc_etcdctl() {
     local category="$1"
-    local name="$2"
+    local check_name="$2"
     shift 2
-    local out="${HC_RESULTS_DIR}/${category}/${name}.json"
+    local output_path="${HC_RESULTS_DIR}/${category}/${check_name}.json"
 
-    hc_info "  etcdctl: $* → ${category}/${name}.json"
+    hc_info "  etcdctl: $* → ${category}/${check_name}.json"
 
     local etcd_pod
     etcd_pod="$(_find_etcd_pod)"
     if [[ -z "$etcd_pod" ]]; then
         printf '{"_hc_error": true, "note": "No running etcd pod found", "timestamp": "%s"}\n' \
-            "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "$out"
-        hc_warn "  No running etcd pod found — skipping ${name}"
+            "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "$output_path"
+        hc_warn "  No running etcd pod found — skipping ${check_name}"
         return
     fi
 
@@ -117,22 +117,22 @@ hc_etcdctl() {
     hostname="${etcd_pod#etcd-}"  # strip the etcd- prefix to get the node hostname
 
     # Find the CA bundle — path varies by OCP version
-    local cacert=""
+    local ca_cert=""
     for ca_path in \
         "/etc/kubernetes/static-pod-certs/configmaps/etcd-all-bundles/server-ca-bundle.crt" \
         "/etc/kubernetes/static-pod-certs/configmaps/etcd-serving-ca/ca-bundle.crt" \
         "/etc/etcd/ca.crt"
     do
         if oc exec -n openshift-etcd "$etcd_pod" -- test -f "$ca_path" &>/dev/null; then
-            cacert="$ca_path"
+            ca_cert="$ca_path"
             break
         fi
     done
 
-    if [[ -z "$cacert" ]]; then
+    if [[ -z "$ca_cert" ]]; then
         printf '{"_hc_error": true, "note": "CA cert not found in etcd pod", "timestamp": "%s"}\n' \
-            "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "$out"
-        hc_warn "  etcd CA cert not found in pod — skipping ${name}"
+            "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "$output_path"
+        hc_warn "  etcd CA cert not found in pod — skipping ${check_name}"
         return
     fi
 
@@ -140,7 +140,7 @@ hc_etcdctl() {
     local result
     result="$(oc exec -n openshift-etcd "$etcd_pod" -- /bin/sh -c "
         ETCDCTL_ENDPOINTS=https://localhost:2379 \
-        ETCDCTL_CACERT=${cacert} \
+        ETCDCTL_CACERT=${ca_cert} \
         ETCDCTL_CERT=/etc/kubernetes/static-pod-certs/secrets/etcd-all-certs/etcd-peer-${hostname}.crt \
         ETCDCTL_KEY=/etc/kubernetes/static-pod-certs/secrets/etcd-all-certs/etcd-peer-${hostname}.key \
         etcdctl $* 2>/dev/null
@@ -148,17 +148,17 @@ hc_etcdctl() {
 
     if [[ $exit_code -eq 0 && -n "$result" ]]; then
         # Wrap text output in JSON envelope
-        local escaped
-        escaped="$(printf '%s' "$result" | \
+        local escaped_output
+        escaped_output="$(printf '%s' "$result" | \
             sed 's/\\/\\\\/g; s/"/\\"/g' | \
             awk '{printf "%s\\n", $0}' | \
             sed 's/\\n$//')"
         printf '{"_hc_text": true, "command": "etcdctl %s", "output": "%s", "exit_code": 0, "timestamp": "%s"}\n' \
-            "$*" "$escaped" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "$out"
+            "$*" "$escaped_output" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "$output_path"
         HC_COLLECTED=$((HC_COLLECTED + 1))
     else
         printf '{"_hc_error": true, "command": "etcdctl %s", "exit_code": %d, "timestamp": "%s"}\n' \
-            "$*" "$exit_code" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "$out"
+            "$*" "$exit_code" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "$output_path"
         hc_warn "  etcdctl failed (exit_code=${exit_code}): $*"
         HC_ERRORS=$((HC_ERRORS + 1))
     fi

@@ -36,15 +36,15 @@ def _stub_oc_env(tmp_path: Path, project_root: Path) -> dict[str, str]:
     dest.chmod(dest.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
     kubeconfig = tmp_path / "kubeconfig"
     kubeconfig.write_text("", encoding="utf-8")
-    env = os.environ.copy()
-    env["PATH"] = str(bin_dir) + ":" + env.get("PATH", "")
-    env["KUBECONFIG"] = str(kubeconfig)
-    return env
+    environment = os.environ.copy()
+    environment["PATH"] = str(bin_dir) + ":" + environment.get("PATH", "")
+    environment["KUBECONFIG"] = str(kubeconfig)
+    return environment
 
 
 def _run_collect_category_03(tmp_path: Path, project_root: Path) -> subprocess.CompletedProcess[str]:
-    out_dir = tmp_path / "hc_collect"
-    env = _stub_oc_env(tmp_path, project_root)
+    output_dir = tmp_path / "hc_collect"
+    environment = _stub_oc_env(tmp_path, project_root)
     return subprocess.run(
         [
             "bash",
@@ -52,12 +52,12 @@ def _run_collect_category_03(tmp_path: Path, project_root: Path) -> subprocess.C
             "--categories",
             "03",
             "--output-dir",
-            str(out_dir),
+            str(output_dir),
         ],
         cwd=str(project_root),
         capture_output=True,
         text=True,
-        env=env,
+        env=environment,
     )
 
 
@@ -76,20 +76,20 @@ def test_hc_collect_category_03_writes_manifest(tmp_path: Path, project_root: Pa
 def test_hc_collect_then_derive_metadata_writes_json(tmp_path: Path, project_root: Path) -> None:
     result = _run_collect_category_03(tmp_path, project_root)
     assert result.returncode == 0, result.stderr or result.stdout
-    hc_path = str(project_root / "scripts" / "health_check")
-    if hc_path not in sys.path:
-        sys.path.insert(0, hc_path)
+    health_check_path = str(project_root / "scripts" / "health_check")
+    if health_check_path not in sys.path:
+        sys.path.insert(0, health_check_path)
     from hc_report.loader import load_results
     from hc_report.metadata import derive_metadata
 
     results = load_results(tmp_path / "hc_collect")
-    meta = derive_metadata(results, {"client_name": "Example Client", "health_check": {}})
-    out_file = tmp_path / "hc_foundation_metadata.json"
-    out_file.write_text(json.dumps(meta, indent=2), encoding="utf-8")
-    assert out_file.exists()
-    assert meta["cluster_name"] == "test-cluster-abc123"
-    assert meta["cluster_name"] != "version"
-    assert meta["client_prefix"] == "EC"
+    metadata = derive_metadata(results, {"client_name": "Example Client", "health_check": {}})
+    output_file = tmp_path / "hc_foundation_metadata.json"
+    output_file.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
+    assert output_file.exists()
+    assert metadata["cluster_name"] == "test-cluster-abc123"
+    assert metadata["cluster_name"] != "version"
+    assert metadata["client_prefix"] == "EC"
 
 
 def test_hc_merge_writes_unified_results_dir(tmp_path: Path, project_root: Path) -> None:
@@ -127,22 +127,22 @@ def test_hc_merge_writes_unified_results_dir(tmp_path: Path, project_root: Path)
 
 def test_setup_hc_writes_project_yaml(tmp_path: Path, project_root: Path) -> None:
     shutil.copy2(project_root / "project.example.hc.yaml", tmp_path / "project.example.hc.yaml")
-    env = os.environ.copy()
+    environment = os.environ.copy()
     python_paths = [str(project_root / "scripts" / "shared" / "lib")]
-    existing = env.get("PYTHONPATH")
-    env["PYTHONPATH"] = ":".join(python_paths + ([existing] if existing else []))
+    existing = environment.get("PYTHONPATH")
+    environment["PYTHONPATH"] = ":".join(python_paths + ([existing] if existing else []))
     result = subprocess.run(
         [sys.executable, str(project_root / "scripts" / "setup_project.py"), str(tmp_path), "Example Client", "HC"],
         cwd=str(project_root),
         capture_output=True,
         text=True,
-        env=env,
+        env=environment,
     )
     assert result.returncode == 0, result.stderr or result.stdout
     project_yaml = tmp_path / "project.yaml"
     assert project_yaml.exists()
-    cfg = yaml.safe_load(project_yaml.read_text(encoding="utf-8"))
-    assert cfg["engagement_type"] == "health-check"
+    config = yaml.safe_load(project_yaml.read_text(encoding="utf-8"))
+    assert config["engagement_type"] == "health-check"
     assert (tmp_path / "output" / "hc_collect").is_dir()
     assert (tmp_path / "output" / "Health_Check_Report").is_dir()
     hld_md = tmp_path / "output" / "HLD"

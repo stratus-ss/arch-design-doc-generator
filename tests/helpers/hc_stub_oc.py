@@ -32,14 +32,14 @@ PLACEHOLDER_LIST = {
 def _resource_name(argv: list[str]) -> str:
     if "get" not in argv:
         return ""
-    idx = argv.index("get") + 1
-    while idx < len(argv):
-        token = argv[idx]
+    index = argv.index("get") + 1
+    while index < len(argv):
+        token = argv[index]
         if token in ("-n", "-o", "-l", "--namespace", "--output"):
-            idx += 2
+            index += 2
             continue
         if token.startswith("-"):
-            idx += 1
+            index += 1
             continue
         return token
     return ""

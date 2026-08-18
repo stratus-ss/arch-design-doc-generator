@@ -17,9 +17,9 @@ hc_current_mg_path() {
     "$HC_CLI" mg get 2>/dev/null | awk '$1 == "*" {print $3}'
 }
 
-PARSE_PY="$(mktemp --suffix=.py)"
-trap 'rm -f "$PARSE_PY"' EXIT
-cat > "$PARSE_PY" << 'PYEOF'
+PARSE_SCRIPT="$(mktemp --suffix=.py)"
+trap 'rm -f "$PARSE_SCRIPT"' EXIT
+cat > "$PARSE_SCRIPT" << 'PYEOF'
 import json
 import sys
 import tarfile
@@ -34,31 +34,31 @@ def _safe_int(value) -> int:
         return 0
 
 
-def _read_suffix(file_members, tf, *suffixes: str) -> str:
+def _read_suffix(file_members, tarball, *suffixes: str) -> str:
     for member in file_members:
         for suffix in suffixes:
             if member.name.endswith(suffix):
-                handle = tf.extractfile(member)
+                handle = tarball.extractfile(member)
                 if handle is None:
                     continue
                 return handle.read().decode("utf-8", "ignore").strip()
     return ""
 
 
-with tarfile.open(tgz_path, "r:gz") as tf:
-    file_members = [member for member in tf.getmembers() if member.isfile()]
+with tarfile.open(tgz_path, "r:gz") as tarball:
+    file_members = [member for member in tarball.getmembers() if member.isfile()]
 
     vendor = _read_suffix(
-        file_members, tf,
+        file_members, tarball,
         "sys/class/dmi/id/sys_vendor",
         "sys/class/dmi/id/bios_vendor",
     )
-    product = _read_suffix(file_members, tf, "sys/class/dmi/id/product_name")
-    bios_version = _read_suffix(file_members, tf, "sys/class/dmi/id/bios_version")
-    bios_date = _read_suffix(file_members, tf, "sys/class/dmi/id/bios_date")
-    dmi_hostname = _read_suffix(file_members, tf, "etc/hostname")
-    cpuinfo = _read_suffix(file_members, tf, "proc/cpuinfo")
-    machineinfo_raw = _read_suffix(file_members, tf, "machineinfo.json")
+    product = _read_suffix(file_members, tarball, "sys/class/dmi/id/product_name")
+    bios_version = _read_suffix(file_members, tarball, "sys/class/dmi/id/bios_version")
+    bios_date = _read_suffix(file_members, tarball, "sys/class/dmi/id/bios_date")
+    dmi_hostname = _read_suffix(file_members, tarball, "etc/hostname")
+    cpuinfo = _read_suffix(file_members, tarball, "proc/cpuinfo")
+    machineinfo_raw = _read_suffix(file_members, tarball, "machineinfo.json")
 
 machineinfo = {}
 if machineinfo_raw:
@@ -81,7 +81,7 @@ if not cpu_cores:
 memory_bytes = _safe_int(machineinfo.get("memory_capacity"))
 memory_mb = int(memory_bytes / 1024 / 1024) if memory_bytes else 0
 
-hw = {
+hardware = {
     "node": node,
     "short_name": short_name,
     "vendor": vendor,
@@ -94,9 +94,9 @@ hw = {
     "memory_gb": round(memory_mb / 1024, 1),
 }
 if dmi_hostname:
-    hw["dmi_hostname"] = dmi_hostname
+    hardware["dmi_hostname"] = dmi_hostname
 
-print(json.dumps(hw, indent=2))
+print(json.dumps(hardware, indent=2))
 PYEOF
 
 MG_PATH="$(hc_current_mg_path)"
@@ -105,22 +105,22 @@ MG_NODES_DIR="${MG_PATH}/nodes"
 hc_collect_node_hw() {
     local node="$1"
     local short_name="${node%%.*}"
-    local out="${HC_RESULTS_DIR}/${CATEGORY}/node_hw_${short_name}.json"
+    local output_path="${HC_RESULTS_DIR}/${CATEGORY}/node_hw_${short_name}.json"
     local sysinfo_tgz="${MG_NODES_DIR}/${node}/sysinfo.tgz"
 
     if [[ ! -f "$sysinfo_tgz" ]]; then
         printf '{"_hc_not_found": true, "node": "%s", "note": "sysinfo.tgz not present in must-gather", "timestamp": "%s"}\n' \
-            "$node" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "$out"
+            "$node" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "$output_path"
         hc_info "  ${node}: sysinfo.tgz not present"
         return
     fi
 
-    if python3 "$PARSE_PY" "$sysinfo_tgz" "$node" "$short_name" > "$out" 2>/dev/null; then
+    if python3 "$PARSE_SCRIPT" "$sysinfo_tgz" "$node" "$short_name" > "$output_path" 2>/dev/null; then
         HC_COLLECTED=$((HC_COLLECTED + 1))
         hc_info "  ${node}: wrote ${CATEGORY}/node_hw_${short_name}.json"
     else
         printf '{"_hc_error": true, "node": "%s", "note": "sysinfo.tgz parse failed", "timestamp": "%s"}\n' \
-            "$node" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "$out"
+            "$node" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "$output_path"
         hc_warn "  ${node}: sysinfo.tgz parse failed"
         HC_ERRORS=$((HC_ERRORS + 1))
     fi

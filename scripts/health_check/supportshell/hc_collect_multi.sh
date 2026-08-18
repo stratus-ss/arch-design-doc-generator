@@ -31,21 +31,21 @@ KEEP_INTERMEDIATES=false
 CATEGORIES=""
 CLUSTER_SELECT=""
 WORKDIR=""
-EXTRACTED_TMP=""
+EXTRACTED_TEMP_DIR=""
 
 cleanup_tempdirs() {
     if [[ "${KEEP_INTERMEDIATES:-false}" == true ]]; then
         if [[ -n "${WORKDIR:-}" && -d "${WORKDIR}" ]]; then
             log_info "Intermediate results kept at: ${WORKDIR}"
         fi
-        if [[ -n "${EXTRACTED_TMP:-}" && -d "${EXTRACTED_TMP}" ]]; then
-            log_info "Extracted tarball kept at: ${EXTRACTED_TMP}"
+        if [[ -n "${EXTRACTED_TEMP_DIR:-}" && -d "${EXTRACTED_TEMP_DIR}" ]]; then
+            log_info "Extracted tarball kept at: ${EXTRACTED_TEMP_DIR}"
         fi
         return 0
     fi
 
     [[ -n "${WORKDIR:-}" && -d "${WORKDIR}" ]] && rm -rf "${WORKDIR}"
-    [[ -n "${EXTRACTED_TMP:-}" && -d "${EXTRACTED_TMP}" ]] && rm -rf "${EXTRACTED_TMP}"
+    [[ -n "${EXTRACTED_TEMP_DIR:-}" && -d "${EXTRACTED_TEMP_DIR}" ]] && rm -rf "${EXTRACTED_TEMP_DIR}"
     return 0
 }
 
@@ -59,8 +59,8 @@ log_warn()  { printf '[%s] [WARN ] %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$*"
 log_error() { printf '[%s] [ERROR] %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$*" >&2; }
 
 sanitize_cluster_key() {
-    local raw="$1"
-    local sanitized="$raw"
+    local raw_name="$1"
+    local sanitized="$raw_name"
 
     sanitized="${sanitized// /_}"
     sanitized="${sanitized//[^A-Za-z0-9._-]/_}"
@@ -97,17 +97,17 @@ resolve_cluster_bundle_dir() {
 cluster_metadata_for_path() {
     local leaf_path="$1"
     local input_root="$2"
-    local bundle_dir bundle_name cluster_name seq
+    local bundle_dir bundle_name cluster_name sequence
 
     bundle_dir="$(resolve_cluster_bundle_dir "$leaf_path" "$input_root")" || return 1
     bundle_name="$(basename "$bundle_dir")"
     [[ "$bundle_name" =~ ^([0-9]{4})-(.+)-must-gather(\.tar\.gz)?$ ]] || return 1
 
-    seq=$((10#${BASH_REMATCH[1]}))
+    sequence=$((10#${BASH_REMATCH[1]}))
     cluster_name="${BASH_REMATCH[2]}"
     cluster_name="${cluster_name#fixed_}"
 
-    printf '%s\t%s\t%s\n' "$bundle_dir" "$seq" "$(sanitize_cluster_key "$cluster_name")"
+    printf '%s\t%s\t%s\n' "$bundle_dir" "$sequence" "$(sanitize_cluster_key "$cluster_name")"
 }
 
 count_group_entries() {
@@ -132,9 +132,9 @@ select_latest_group_paths() {
     local paths_nl="$1"
     local input_root="$2"
     local cluster_key="$3"
-    local subdir metadata bundle_dir bundle_name seq selected_bundle selected_seq
+    local subdir metadata bundle_dir bundle_name sequence selected_bundle selected_sequence
     local -A bundle_paths=()
-    local -A bundle_seqs=()
+    local -A bundle_sequences=()
 
     while IFS= read -r subdir; do
         [[ -z "$subdir" ]] && continue
@@ -143,10 +143,10 @@ select_latest_group_paths() {
             continue
         fi
 
-        IFS=$'\t' read -r bundle_dir seq _ <<< "$metadata"
+        IFS=$'\t' read -r bundle_dir sequence _ <<< "$metadata"
         bundle_name="$(basename "$bundle_dir")"
         bundle_paths["$bundle_name"]+="${subdir}"$'\n'
-        bundle_seqs["$bundle_name"]="$seq"
+        bundle_sequences["$bundle_name"]="$sequence"
     done <<< "$paths_nl"
 
     if [[ ${#bundle_paths[@]} -le 1 ]]; then
@@ -155,15 +155,15 @@ select_latest_group_paths() {
     fi
 
     selected_bundle=""
-    selected_seq=-1
+    selected_sequence=-1
     while IFS= read -r bundle_name; do
         [[ -z "$bundle_name" ]] && continue
-        seq="${bundle_seqs[$bundle_name]}"
-        if (( seq > selected_seq )); then
-            selected_seq="$seq"
+        sequence="${bundle_sequences[$bundle_name]}"
+        if (( sequence > selected_sequence )); then
+            selected_sequence="$sequence"
             selected_bundle="$bundle_name"
         fi
-    done < <(printf '%s\n' "${!bundle_seqs[@]}" | sort)
+    done < <(printf '%s\n' "${!bundle_sequences[@]}" | sort)
 
     log_warn "=================================================================="
     log_warn "Duplicate must-gather bundles detected for cluster: ${cluster_key}"
@@ -174,7 +174,7 @@ select_latest_group_paths() {
         else
             log_warn "  SKIP older bundle  : ${bundle_name}"
         fi
-    done < <(printf '%s\n' "${!bundle_seqs[@]}" | sort)
+    done < <(printf '%s\n' "${!bundle_sequences[@]}" | sort)
     log_warn "Continuing with the latest bundle only."
     log_warn "=================================================================="
 
@@ -233,13 +233,13 @@ fi
 # ---------------------------------------------------------------------------
 if [[ -f "$INPUT_PATH" ]] && [[ "$INPUT_PATH" == *.tar.gz || "$INPUT_PATH" == *.tgz ]]; then
     log_info "Extracting tarball: ${INPUT_PATH}"
-    EXTRACTED_TMP="$(mktemp -d -t hc_extract_XXXX)"
-    tar -xzf "$INPUT_PATH" -C "$EXTRACTED_TMP"
+    EXTRACTED_TEMP_DIR="$(mktemp -d -t hc_extract_XXXX)"
+    tar -xzf "$INPUT_PATH" -C "$EXTRACTED_TEMP_DIR"
     # Find the must-gather.local* directory inside
-    MG_DIR="$(find "$EXTRACTED_TMP" -maxdepth 2 -type d -name 'must-gather.local*' | head -1)"
+    MG_DIR="$(find "$EXTRACTED_TEMP_DIR" -maxdepth 2 -type d -name 'must-gather.local*' | head -1)"
     if [[ -z "$MG_DIR" ]]; then
         # Maybe the tarball itself is the content
-        MG_DIR="$EXTRACTED_TMP"
+        MG_DIR="$EXTRACTED_TEMP_DIR"
     fi
 elif [[ -d "$INPUT_PATH" ]]; then
     MG_DIR="$INPUT_PATH"
@@ -287,9 +287,9 @@ declare -a MG_SUBDIRS=()
 MAX_MG_SEARCH_DEPTH=6
 
 is_must_gather_dir() {
-    local dir="$1"
-    [[ -d "$dir/cluster-scoped-resources" ]] || [[ -d "$dir/namespaces" ]] || \
-    [[ -d "$dir/nodes" ]] || [[ -d "$dir/monitoring" ]]
+    local directory="$1"
+    [[ -d "$directory/cluster-scoped-resources" ]] || [[ -d "$directory/namespaces" ]] || \
+    [[ -d "$directory/nodes" ]] || [[ -d "$directory/monitoring" ]]
 }
 
 find_must_gather_dirs() {
