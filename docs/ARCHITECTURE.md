@@ -9,12 +9,14 @@ flowchart LR
     Makefile --> ContainerBuild[Container Build Pipeline]
 
     Setup --> ProjectYaml[project.yaml]
-    ProjectYaml --> ConfigPy[scripts/lib/config.py]
-    ConfigPy --> BashHelpers[scripts/lib/common.sh]
+    ProjectYaml --> ConfigPy[scripts/shared/lib/config.py]
+    ConfigPy --> BashHelpers[scripts/shared/lib/common.sh]
 
     HostAI --> SlotExtract[slots.py]
     SlotExtract --> Render[render.py]
-    Render --> HldMarkdown[HLD markdown files]
+    Render --> HldMarkdown[output/HLD markdown]
+    Render --> LldMarkdown[output/LLD markdown]
+    Render --> StampedDrawio[output/Diagrams]
 
     ContainerBuild --> StitchHld[stitch_hld.sh]
     ContainerBuild --> StitchLld[stitch_lld.sh]
@@ -33,12 +35,18 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    AdrInput[ADR template + project ADR] --> PromptGlobal[Prompt A global extraction]
-    PromptGlobal --> PromptPhase[Prompt B phase refinement]
-    PromptPhase --> PromptRepair[Prompt C schema repair]
+    AdrInput[templates/ADR + filled ADR/] --> PromptGlobal[Prompt A global extraction]
+    PromptGlobal --> PromptPhase[Prompt B opt-in phase refine]
+    PromptPhase --> Overlay[project.yaml slots overlay]
+    Overlay --> EmptyRepair[empty required slot repair]
+    EmptyRepair --> PromptRepair[Prompt C schema repair]
     PromptRepair --> SlotMap[slot_map.json]
-    SlotMap --> RenderTemplates[Template render write-back]
-    RenderTemplates --> StitchDocs[HLD and LLD stitching]
+    SlotMap --> RenderHld[Render generic HLD templates]
+    SlotMap --> RenderLld[Render generic LLD templates]
+    SlotMap --> RenderDrawio[Render templates/Diagrams/examples]
+    RenderHld --> StitchDocs[HLD and LLD stitching]
+    RenderLld --> StitchDocs
+    RenderDrawio --> OutputDiagrams[output/Diagrams]
     StitchDocs --> DrawioVariants[Drawio markdown variants]
     DrawioVariants --> Pdfs[Pandoc and WeasyPrint PDFs]
     StitchDocs --> WorkitemsOut[Work item markdown and CSV]
@@ -48,17 +56,20 @@ flowchart TD
 
 | Layer | Runs on | Responsibilities |
 |---|---|---|
-| Setup | Host + container entrypoint | Generate `project.yaml`, seed project files |
-| AI extraction | Host | ADR chunking, slot extraction, deterministic render |
+| Setup | Host + container entrypoint | Generate `project.yaml`, copy `templates/` to working copies; refuse overwrite unless `--force` |
+| AI extraction | Host | Full-ADR Prompt A (chunked fallback), optional Prompt B, yaml overlay, empty-slot repair, one `slot_map.json`, deterministic HLD, LLD, and drawio render |
 | Build and publish | Container | Stitch markdown, export diagrams, generate PDFs |
 | Utilities | Host or container | Diagram sanitization, drawio merge, RVTools conversion |
 
 ## Configuration Architecture
 
 - `project.example.yaml` is the template configuration committed to git.
-- `make setup CLIENT="..." PROJECT="..."` creates `project.yaml` for a specific engagement.
-- `scripts/lib/config.py` is the single configuration adapter used by Python and bash workflows.
-- `scripts/lib/common.sh` bridges bash scripts to the same config source.
+- `project.yaml` `slots:` overlay binds operator facts after extract; `registry_mirror_policy` can copy `IMAGE_REGISTRY` into an empty `REGISTRY_MIRROR`.
+- `templates/` is the canonical generic source for ADR, HLD, LLD, and diagram examples (no client PII). ADR templates are `templates/ADR/`; a filled copy belongs in gitignored `ADR/`.
+- Stampable `.drawio` files under `templates/Diagrams/examples/` are a render target of `slot_map.json` and overwrite `output/Diagrams` on every `prepare-hld-ai`.
+- `make setup CLIENT="..." PROJECT="..."` creates `project.yaml` and copies templates into working copies. Existing destinations require `FORCE=1`.
+- `scripts/shared/lib/config.py` is the single configuration adapter used by Python and bash workflows.
+- `scripts/shared/lib/common.sh` bridges bash scripts to the same config source.
 
 ## Key Dependencies
 

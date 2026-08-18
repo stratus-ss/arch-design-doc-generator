@@ -67,7 +67,21 @@ diagrams:
 
 paths:
   venv: "./venv"
-  diagrams: "./Diagrams"
-  hld_markdown: "./HLD/markdown_files"
-  lld: "./LLD"
-  work_items: "./Work_Items"
+  diagrams: "./output/Diagrams"
+  hld_markdown: "./output/HLD/markdown_files"
+  lld: "./output/LLD"
+  work_items: "./output/Work_Items"
+
+# same_as_image_registry | distinct | unset
+# same_as_image_registry copies IMAGE_REGISTRY into empty REGISTRY_MIRROR after overlay.
+registry_mirror_policy: unset
+
+# Operator facts the ADR often omits. Non-empty values override extract.
+# Empty strings do not wipe a filled extract value.
+slots:
+  CLIENT_DOMAIN: ""
+  GITOPS_HOST: ""
+  REGISTRY_MIRROR: ""
+  REGISTRY_MIRROR_FQDN: ""
+  HUB_CLUSTER_NAME: ""
+  NTP_DOMAIN: ""
