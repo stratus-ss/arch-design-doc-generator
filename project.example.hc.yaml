@@ -1,0 +1,95 @@
+client_name: "{CLIENT}"
+# Set via: make setup CLIENT="Example Client" PROJECT="HC"
+project_code: "HC"
+engagement_type: "health-check"
+document_title_hld: "OpenShift Health Check"
+document_title_lld: "OpenShift Health Check — Execution Guide"
+
+brand:
+  primary_color: "#EE0000"
+  secondary_color: "#1155cc"
+  header_font: '"Overpass", "Liberation Sans", Arial, sans-serif'
+  code_font: '"Overpass Mono", "Liberation Mono", "Courier New", monospace'
+  footer_text: "Consulting Engagement Report"
+
+phases:
+  - id: phase1
+    name: "Foundation"
+    dir_name: "Phase1_Foundation"
+    lld_file: "HC_LLD_Phase1_Foundation.md"
+
+hld:
+  phase_files: []
+  combined_files: []
+  summary_map: {}
+
+lld:
+  combined_file: "HC_LLD_Combined.md"
+  combined_title: "OpenShift Health Check — Combined LLD"
+
+diagrams:
+  phase_dirs: []
+  top_level_patterns: []
+
+paths:
+  venv: "./venv"
+
+health_check:
+  # --- Engagement identity (set before starting) ---
+  cluster_name: ""        # e.g. "prod-ocp-01"
+  ocp_version: ""         # auto-derived from cluster if blank
+  case_number: ""         # e.g. "01234567"
+  author: ""              # Consultant name
+  channel: ""             # auto-derived from cluster if blank
+  install_type: ""        # auto-derived from cluster if blank
+  report_date: ""         # e.g. "July 2026" — defaults to current month/year
+  capture_date: ""        # e.g. "2026-07-17" (populated during/after collection)
+
+  # --- Post-collection statistics (populated by generate_report.py) ---
+  total_checks: 0
+  fail_count: 0
+  warning_count: 0
+  pass_count: 0
+
+  # --- Input/output paths ---
+  # Optional: path to a completed health check markdown report (post-hoc analysis only)
+  input_report_path: ""
+  # Optional: path to an ADR file for drift analysis
+  adr_path: ""
+  # Output directories
+  output_lld_path: "output/Health_Check_LLD/"
+  output_report_path: "output/Health_Check_Report/"
+  output_drift_path: "output/Drift_Analysis/"
+  output_workitems_path: "output/Work_Items/"
+  output_collect_path: "output/hc_collect/"
+  check_profile: "advisory"      # core | extended | advisory
+  ccx_baseline_status: true      # use baseline CCX status hints when no live CCX payload exists
+  tsr_ccx_catalog_path: "scripts/health_check/hc_report/catalogs/tsr_ccx_crosswalk.json"
+  tsr_html_path: ""              # path to TSR HTML export for runtime parity scoring (optional)
+
+  # HC phases — maps to HC-01 through HC-12 sections in the LLD template
+  phases:
+    - id: hc-01
+      name: "Engagement Setup"
+    - id: hc-02
+      name: "Data Collection"
+    - id: hc-03
+      name: "Base Platform Assessment"
+    - id: hc-04
+      name: "Topology Assessment"
+    - id: hc-05
+      name: "Component Assessment"
+    - id: hc-06
+      name: "Layered Products Assessment"
+    - id: hc-07
+      name: "Cluster Health Assessment"
+    - id: hc-08
+      name: "Day-2 Operations Assessment"
+    - id: hc-09
+      name: "Security and Compliance Assessment"
+    - id: hc-10
+      name: "Analysis and Prioritization"
+    - id: hc-11
+      name: "Report Writing"
+    - id: hc-12
+      name: "Deliverable Assembly"

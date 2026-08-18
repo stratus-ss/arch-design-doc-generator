@@ -141,3 +141,40 @@ Operational note:
 - Heavy binary dependencies stay containerized.
 - AI credentials remain on the host path.
 - `output/` is the canonical artifact destination for publishable deliverables.
+
+---
+
+## 6) Health Check Collection (host)
+
+`make setup CLIENT="..." PROJECT="HC"` creates `project.yaml` from `project.example.hc.yaml` and scaffolds `output/hc_collect` + `output/Health_Check_Report`. No HLD/LLD templates are copied.
+
+### Live cluster path
+
+```mermaid
+flowchart TD
+    SetupHC[make setup PROJECT=HC] --> ProjectYaml[project.yaml from project.example.hc.yaml]
+    ProjectYaml --> Collect[make hc-collect KUBECONFIG=path]
+    Collect --> HcCollectSh[hc_collect.sh --categories 03..12]
+    HcCollectSh --> Output[output/hc_collect/manifest.json + category JSON]
+```
+
+### Supportshell / must-gather path
+
+```mermaid
+flowchart TD
+    Push[make hc-push-scripts HC_SSH_HOST=user@host] --> Remote[scripts on remote]
+    Remote --> Yank[operator: yank case-number]
+    Yank --> CollectRemote[make hc-collect-remote HC_SSH_HOST=... HC_MG_INPUT=...]
+    CollectRemote --> FetchResults[make hc-fetch-results HC_SSH_HOST=...]
+    FetchResults --> Staged[output/hc_collect/YYYY-MM-DD/]
+```
+
+### Host merge
+
+```bash
+make hc-merge MERGE_INPUTS="output/hc_collect/2026-08-01 output/hc_collect/2026-08-05"
+```
+
+Runs `hc_merge.py` on the host (no container). Prefers real JSON over `_hc_error` stubs; unions Kubernetes List items by `metadata.uid`.
+
+AI is not used for health check (DR-8). Report generation (`make hc-report`) does not exist on this branch.

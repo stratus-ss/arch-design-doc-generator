@@ -28,6 +28,8 @@ from setup_status import (
     _print_optional,
     _print_step_adr,
     _print_step_ai,
+    _print_step_hc_collect,
+    _print_step_hc_setup,
     _print_step_lld,
     _print_step_publish,
     _print_step_setup,
@@ -486,6 +488,42 @@ PROJECT_TYPES: dict[str, ProjectType] = {
             "make build       — build everything",
         ),
         project_code_placeholder="OCP-V",
+    ),
+    "hc": ProjectType(
+        engagement_type="health-check",
+        template_file="project.example.hc.yaml",
+        scaffold_dirs=(
+            "output/hc_collect",
+            "output/Health_Check_Report",
+        ),
+        template_dirs=(),
+        has_hld_templates=False,
+        has_diagram_seeding=False,
+        has_hld_status=False,
+        status_steps=(
+            _print_step_hc_setup,
+            _print_step_hc_collect,
+        ),
+        next_steps=(),
+        next_step_groups=(
+            (
+                "Option A — Live cluster",
+                (
+                    'make hc-collect KUBECONFIG=<path>            — collect from a live cluster',
+                ),
+            ),
+            (
+                "Option B — Supportshell / must-gather",
+                (
+                    "make hc-push-scripts HC_SSH_HOST=user@host   — push scripts to the remote support shell",
+                    "on remote host: yank <case-number>           — fetch and extract case artifacts",
+                    "make hc-collect-remote HC_SSH_HOST=user@host HC_MG_INPUT=<absolute-path-from-yank>",
+                    "make hc-fetch-results HC_SSH_HOST=user@host  — copy results to output/hc_collect/<date>",
+                ),
+            ),
+        ),
+        project_code_placeholder=None,
+        aliases=("HEALTH-CHECK", "HEALTHCHECK"),
     ),
 }
 

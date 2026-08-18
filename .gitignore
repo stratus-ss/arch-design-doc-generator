@@ -74,3 +74,8 @@ cursor_plans/
 .buddy/
 google-cloud-sdk/
 tmp/
+
+# ── Kubeconfigs (never commit) ──────────────────────────────────────
+**/kubeconfig
+**/kubeconfig.*
+**/.kube/

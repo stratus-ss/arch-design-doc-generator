@@ -172,9 +172,29 @@ def _extras_state(workspace: Path, out: Path) -> dict:
     return {"wi_files": wi_files}
 
 
-def _gather_state(workspace: Path, cfg: dict, project_type: ProjectType | None = None) -> dict:
+def _hc_state(workspace: Path, cfg: dict) -> dict:
+    """Compute Health Check collection state (report fields unused this plan)."""
+    hc_cfg = cfg.get("health_check", {})
+    collect_rel = hc_cfg.get("output_collect_path", "output/hc_collect/")
+    collect_root = Path(collect_rel)
+    if not collect_root.is_absolute():
+        collect_root = workspace / collect_rel
+    collect_root = collect_root.resolve()
+    collect_dirs = sorted(p for p in collect_root.iterdir() if p.is_dir()) if collect_root.exists() else []
+    latest_collect = collect_dirs[-1] if collect_dirs else None
+    return {
+        "hc_collect_dirs": collect_dirs,
+        "hc_latest_collect": latest_collect,
+        "hc_collected": bool(collect_dirs),
+        "hc_report_md": [],
+        "hc_reported": False,
+    }
+
+
+def _gather_state(workspace: Path, cfg: dict, project_type=None) -> dict:
     """Compute all filesystem/config state needed to render the status report."""
-    _ = project_type
+    if project_type is not None and getattr(project_type, "has_hld_status", True) is False:
+        return _hc_state(workspace, cfg)
     state: dict = {}
     out = workspace / "output"
     state.update(_setup_state(workspace, cfg))
@@ -325,6 +345,27 @@ def _print_optional(state: dict) -> None:
     info('  make rvtools FILES="..."    — process RVTools XLSX into migration schedule')
     print()
 
+
+def _print_step_hc_setup(state: dict) -> None:
+    """HC Step 1: make setup."""
+    _ = state
+    print(f'     {BOLD}Step 1:{RESET}  make setup CLIENT="..." PROJECT="HC"')
+    ok("Done — project.yaml configured")
+    print()
+
+
+def _print_step_hc_collect(state: dict) -> None:
+    """HC Step 2: collect cluster data."""
+    step_label = f"{_STATUS_ARROW} " if not state["hc_collected"] else "   "
+    print(f"  {step_label}{BOLD}Step 2:{RESET}  make hc-collect / hc-push-scripts + hc-collect-remote")
+    if state["hc_collected"]:
+        latest = state["hc_latest_collect"]
+        ok(f"Done — {len(state['hc_collect_dirs'])} collection(s), latest: {latest.name}")
+    else:
+        warn("Not run yet — collect cluster data via live cluster or supportshell")
+    print()
+
+
 def run_status(workspace: Path, project_type=None) -> None:
     """Print a plain-language project health report."""
     _bootstrap_ui()
@@ -333,7 +374,7 @@ def run_status(workspace: Path, project_type=None) -> None:
     heading("Project Status")
 
     if not yaml_path.exists():
-        fail('project.yaml not found — run: make setup CLIENT="Your Client" PROJECT="OCP-V"')
+        fail('project.yaml not found — run: make setup CLIENT="Your Client" PROJECT="OCP-V" or PROJECT="HC"')
         return
 
     with open(yaml_path, encoding="utf-8") as f:

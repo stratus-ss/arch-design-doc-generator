@@ -62,6 +62,15 @@
 ### `docs/`
 - Architecture, code flow, and this layout reference.
 
+### `scripts/health_check/`
+- Health Check collection and data layer.
+- `collect/` — live `oc` collectors (`hc_collect.sh`, `lib/common.sh`, category scripts `03`–`12`).
+- `supportshell/` — offline `omc` collectors, `hc_merge.py`, `hc_collect_multi.sh`.
+- `hc_report/` — data layer only: `models.py`, `loader.py`, `metadata.py`. Report CLI is future.
+- `hc_fetch_results.sh` — fetch results from remote.
+- `mg_short_names.yaml` — must-gather short-name resolution.
+- `templates/Health_Check/` is reserved for report templates (not populated yet).
+
 ### `scripts/shared/lib/`
 - Shared config and helper layer.
 - `config.py` parses `project.yaml`.
@@ -104,6 +113,7 @@
 | `scripts/hld_lld/ai/ai_draft_deterministic.py` | Deterministic AI orchestration (HLD + LLD render) |
 | `scripts/shared/lib/config.py` | Unified config reader |
 | `project.example.yaml` | Base config template copied to `project.yaml` (gitignored at any path; never commit `project.yaml` or `slot_map.json`) |
+| `project.example.hc.yaml` | Health Check config template (used when `PROJECT=HC`) |
 
 ## Naming Conventions
 
@@ -127,3 +137,5 @@ Generated during setup/build (gitignored; never commit):
 - `RVTools/` workbooks and `*.xlsx`
 - `Diagrams/phase1..phase4/` seeded working directories
 - PDFs, PNG exports, and work item outputs
+- `output/hc_collect/` — collected Health Check JSON (gitignored via `output/`)
+- `**/kubeconfig`, `**/kubeconfig.*`, `**/.kube/` — kubeconfigs (gitignored)
