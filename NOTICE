@@ -1,0 +1,16 @@
+NOTICE
+
+This project bundles or depends on third-party tools in the container image.
+See Containerfile for exact versions and install commands.
+
+Bundled / image tools:
+  - Fedora base image
+  - pandoc
+  - weasyprint
+  - stitchmd (go.abhg.dev/stitchmd)
+  - drawio-desktop
+  - mermaid-cli (@mermaid-js/mermaid-cli)
+
+Python runtime dependencies are declared in pyproject.toml.
+The GPL LICENSE file in this repository covers this project's own source.
+Third-party components remain under their respective licenses.

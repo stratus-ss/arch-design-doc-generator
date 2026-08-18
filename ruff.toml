@@ -1,0 +1,12 @@
+target-version = "py310"
+line-length = 120
+
+[lint]
+select = ["E", "F", "W", "C901", "PLR0912", "PLR0915", "PLR0911", "I"]
+
+[lint.mccabe]
+max-complexity = 15
+
+[lint.pylint]
+max-branches = 15
+max-statements = 50

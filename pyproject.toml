@@ -1,0 +1,17 @@
+[project]
+name = "arch-design-doc-generator"
+version = "0.0.0"
+requires-python = ">=3.10"
+dependencies = ["pyyaml>=6.0"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.9"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [
+    "scripts/shared/lib",
+    "scripts/hld_lld/ai/deterministic",
+    "scripts/hld_lld/ai",
+    "scripts/shared/tools",
+]
