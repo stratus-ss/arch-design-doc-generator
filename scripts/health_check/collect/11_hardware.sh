@@ -15,18 +15,18 @@ hc_init "$CATEGORY"
 
 # ---------------------------------------------------------------------------
 # Python helper: parse fixed-order text output into JSON
-# Called as: echo "$raw" | python3 "$PARSE_PY" <node> <short_name>
+# Called as: echo "$raw" | python3 "$PARSE_SCRIPT" <node> <short_name>
 # ---------------------------------------------------------------------------
 
-PARSE_PY="$(mktemp --suffix=.py)"
-cat > "$PARSE_PY" << 'PYEOF'
+PARSE_SCRIPT="$(mktemp --suffix=.py)"
+cat > "$PARSE_SCRIPT" << 'PYEOF'
 import sys, json
 
 node = sys.argv[1]
 short_name = sys.argv[2]
 lines = sys.stdin.read().splitlines()
 
-hw = {
+hardware = {
     "node":         node,
     "short_name":   short_name,
     "vendor":       lines[0].strip()  if len(lines) > 0 else "",
@@ -36,16 +36,16 @@ hw = {
     "cpu_model":    lines[4].strip()  if len(lines) > 4 else "",
 }
 
-try:    hw["cpu_cores"]  = int(lines[5]) if len(lines) > 5 else 0
-except: hw["cpu_cores"]  = 0
-try:    hw["memory_mb"]  = int(lines[6]) if len(lines) > 6 else 0
-except: hw["memory_mb"]  = 0
+try:    hardware["cpu_cores"]  = int(lines[5]) if len(lines) > 5 else 0
+except: hardware["cpu_cores"]  = 0
+try:    hardware["memory_mb"]  = int(lines[6]) if len(lines) > 6 else 0
+except: hardware["memory_mb"]  = 0
 
 # disk lines: everything between index 7 and the last line (which is hostname)
 disks = []
 if len(lines) > 8:
-    for dl in lines[7:-1]:
-        parts = dl.split()
+    for disk_line in lines[7:-1]:
+        parts = disk_line.split()
         if len(parts) >= 2:
             disks.append({
                 "name": parts[0],
@@ -53,11 +53,11 @@ if len(lines) > 8:
                 "rotational": parts[2] == "1" if len(parts) > 2 else True,
                 "type": "HDD" if (parts[2] == "1" if len(parts) > 2 else True) else "SSD/NVMe",
             })
-hw["disks"] = disks
-hw["dmi_hostname"] = lines[-1].strip() if lines else ""
-hw["memory_gb"] = round(hw["memory_mb"] / 1024, 1)
+hardware["disks"] = disks
+hardware["dmi_hostname"] = lines[-1].strip() if lines else ""
+hardware["memory_gb"] = round(hardware["memory_mb"] / 1024, 1)
 
-print(json.dumps(hw, indent=2))
+print(json.dumps(hardware, indent=2))
 PYEOF
 
 # ---------------------------------------------------------------------------
@@ -81,49 +81,49 @@ hostname'
 hc_collect_node_hw() {
     local node="$1"
     local short_name="${node%%.*}"
-    local out="${HC_RESULTS_DIR}/${CATEGORY}/node_hw_${short_name}.json"
+    local output_path="${HC_RESULTS_DIR}/${CATEGORY}/node_hw_${short_name}.json"
 
     hc_info "  debug node: ${node} → ${CATEGORY}/node_hw_${short_name}.json"
 
-    local tmp_raw
-    tmp_raw="$(mktemp)"
+    local temp_raw_path
+    temp_raw_path="$(mktemp)"
     local exit_code=0
 
     oc debug --quiet node/"${node}" -- chroot /host sh -c "${_HW_SCRIPT}" \
-        > "$tmp_raw" 2>/dev/null || exit_code=$?
+        > "$temp_raw_path" 2>/dev/null || exit_code=$?
 
-    if [[ $exit_code -ne 0 || ! -s "$tmp_raw" ]]; then
+    if [[ $exit_code -ne 0 || ! -s "$temp_raw_path" ]]; then
         printf '{"_hc_error": true, "node": "%s", "note": "oc debug node failed (exit %d)", "timestamp": "%s"}\n' \
-            "$node" "$exit_code" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "$out"
+            "$node" "$exit_code" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "$output_path"
         hc_warn "  oc debug failed (exit_code=${exit_code}) for ${node}"
         HC_ERRORS=$((HC_ERRORS + 1))
-        rm -f "$tmp_raw"
+        rm -f "$temp_raw_path"
         return
     fi
 
-    local json_out
-    json_out="$(python3 "$PARSE_PY" "$node" "$short_name" < "$tmp_raw" 2>/dev/null)"
-    rm -f "$tmp_raw"
+    local json_output
+    json_output="$(python3 "$PARSE_SCRIPT" "$node" "$short_name" < "$temp_raw_path" 2>/dev/null)"
+    rm -f "$temp_raw_path"
 
-    if [[ -n "$json_out" ]]; then
-        printf '%s\n' "$json_out" > "$out"
+    if [[ -n "$json_output" ]]; then
+        printf '%s\n' "$json_output" > "$output_path"
         HC_COLLECTED=$((HC_COLLECTED + 1))
         local summary
         summary="$(python3 -c "
 import json, sys
-d = json.load(sys.stdin)
-vendor  = d.get('vendor','?')
-product = d.get('product','?')
-cpu     = d.get('cpu_model','?').strip()
-cores   = d.get('cpu_cores', 0)
-mem     = d.get('memory_gb', 0)
-disks   = ', '.join(f\"{dk['name']} {dk['size']} ({dk['type']})\" for dk in d.get('disks',[]))
-print(f'{vendor} {product} | CPU: {cpu} ({cores} cores) | RAM: {mem}G | Disks: {disks}')
-" <<< "$json_out" 2>/dev/null || echo "parsed")"
+payload = json.load(sys.stdin)
+vendor  = payload.get('vendor','?')
+product = payload.get('product','?')
+cpu_model = payload.get('cpu_model','?').strip()
+cores   = payload.get('cpu_cores', 0)
+memory_gb = payload.get('memory_gb', 0)
+disks   = ', '.join(f\"{disk['name']} {disk['size']} ({disk['type']})\" for disk in payload.get('disks',[]))
+print(f'{vendor} {product} | CPU: {cpu_model} ({cores} cores) | RAM: {memory_gb}G | Disks: {disks}')
+" <<< "$json_output" 2>/dev/null || echo "parsed")"
         hc_info "  ${short_name}: ${summary}"
     else
         printf '{"_hc_error": true, "node": "%s", "note": "JSON parse failed", "timestamp": "%s"}\n' \
-            "$node" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "$out"
+            "$node" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "$output_path"
         hc_warn "  JSON parse failed for ${node}"
         HC_ERRORS=$((HC_ERRORS + 1))
     fi
@@ -135,7 +135,7 @@ print(f'{vendor} {product} | CPU: {cpu} ({cores} cores) | RAM: {mem}G | Disks: {
 
 node_list="$(oc get nodes -o jsonpath='{.items[*].metadata.name}' 2>/dev/null)" || {
     hc_error "Failed to list nodes"
-    rm -f "$PARSE_PY"
+    rm -f "$PARSE_SCRIPT"
     exit 1
 }
 
@@ -145,6 +145,6 @@ for node in $node_list; do
     node_count=$((node_count + 1))
 done
 
-rm -f "$PARSE_PY"
+rm -f "$PARSE_SCRIPT"
 hc_info "Hardware inventory collected for ${node_count} node(s)"
 hc_summary "$CATEGORY"

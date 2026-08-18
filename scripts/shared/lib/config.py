@@ -15,8 +15,8 @@ CLI usage (for bash scripts):
 
 Python usage:
     from config import load_config
-    cfg = load_config()
-    print(cfg["client_name"])
+    config = load_config()
+    print(config["client_name"])
 """
 
 from __future__ import annotations
@@ -43,61 +43,61 @@ def find_project_yaml(start: Path | None = None) -> Path:
 
     # Fallback: walk up from start or cwd
     search = start or Path.cwd()
-    for d in [search, *search.parents]:
-        for loc in [d / "project.yaml", d / "src" / "project.yaml"]:
-            if loc.exists():
-                return loc
+    for directory in [search, *search.parents]:
+        for location in [directory / "project.yaml", directory / "src" / "project.yaml"]:
+            if location.exists():
+                return location
     raise FileNotFoundError("project.yaml not found in any parent directory")
 
 
 def load_config(path: Path | None = None) -> dict:
     """Load and return the project config dict."""
     config_path = path or find_project_yaml()
-    with open(config_path, encoding="utf-8") as f:
-        return yaml.safe_load(f)
+    with open(config_path, encoding="utf-8") as config_file:
+        return yaml.safe_load(config_file)
 
 
-def get_engagement_type(cfg: dict) -> str:
-    return cfg.get("engagement_type", "ocp-v")
+def get_engagement_type(config: dict) -> str:
+    return config.get("engagement_type", "ocp-v")
 
 
-def is_health_check(cfg: dict) -> bool:
-    return get_engagement_type(cfg) == "health-check"
+def is_health_check(config: dict) -> bool:
+    return get_engagement_type(config) == "health-check"
 
 
-def get_health_check_config(cfg: dict) -> dict:
-    return cfg.get("health_check", {})
+def get_health_check_config(config: dict) -> dict:
+    return config.get("health_check", {})
 
 
-def get_template_dir(cfg: dict) -> str:
-    if is_health_check(cfg):
+def get_template_dir(config: dict) -> str:
+    if is_health_check(config):
         return "templates/Health_Check"
     return "templates/HLD/markdown_files"
 
 
-def resolve_key(cfg: dict, key: str):
+def resolve_key(config: dict, key: str):
     """Resolve a dot-separated key path, with [] suffix for list extraction."""
     if "[]." in key:
         list_key, field = key.split("[].", 1)
-        items = resolve_key(cfg, list_key)
+        items = resolve_key(config, list_key)
         if isinstance(items, list):
             return [item[field] for item in items if field in item]
         return []
 
     parts = key.split(".")
-    val = cfg
+    value = config
     for part in parts:
-        if isinstance(val, dict):
-            val = val[part]
+        if isinstance(value, dict):
+            value = value[part]
         else:
-            raise KeyError(f"Cannot traverse into {type(val)} at '{part}'")
-    return val
+            raise KeyError(f"Cannot traverse into {type(value)} at '{part}'")
+    return value
 
 
-def get_client_identity(cfg: dict) -> tuple[str, str]:
+def get_client_identity(config: dict) -> tuple[str, str]:
     """Return (client_name, project_code) from config, with defaults."""
-    client = str(cfg.get("client_name", "")).strip()
-    code = str(cfg.get("project_code", "OCP-V")).strip() or "OCP-V"
+    client = str(config.get("client_name", "")).strip()
+    code = str(config.get("project_code", "OCP-V")).strip() or "OCP-V"
     return client, code
 
 
@@ -106,9 +106,9 @@ def _css_string(value: str) -> str:
     return str(value).replace("\\", "\\\\").replace('"', '\\"').replace("\n", " ")
 
 
-def render_css(cfg: dict, doc_type: str) -> str:
+def render_css(config: dict, doc_type: str) -> str:
     """Render the print CSS with brand values substituted."""
-    brand = cfg["brand"]
+    brand = config["brand"]
     primary = brand["primary_color"]
     secondary = brand["secondary_color"]
     header_font = _css_string(brand["header_font"])
@@ -116,11 +116,11 @@ def render_css(cfg: dict, doc_type: str) -> str:
     footer_text = _css_string(brand["footer_text"])
 
     if doc_type == "hld":
-        title = cfg["document_title_hld"]
+        title = config["document_title_hld"]
     elif doc_type == "lld":
-        title = cfg["document_title_lld"]
+        title = config["document_title_lld"]
     else:
-        title = f"{cfg.get('client_name', '')} {cfg.get('project_code', '')} — {doc_type.upper()}"
+        title = f"{config.get('client_name', '')} {config.get('project_code', '')} — {doc_type.upper()}"
     title = _css_string(title)
 
     return f"""@page {{
@@ -306,30 +306,30 @@ def main() -> None:
         parser.print_help()
         sys.exit(1)
 
-    cfg = load_config(args.config)
+    config = load_config(args.config)
 
     if args.command == "get":
         if args.key == "engagement_type":
-            print(get_engagement_type(cfg))
+            print(get_engagement_type(config))
         elif args.key == "is_health_check":
-            print("true" if is_health_check(cfg) else "false")
+            print("true" if is_health_check(config) else "false")
         elif args.key == "template_dir":
-            print(get_template_dir(cfg))
+            print(get_template_dir(config))
         else:
-            val = resolve_key(cfg, args.key)
-            print(val)
+            value = resolve_key(config, args.key)
+            print(value)
     elif args.command == "get-list":
-        val = resolve_key(cfg, args.key)
-        if isinstance(val, list):
-            for item in val:
+        value = resolve_key(config, args.key)
+        if isinstance(value, list):
+            for item in value:
                 print(item)
         else:
-            print(val)
+            print(value)
     elif args.command == "get-map":
-        val = resolve_key(cfg, args.key)
-        print(json.dumps(val, indent=2))
+        value = resolve_key(config, args.key)
+        print(json.dumps(value, indent=2))
     elif args.command == "render-css":
-        print(render_css(cfg, args.doc_type))
+        print(render_css(config, args.doc_type))
 
 
 if __name__ == "__main__":

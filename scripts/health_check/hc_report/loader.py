@@ -17,7 +17,11 @@ def _find_dated_subdir(results_dir: Path) -> Path | None:
     a bare `make hc-report` on a later day), fall back to the latest dated
     subdirectory instead of silently loading zero files.
     """
-    dated = [d for d in results_dir.iterdir() if d.is_dir() and _DATED_DIR_RE.match(d.name)]
+    dated = [
+        dated_dir
+        for dated_dir in results_dir.iterdir()
+        if dated_dir.is_dir() and _DATED_DIR_RE.match(dated_dir.name)
+    ]
     return sorted(dated)[-1] if dated else None
 
 
@@ -114,7 +118,7 @@ def resolve_cluster_targets(results_dir: Path) -> list[tuple[str | None, Path]]:
 
     cluster_dirs = _find_cluster_result_dirs(results_dir)
     if len(cluster_dirs) > 1:
-        return [(d.name, d) for d in cluster_dirs]
+        return [(cluster_dir.name, cluster_dir) for cluster_dir in cluster_dirs]
     if len(cluster_dirs) == 1:
         return [(None, cluster_dirs[0])]
 
@@ -135,23 +139,23 @@ def _initialize_result_index(results_dir: Path) -> tuple[dict, list[str]]:
 
 
 def _populate_results(results_dir: Path, file_list: list[str], results: dict) -> None:
-    for rel_path in file_list:
-        full = results_dir / rel_path
-        if not full.exists():
+    for relative_path in file_list:
+        full_path = results_dir / relative_path
+        if not full_path.exists():
             continue
         try:
-            data = json.loads(full.read_text(encoding="utf-8"))
+            payload = json.loads(full_path.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
-            data = {"_hc_error": True, "note": "invalid JSON"}
+            payload = {"_hc_error": True, "note": "invalid JSON"}
 
-        parts = rel_path.split("/")
+        parts = relative_path.split("/")
         if len(parts) != 2:
             continue
-        cat, fname = parts
-        name = fname.replace(".json", "")
-        if cat not in results:
-            results[cat] = {}
-        results[cat][name] = data
+        category, file_name = parts
+        check_name = file_name.replace(".json", "")
+        if category not in results:
+            results[category] = {}
+        results[category][check_name] = payload
 
 
 def load_results(results_dir: Path) -> dict:

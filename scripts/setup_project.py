@@ -47,24 +47,24 @@ DIM = "\033[2m"
 RESET = "\033[0m"
 
 
-def info(msg: str) -> None:
-    print(f"  {msg}")
+def info(message: str) -> None:
+    print(f"  {message}")
 
 
-def ok(msg: str) -> None:
-    print(f"  {GREEN}[ok]{RESET}  {msg}")
+def ok(message: str) -> None:
+    print(f"  {GREEN}[ok]{RESET}  {message}")
 
 
-def warn(msg: str) -> None:
-    print(f"  {YELLOW}[--]{RESET}  {msg}")
+def warn(message: str) -> None:
+    print(f"  {YELLOW}[--]{RESET}  {message}")
 
 
-def fail(msg: str) -> None:
-    print(f"  {RED}[!!]{RESET}  {msg}")
+def fail(message: str) -> None:
+    print(f"  {RED}[!!]{RESET}  {message}")
 
 
-def heading(msg: str) -> None:
-    print(f"\n{BOLD}{msg}{RESET}")
+def heading(message: str) -> None:
+    print(f"\n{BOLD}{message}{RESET}")
 
 
 # ── Project type registry ────────────────────────────────────────────
@@ -102,8 +102,8 @@ def create_project_yaml(workspace: Path, client_name: str, project_code: str, pr
     target = workspace / "project.yaml"
 
     if target.exists():
-        with open(target, encoding="utf-8") as f:
-            existing = yaml.safe_load(f) or {}
+        with open(target, encoding="utf-8") as yaml_file:
+            existing = yaml.safe_load(yaml_file) or {}
         existing_client = existing.get("client_name", "")
         existing_engagement_type = str(existing.get("engagement_type", "ocp-v")).strip() or "ocp-v"
         expected_engagement_type = project_type.engagement_type
@@ -136,8 +136,8 @@ def create_project_yaml(workspace: Path, client_name: str, project_code: str, pr
         print(f"{RED}Error: {project_type.template_file} not found in {workspace}{RESET}")
         sys.exit(1)
 
-    with open(example, encoding="utf-8") as f:
-        content = f.read()
+    with open(example, encoding="utf-8") as template_file:
+        content = template_file.read()
 
     file_prefix = derive_hld_lld_file_prefix(client_name)
 
@@ -147,13 +147,13 @@ def create_project_yaml(workspace: Path, client_name: str, project_code: str, pr
     if placeholder and project_code != placeholder:
         content = content.replace(placeholder, project_code)
 
-    with open(target, "w", encoding="utf-8") as f:
-        f.write(content)
+    with open(target, "w", encoding="utf-8") as yaml_file:
+        yaml_file.write(content)
 
     info(f"Created project.yaml (client: {client_name}, code: {project_code})")
 
-    with open(target, encoding="utf-8") as f:
-        return yaml.safe_load(f)
+    with open(target, encoding="utf-8") as yaml_file:
+        return yaml.safe_load(yaml_file)
 
 
 # ── Template file processing ────────────────────────────────────────
@@ -218,20 +218,20 @@ OUTPUT_DIAGRAMS = Path("output") / "Diagrams"
 def collect_working_copy_conflicts(workspace: Path, file_prefix: str, project_code: str) -> list[Path]:
     """Return existing HLD/LLD/ADR working copies that setup would overwrite."""
     conflicts: list[Path] = []
-    hld_src = workspace / TEMPLATES_HLD_MD
+    hld_source = workspace / TEMPLATES_HLD_MD
     hld_dest = workspace / OUTPUT_HLD_MD
-    if hld_src.exists():
+    if hld_source.exists():
         client_hld_prefix = f"{file_prefix}_{project_code}_HLD_DecisionJourney"
-        for src in sorted(hld_src.glob(f"{HLD_TEMPLATE_PREFIX}*.md")):
-            suffix_part = src.name[len(HLD_TEMPLATE_PREFIX) :]
+        for source in sorted(hld_source.glob(f"{HLD_TEMPLATE_PREFIX}*.md")):
+            suffix_part = source.name[len(HLD_TEMPLATE_PREFIX) :]
             dest = hld_dest / f"{client_hld_prefix}{suffix_part}"
             if dest.exists():
                 conflicts.append(dest)
-    lld_src = workspace / TEMPLATES_LLD
+    lld_source = workspace / TEMPLATES_LLD
     lld_dest = workspace / OUTPUT_LLD
-    if lld_src.exists():
-        for src in sorted(lld_src.glob(f"{LLD_TEMPLATE_PREFIX}*.md")):
-            dest = lld_dest / src.name.replace("Template_", f"{file_prefix}_")
+    if lld_source.exists():
+        for source in sorted(lld_source.glob(f"{LLD_TEMPLATE_PREFIX}*.md")):
+            dest = lld_dest / source.name.replace("Template_", f"{file_prefix}_")
             if dest.exists():
                 conflicts.append(dest)
     adr_client = workspace / "ADR" / f"ADR_{file_prefix.lower()}.md"
@@ -245,52 +245,52 @@ def _refuse_existing_working_copies(workspace: Path, conflicts: list[Path]) -> N
     warn("Setup will not overwrite existing markdown working copies.")
     for path in conflicts:
         try:
-            rel = path.relative_to(workspace)
+            relative_path = path.relative_to(workspace)
         except ValueError:
-            rel = path
-        warn(str(rel))
+            relative_path = path
+        warn(str(relative_path))
     print("Re-run with FORCE=1 (or --force) to overwrite working copies from templates.")
     sys.exit(1)
 
 
-def rename_templates(workspace: Path, cfg: dict, file_prefix: str, project_code: str) -> None:
+def rename_templates(workspace: Path, config: dict, file_prefix: str, project_code: str) -> None:
     """Create client-named copies of Template_* files under output/ (ADR under ADR/)."""
     heading("Creating client-named copies of templates...")
-    _ = cfg
+    _ = config
 
     count = 0
 
     # HLD phase + preamble + appendix files: templates → output
-    hld_src = workspace / TEMPLATES_HLD_MD
+    hld_source = workspace / TEMPLATES_HLD_MD
     hld_dest = workspace / OUTPUT_HLD_MD
-    if hld_src.exists():
+    if hld_source.exists():
         hld_dest.mkdir(parents=True, exist_ok=True)
         client_hld_prefix = f"{file_prefix}_{project_code}_HLD_DecisionJourney"
-        for f in sorted(hld_src.glob(f"{HLD_TEMPLATE_PREFIX}*.md")):
-            suffix_part = f.name[len(HLD_TEMPLATE_PREFIX) :]  # e.g. "_phase1.md"
+        for template_file in sorted(hld_source.glob(f"{HLD_TEMPLATE_PREFIX}*.md")):
+            suffix_part = template_file.name[len(HLD_TEMPLATE_PREFIX) :]  # e.g. "_phase1.md"
             new_name = f"{client_hld_prefix}{suffix_part}"
             dest = hld_dest / new_name
-            shutil.copy2(f, dest)
-            info(f"  {f.name} -> output/HLD/markdown_files/{new_name}")
+            shutil.copy2(template_file, dest)
+            info(f"  {template_file.name} -> output/HLD/markdown_files/{new_name}")
             count += 1
 
     # LLD phase files: templates → output
-    lld_src = workspace / TEMPLATES_LLD
+    lld_source = workspace / TEMPLATES_LLD
     lld_dest = workspace / OUTPUT_LLD
-    if lld_src.exists():
+    if lld_source.exists():
         lld_dest.mkdir(parents=True, exist_ok=True)
-        for f in sorted(lld_src.glob(f"{LLD_TEMPLATE_PREFIX}*.md")):
-            new_name = f.name.replace("Template_", f"{file_prefix}_")
+        for template_file in sorted(lld_source.glob(f"{LLD_TEMPLATE_PREFIX}*.md")):
+            new_name = template_file.name.replace("Template_", f"{file_prefix}_")
             dest = lld_dest / new_name
-            shutil.copy2(f, dest)
-            info(f"  {f.name} -> output/LLD/{new_name}")
+            shutil.copy2(template_file, dest)
+            info(f"  {template_file.name} -> output/LLD/{new_name}")
             count += 1
 
     # ADR template: templates/ADR → ADR/ (filled engagement ADR stays at repo root)
-    adr_src = workspace / TEMPLATES_ADR
+    adr_source = workspace / TEMPLATES_ADR
     adr_dir = workspace / "ADR"
     adr_dir.mkdir(parents=True, exist_ok=True)
-    adr_template = adr_src / "ADR_template.md"
+    adr_template = adr_source / "ADR_template.md"
     adr_client = adr_dir / f"ADR_{file_prefix.lower()}.md"
     if adr_template.exists():
         shutil.copy2(adr_template, adr_client)
@@ -304,7 +304,7 @@ def rename_templates(workspace: Path, cfg: dict, file_prefix: str, project_code:
 
 
 def create_summary_file(
-    workspace: Path, cfg: dict, file_prefix: str, project_code: str, force: bool = False
+    workspace: Path, config: dict, file_prefix: str, project_code: str, force: bool = False
 ) -> None:
     """Generate a client-specific stitchmd summary file for HLD assembly."""
     heading("Creating stitchmd summary file...")
@@ -339,21 +339,21 @@ def create_summary_file(
     info(f"Created {summary_name} ({len(lines)} entries)")
     # Update project.yaml summary_map
     yaml_path = workspace / "project.yaml"
-    with open(yaml_path, encoding="utf-8") as f:
-        raw = yaml.safe_load(f)
+    with open(yaml_path, encoding="utf-8") as yaml_file:
+        raw = yaml.safe_load(yaml_file)
 
     summary_map = raw.setdefault("hld", {}).setdefault("summary_map", {})
     combined_name = f"{client_hld_prefix}_combined.md"
 
-    existing_summaries = {v.get("summary") for v in summary_map.values()}
-    existing_outputs = {v.get("output") for v in summary_map.values()}
+    existing_summaries = {entry.get("summary") for entry in summary_map.values()}
+    existing_outputs = {entry.get("output") for entry in summary_map.values()}
 
     if summary_name in existing_summaries or combined_name in existing_outputs:
         for key, entry in summary_map.items():
             if entry.get("output") == combined_name and entry.get("summary") != summary_name:
                 entry["summary"] = summary_name
-                with open(yaml_path, "w", encoding="utf-8") as f:
-                    yaml.dump(raw, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
+                with open(yaml_path, "w", encoding="utf-8") as yaml_file:
+                    yaml.dump(raw, yaml_file, default_flow_style=False, sort_keys=False, allow_unicode=True)
                 info(f"Updated '{key}' summary_map entry to use {summary_name}")
                 break
         else:
@@ -370,8 +370,8 @@ def create_summary_file(
             combined.append(combined_name)
             raw["hld"]["combined_files"] = combined
 
-        with open(yaml_path, "w", encoding="utf-8") as f:
-            yaml.dump(raw, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
+        with open(yaml_path, "w", encoding="utf-8") as yaml_file:
+            yaml.dump(raw, yaml_file, default_flow_style=False, sort_keys=False, allow_unicode=True)
         info(f"Added '{map_key}' to hld.summary_map in project.yaml")
 
 
@@ -532,9 +532,9 @@ def get_project_type(project_code: str) -> ProjectType:
     """Resolve a PROJECT= code to its ProjectType. Unknown codes default to ocp-v."""
     raw_key = (project_code or "").strip().upper()
     key = re.sub(r"[-_\s]+", "-", raw_key)
-    for type_key, pt in PROJECT_TYPES.items():
-        if key == type_key.upper() or key in pt.aliases:
-            return pt
+    for type_key, registered_type in PROJECT_TYPES.items():
+        if key == type_key.upper() or key in registered_type.aliases:
+            return registered_type
     if key.startswith("OCP-V"):
         return PROJECT_TYPES["ocp-v"]
     if key and key != "OCP-V":
@@ -552,9 +552,9 @@ def run_setup(workspace: Path, client_name: str, project_code: str = "OCP-V", fo
     file_prefix = derive_hld_lld_file_prefix(client_name)
 
     heading("Configuration")
-    cfg = create_project_yaml(workspace, client_name, project_code, project_type)
-    file_prefix = derive_hld_lld_file_prefix(cfg.get("client_name", client_name))
-    project_code = cfg.get("project_code", project_code)
+    config = create_project_yaml(workspace, client_name, project_code, project_type)
+    file_prefix = derive_hld_lld_file_prefix(config.get("client_name", client_name))
+    project_code = config.get("project_code", project_code)
 
     scaffold_directories(workspace, project_type.scaffold_dirs)
 
@@ -564,8 +564,8 @@ def run_setup(workspace: Path, client_name: str, project_code: str = "OCP-V", fo
         conflicts = collect_working_copy_conflicts(workspace, file_prefix, project_code)
         if conflicts and not force:
             _refuse_existing_working_copies(workspace, conflicts)
-        rename_templates(workspace, cfg, file_prefix, project_code)
-        create_summary_file(workspace, cfg, file_prefix, project_code, force=force)
+        rename_templates(workspace, config, file_prefix, project_code)
+        create_summary_file(workspace, config, file_prefix, project_code, force=force)
     if project_type.template_dirs:
         process_templates(workspace, client_name, file_prefix, project_type.template_dirs)
     if project_type.has_diagram_seeding:
@@ -580,8 +580,8 @@ def run_setup(workspace: Path, client_name: str, project_code: str = "OCP-V", fo
         print()
         for title, steps in project_type.next_step_groups:
             print(f"  {BOLD}{title}{RESET}")
-            for idx, line in enumerate(steps, start=1):
-                info(f"    {idx}) {line}")
+            for index, line in enumerate(steps, start=1):
+                info(f"    {index}) {line}")
             print()
     else:
         for line in project_type.next_steps:

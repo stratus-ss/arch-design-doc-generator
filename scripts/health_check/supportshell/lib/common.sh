@@ -24,10 +24,10 @@ HC_COLLECTED=0
 
 hc_log() {
     local level="$1"; shift
-    local msg="$*"
-    local ts
-    ts="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-    printf '[%s] [%s] %s\n' "$ts" "$level" "$msg" >&2
+    local message="$*"
+    local timestamp
+    timestamp="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+    printf '[%s] [%s] %s\n' "$timestamp" "$level" "$message" >&2
 }
 
 hc_info()  { hc_log "INFO " "$@"; }
@@ -51,28 +51,28 @@ hc_extract_chapter() {
 }
 
 hc_write_capture_metadata() {
-    local meta_out="$1"
+    local metadata_path="$1"
     local command_str="$2"
     local script_path="$3"
     local category="$4"
     local check_name="$5"
 
     local timestamp script_name chapter
-    local escaped_cmd escaped_script escaped_chapter escaped_category escaped_check
+    local escaped_command escaped_script escaped_chapter escaped_category escaped_check
 
     timestamp="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
     script_name="$(basename -- "$script_path")"
     chapter="$(hc_extract_chapter "$script_path")"
 
-    escaped_cmd="$(hc_json_escape "$command_str")"
+    escaped_command="$(hc_json_escape "$command_str")"
     escaped_script="$(hc_json_escape "$script_name")"
     escaped_chapter="$(hc_json_escape "$chapter")"
     escaped_category="$(hc_json_escape "$category")"
     escaped_check="$(hc_json_escape "$check_name")"
 
     if ! printf '{"command":"%s","script":"%s","chapter":"%s","category":"%s","check_name":"%s","timestamp":"%s"}\n' \
-        "$escaped_cmd" "$escaped_script" "$escaped_chapter" "$escaped_category" "$escaped_check" "$timestamp" > "$meta_out"; then
-        hc_warn "  metadata write failed: ${meta_out}"
+        "$escaped_command" "$escaped_script" "$escaped_chapter" "$escaped_category" "$escaped_check" "$timestamp" > "$metadata_path"; then
+        hc_warn "  metadata write failed: ${metadata_path}"
     fi
 }
 
@@ -102,39 +102,39 @@ hc_init() {
 # ---------------------------------------------------------------------------
 # JSON capture helper
 # Runs: oc <oc_args...> -o json
-# Writes: $HC_RESULTS_DIR/$category/$name.json
+# Writes: $HC_RESULTS_DIR/$category/$check_name.json
 # On oc failure: writes an error envelope JSON and continues (does not abort).
 # ---------------------------------------------------------------------------
 
 hc_capture_json() {
     local category="$1"
-    local name="$2"
+    local check_name="$2"
     shift 2
-    local out="${HC_RESULTS_DIR}/${category}/${name}.json"
-    local meta_out="${HC_RESULTS_DIR}/${category}/${name}.meta.json"
+    local output_path="${HC_RESULTS_DIR}/${category}/${check_name}.json"
+    local metadata_path="${HC_RESULTS_DIR}/${category}/${check_name}.meta.json"
     local command_str="${HC_CLI} $* -o json"
     local script_path="${BASH_SOURCE[1]-}"
     if [[ -z "$script_path" ]]; then
         script_path="$0"
     fi
-    local tmp
-    tmp="$(mktemp)"
+    local temp_json_path
+    temp_json_path="$(mktemp)"
 
-    hc_info "  collect: ${command_str} → ${category}/${name}.json"
+    hc_info "  collect: ${command_str} → ${category}/${check_name}.json"
 
     local exit_code=0
-    local tmp_err
-    tmp_err="$(mktemp)"
-    $HC_CLI "$@" -o json >"$tmp" 2>"$tmp_err" || exit_code=$?
+    local temp_error_path
+    temp_error_path="$(mktemp)"
+    $HC_CLI "$@" -o json >"$temp_json_path" 2>"$temp_error_path" || exit_code=$?
 
-    if [[ $exit_code -eq 0 && -s "$tmp" ]]; then
+    if [[ $exit_code -eq 0 && -s "$temp_json_path" ]]; then
         # Treat a valid JSON response with an empty items array as NOT_FOUND (not installed)
         local item_count
         item_count="$(python3 -c "
 import json, sys
 try:
-    d = json.load(open('$tmp'))
-    items = d.get('items', None)
+    payload = json.load(open('$temp_json_path'))
+    items = payload.get('items', None)
     if items is not None:
         print(len(items))
     else:
@@ -145,85 +145,85 @@ except Exception:
 
         if [[ "$item_count" -eq 0 ]]; then
             printf '{"_hc_not_found": true, "command": "%s %s -o json", "exit_code": 0, "note": "resource exists but returned empty list", "timestamp": "%s"}\n' \
-                "$HC_CLI" "$*" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "$out"
+                "$HC_CLI" "$*" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "$output_path"
             hc_info "  not-found (empty list): ${HC_CLI} $* -o json"
-            hc_record_skip "$category" "$name" "${HC_CLI} $* -o json" 0 "json" "not_found_empty"
+            hc_record_skip "$category" "$check_name" "${HC_CLI} $* -o json" 0 "json" "not_found_empty"
         else
-            mv "$tmp" "$out"
+            mv "$temp_json_path" "$output_path"
             HC_COLLECTED=$((HC_COLLECTED + 1))
         fi
     else
-        local err_msg
-        err_msg="$(cat "$tmp_err" 2>/dev/null)"
+        local error_message
+        error_message="$(cat "$temp_error_path" 2>/dev/null)"
         if [[ $exit_code -eq 0 ]]; then
             # omc returned success but empty output — resource type recognized but absent from must-gather
             printf '{"_hc_not_found": true, "command": "%s %s -o json", "exit_code": 0, "note": "resource not present in must-gather", "timestamp": "%s"}\n' \
-                "$HC_CLI" "$*" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "$out"
+                "$HC_CLI" "$*" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "$output_path"
             hc_info "  not-found (empty output): ${HC_CLI} $* -o json"
-            hc_record_skip "$category" "$name" "${HC_CLI} $* -o json" 0 "json" "not_found_empty"
-        elif echo "$err_msg" | grep -qE "the server doesn't have a resource type|resource type .* not known|No resources .* found"; then
+            hc_record_skip "$category" "$check_name" "${HC_CLI} $* -o json" 0 "json" "not_found_empty"
+        elif echo "$error_message" | grep -qE "the server doesn't have a resource type|resource type .* not known|No resources .* found"; then
             printf '{"_hc_not_found": true, "command": "%s %s -o json", "exit_code": %d, "note": "CRD not present — operator not installed", "timestamp": "%s"}\n' \
-                "$HC_CLI" "$*" "$exit_code" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "$out"
+                "$HC_CLI" "$*" "$exit_code" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "$output_path"
             hc_info "  not-installed (CRD missing): ${HC_CLI} $* -o json"
-            hc_record_skip "$category" "$name" "${HC_CLI} $* -o json" "$exit_code" "json" "not_found_crd_missing"
+            hc_record_skip "$category" "$check_name" "${HC_CLI} $* -o json" "$exit_code" "json" "not_found_crd_missing"
         else
             printf '{"_hc_error": true, "command": "%s %s -o json", "exit_code": %d, "timestamp": "%s"}\n' \
-                "$HC_CLI" "$*" "$exit_code" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "$out"
+                "$HC_CLI" "$*" "$exit_code" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "$output_path"
             hc_warn "  skipped (exit_code=${exit_code}): ${HC_CLI} $* -o json"
-            hc_record_skip "$category" "$name" "${HC_CLI} $* -o json" "$exit_code" "json" "error"
+            hc_record_skip "$category" "$check_name" "${HC_CLI} $* -o json" "$exit_code" "json" "error"
             HC_ERRORS=$((HC_ERRORS + 1))
         fi
     fi
-    hc_write_capture_metadata "$meta_out" "$command_str" "$script_path" "$category" "$name"
-    rm -f "$tmp" "$tmp_err"
+    hc_write_capture_metadata "$metadata_path" "$command_str" "$script_path" "$category" "$check_name"
+    rm -f "$temp_json_path" "$temp_error_path"
 }
 
 # ---------------------------------------------------------------------------
 # Text/table capture helper
 # Runs an arbitrary command, wraps output in a JSON envelope.
-# Writes: $HC_RESULTS_DIR/$category/$name.json
+# Writes: $HC_RESULTS_DIR/$category/$check_name.json
 # ---------------------------------------------------------------------------
 
 hc_capture_text() {
     local category="$1"
-    local name="$2"
+    local check_name="$2"
     shift 2
-    local out="${HC_RESULTS_DIR}/${category}/${name}.json"
-    local meta_out="${HC_RESULTS_DIR}/${category}/${name}.meta.json"
+    local output_path="${HC_RESULTS_DIR}/${category}/${check_name}.json"
+    local metadata_path="${HC_RESULTS_DIR}/${category}/${check_name}.meta.json"
     local command_str="$*"
     local script_path="${BASH_SOURCE[1]-}"
     if [[ -z "$script_path" ]]; then
         script_path="$0"
     fi
-    local tmp_out tmp_err
-    tmp_out="$(mktemp)"
-    tmp_err="$(mktemp)"
+    local temp_output_path temp_error_path
+    temp_output_path="$(mktemp)"
+    temp_error_path="$(mktemp)"
 
-    hc_info "  collect: ${command_str} → ${category}/${name}.json"
+    hc_info "  collect: ${command_str} → ${category}/${check_name}.json"
 
     local exit_code=0
-    "$@" >"$tmp_out" 2>"$tmp_err" || exit_code=$?
+    "$@" >"$temp_output_path" 2>"$temp_error_path" || exit_code=$?
 
     # Stream-escape output for JSON — never load into a variable or printf arg
     # to avoid ENOSPC on large must-gather data (ARG_MAX overflow)
     {
         printf '{"_hc_text": true, "command": "%s", "output": "' "$command_str"
-        sed 's/\\/\\\\/g; s/"/\\"/g' "$tmp_out" | \
+        sed 's/\\/\\\\/g; s/"/\\"/g' "$temp_output_path" | \
             awk '{printf "%s\\n", $0}' | \
             sed 's/\\n$//'
         printf '", "exit_code": %d, "timestamp": "%s"}\n' \
             "$exit_code" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-    } > "$out"
+    } > "$output_path"
 
-    hc_write_capture_metadata "$meta_out" "$command_str" "$script_path" "$category" "$name"
+    hc_write_capture_metadata "$metadata_path" "$command_str" "$script_path" "$category" "$check_name"
 
-    rm -f "$tmp_out" "$tmp_err"
+    rm -f "$temp_output_path" "$temp_error_path"
 
     if [[ $exit_code -eq 0 ]]; then
         HC_COLLECTED=$((HC_COLLECTED + 1))
     else
         hc_warn "  command exited ${exit_code}: $*"
-        hc_record_skip "$category" "$name" "$*" "$exit_code" "text" "error"
+        hc_record_skip "$category" "$check_name" "$*" "$exit_code" "text" "error"
         HC_ERRORS=$((HC_ERRORS + 1))
     fi
 }
@@ -237,7 +237,7 @@ hc_capture_text() {
 
 hc_record_skip() {
     local category="$1"
-    local name="$2"
+    local check_name="$2"
     local command="$3"
     local exit_code="$4"
     local capture_type="$5"
@@ -246,7 +246,7 @@ hc_record_skip() {
     local escaped_command
     escaped_command="$(printf '%s' "$command" | sed 's/\\/\\\\/g; s/"/\\"/g')"
     printf '{"timestamp": "%s", "mg_source": "%s", "category": "%s", "check_name": "%s", "command": "%s", "exit_code": %d, "capture_type": "%s", "outcome": "%s"}\n' \
-        "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$HC_MG_SOURCE" "$category" "$name" "$escaped_command" "$exit_code" "$capture_type" "$outcome" >> "$ledger"
+        "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$HC_MG_SOURCE" "$category" "$check_name" "$escaped_command" "$exit_code" "$capture_type" "$outcome" >> "$ledger"
 }
 
 # ---------------------------------------------------------------------------
