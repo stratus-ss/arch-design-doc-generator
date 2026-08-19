@@ -19,13 +19,13 @@ def _script_env(project_root: Path) -> dict[str, str]:
 
 
 def test_lld_to_workitems(tmp_path: Path, project_root: Path) -> None:
-    cfg_template = (project_root / "project.example.yaml").read_text(encoding="utf-8")
-    cfg_text = cfg_template.replace("{CLIENT}", "TestCo").replace("{CLIENT_PREFIX}", "TestCo")
-    cfg = yaml.safe_load(cfg_text)
-    cfg["phases"][0]["lld_file"] = "Template_OCP-V_LLD_Phase1_Foundation.md"
+    config_template = (project_root / "project.example.yaml").read_text(encoding="utf-8")
+    config_text = config_template.replace("{CLIENT}", "TestCo").replace("{CLIENT_PREFIX}", "TestCo")
+    config = yaml.safe_load(config_text)
+    config["phases"][0]["lld_file"] = "Template_OCP-V_LLD_Phase1_Foundation.md"
 
-    cfg_path = tmp_path / "project.yaml"
-    cfg_path.write_text(yaml.safe_dump(cfg, sort_keys=False), encoding="utf-8")
+    config_path = tmp_path / "project.yaml"
+    config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
 
     output_dir = tmp_path / "workitems"
     script_path = project_root / "scripts" / "hld_lld" / "lld_to_workitems.py"
@@ -36,7 +36,7 @@ def test_lld_to_workitems(tmp_path: Path, project_root: Path) -> None:
             sys.executable,
             str(script_path),
             "--config",
-            str(cfg_path),
+            str(config_path),
             "--output-dir",
             str(output_dir),
             "--phases",
@@ -58,16 +58,16 @@ def test_lld_to_workitems(tmp_path: Path, project_root: Path) -> None:
 
 
 def test_workitems_selects_phase_by_yaml_id(tmp_path: Path, project_root: Path) -> None:
-    cfg_template = (project_root / "project.example.yaml").read_text(encoding="utf-8")
-    cfg_text = cfg_template.replace("{CLIENT}", "TestCo").replace("{CLIENT_PREFIX}", "TestCo")
-    cfg = yaml.safe_load(cfg_text)
-    for phase in cfg["phases"]:
+    config_template = (project_root / "project.example.yaml").read_text(encoding="utf-8")
+    config_text = config_template.replace("{CLIENT}", "TestCo").replace("{CLIENT_PREFIX}", "TestCo")
+    config = yaml.safe_load(config_text)
+    for phase in config["phases"]:
         if phase["id"] == "phase4":
             phase["lld_file"] = "Template_OCP-V_LLD_Phase4_Migration.md"
             break
 
-    cfg_path = tmp_path / "project.yaml"
-    cfg_path.write_text(yaml.safe_dump(cfg, sort_keys=False), encoding="utf-8")
+    config_path = tmp_path / "project.yaml"
+    config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
 
     output_dir = tmp_path / "workitems"
     script_path = project_root / "scripts" / "hld_lld" / "lld_to_workitems.py"
@@ -78,7 +78,7 @@ def test_workitems_selects_phase_by_yaml_id(tmp_path: Path, project_root: Path) 
             sys.executable,
             str(script_path),
             "--config",
-            str(cfg_path),
+            str(config_path),
             "--output-dir",
             str(output_dir),
             "--phases",
@@ -96,6 +96,6 @@ def test_workitems_selects_phase_by_yaml_id(tmp_path: Path, project_root: Path) 
     assert not (output_dir / "Phase3_Fleet_Operations").exists()
     md_files = list((output_dir / "Phase4_Migration").glob("*.md"))
     assert md_files, "No Phase4_Migration work-item files"
-    combined = "\n".join(p.read_text(encoding="utf-8") for p in md_files)
+    combined = "\n".join(path.read_text(encoding="utf-8") for path in md_files)
     assert "Migration Discovery" in combined
     assert "Fleet Registration" not in combined

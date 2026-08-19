@@ -83,8 +83,8 @@ help: ## Show this help
 	@echo "  Arch Design Doc Generator"
 	@echo "  ======================"
 	@echo ""
-	@desc() { awk -v t="$$1" '$$0 ~ "^" t ":[^#]*## " { sub(/^[^#]*## /, ""); print; exit }' $(MAKEFILE_LIST); }; \
-	print_target() { d="$$(desc "$$1")"; [ -n "$$d" ] && printf "  \033[36m%-30s\033[0m %s\n" "$$1" "$$d"; }; \
+	@desc() { awk -v target="$$1" '$$0 ~ "^" target ":[^#]*## " { sub(/^[^#]*## /, ""); print; exit }' $(MAKEFILE_LIST); }; \
+	print_target() { description="$$(desc "$$1")"; [ -n "$$description" ] && printf "  \033[36m%-30s\033[0m %s\n" "$$1" "$$description"; }; \
 	echo "  Core workflow:"; \
 	print_target setup; \
 	print_target status; \

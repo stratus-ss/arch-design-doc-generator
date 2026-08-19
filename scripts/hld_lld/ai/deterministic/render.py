@@ -48,7 +48,7 @@ def parse_markdown_contract(text: str) -> Tuple[List[Dict[str, object]], List[Di
 
 def build_contract(template_paths: List[Path], out: Path) -> None:
     docs: Dict[str, object] = {}
-    for template_path in sorted(template_paths, key=lambda p: p.name):
+    for template_path in sorted(template_paths, key=lambda path: path.name):
         text = template_path.read_text(encoding="utf-8")
         phase_id = phase_id_from_filename(template_path)
         headings, tables = parse_markdown_contract(text)
@@ -64,7 +64,7 @@ def build_contract(template_paths: List[Path], out: Path) -> None:
 
 def build_citation_lock(canonical_paths: List[Path], out: Path) -> None:
     documents: Dict[str, object] = {}
-    for canonical_path in sorted(canonical_paths, key=lambda p: p.name):
+    for canonical_path in sorted(canonical_paths, key=lambda path: path.name):
         text = canonical_path.read_text(encoding="utf-8")
         documents[canonical_path.name] = {
             "file": str(canonical_path),
@@ -100,8 +100,8 @@ def render_phase(template_path: Path, slots_path: Path, out_path: Path) -> None:
 
 
 def stitch_deterministic(draft_dir: Path, output_path: Path, expect_byte_equal_to: str = "") -> None:
-    phase_files = [draft_dir / f"draft_hld_phase{n}.md" for n in (1, 2, 3, 4)]
-    missing = [str(p) for p in phase_files if not p.exists()]
+    phase_files = [draft_dir / f"draft_hld_phase{phase_number}.md" for phase_number in (1, 2, 3, 4)]
+    missing = [str(phase_file) for phase_file in phase_files if not phase_file.exists()]
     if missing:
         raise SystemExit(f"Missing deterministic phase files: {', '.join(missing)}")
 
@@ -151,7 +151,7 @@ def _check_byte_equality(args: argparse.Namespace, target_bytes: bytes) -> bool:
 
 
 def _check_placeholders(target_text: str, target_path: Path) -> None:
-    unresolved = [p for p in PLACEHOLDER_RE.findall(target_text) if p != "{TBD}"]
+    unresolved = [placeholder for placeholder in PLACEHOLDER_RE.findall(target_text) if placeholder != "{TBD}"]
     if unresolved:
         fail(f"Unresolved placeholders remain in {target_path.name}: {sorted(set(unresolved))}")
 
@@ -160,20 +160,25 @@ def _check_phase_contract(args: argparse.Namespace, contract_payload: dict, targ
     def render_contract_text(value: str) -> str:
         return shared_render_contract_text(value, slot_map)
 
-    expected = contract_payload.get("contracts", {}).get(args.phase)
+    contracts = contract_payload.get("contracts", {})
+    expected = contracts.get(args.phase)
     if not expected:
         fail(f"Missing contract for phase '{args.phase}'.")
 
     got_headings, got_tables = parse_headings_and_tables(target_text)
-    expected_headings = [(h["level"], render_contract_text(h["title"])) for h in expected.get("headings", [])]
-    expected_tables = [
-        (
-            render_contract_text(" > ".join(t["heading_path"])),
-            render_contract_text(t["header"].strip()),
-            int(t["row_count"]),
+    expected_headings = []
+    for heading in expected.get("headings", []):
+        expected_headings.append((heading["level"], render_contract_text(heading["title"])))
+    expected_tables = []
+    for table in expected.get("tables", []):
+        heading_path = " > ".join(table["heading_path"])
+        expected_tables.append(
+            (
+                render_contract_text(heading_path),
+                render_contract_text(table["header"].strip()),
+                int(table["row_count"]),
+            )
         )
-        for t in expected.get("tables", [])
-    ]
 
     if got_headings != expected_headings:
         fail(f"Heading contract mismatch for {args.phase}.")
@@ -184,7 +189,8 @@ def _check_phase_contract(args: argparse.Namespace, contract_payload: dict, targ
 def _check_citation_lock(lock_payload: dict, args: argparse.Namespace, target_text: str) -> None:
     if not lock_payload:
         return
-    doc_lock = lock_payload.get("documents", {}).get(args.document_key, {})
+    documents = lock_payload.get("documents", {})
+    doc_lock = documents.get(args.document_key, {})
     expected_citations = doc_lock.get("section_citations", {})
     got_citations = parse_section_citations(target_text)
     for section_path, citations in expected_citations.items():

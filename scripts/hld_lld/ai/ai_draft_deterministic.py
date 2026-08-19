@@ -35,19 +35,19 @@ from slot_cache import (  # noqa: E402
 
 
 class TeeStream:
-    def __init__(self, original, log_fp) -> None:
+    def __init__(self, original, log_file) -> None:
         self.original = original
-        self.log_fp = log_fp
+        self.log_file = log_file
 
     def write(self, data: str) -> int:
         self.original.write(data)
-        self.log_fp.write(data)
-        self.log_fp.flush()
+        self.log_file.write(data)
+        self.log_file.flush()
         return len(data)
 
     def flush(self) -> None:
         self.original.flush()
-        self.log_fp.flush()
+        self.log_file.flush()
 
 
 _ORCHESTRATION_TIMEOUT_SECS = 7200
@@ -105,13 +105,13 @@ def parse_args() -> argparse.Namespace:
 
 def fmt_elapsed(start: float) -> str:
     secs = int(time.time() - start)
-    h, rem = divmod(secs, 3600)
-    m, s = divmod(rem, 60)
-    if h:
-        return f"{h}h {m}m {s}s"
-    if m:
-        return f"{m}m {s}s"
-    return f"{s}s"
+    hours, rem = divmod(secs, 3600)
+    minutes, seconds = divmod(rem, 60)
+    if hours:
+        return f"{hours}h {minutes}m {seconds}s"
+    if minutes:
+        return f"{minutes}m {seconds}s"
+    return f"{seconds}s"
 
 
 @dataclass
@@ -140,15 +140,16 @@ class DraftContext:
 def _load_config(project_yaml: Path) -> tuple[dict, str, str]:
     if not project_yaml.exists():
         raise SystemExit(f"Error: project.yaml not found at {project_yaml}")
-    cfg = yaml.safe_load(project_yaml.read_text(encoding="utf-8")) or {}
-    client_name, project_code = get_client_identity(cfg)
+    config = yaml.safe_load(project_yaml.read_text(encoding="utf-8")) or {}
+    client_name, project_code = get_client_identity(config)
     if not client_name:
         raise SystemExit("Error: project.yaml missing client_name")
-    return cfg, client_name, project_code
+    return config, client_name, project_code
 
 
-def _build_file_maps(cfg: dict) -> tuple[dict[str, str], dict[str, str], str, str]:
-    hld_phase_files: list[str] = cfg.get("hld", {}).get("phase_files", [])
+def _build_file_maps(config: dict) -> tuple[dict[str, str], dict[str, str], str, str]:
+    hld_section = config.get("hld", {})
+    hld_phase_files: list[str] = hld_section.get("phase_files", [])
     if len(hld_phase_files) != 4:
         raise SystemExit("Error: expected 4 hld.phase_files entries in project.yaml")
     phase_file_map = {
@@ -166,8 +167,8 @@ def _build_file_maps(cfg: dict) -> tuple[dict[str, str], dict[str, str], str, st
     return phase_file_map, support_file_map, base_prefix, combined_deterministic_name
 
 
-def _build_context(args: argparse.Namespace, project_root: Path, cfg: dict) -> DraftContext:
-    phase_file_map, support_file_map, base_prefix, combined_deterministic_name = _build_file_maps(cfg)
+def _build_context(args: argparse.Namespace, project_root: Path, config: dict) -> DraftContext:
+    phase_file_map, support_file_map, base_prefix, combined_deterministic_name = _build_file_maps(config)
 
     deter_dir = project_root / "scripts" / "hld_lld" / "ai" / "deterministic"
     output_root = Path(os.environ.get("OUTPUT_ROOT", str(project_root / "output")))
@@ -194,12 +195,12 @@ def _build_context(args: argparse.Namespace, project_root: Path, cfg: dict) -> D
     )
 
 
-def _ensure_dirs(ctx: DraftContext) -> None:
-    ctx.draft_dir.mkdir(parents=True, exist_ok=True)
-    (ctx.state_dir / "contracts").mkdir(parents=True, exist_ok=True)
-    (ctx.state_dir / "locks").mkdir(parents=True, exist_ok=True)
-    (ctx.state_dir / "slots").mkdir(parents=True, exist_ok=True)
-    (ctx.output_root / "HLD" / "markdown_files").mkdir(parents=True, exist_ok=True)
+def _ensure_dirs(context: DraftContext) -> None:
+    context.draft_dir.mkdir(parents=True, exist_ok=True)
+    (context.state_dir / "contracts").mkdir(parents=True, exist_ok=True)
+    (context.state_dir / "locks").mkdir(parents=True, exist_ok=True)
+    (context.state_dir / "slots").mkdir(parents=True, exist_ok=True)
+    (context.output_root / "HLD" / "markdown_files").mkdir(parents=True, exist_ok=True)
 
 
 def _discover_canonical_files(canonical_dir: Path | None, client_name: str, project_code: str) -> list[Path]:
@@ -207,32 +208,32 @@ def _discover_canonical_files(canonical_dir: Path | None, client_name: str, proj
     if canonical_dir:
         prefix = derive_hld_lld_file_prefix(client_name)
         for phase in ["phase1", "phase2", "phase3", "phase4"]:
-            f = canonical_dir / f"{prefix}_{project_code}_HLD_DecisionJourney_{phase}.md"
-            if f.exists():
-                canonical_files.append(f)
+            canonical_file = canonical_dir / f"{prefix}_{project_code}_HLD_DecisionJourney_{phase}.md"
+            if canonical_file.exists():
+                canonical_files.append(canonical_file)
         combined = canonical_dir / f"{prefix}_{project_code}_HLD_DecisionJourney_combined.md"
         if combined.exists():
             canonical_files.append(combined)
     return canonical_files
 
 
-def _build_citation_lock(ctx: DraftContext, canonical_files: list[Path]) -> None:
+def _build_citation_lock(context: DraftContext, canonical_files: list[Path]) -> None:
     if canonical_files:
         run(
             [
-                ctx.base_python,
-                str(ctx.cli_py),
+                context.base_python,
+                str(context.cli_py),
                 "build-citation-lock",
                 "--canonical-files",
-                *[str(f) for f in canonical_files],
+                *[str(canonical_file) for canonical_file in canonical_files],
                 "--out",
-                str(ctx.citation_lock_file),
+                str(context.citation_lock_file),
             ],
-            cwd=ctx.project_root,
+            cwd=context.project_root,
         )
     else:
-        ctx.citation_lock_file.parent.mkdir(parents=True, exist_ok=True)
-        ctx.citation_lock_file.write_text(
+        context.citation_lock_file.parent.mkdir(parents=True, exist_ok=True)
+        context.citation_lock_file.write_text(
             json.dumps({"documents": {}}, indent=2, sort_keys=True) + "\n", encoding="utf-8"
         )
 
@@ -246,21 +247,21 @@ def _placeholder_digest(templates: list[Path]) -> str:
 
 
 def _slot_input_parts(
-    ctx: DraftContext,
+    context: DraftContext,
     args: argparse.Namespace,
     project_yaml: Path,
     templates: list[Path],
 ) -> dict[str, str]:
     parts: dict[str, str] = {}
-    adr_dir = ctx.project_root / "ADR"
+    adr_dir = context.project_root / "ADR"
     if adr_dir.is_dir():
         for path in sorted(adr_dir.glob("*.md")):
             if "template" in path.name.lower():
                 continue
-            parts[path.relative_to(ctx.project_root).as_posix()] = hash_file(path)
+            parts[path.relative_to(context.project_root).as_posix()] = hash_file(path)
     parts["project.yaml"] = hash_file(project_yaml)
-    parts["slot_schema.json"] = hash_file(ctx.cli_py.parent / "slot_schema.json")
-    prompts_dir = ctx.cli_py.parent / "prompts"
+    parts["slot_schema.json"] = hash_file(context.cli_py.parent / "slot_schema.json")
+    prompts_dir = context.cli_py.parent / "prompts"
     if prompts_dir.is_dir():
         for path in sorted(prompts_dir.glob("*.md")):
             parts[f"prompts/{path.name}"] = hash_file(path)
@@ -284,12 +285,12 @@ def _rebind_yaml_overlay(slot_file: Path, project_yaml: Path) -> None:
     """Re-apply project.yaml overlay on a fingerprint-skip without re-extracting."""
     if not slot_file.exists():
         return
-    cfg = yaml.safe_load(project_yaml.read_text(encoding="utf-8")) or {}
+    config = yaml.safe_load(project_yaml.read_text(encoding="utf-8")) or {}
     payload = json.loads(slot_file.read_text(encoding="utf-8"))
     slots = payload.get("slots", payload)
     if not isinstance(slots, dict):
         return
-    apply_yaml_overlay(slots, cfg)
+    apply_yaml_overlay(slots, config)
     for key, raw in list(slots.items()):
         if isinstance(raw, dict):
             slots[key] = str(raw.get("value", "")).strip()
@@ -301,7 +302,7 @@ def _rebind_yaml_overlay(slot_file: Path, project_yaml: Path) -> None:
 
 
 def _run_ai_extraction(
-    ctx: DraftContext,
+    context: DraftContext,
     args: argparse.Namespace,
     project_yaml: Path,
     templates: list[Path],
@@ -309,21 +310,21 @@ def _run_ai_extraction(
     chunk_manifest: Path,
     cursor_python: str,
 ) -> None:
-    fingerprint_path = ctx.slot_file.with_name("slot_map.fingerprint.json")
-    current = build_fingerprint(_slot_input_parts(ctx, args, project_yaml, templates))
+    fingerprint_path = context.slot_file.with_name("slot_map.fingerprint.json")
+    current = build_fingerprint(_slot_input_parts(context, args, project_yaml, templates))
     stored = load_fingerprint(fingerprint_path)
     decision = decide_extraction(
-        slot_exists=ctx.slot_file.exists(),
+        slot_exists=context.slot_file.exists(),
         force=bool(args.force),
         stored=stored,
         current=current,
     )
-    print(format_decision(decision, ctx.slot_file, _force_rerun_hint()))
+    print(format_decision(decision, context.slot_file, _force_rerun_hint()))
     if decision.action == "skip":
         if decision.status == "untracked":
             save_fingerprint(fingerprint_path, current)
             print("  recorded: input fingerprint for future skip/stale decisions")
-        _rebind_yaml_overlay(ctx.slot_file, project_yaml)
+        _rebind_yaml_overlay(context.slot_file, project_yaml)
         return
 
     print(f"Using AI extractor (tool: {args.ai_tool}, model: {args.ai_model})...")
@@ -331,11 +332,11 @@ def _run_ai_extraction(
 
     run(
         [
-            ctx.base_python,
-            str(ctx.cli_py),
+            context.base_python,
+            str(context.cli_py),
             "chunk",
             "--adr-dir",
-            str(ctx.project_root / "ADR"),
+            str(context.project_root / "ADR"),
             "--out",
             str(chunk_manifest),
             "--max-chars",
@@ -343,27 +344,27 @@ def _run_ai_extraction(
             "--max-chunks",
             str(args.ai_max_chunks),
         ],
-        cwd=ctx.project_root,
+        cwd=context.project_root,
     )
 
     extract_cmd = [
         cursor_python,
-        str(ctx.cli_py),
+        str(context.cli_py),
         "extract-ai",
         "--adr-dir",
-        str(ctx.project_root / "ADR"),
+        str(context.project_root / "ADR"),
         "--project-yaml",
         str(project_yaml),
         "--templates",
         *map(str, templates),
         "--out",
-        str(ctx.slot_file),
+        str(context.slot_file),
         "--run-dir",
         str(ai_run_dir),
         "--chunk-manifest",
         str(chunk_manifest),
         "--contract",
-        str(ctx.contract_file),
+        str(context.contract_file),
         "--tool",
         args.ai_tool,
         "--model",
@@ -385,60 +386,60 @@ def _run_ai_extraction(
     ]
     if args.refine_phases:
         extract_cmd.append("--refine-phases")
-    run(extract_cmd, cwd=ctx.project_root)
+    run(extract_cmd, cwd=context.project_root)
 
     run(
         [
-            ctx.base_python,
-            str(ctx.cli_py),
+            context.base_python,
+            str(context.cli_py),
             "validate-slots",
             "--slots",
-            str(ctx.slot_file),
+            str(context.slot_file),
             "--phases",
             "phase1",
             "phase2",
             "phase3",
             "phase4",
         ],
-        cwd=ctx.project_root,
+        cwd=context.project_root,
     )
     save_fingerprint(fingerprint_path, current)
-    print(f"AI slot extraction complete -> {ctx.slot_file}")
+    print(f"AI slot extraction complete -> {context.slot_file}")
 
 
-def validate_call(ctx: DraftContext, outfile: Path, doc_key: str, phase: str = "") -> None:
+def validate_call(context: DraftContext, outfile: Path, doc_key: str, phase: str = "") -> None:
     compare_arg: list[str] = []
-    if ctx.canonical_dir:
-        expected = ctx.canonical_dir / doc_key
+    if context.canonical_dir:
+        expected = context.canonical_dir / doc_key
         if expected.exists():
             compare_arg = ["--expect-byte-equal-to", str(expected)]
     cmd = [
-        ctx.base_python,
-        str(ctx.cli_py),
+        context.base_python,
+        str(context.cli_py),
         "validate-hld",
         "--file",
         str(outfile),
         "--contract",
-        str(ctx.contract_file),
+        str(context.contract_file),
         "--slots",
-        str(ctx.slot_file),
+        str(context.slot_file),
         "--citation-lock",
-        str(ctx.citation_lock_file),
+        str(context.citation_lock_file),
         "--document-key",
         doc_key,
         "--state-file",
-        str(ctx.state_hash_file),
+        str(context.state_hash_file),
         *compare_arg,
     ]
     if phase:
         cmd.extend(["--phase", phase])
-    run(cmd, cwd=ctx.project_root)
+    run(cmd, cwd=context.project_root)
 
 
-def render_section(ctx: DraftContext, section: str, include_phase: bool) -> None:
-    template = ctx.template_dir / f"Template_OCP-V_HLD_DecisionJourney_{section}.md"
-    outfile = ctx.draft_dir / f"draft_hld_{section}.md"
-    doc_key = ctx.phase_file_map[section] if include_phase else ctx.support_file_map[section]
+def render_section(context: DraftContext, section: str, include_phase: bool) -> None:
+    template = context.template_dir / f"Template_OCP-V_HLD_DecisionJourney_{section}.md"
+    outfile = context.draft_dir / f"draft_hld_{section}.md"
+    doc_key = context.phase_file_map[section] if include_phase else context.support_file_map[section]
 
     if not template.exists():
         print(f"Skipping {section}; template not found: {template}")
@@ -446,80 +447,80 @@ def render_section(ctx: DraftContext, section: str, include_phase: bool) -> None
 
     run(
         [
-            ctx.base_python,
-            str(ctx.cli_py),
+            context.base_python,
+            str(context.cli_py),
             "render-phase",
             "--template",
             str(template),
             "--slots",
-            str(ctx.slot_file),
+            str(context.slot_file),
             "--out",
             str(outfile),
         ],
-        cwd=ctx.project_root,
+        cwd=context.project_root,
     )
-    validate_call(ctx, outfile, doc_key, phase=section if include_phase else "")
+    validate_call(context, outfile, doc_key, phase=section if include_phase else "")
     print(f"Deterministic render complete: {outfile}")
 
 
-def validate_phase_only(ctx: DraftContext, phase: str) -> None:
-    outfile = ctx.draft_dir / f"draft_hld_{phase}.md"
-    doc_key = ctx.phase_file_map[phase]
-    validate_call(ctx, outfile, doc_key, phase=phase)
+def validate_phase_only(context: DraftContext, phase: str) -> None:
+    outfile = context.draft_dir / f"draft_hld_{phase}.md"
+    doc_key = context.phase_file_map[phase]
+    validate_call(context, outfile, doc_key, phase=phase)
     print(f"Validation complete: {outfile}")
 
 
-def stitch_combined(ctx: DraftContext) -> None:
-    output = ctx.output_root / "HLD" / "markdown_files" / ctx.combined_deterministic_name
+def stitch_combined(context: DraftContext) -> None:
+    output = context.output_root / "HLD" / "markdown_files" / context.combined_deterministic_name
     compare_arg: list[str] = []
-    if ctx.canonical_dir:
-        expected = ctx.canonical_dir / f"{ctx.base_prefix}_combined.md"
+    if context.canonical_dir:
+        expected = context.canonical_dir / f"{context.base_prefix}_combined.md"
         if expected.exists():
             compare_arg = ["--expect-byte-equal-to", str(expected)]
     run(
         [
-            ctx.base_python,
-            str(ctx.cli_py),
+            context.base_python,
+            str(context.cli_py),
             "stitch",
             "--draft-dir",
-            str(ctx.draft_dir),
+            str(context.draft_dir),
             "--output",
             str(output),
             *compare_arg,
         ],
-        cwd=ctx.project_root,
+        cwd=context.project_root,
     )
-    validate_call(ctx, output, ctx.combined_deterministic_name)
+    validate_call(context, output, context.combined_deterministic_name)
     print(f"Deterministic stitch complete: {output}")
 
 
-def _write_back_and_validate(ctx: DraftContext, phases: list[str], support_sections: list[str]) -> None:
+def _write_back_and_validate(context: DraftContext, phases: list[str], support_sections: list[str]) -> None:
     write_sections = phases + support_sections
     written: list[Path] = []
-    dest_root = ctx.output_root / "HLD" / "markdown_files"
+    dest_root = context.output_root / "HLD" / "markdown_files"
     for section in write_sections:
-        src = ctx.draft_dir / f"draft_hld_{section}.md"
-        if section in ctx.phase_file_map:
-            dest = dest_root / ctx.phase_file_map[section]
+        source = context.draft_dir / f"draft_hld_{section}.md"
+        if section in context.phase_file_map:
+            dest = dest_root / context.phase_file_map[section]
         else:
-            dest = dest_root / ctx.support_file_map[section]
-        if not src.exists():
-            print(f"Skipping write-back for {section}; draft not found: {src}")
+            dest = dest_root / context.support_file_map[section]
+        if not source.exists():
+            print(f"Skipping write-back for {section}; draft not found: {source}")
             continue
-        shutil.copy2(src, dest)
+        shutil.copy2(source, dest)
         written.append(dest)
         print(f"Rendered write-back: {dest}")
 
     if written:
         run(
             [
-                ctx.base_python,
-                str(ctx.project_root / "scripts" / "shared" / "lib" / "validate_placeholders.py"),
+                context.base_python,
+                str(context.project_root / "scripts" / "shared" / "lib" / "validate_placeholders.py"),
                 "--context",
                 "written HLD files",
-                *[str(p) for p in written],
+                *[str(written_path) for written_path in written],
             ],
-            cwd=ctx.project_root,
+            cwd=context.project_root,
         )
     print(f"Rendered write-back validation passed ({len(written)} file(s)).")
 
@@ -532,17 +533,17 @@ def _lld_template_for_dest(template_dir: Path, dest_name: str) -> Path | None:
     return None
 
 
-def _render_lld_from_slots(ctx: DraftContext, cfg: dict) -> None:
+def _render_lld_from_slots(context: DraftContext, config: dict) -> None:
     """Render generic LLD templates into output/LLD using the same slot map as HLD.
 
     Always overwrites destination files. Setup copies unfilled templates into
     output/LLD; skipping those would leave LLD unfilled unless FORCE=1, which
     also re-runs AI extraction.
     """
-    template_dir = ctx.project_root / "templates" / "LLD"
-    dest_dir = ctx.output_root / "LLD"
+    template_dir = context.project_root / "templates" / "LLD"
+    dest_dir = context.output_root / "LLD"
     dest_dir.mkdir(parents=True, exist_ok=True)
-    for phase in cfg.get("phases", []):
+    for phase in config.get("phases", []):
         dest_name = str(phase.get("lld_file", "")).strip()
         if not dest_name:
             continue
@@ -553,29 +554,29 @@ def _render_lld_from_slots(ctx: DraftContext, cfg: dict) -> None:
         dest = dest_dir / dest_name
         run(
             [
-                ctx.base_python,
-                str(ctx.cli_py),
+                context.base_python,
+                str(context.cli_py),
                 "render-phase",
                 "--template",
                 str(template),
                 "--slots",
-                str(ctx.slot_file),
+                str(context.slot_file),
                 "--out",
                 str(dest),
             ],
-            cwd=ctx.project_root,
+            cwd=context.project_root,
         )
         print(f"LLD render complete: {dest}")
 
 
-def _render_drawio_from_slots(ctx: DraftContext) -> None:
+def _render_drawio_from_slots(context: DraftContext) -> None:
     """Stamp templates/Diagrams/examples into output/Diagrams. Always overwrites."""
-    examples = ctx.project_root / "templates" / "Diagrams" / "examples"
-    dest = ctx.output_root / "Diagrams"
-    if not ctx.slot_file.exists():
-        print(f"Skipping drawio render; slot map not found: {ctx.slot_file}")
+    examples = context.project_root / "templates" / "Diagrams" / "examples"
+    dest = context.output_root / "Diagrams"
+    if not context.slot_file.exists():
+        print(f"Skipping drawio render; slot map not found: {context.slot_file}")
         return
-    payload = json.loads(ctx.slot_file.read_text(encoding="utf-8"))
+    payload = json.loads(context.slot_file.read_text(encoding="utf-8"))
     slots = payload.get("slots", payload)
     if not isinstance(slots, dict):
         print("Skipping drawio render; slot map is not an object.")
@@ -585,10 +586,10 @@ def _render_drawio_from_slots(ctx: DraftContext) -> None:
 
 
 def _run_pipeline(
-    ctx: DraftContext,
+    context: DraftContext,
     args: argparse.Namespace,
     project_yaml: Path,
-    cfg: dict,
+    config: dict,
     client_name: str,
     project_code: str,
     cursor_python: str,
@@ -601,51 +602,51 @@ def _run_pipeline(
         phases = [args.phase]
     support_sections = ["preamble", "appendix"]
 
-    templates = [ctx.template_dir / f"Template_OCP-V_HLD_DecisionJourney_phase{i}.md" for i in range(1, 5)]
+    templates = [context.template_dir / f"Template_OCP-V_HLD_DecisionJourney_phase{phase_number}.md" for phase_number in range(1, 5)]
 
     run(
         [
-            ctx.base_python,
-            str(ctx.cli_py),
+            context.base_python,
+            str(context.cli_py),
             "build-contract",
             "--templates",
             *map(str, templates),
             "--out",
-            str(ctx.contract_file),
+            str(context.contract_file),
         ],
-        cwd=ctx.project_root,
+        cwd=context.project_root,
     )
 
-    canonical_files = _discover_canonical_files(ctx.canonical_dir, client_name, project_code)
-    _build_citation_lock(ctx, canonical_files)
+    canonical_files = _discover_canonical_files(context.canonical_dir, client_name, project_code)
+    _build_citation_lock(context, canonical_files)
 
     run_timestamp = time.strftime("%Y%m%dT%H%M%S")
-    ai_run_dir = ctx.state_dir / "runs" / f"{run_timestamp}_{args.extractor}"
-    chunk_manifest = ctx.state_dir / "slots" / "chunk_manifest.json"
-    _run_ai_extraction(ctx, args, project_yaml, templates, ai_run_dir, chunk_manifest, cursor_python)
+    ai_run_dir = context.state_dir / "runs" / f"{run_timestamp}_{args.extractor}"
+    chunk_manifest = context.state_dir / "slots" / "chunk_manifest.json"
+    _run_ai_extraction(context, args, project_yaml, templates, ai_run_dir, chunk_manifest, cursor_python)
 
     if args.stitch_only:
-        stitch_combined(ctx)
+        stitch_combined(context)
         print(f"=== Done in {fmt_elapsed(run_start)} ===")
         return 0
 
     if args.validate_only:
         for phase in phases:
-            validate_phase_only(ctx, phase)
-        stitch_combined(ctx)
+            validate_phase_only(context, phase)
+        stitch_combined(context)
         print(f"=== Done in {fmt_elapsed(run_start)} ===")
         return 0
 
     for phase in phases:
-        render_section(ctx, phase, include_phase=True)
+        render_section(context, phase, include_phase=True)
     for section in support_sections:
-        render_section(ctx, section, include_phase=False)
+        render_section(context, section, include_phase=False)
 
-    _write_back_and_validate(ctx, phases, support_sections)
-    _render_lld_from_slots(ctx, cfg)
-    _render_drawio_from_slots(ctx)
+    _write_back_and_validate(context, phases, support_sections)
+    _render_lld_from_slots(context, config)
+    _render_drawio_from_slots(context)
 
-    stitch_combined(ctx)
+    stitch_combined(context)
     print(f"=== Done in {fmt_elapsed(run_start)} ===")
     return 0
 
@@ -667,26 +668,26 @@ def main() -> int:
 
     project_root = Path(__file__).resolve().parents[3]
     project_yaml = project_root / "project.yaml"
-    cfg, client_name, project_code = _load_config(project_yaml)
-    ctx = _build_context(args, project_root, cfg)
+    config, client_name, project_code = _load_config(project_yaml)
+    context = _build_context(args, project_root, config)
 
     cursor_python = "python3"
     if args.ai_tool == "cursor":
         cursor_python = ensure_cursor_sdk(project_root)
         ensure_cursor_key()
 
-    _ensure_dirs(ctx)
+    _ensure_dirs(context)
 
-    log_file = ctx.state_dir / "last_run.log"
+    log_file = context.state_dir / "last_run.log"
     run_start = time.time()
-    with open(log_file, "a", encoding="utf-8") as log_fp:
+    with open(log_file, "a", encoding="utf-8") as log_file:
         original_stdout = sys.stdout
         original_stderr = sys.stderr
-        sys.stdout = TeeStream(original_stdout, log_fp)
-        sys.stderr = TeeStream(original_stderr, log_fp)
+        sys.stdout = TeeStream(original_stdout, log_file)
+        sys.stderr = TeeStream(original_stderr, log_file)
         try:
             print(f"=== Run started: {time.ctime()} (log: {log_file}) ===")
-            return _run_pipeline(ctx, args, project_yaml, cfg, client_name, project_code, cursor_python, run_start)
+            return _run_pipeline(context, args, project_yaml, config, client_name, project_code, cursor_python, run_start)
         finally:
             sys.stdout = original_stdout
             sys.stderr = original_stderr

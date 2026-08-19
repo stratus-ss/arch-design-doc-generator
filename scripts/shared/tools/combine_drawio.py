@@ -15,7 +15,7 @@ are removed before combining.
 
 import argparse
 import sys
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as ET  # readability-lint: ignore
 from collections import defaultdict
 from pathlib import Path
 
@@ -73,8 +73,8 @@ class DrawioCombiner:
         ET.indent(tree, space="  ")
         tree.write(self.output_path, encoding="unicode", xml_declaration=False)
 
-        with open(self.output_path, "a") as f:
-            f.write("\n")
+        with open(self.output_path, "a") as drawio_file:
+            drawio_file.write("\n")
 
 
 def get_prefix(filename: str) -> str:
@@ -88,18 +88,18 @@ def get_prefix(filename: str) -> str:
 def combine_folder(folder: Path) -> None:
     """Group .drawio files by prefix and combine each group, removing existing COMBINE_* files first."""
     existing = list(folder.glob("COMBINE_*.drawio"))
-    for f in existing:
-        print(f"  Removing existing: {f.name}")
-        f.unlink()
+    for drawio_file in existing:
+        print(f"  Removing existing: {drawio_file.name}")
+        drawio_file.unlink()
 
-    files = sorted(f for f in folder.glob("*.drawio") if not f.name.startswith("COMBINE_"))
+    files = sorted(drawio_file for drawio_file in folder.glob("*.drawio") if not drawio_file.name.startswith("COMBINE_"))
     if not files:
         print(f"No .drawio files found in {folder}", file=sys.stderr)
         sys.exit(1)
 
     groups: dict[str, list[Path]] = defaultdict(list)
-    for f in files:
-        groups[get_prefix(f.name)].append(f)
+    for drawio_file in files:
+        groups[get_prefix(drawio_file.name)].append(drawio_file)
 
     for prefix, group_files in sorted(groups.items()):
         output_path = folder / f"COMBINE_{prefix}.drawio"

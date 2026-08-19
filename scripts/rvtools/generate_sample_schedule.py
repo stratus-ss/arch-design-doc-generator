@@ -139,17 +139,17 @@ ANNOTATIONS = [
 
 
 def _deterministic_seed(site_name: str, index: int) -> int:
-    h = hashlib.md5(f"{site_name}-{index}".encode()).hexdigest()
-    return int(h[:8], 16)
+    digest = hashlib.md5(f"{site_name}-{index}".encode()).hexdigest()
+    return int(digest[:8], 16)
 
 
-def generate_vm(site_name: str, site_cfg: dict, index: int) -> list:
+def generate_vm(site_name: str, site_config: dict, index: int) -> list:
     rng = random.Random(_deterministic_seed(site_name, index))
 
     role = rng.choice(ROLES)
     env = rng.choice(ENVS)
     seq = f"{index:02d}"
-    prefix = site_cfg["prefix"].lower()
+    prefix = site_config["prefix"].lower()
     vm_name = f"{prefix}-{role}-{env}-{seq}"
     dns_name = f"{vm_name}.example.corp" if rng.random() > 0.15 else None
 
@@ -158,10 +158,10 @@ def generate_vm(site_name: str, site_cfg: dict, index: int) -> list:
     mem_gb = rng.choice([4, 8, 16, 32, 64, 128, 256])
     disk_gb = round(rng.choice([50, 100, 200, 500, 1000, 2000]) * rng.uniform(0.8, 1.2), 2)
 
-    dc = site_cfg["dc"]
+    datacenter = site_config["dc"]
     cluster_suffix = rng.choice(CLUSTER_SUFFIXES)
-    cluster = f"{dc}_{cluster_suffix}"
-    resource_pool = f"/{dc}/{cluster}/Resources"
+    cluster = f"{datacenter}_{cluster_suffix}"
+    resource_pool = f"/{datacenter}/{cluster}/Resources"
 
     os_name = rng.choice(OS_LIST)
     latency = rng.choice(["normal", "normal", "normal", "low"])
@@ -189,7 +189,7 @@ def generate_vm(site_name: str, site_cfg: dict, index: int) -> list:
         cpus,
         mem_gb,
         disk_gb,
-        dc,
+        datacenter,
         cluster,
         resource_pool,
         os_name,
@@ -210,35 +210,35 @@ def main():
     )
     args = parser.parse_args()
 
-    wb = Workbook()
-    wb.remove(wb.active)
+    workbook = Workbook()
+    workbook.remove(workbook.active)
 
-    for site_name, site_cfg in SITES.items():
-        ws = wb.create_sheet(title=site_name[:31])
+    for site_name, site_config in SITES.items():
+        worksheet = workbook.create_sheet(title=site_name[:31])
 
-        for col_idx, header in enumerate(HEADERS, start=1):
-            cell = ws.cell(row=1, column=col_idx, value=header)
+        for column_index, header in enumerate(HEADERS, start=1):
+            cell = worksheet.cell(row=1, column=column_index, value=header)
             cell.font = HEADER_FONT
             cell.fill = HEADER_FILL
             cell.alignment = Alignment(horizontal="center")
 
         triage_col = HEADERS.index("Triage") + 1
 
-        for i in range(site_cfg["vm_count"]):
-            row_data = generate_vm(site_name, site_cfg, i)
-            for col_idx, val in enumerate(row_data, start=1):
-                ws.cell(row=i + 2, column=col_idx, value=val)
-            triage_val = row_data[triage_col - 1]
-            if triage_val in TRIAGE_FILLS:
-                ws.cell(row=i + 2, column=triage_col).fill = TRIAGE_FILLS[triage_val]
+        for index in range(site_config["vm_count"]):
+            row_data = generate_vm(site_name, site_config, index)
+            for column_index, value in enumerate(row_data, start=1):
+                worksheet.cell(row=index + 2, column=column_index, value=value)
+            triage_value = row_data[triage_col - 1]
+            if triage_value in TRIAGE_FILLS:
+                worksheet.cell(row=index + 2, column=triage_col).fill = TRIAGE_FILLS[triage_value]
 
-        for col_idx in range(1, len(HEADERS) + 1):
-            col_letter = get_column_letter(col_idx)
-            ws.column_dimensions[col_letter].width = max(len(HEADERS[col_idx - 1]) + 4, 12)
-        ws.freeze_panes = "A2"
+        for column_index in range(1, len(HEADERS) + 1):
+            col_letter = get_column_letter(column_index)
+            worksheet.column_dimensions[col_letter].width = max(len(HEADERS[column_index - 1]) + 4, 12)
+        worksheet.freeze_panes = "A2"
 
-    wb.save(args.output)
-    total = sum(s["vm_count"] for s in SITES.values())
+    workbook.save(args.output)
+    total = sum(site["vm_count"] for site in SITES.values())
     print(f"Generated {args.output}: {len(SITES)} sheets, {total} sample VMs")
 
 

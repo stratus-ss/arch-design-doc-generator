@@ -24,10 +24,10 @@ def test_sanitize_from_output_requires_yes(tmp_path: Path, project_root: Path) -
     original = "<mxfile>generic-example</mxfile>\n"
     dest.write_text(original, encoding="utf-8")
 
-    src_dir = tmp_path / "output" / "Diagrams" / "phase1"
-    src_dir.mkdir(parents=True)
-    src = src_dir / "HLD_Foo.drawio"
-    src.write_text("<mxfile>client-payload</mxfile>\n", encoding="utf-8")
+    source_dir = tmp_path / "output" / "Diagrams" / "phase1"
+    source_dir.mkdir(parents=True)
+    source = source_dir / "HLD_Foo.drawio"
+    source.write_text("<mxfile>client-payload</mxfile>\n", encoding="utf-8")
 
     script = project_root / "scripts" / "shared" / "tools" / "sanitize_diagrams.py"
     result = subprocess.run(

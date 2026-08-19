@@ -31,7 +31,7 @@ def _compact(slug: str) -> str:
     - Remove remaining hyphens so compound words match regardless of spacing
     """
     slug = re.sub(r"phase-(\d+)", r"phase\1", slug)
-    tokens = [t for t in slug.split("-") if t and t not in _STOP_WORDS]
+    tokens = [token for token in slug.split("-") if token and token not in _STOP_WORDS]
     return "".join(tokens)
 
 
@@ -44,10 +44,10 @@ def _tokens_subsequence(tokens: list[str], text: str) -> bool:
     """
     pos = 0
     for token in tokens:
-        idx = text.find(token, pos)
-        if idx == -1:
+        index = text.find(token, pos)
+        if index == -1:
             return False
-        pos = idx + len(token)
+        pos = index + len(token)
     return True
 
 
@@ -98,7 +98,7 @@ def find_drawio_png(
         # Try 4: all significant file tokens appear in heading compact in order
         # (handles extra descriptive words in headings like 'Configuration',
         # 'Running', 'Cluster' that don't appear in the drawio filename)
-        tokens = [t for t in stripped.split("-") if t and t not in _STOP_WORDS]
+        tokens = [token for token in stripped.split("-") if token and token not in _STOP_WORDS]
         if tokens and _tokens_subsequence(tokens, heading_compact):
             return png
     return None
@@ -126,8 +126,8 @@ def _resolve_explicit_drawio(
 ) -> Path | None:
     """Resolve an explicit <!-- drawio: FILENAME --> annotation to an absolute path."""
     root = diagrams_root.resolve()
-    for rel in (diagrams_root / phase_tag / explicit_name, diagrams_root / explicit_name):
-        resolved = rel.resolve()
+    for relative_path in (diagrams_root / phase_tag / explicit_name, diagrams_root / explicit_name):
+        resolved = relative_path.resolve()
         if not resolved.is_relative_to(root):
             return None
         if resolved.exists():
@@ -144,7 +144,7 @@ def _open_mermaid_block(
     line: str,
     prev_nonblank: str,
     last_heading: str,
-    diagram_idx: int,
+    diagram_index: int,
     slug_seen: dict[str, int],
     out_lines: list[str],
     diagrams_root: Path,
@@ -155,9 +155,9 @@ def _open_mermaid_block(
     used_drawio: set[Path],
 ) -> bool:
     """Handle a ```mermaid opening fence; return skip_block flag."""
-    slug = slugify(last_heading) or f"diagram-{diagram_idx}"
+    slug = slugify(last_heading) or f"diagram-{diagram_index}"
     slug_seen[slug] = slug_seen.get(slug, 0) + 1
-    alt_text = last_heading or f"Diagram {diagram_idx}"
+    alt_text = last_heading or f"Diagram {diagram_index}"
 
     explicit_name: str | None = None
     anno_match = DRAWIO_ANNOTATION_RE.match(prev_nonblank)
@@ -165,9 +165,9 @@ def _open_mermaid_block(
         explicit_name = anno_match.group(1).strip()
         if not explicit_name.endswith(".drawio.png"):
             explicit_name += ".drawio.png"
-        for i in range(len(out_lines) - 1, max(len(out_lines) - 6, -1), -1):
-            if DRAWIO_ANNOTATION_RE.match(out_lines[i]):
-                out_lines.pop(i)
+        for line_index in range(len(out_lines) - 1, max(len(out_lines) - 6, -1), -1):
+            if DRAWIO_ANNOTATION_RE.match(out_lines[line_index]):
+                out_lines.pop(line_index)
                 break
 
     drawio_abs: Path | None = None
@@ -181,12 +181,12 @@ def _open_mermaid_block(
 
     if drawio_abs is not None:
         drawio_name = drawio_abs.name
-        rel_dir = drawio_abs.parent.relative_to(diagrams_root)
-        actual_subdir = "" if str(rel_dir) == "." else str(rel_dir)
+        relative_directory = drawio_abs.parent.relative_to(diagrams_root)
+        actual_subdir = "" if str(relative_directory) == "." else str(relative_directory)
         out_lines.append(f"![{alt_text}]({drawio_rel_path(doc_type, actual_subdir, drawio_name)})")
         return True
 
-    mermaid_name = f"{phase_tag}_{diagram_idx}_{slug}.png"
+    mermaid_name = f"{phase_tag}_{diagram_index}_{slug}.png"
     mermaid_abs = mermaid_png_dir / phase_tag / mermaid_name
     if mermaid_abs.exists():
         out_lines.append(f"![{alt_text}]({mermaid_rel_path(doc_type, phase_tag, mermaid_name)})")
@@ -209,7 +209,7 @@ def _open_mermaid_block(
 
 
 def generate_variant(
-    src: Path,
+    source: Path,
     out: Path,
     *,
     doc_type: str,
@@ -217,30 +217,30 @@ def generate_variant(
     diagrams_root: Path,
     mermaid_png_dir: Path,
 ) -> None:
-    base_noext = src.stem
+    base_noext = source.stem
     phase_tag = phase_tag_from_basename(base_noext)
     in_mermaid = False
     skip_block = False
     last_heading = ""
     prev_nonblank = ""
-    diagram_idx = 0
+    diagram_index = 0
     slug_seen: dict[str, int] = {}
     used_drawio: set[Path] = set()
     out_lines: list[str] = []
 
-    for line in src.read_text(encoding="utf-8").splitlines():
+    for line in source.read_text(encoding="utf-8").splitlines():
         heading_match = HEADING_RE.match(line)
         if heading_match:
             last_heading = heading_match.group(1)
 
         if line == "```mermaid":
             in_mermaid = True
-            diagram_idx += 1
+            diagram_index += 1
             skip_block = _open_mermaid_block(
                 line,
                 prev_nonblank,
                 last_heading,
-                diagram_idx,
+                diagram_index,
                 slug_seen,
                 out_lines,
                 diagrams_root,
@@ -295,42 +295,43 @@ def run_stitchmd(stitchmd: str, output: Path, summary: Path) -> None:
     )
 
 
-def generate_hld(cfg: dict, project_root: Path) -> None:
+def generate_hld(config: dict, project_root: Path) -> None:
     md_dir = project_root / "output" / "HLD" / "markdown_files"
     diagrams_root = project_root / "output" / "Diagrams"
     mermaid_png_dir = project_root / "output" / "HLD" / "diagrams"
-    summary_map = cfg.get("hld", {}).get("summary_map", {})
+    hld_section = config.get("hld", {})
+    summary_map = hld_section.get("summary_map", {})
     stitchmd = resolve_stitchmd()
     generated: set[str] = set()
 
-    def generate_one_if_needed(rel: str) -> None:
-        if not rel or rel in generated:
+    def generate_one_if_needed(relative_path: str) -> None:
+        if not relative_path or relative_path in generated:
             return
-        src = md_dir / rel
-        out = md_dir / f"Drawio_{rel}"
-        if src.exists():
+        source = md_dir / relative_path
+        out = md_dir / f"Drawio_{relative_path}"
+        if source.exists():
             generate_variant(
-                src,
+                source,
                 out,
                 doc_type="hld",
                 doc_prefix="HLD",
                 diagrams_root=diagrams_root,
                 mermaid_png_dir=mermaid_png_dir,
             )
-            generated.add(rel)
-            print(f"  {rel} -> Drawio_{rel}")
+            generated.add(relative_path)
+            print(f"  {relative_path} -> Drawio_{relative_path}")
 
     print("=== Generating Drawio variants for HLD ===")
     for _, entry in sorted(summary_map.items()):
         summary = entry.get("summary", "")
         output = entry.get("output", "")
-        summary_src = md_dir / summary
-        if not summary_src.exists():
+        summary_source = md_dir / summary
+        if not summary_source.exists():
             continue
 
         drawio_summary = md_dir / f"Drawio_{summary}"
         out_lines: list[str] = []
-        for line in summary_src.read_text(encoding="utf-8").splitlines():
+        for line in summary_source.read_text(encoding="utf-8").splitlines():
             replaced = line
             for linked in MD_LINK_RE.findall(line):
                 generate_one_if_needed(linked)
@@ -344,29 +345,29 @@ def generate_hld(cfg: dict, project_root: Path) -> None:
     print("Done.")
 
 
-def generate_lld(cfg: dict, project_root: Path) -> None:
+def generate_lld(config: dict, project_root: Path) -> None:
     md_dir = project_root / "output" / "LLD"
     diagrams_root = project_root / "output" / "Diagrams"
     mermaid_png_dir = project_root / "output" / "LLD" / "diagrams"
-    phase_files = [p["lld_file"] for p in cfg.get("phases", [])]
-    combined_file = cfg["lld"]["combined_file"]
-    combined_title = cfg["lld"]["combined_title"]
+    phase_files = [phase["lld_file"] for phase in config.get("phases", [])]
+    combined_file = config["lld"]["combined_file"]
+    combined_title = config["lld"]["combined_title"]
 
     print("=== Generating Drawio variants for LLD ===")
-    for md in phase_files:
-        src = md_dir / md
-        if not src.exists():
+    for markdown_name in phase_files:
+        source = md_dir / markdown_name
+        if not source.exists():
             continue
-        out = md_dir / f"Drawio_{md}"
+        out = md_dir / f"Drawio_{markdown_name}"
         generate_variant(
-            src,
+            source,
             out,
             doc_type="lld",
             doc_prefix="LLD",
             diagrams_root=diagrams_root,
             mermaid_png_dir=mermaid_png_dir,
         )
-        print(f"  {md} -> Drawio_{md}")
+        print(f"  {markdown_name} -> Drawio_{markdown_name}")
 
     drawio_combined = md_dir / f"Drawio_{combined_file}"
     lines = [
@@ -378,14 +379,14 @@ def generate_lld(cfg: dict, project_root: Path) -> None:
         "",
     ]
     first = True
-    for md in phase_files:
-        src = md_dir / f"Drawio_{md}"
-        if not src.exists():
+    for markdown_name in phase_files:
+        source = md_dir / f"Drawio_{markdown_name}"
+        if not source.exists():
             continue
         if not first:
             lines.extend(["", "---", ""])
         first = False
-        lines.append(src.read_text(encoding="utf-8").rstrip("\n"))
+        lines.append(source.read_text(encoding="utf-8").rstrip("\n"))
     drawio_combined.write_text("\n".join(lines).rstrip("\n") + "\n", encoding="utf-8")
     print(f"  Drawio combined -> {drawio_combined.name}")
     print("Done.")
@@ -397,11 +398,11 @@ def main() -> int:
     args = parser.parse_args()
 
     project_root = find_project_yaml().parent
-    cfg = load_config()
+    config = load_config()
     if args.type == "hld":
-        generate_hld(cfg, project_root)
+        generate_hld(config, project_root)
     else:
-        generate_lld(cfg, project_root)
+        generate_lld(config, project_root)
     return 0
 
 

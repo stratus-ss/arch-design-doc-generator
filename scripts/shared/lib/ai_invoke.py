@@ -200,14 +200,14 @@ def run_claude(prompt: str, model: str, timeout: int) -> str:
         file=sys.stderr,
         flush=True,
     )
-    with tempfile.TemporaryDirectory(prefix="hld-claude-") as tmp:
-        mcp_path = Path(tmp) / "mcp.json"
+    with tempfile.TemporaryDirectory(prefix="hld-claude-") as temp_dir:
+        mcp_path = Path(temp_dir) / "mcp.json"
         mcp_path.write_text('{"mcpServers": {}}\n', encoding="utf-8")
         stdout = _run_subprocess(
             claude_print_cmd(claude_model, mcp_config=str(mcp_path)),
             stdin=prompt,
             timeout=effective_timeout,
-            cwd=tmp,
+            cwd=temp_dir,
             inherit_stderr=True,
         )
     payload = _claude_print_payload(stdout)
@@ -280,13 +280,13 @@ if result.status == "error":
     sys.exit(2)
 print(result.result or "", end="")
 """
-    with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False, encoding="utf-8") as f:
-        f.write(script)
-        tmp = f.name
+    with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False, encoding="utf-8") as script_file:
+        script_file.write(script)
+        temp_script_path = script_file.name
     try:
         env = {**os.environ, "CURSOR_API_KEY": os.environ.get("CURSOR_API_KEY", "")}
         proc = subprocess.Popen(
-            [cursor_python, tmp],
+            [cursor_python, temp_script_path],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
@@ -304,7 +304,7 @@ print(result.result or "", end="")
             raise RuntimeError(f"cursor_sdk exited {proc.returncode}")
         return stdout
     finally:
-        Path(tmp).unlink(missing_ok=True)
+        Path(temp_script_path).unlink(missing_ok=True)
 
 
 def _elapsed_label(seconds: float) -> str:
@@ -396,7 +396,7 @@ def invoke_ai(
         raise RuntimeError(
             "AI pathway disabled: set AI_MODEL (or CURSOR_MODEL for legacy callers) to a real model to re-enable."
         )
-    last_err: Exception = RuntimeError("no attempts made")
+    last_error: Exception = RuntimeError("no attempts made")
     for attempt in range(1, retries + 1):
         try:
             if tool == "claude":
@@ -407,10 +407,10 @@ def invoke_ai(
                 return run_cursor(prompt, model, timeout, cursor_python)
             else:
                 raise ValueError(f"Unknown tool: {tool}")
-        except (RuntimeError, OSError, subprocess.TimeoutExpired, ValueError) as exc:
-            last_err = exc
+        except (RuntimeError, OSError, subprocess.TimeoutExpired, ValueError) as error:
+            last_error = error
             if attempt < retries:
                 wait = 2**attempt
-                print(f"  [attempt {attempt}/{retries}] Error: {exc}. Retrying in {wait}s...", file=sys.stderr)
+                print(f"  [attempt {attempt}/{retries}] Error: {error}. Retrying in {wait}s...", file=sys.stderr)
                 time.sleep(wait)
-    raise last_err
+    raise last_error
