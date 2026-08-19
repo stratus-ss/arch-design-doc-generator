@@ -55,23 +55,23 @@ def _phase_tag(basename: str) -> str:
     return "misc"
 
 
-def scan_file(src: Path, diagrams_root: Path) -> list[dict]:
+def scan_file(source: Path, diagrams_root: Path) -> list[dict]:
     """Return one record per mermaid block found in src."""
     results = []
-    phase_tag = _phase_tag(src.stem)
+    phase_tag = _phase_tag(source.stem)
     last_heading = ""
     prev_nonblank = ""
     in_mermaid = False
-    diagram_idx = 0
+    diagram_index = 0
 
-    for line in src.read_text(encoding="utf-8").splitlines():
-        m = HEADING_RE.match(line)
-        if m:
-            last_heading = m.group(1)
+    for line in source.read_text(encoding="utf-8").splitlines():
+        match = HEADING_RE.match(line)
+        if match:
+            last_heading = match.group(1)
 
         if line == "```mermaid" and not in_mermaid:
             in_mermaid = True
-            diagram_idx += 1
+            diagram_index += 1
 
             anno_match = DRAWIO_ANNOTATION_RE.match(prev_nonblank)
             if anno_match:
@@ -85,8 +85,8 @@ def scan_file(src: Path, diagrams_root: Path) -> list[dict]:
 
             results.append(
                 {
-                    "file": src.name,
-                    "heading": last_heading or f"(diagram {diagram_idx})",
+                    "file": source.name,
+                    "heading": last_heading or f"(diagram {diagram_index})",
                     "annotation": explicit,
                     "resolved": resolved,
                     "status": status,
@@ -101,20 +101,21 @@ def scan_file(src: Path, diagrams_root: Path) -> list[dict]:
     return results
 
 
-def collect_source_files(cfg: dict, md_dir: Path) -> list[Path]:
+def collect_source_files(config: dict, md_dir: Path) -> list[Path]:
     """Gather all unique HLD source files referenced via summary_map."""
     seen: set[str] = set()
     files: list[Path] = []
-    summary_map = cfg.get("hld", {}).get("summary_map", {})
+    hld_section = config.get("hld", {})
+    summary_map = hld_section.get("summary_map", {})
 
-    def _visit(rel: str) -> None:
-        if not rel or rel in seen:
+    def _visit(relative_path: str) -> None:
+        if not relative_path or relative_path in seen:
             return
-        seen.add(rel)
-        p = md_dir / rel
-        if p.exists():
-            files.append(p)
-            for linked in MD_LINK_RE.findall(p.read_text(encoding="utf-8")):
+        seen.add(relative_path)
+        path = md_dir / relative_path
+        if path.exists():
+            files.append(path)
+            for linked in MD_LINK_RE.findall(path.read_text(encoding="utf-8")):
                 _visit(linked)
 
     for _, entry in sorted(summary_map.items()):
@@ -126,34 +127,34 @@ def collect_source_files(cfg: dict, md_dir: Path) -> list[Path]:
 def print_report(records: list[dict]) -> int:
     """Print a formatted table and return 1 if any annotations are broken."""
     counts = {"ok": 0, "unannotated": 0, "missing": 0}
-    for r in records:
-        counts[r["status"]] += 1
+    for record in records:
+        counts[record["status"]] += 1
 
-    col_file = max((len(r["file"]) for r in records), default=20)
-    col_head = min(max((len(r["heading"]) for r in records), default=30), 50)
-    col_anno = max((len(r["annotation"] or "(none)") for r in records), default=30)
+    col_file = max((len(record["file"]) for record in records), default=20)
+    col_head = min(max((len(record["heading"]) for record in records), default=30), 50)
+    col_anno = max((len(record["annotation"] or "(none)") for record in records), default=30)
 
     header = f"{'File':<{col_file}}  {'Heading':<{col_head}}  {'Annotation':<{col_anno}}  Status"
     print(f"\n{_BOLD}{header}{_RESET}")
     print("-" * len(header))
 
-    for r in records:
-        heading = r["heading"]
+    for record in records:
+        heading = record["heading"]
         if len(heading) > col_head:
             heading = heading[: col_head - 1] + "…"
-        anno = r["annotation"] or "(none)"
+        anno = record["annotation"] or "(none)"
 
-        if r["status"] == "ok":
+        if record["status"] == "ok":
             symbol = f"{_GREEN}✓{_RESET}"
             status_text = f"{_GREEN}ok{_RESET}"
-        elif r["status"] == "unannotated":
+        elif record["status"] == "unannotated":
             symbol = f"{_YELLOW}!{_RESET}"
             status_text = f"{_YELLOW}unannotated{_RESET}"
         else:
             symbol = f"{_RED}✗{_RESET}"
             status_text = f"{_RED}file not found{_RESET}"
 
-        print(f"{r['file']:<{col_file}}  {heading:<{col_head}}  {anno:<{col_anno}}  {symbol} {status_text}")
+        print(f"{record['file']:<{col_file}}  {heading:<{col_head}}  {anno:<{col_anno}}  {symbol} {status_text}")
 
     print()
     print(
@@ -178,18 +179,18 @@ def print_report(records: list[dict]) -> int:
 
 def main() -> int:
     project_root = find_project_yaml().parent
-    cfg = load_config()
+    config = load_config()
     md_dir = project_root / "output" / "HLD" / "markdown_files"
     diagrams_root = project_root / "output" / "Diagrams"
 
-    sources = collect_source_files(cfg, md_dir)
+    sources = collect_source_files(config, md_dir)
     if not sources:
         print("No HLD source files found. Check hld.summary_map in project.yaml.")
         return 0
 
     all_records: list[dict] = []
-    for src in sources:
-        all_records.extend(scan_file(src, diagrams_root))
+    for source in sources:
+        all_records.extend(scan_file(source, diagrams_root))
 
     if not all_records:
         print("No mermaid blocks found in HLD source files.")

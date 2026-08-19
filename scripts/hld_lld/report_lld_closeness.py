@@ -14,17 +14,17 @@ HEADING_RE = re.compile(r"^##\s+(LLD-\S+)", re.MULTILINE)
 
 def _slot_counts(text: str) -> tuple[int, int]:
     tokens = SLOT_RE.findall(text)
-    tbd = sum(1 for t in tokens if t == "TBD")
-    other = sum(1 for t in tokens if t != "TBD")
+    tbd = sum(1 for token in tokens if token == "TBD")
+    other = sum(1 for token in tokens if token != "TBD")
     return tbd, other
 
 
 def _lld_keys(name: str) -> str:
     marker = "_LLD_"
-    idx = name.find(marker)
-    if idx == -1:
+    index = name.find(marker)
+    if index == -1:
         return name
-    return name[idx + 1 :]
+    return name[index + 1 :]
 
 
 def compare_lld_file(rendered_path: Path, canonical_path: Path | None) -> dict:

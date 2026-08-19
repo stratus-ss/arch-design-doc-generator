@@ -58,6 +58,6 @@ def test_validate_hld_accepts_legacy_flat_state_after_reextract(tmp_path: Path) 
 
 def test_validate_hld_fails_when_same_slot_map_drifts(tmp_path: Path) -> None:
     assert _run_validate(tmp_path, text="hello\n", slots={"CLIENT": "A"}, state=None) == 0
-    with pytest.raises(SystemExit) as exc:
+    with pytest.raises(SystemExit) as error:
         _run_validate(tmp_path, text="world\n", slots={"CLIENT": "A"}, state=None)
-    assert exc.value.code == 1
+    assert error.value.code == 1

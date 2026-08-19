@@ -39,17 +39,17 @@ def run(cmd: list[str], *, cwd: Path | None = None, filter_pdf_warnings: bool = 
     bad_chars: set[str] = set()
     other_warnings: list[str] = []
     for line in result.stderr.splitlines():
-        m = NOTDEF_RE.search(line)
-        if m:
-            bad_chars.add(f"{m.group(1)} (U+{m.group(2)})")
+        match = NOTDEF_RE.search(line)
+        if match:
+            bad_chars.add(f"{match.group(1)} (U+{match.group(2)})")
             continue
         if CSS_IGNORED_RE.search(line):
             continue
         if line.strip():
             other_warnings.append(line)
 
-    for w in other_warnings:
-        print(w, file=sys.stderr)
+    for warning in other_warnings:
+        print(warning, file=sys.stderr)
 
     if bad_chars:
         chars = ", ".join(sorted(bad_chars))
@@ -65,9 +65,9 @@ def run(cmd: list[str], *, cwd: Path | None = None, filter_pdf_warnings: bool = 
         raise subprocess.CalledProcessError(result.returncode, cmd)
 
 
-def resolve_weasyprint(project_root: Path, cfg: dict) -> tuple[str, str | None]:
-    venv_rel = cfg["paths"]["venv"]
-    venv_root = project_root / venv_rel
+def resolve_weasyprint(project_root: Path, config: dict) -> tuple[str, str | None]:
+    venv_relative = config["paths"]["venv"]
+    venv_root = project_root / venv_relative
     venv_weasy = venv_root / "bin" / "weasyprint"
     venv_pip = venv_root / "bin" / "pip"
     if venv_root.exists():
@@ -82,30 +82,30 @@ def resolve_weasyprint(project_root: Path, cfg: dict) -> tuple[str, str | None]:
     raise SystemExit(f"Error: weasyprint not found and venv missing at {venv_root}/bin/activate")
 
 
-def substitute_mermaid(src: Path, out: Path, diagrams_dir: Path) -> None:
-    basename_noext = src.stem
+def substitute_mermaid(source: Path, out: Path, diagrams_dir: Path) -> None:
+    basename_noext = source.stem
     phase_tag = phase_tag_from_basename(basename_noext)
     img_dir = diagrams_dir / phase_tag
     if not img_dir.exists() or not any(img_dir.iterdir()):
-        shutil.copy2(src, out)
+        shutil.copy2(source, out)
         return
 
-    diagram_idx = 0
+    diagram_index = 0
     in_mermaid = False
     skip_block = False
     last_heading = ""
     out_lines: list[str] = []
 
-    for line in src.read_text(encoding="utf-8").splitlines():
+    for line in source.read_text(encoding="utf-8").splitlines():
         heading_match = HEADING_RE.match(line)
         if heading_match:
             last_heading = heading_match.group(1)
 
         if line == "```mermaid":
             in_mermaid = True
-            diagram_idx += 1
+            diagram_index += 1
             slug = slugify(last_heading)
-            png = img_dir / f"{phase_tag}_{diagram_idx}_{slug}.png"
+            png = img_dir / f"{phase_tag}_{diagram_index}_{slug}.png"
             if png.exists():
                 out_lines.append(f"![{last_heading}]({png})")
                 skip_block = True
@@ -129,7 +129,7 @@ def substitute_mermaid(src: Path, out: Path, diagrams_dir: Path) -> None:
 
 
 def md_to_pdf(
-    src: Path,
+    source: Path,
     pdf_dir: Path,
     diagrams_dir: Path,
     css_file: Path,
@@ -137,21 +137,21 @@ def md_to_pdf(
     *,
     resource_path: Path | None = None,
 ) -> None:
-    pdf = pdf_dir / f"{src.stem}.pdf"
+    pdf = pdf_dir / f"{source.stem}.pdf"
     with tempfile.TemporaryDirectory(prefix="pdfgen-") as tmpdir:
-        tmp = Path(tmpdir)
-        sub_md = tmp / "sub.md"
-        html = tmp / "doc.html"
+        temp_dir = Path(tmpdir)
+        sub_md = temp_dir / "sub.md"
+        html = temp_dir / "doc.html"
 
-        if src.name.startswith("Drawio_"):
+        if source.name.startswith("Drawio_"):
             print("  Using Drawio variant (no mermaid substitution)")
-            shutil.copy2(src, sub_md)
+            shutil.copy2(source, sub_md)
         else:
             print("  Substituting mermaid -> images")
-            substitute_mermaid(src, sub_md, diagrams_dir)
+            substitute_mermaid(source, sub_md, diagrams_dir)
 
-        res_path = str(resource_path or src.parent)
-        print(f"  {src.name} -> HTML")
+        resource_path_text = str(resource_path or source.parent)
+        print(f"  {source.name} -> HTML")
         run(
             [
                 "pandoc",
@@ -165,7 +165,7 @@ def md_to_pdf(
                 str(html),
                 "--standalone",
                 "--embed-resources",
-                f"--resource-path={res_path}",
+                f"--resource-path={resource_path_text}",
                 f"--css={css_file}",
                 "--metadata",
                 "title= ",
@@ -182,15 +182,15 @@ def generate_phase_pdfs(
     phase_files: list[str], md_dir: Path, pdf_dir: Path, diagrams_dir: Path, css_file: Path, weasyprint_cmd: str
 ) -> None:
     pdf_dir.mkdir(parents=True, exist_ok=True)
-    for md in phase_files:
-        src = md_dir / md
-        drawio_src = md_dir / f"Drawio_{md}"
-        if drawio_src.exists():
-            src = drawio_src
-        if not src.exists():
-            print(f"  Skipping {md} (not found)")
+    for markdown_name in phase_files:
+        source = md_dir / markdown_name
+        drawio_source = md_dir / f"Drawio_{markdown_name}"
+        if drawio_source.exists():
+            source = drawio_source
+        if not source.exists():
+            print(f"  Skipping {markdown_name} (not found)")
             continue
-        md_to_pdf(src, pdf_dir, diagrams_dir, css_file, weasyprint_cmd, resource_path=md_dir)
+        md_to_pdf(source, pdf_dir, diagrams_dir, css_file, weasyprint_cmd, resource_path=md_dir)
 
 
 def generate_combined_pdfs_hld(
@@ -202,20 +202,29 @@ def generate_combined_pdfs_hld(
     css_file: Path,
     weasyprint_cmd: str,
 ) -> None:
-    if not any((md_dir / md).exists() or (out_md_dir / md).exists() for md in combined_files):
+    combined_exists = False
+    for markdown_name in combined_files:
+        if (md_dir / markdown_name).exists() or (out_md_dir / markdown_name).exists():
+            combined_exists = True
+            break
+    if not combined_exists:
         return
     print("\n=== Generating combined PDFs ===")
-    for md in combined_files:
+    for markdown_name in combined_files:
         candidates = [
-            md_dir / f"Drawio_{md}",
-            out_md_dir / f"Drawio_{md}",
-            md_dir / md,
-            out_md_dir / md,
+            md_dir / f"Drawio_{markdown_name}",
+            out_md_dir / f"Drawio_{markdown_name}",
+            md_dir / markdown_name,
+            out_md_dir / markdown_name,
         ]
-        src = next((p for p in candidates if p.exists()), None)
-        if src is None:
+        source = None
+        for candidate in candidates:
+            if candidate.exists():
+                source = candidate
+                break
+        if source is None:
             continue
-        md_to_pdf(src, pdf_dir, diagrams_dir, css_file, weasyprint_cmd, resource_path=src.parent)
+        md_to_pdf(source, pdf_dir, diagrams_dir, css_file, weasyprint_cmd, resource_path=source.parent)
 
 
 def generate_combined_pdfs_lld(
@@ -233,11 +242,15 @@ def generate_combined_pdfs_lld(
         md_dir / combined_file,
         out_md_dir / combined_file,
     ]
-    src = next((p for p in candidates if p.exists()), None)
-    if src is None:
+    source = None
+    for candidate in candidates:
+        if candidate.exists():
+            source = candidate
+            break
+    if source is None:
         return
     print("\n=== Generating combined LLD PDF ===")
-    md_to_pdf(src, pdf_dir, diagrams_dir, css_file, weasyprint_cmd, resource_path=src.parent)
+    md_to_pdf(source, pdf_dir, diagrams_dir, css_file, weasyprint_cmd, resource_path=source.parent)
 
 
 def export_diagrams_if_needed(doc_type: str, script_dir: Path, project_root: Path) -> None:
@@ -257,29 +270,29 @@ def main() -> int:
 
     project_root = find_project_yaml().parent
     script_dir = Path(__file__).resolve().parent
-    cfg = load_config()
-    css = render_css(cfg, args.type)
+    config = load_config()
+    css = render_css(config, args.type)
 
-    with tempfile.NamedTemporaryFile("w", suffix=".css", delete=False, encoding="utf-8") as f:
-        f.write(css)
-        css_file = Path(f.name)
+    with tempfile.NamedTemporaryFile("w", suffix=".css", delete=False, encoding="utf-8") as css_file_handle:
+        css_file_handle.write(css)
+        css_file = Path(css_file_handle.name)
 
     try:
-        weasyprint_cmd, _ = resolve_weasyprint(project_root, cfg)
+        weasyprint_cmd, _ = resolve_weasyprint(project_root, config)
         if args.type == "hld":
             md_dir = project_root / "output" / "HLD" / "markdown_files"
             out_md_dir = md_dir
             pdf_dir = project_root / "output" / "HLD" / "PDFs"
             diagrams_dir = project_root / "output" / "HLD" / "diagrams"
-            phase_files = cfg["hld"]["phase_files"]
-            combined_files = cfg["hld"]["combined_files"]
+            phase_files = config["hld"]["phase_files"]
+            combined_files = config["hld"]["combined_files"]
         else:
             md_dir = project_root / "output" / "LLD"
             out_md_dir = md_dir
             pdf_dir = project_root / "output" / "LLD" / "PDFs"
             diagrams_dir = project_root / "output" / "LLD" / "diagrams"
-            phase_files = [p["lld_file"] for p in cfg["phases"]]
-            combined_file = cfg["lld"]["combined_file"]
+            phase_files = [phase["lld_file"] for phase in config["phases"]]
+            combined_file = config["lld"]["combined_file"]
 
         if not args.pdf_only and not args.combined_only:
             export_diagrams_if_needed(args.type, script_dir, project_root)

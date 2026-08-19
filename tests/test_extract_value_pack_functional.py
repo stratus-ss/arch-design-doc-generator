@@ -16,9 +16,9 @@ _LIB_DIR = _ROOT / "scripts" / "shared" / "lib"
 _DET_DIR = _ROOT / "scripts" / "hld_lld" / "ai" / "deterministic"
 _AI_DIR = _ROOT / "scripts" / "hld_lld" / "ai"
 for _path in (_LIB_DIR, _DET_DIR, _AI_DIR):
-    _s = str(_path)
-    if _s not in sys.path:
-        sys.path.insert(0, _s)
+    _path_text = str(_path)
+    if _path_text not in sys.path:
+        sys.path.insert(0, _path_text)
 
 import slots  # noqa: E402
 from ai_draft_deterministic import parse_args  # noqa: E402

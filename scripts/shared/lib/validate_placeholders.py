@@ -32,14 +32,14 @@ def main() -> int:
             errors.append(f"{path} (missing)")
             continue
         text = path.read_text(encoding="utf-8")
-        tokens = sorted({m.group(0) for m in PLACEHOLDER_RE.finditer(text) if m.group(0) != "{TBD}"})
+        tokens = sorted({match.group(0) for match in PLACEHOLDER_RE.finditer(text) if match.group(0) != "{TBD}"})
         if tokens:
             errors.append(f"{path}: {', '.join(tokens)}")
 
     if errors:
         print(f"Error: unreplaced placeholders found in {args.context}:", file=sys.stderr)
-        for err in errors:
-            print(f"  - {err}", file=sys.stderr)
+        for error in errors:
+            print(f"  - {error}", file=sys.stderr)
         return 1
     return 0
 

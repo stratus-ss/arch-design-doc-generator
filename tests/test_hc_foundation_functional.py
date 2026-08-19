@@ -93,18 +93,18 @@ def test_hc_collect_then_derive_metadata_writes_json(tmp_path: Path, project_roo
 
 
 def test_hc_merge_writes_unified_results_dir(tmp_path: Path, project_root: Path) -> None:
-    dir_a = tmp_path / "a" / "03_base_platform"
-    dir_b = tmp_path / "b" / "03_base_platform"
-    dir_a.mkdir(parents=True)
-    dir_b.mkdir(parents=True)
+    directory_a = tmp_path / "a" / "03_base_platform"
+    directory_b = tmp_path / "b" / "03_base_platform"
+    directory_a.mkdir(parents=True)
+    directory_b.mkdir(parents=True)
     real_cv = {
         "kind": "ClusterVersion",
         "apiVersion": "config.openshift.io/v1",
         "metadata": {"name": "version"},
         "status": {"desired": {"version": "4.18.1"}},
     }
-    (dir_a / "clusterversion.json").write_text(json.dumps(real_cv), encoding="utf-8")
-    (dir_b / "clusterversion.json").write_text(json.dumps({"_hc_error": True}), encoding="utf-8")
+    (directory_a / "clusterversion.json").write_text(json.dumps(real_cv), encoding="utf-8")
+    (directory_b / "clusterversion.json").write_text(json.dumps({"_hc_error": True}), encoding="utf-8")
     merged = tmp_path / "merged"
     result = subprocess.run(
         [

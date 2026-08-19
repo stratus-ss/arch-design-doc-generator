@@ -15,14 +15,14 @@ ok = warn = info = fail = heading = None
 BOLD = RESET = ""
 
 
-def _ui():
+def _load_setup_module():
     import setup_project as setup_module
     return setup_module
 
 
 def _bootstrap_ui() -> None:
     global ok, warn, info, fail, heading, BOLD, RESET
-    setup_module = _ui()
+    setup_module = _load_setup_module()
     ok, warn, info, fail, heading = setup_module.ok, setup_module.warn, setup_module.info, setup_module.fail, setup_module.heading
     BOLD, RESET = setup_module.BOLD, setup_module.RESET
 
@@ -31,7 +31,8 @@ def _count_drawio(workspace: Path, config: dict) -> tuple:
     """Return (phase_count, top_level_count) of .drawio files under output/Diagrams."""
     diag_root = workspace / OUTPUT_DIAGRAMS
     phase_count = 0
-    for phase in config.get("diagrams", {}).get("phase_dirs", []):
+    diagrams = config.get("diagrams", {})
+    for phase in diagrams.get("phase_dirs", []):
         phase_dir = diag_root / phase
         if phase_dir.exists():
             phase_count += len(list(phase_dir.glob("*.drawio")))
@@ -70,14 +71,29 @@ def _setup_state(workspace: Path, config: dict) -> dict:
     """Compute HLD/LLD/diagram/ADR presence state (the 'is setup complete' checks)."""
     hld_md = workspace / OUTPUT_HLD_MD
     lld_dir = workspace / OUTPUT_LLD
-    hld_phases = config.get("hld", {}).get("phase_files", [])
-    hld_found = sum(1 for filename in hld_phases if (hld_md / filename).exists()) if hld_md.exists() else 0
-    lld_phase_files = [phase.get("lld_file", "") for phase in config.get("phases", [])]
-    lld_found = sum(1 for filename in lld_phase_files if (lld_dir / filename).exists()) if lld_dir.exists() else 0
+    hld_section = config.get("hld", {})
+    hld_phases = hld_section.get("phase_files", [])
+    hld_found = 0
+    if hld_md.exists():
+        for filename in hld_phases:
+            if (hld_md / filename).exists():
+                hld_found += 1
+    lld_phase_files = []
+    for phase in config.get("phases", []):
+        lld_phase_files.append(phase.get("lld_file", ""))
+    lld_found = 0
+    if lld_dir.exists():
+        for filename in lld_phase_files:
+            if (lld_dir / filename).exists():
+                lld_found += 1
     phase_drawio, top_drawio = _count_drawio(workspace, config)
     adr_dir = workspace / "ADR"
     _adr_excluded = {"ADR_template.md", "ADR_EXAMPLE.md"}
-    adr_files = [filename for filename in adr_dir.glob("ADR_*.md") if filename.name not in _adr_excluded] if adr_dir.exists() else []
+    adr_files = []
+    if adr_dir.exists():
+        for filename in adr_dir.glob("ADR_*.md"):
+            if filename.name not in _adr_excluded:
+                adr_files.append(filename)
     setup_ok = (
         hld_found == len(hld_phases)
         and hld_found > 0
@@ -133,7 +149,8 @@ def _build_state(workspace: Path, config: dict, output_dir: Path) -> dict:
     _ = workspace
     hld_md = output_dir / "HLD" / "markdown_files"
     lld_dir = output_dir / "LLD"
-    hld_combined = config.get("hld", {}).get("combined_files", [])
+    hld_section = config.get("hld", {})
+    hld_combined = hld_section.get("combined_files", [])
     hld_stitched = False
     if hld_md.exists():
         hld_stitched = any((hld_md / filename).exists() for filename in hld_combined)
@@ -141,7 +158,8 @@ def _build_state(workspace: Path, config: dict, output_dir: Path) -> dict:
     hld_pngs = _count_glob(output_dir / "HLD" / "diagrams", "*.png")
     hld_drawio_md = _count_glob(output_dir / "HLD" / "markdown_files", "Drawio_*.md")
 
-    lld_combined_file = config.get("lld", {}).get("combined_file", "")
+    lld_section = config.get("lld", {})
+    lld_combined_file = lld_section.get("combined_file", "")
     lld_stitched = bool(lld_combined_file and (lld_dir / lld_combined_file).exists())
     lld_pdfs = _count_glob(output_dir / "LLD" / "PDFs", "*.pdf")
     lld_pngs = _count_glob(output_dir / "LLD" / "diagrams", "*.png")
@@ -386,7 +404,7 @@ def run_status(workspace: Path, project_type=None) -> None:
     client = client or "Unknown"
     engagement = config.get("engagement_type", "ocp-v")
     if project_type is None:
-        project_type = _ui().get_project_type(engagement)
+        project_type = _load_setup_module().get_project_type(engagement)
     print(f"\n  Project: {BOLD}{client}{RESET} ({code})")
     print(f"  {'─' * 50}\n")
 

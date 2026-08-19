@@ -55,10 +55,12 @@ def validate_slot_file(slots_file: Path, phases: List[str], schema_file: Path | 
     payload = json.loads(slots_file.read_text(encoding="utf-8"))
     raw_slots = payload.get("slots", payload)
     schema = json.loads(schema_path.read_text(encoding="utf-8")) if schema_path.exists() else {"slots": {}}
-    is_flat = bool(raw_slots) and all(not isinstance(v, dict) for v in raw_slots.values())
+    is_flat = bool(raw_slots) and all(not isinstance(value, dict) for value in raw_slots.values())
 
     if is_flat:
-        slots = {k: str(v).strip() if v is not None else "" for k, v in raw_slots.items()}
+        slots: dict[str, str] = {}
+        for key, value in raw_slots.items():
+            slots[key] = str(value).strip() if value is not None else ""
         errors: List[dict] = []
         warnings: List[str] = []
     else:
@@ -81,10 +83,10 @@ def validate_slot_file(slots_file: Path, phases: List[str], schema_file: Path | 
                 warnings.append(f"Required slot '{slot_name}' unresolved for {phase}.")
 
     if errors:
-        for e in errors:
-            print(f"ERROR: {e['message']}", file=sys.stderr)
+        for error in errors:
+            print(f"ERROR: {error['message']}", file=sys.stderr)
         return 1
-    for w in warnings:
-        print(f"WARN: {w}", file=sys.stderr)
+    for warning in warnings:
+        print(f"WARN: {warning}", file=sys.stderr)
     print("Schema validation: PASS", file=sys.stderr)
     return 0

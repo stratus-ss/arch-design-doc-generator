@@ -130,11 +130,11 @@ def _sha256_text(text: str) -> str:
 
 
 def load_adr_files(adr_dir: Path) -> List[Path]:
-    return sorted(p for p in adr_dir.glob("*.md") if "template" not in p.name.lower())
+    return sorted(path for path in adr_dir.glob("*.md") if "template" not in path.name.lower())
 
 
 def split_at_headings(text: str) -> List[str]:
-    boundaries = [m.start() for m in HEADING_SPLIT_RE.finditer(text)]
+    boundaries = [match.start() for match in HEADING_SPLIT_RE.finditer(text)]
     if not boundaries or boundaries[0] != 0:
         boundaries = [0] + boundaries
     sections: List[str] = []
@@ -146,10 +146,10 @@ def split_at_headings(text: str) -> List[str]:
 
 def build_chunks(adr_files: List[Path], max_chars: int, max_chunks: int) -> List[dict]:
     all_sections: List[tuple[str, str]] = []
-    for f in adr_files:
-        text = f.read_text(encoding="utf-8")
+    for adr_file in adr_files:
+        text = adr_file.read_text(encoding="utf-8")
         for section_text in split_at_headings(text):
-            all_sections.append((f.name, section_text))
+            all_sections.append((adr_file.name, section_text))
 
     chunks: List[dict] = []
     current_parts: List[tuple[str, str]] = []
@@ -158,12 +158,12 @@ def build_chunks(adr_files: List[Path], max_chars: int, max_chunks: int) -> List
     for source_file, section in all_sections:
         section_len = len(section)
         if current_parts and (current_chars + section_len > max_chars):
-            text = "\n\n".join(s for _, s in current_parts)
+            text = "\n\n".join(section_text for _, section_text in current_parts)
             chunks.append(
                 {
                     "chunk_index": len(chunks),
                     "label": f"ADR_CHUNK_{len(chunks)}",
-                    "sources": sorted({src for src, _ in current_parts}),
+                    "sources": sorted({source for source, _ in current_parts}),
                     "char_count": len(text),
                     "sha256": _sha256_text(text),
                     "text": text,
@@ -177,12 +177,12 @@ def build_chunks(adr_files: List[Path], max_chars: int, max_chunks: int) -> List
         current_chars += section_len
 
     if current_parts and len(chunks) < max_chunks:
-        text = "\n\n".join(s for _, s in current_parts)
+        text = "\n\n".join(section_text for _, section_text in current_parts)
         chunks.append(
             {
                 "chunk_index": len(chunks),
                 "label": f"ADR_CHUNK_{len(chunks)}",
-                "sources": sorted({src for src, _ in current_parts}),
+                "sources": sorted({source for source, _ in current_parts}),
                 "char_count": len(text),
                 "sha256": _sha256_text(text),
                 "text": text,
@@ -200,8 +200,8 @@ def build_chunks(adr_files: List[Path], max_chars: int, max_chunks: int) -> List
 
 def fill_prompt(template: str, variables: Dict[str, str]) -> str:
     """Replace {{VAR}} placeholders in prompt templates."""
-    for key, val in variables.items():
-        template = template.replace(f"{{{{{key}}}}}", val)
+    for key, value in variables.items():
+        template = template.replace(f"{{{{{key}}}}}", value)
     return template
 
 
@@ -243,9 +243,13 @@ def normalize_slot_entry(entry: Any, slot_name: str) -> Dict[str, str]:
     if not isinstance(entry, dict):
         entry = {"value": str(entry) if entry else ""}
 
+    raw_confidence = entry.get("confidence", "low")
+    if raw_confidence not in ("high", "medium", "low"):
+        raw_confidence = "low"
+
     return {
         "value": str(entry.get("value", "")).strip(),
-        "confidence": entry.get("confidence", "low") if entry.get("confidence") in ("high", "medium", "low") else "low",
+        "confidence": raw_confidence,
         "evidence_excerpt": str(entry.get("evidence_excerpt", ""))[:120],
         "evidence_source": str(entry.get("evidence_source", "")) or "derived_default",
     }
@@ -261,28 +265,28 @@ def merge_slots(base: Dict[str, Any], update: Dict[str, Any]) -> Dict[str, Any]:
     """
     CONF_RANK = {"high": 3, "medium": 2, "low": 1}
     merged = dict(base)
-    for k, v in update.items():
-        if not isinstance(v, dict):
+    for key, value in update.items():
+        if not isinstance(value, dict):
             continue
-        existing = base.get(k)
+        existing = base.get(key)
         if not existing:
-            merged[k] = v
+            merged[key] = value
             continue
         existing_rank = CONF_RANK.get(existing.get("confidence", "low"), 0)
-        new_rank = CONF_RANK.get(v.get("confidence", "low"), 0)
+        new_rank = CONF_RANK.get(value.get("confidence", "low"), 0)
         if new_rank > existing_rank:
-            merged[k] = v
+            merged[key] = value
         elif new_rank == existing_rank:
-            new_has_evidence = bool(v.get("evidence_excerpt", "").strip())
+            new_has_evidence = bool(value.get("evidence_excerpt", "").strip())
             old_has_evidence = bool(existing.get("evidence_excerpt", "").strip())
-            new_has_value = bool(str(v.get("value", "")).strip())
+            new_has_value = bool(str(value.get("value", "")).strip())
             old_has_value = bool(str(existing.get("value", "")).strip())
             # Prefer grounded evidence over empty excerpt
             if new_has_evidence and not old_has_evidence:
-                merged[k] = v
+                merged[key] = value
             # Prefer non-empty value over empty when both have (or lack) excerpts
             elif new_has_value and not old_has_value and not old_has_evidence:
-                merged[k] = v
+                merged[key] = value
     return merged
 
 
@@ -311,8 +315,8 @@ def run_global_prompt(chunks: List[dict], prompt_template: str, args: argparse.N
 
         try:
             raw = _invoke_ai_shared(prompt, args.tool, args.model, args.timeout, args.retries, args.cursor_python)
-        except RuntimeError as exc:
-            raise PromptAFailed(str(exc)) from exc
+        except RuntimeError as error:
+            raise PromptAFailed(str(error)) from error
         parsed = parse_json_response(raw)
 
         if parsed is None:
@@ -320,7 +324,7 @@ def run_global_prompt(chunks: List[dict], prompt_template: str, args: argparse.N
             continue
 
         parsed_any = True
-        normalized = {k: normalize_slot_entry(v, k) for k, v in parsed.items()}
+        normalized = {key: normalize_slot_entry(value, key) for key, value in parsed.items()}
         merged = merge_slots(merged, normalized)
 
     if not parsed_any:
@@ -341,12 +345,13 @@ def run_phase_prompt(
     if not phase_slot_names:
         return {}
 
-    phase_contract_json = json.dumps(contract.get("contracts", {}).get(phase, {}), indent=2)
+    contracts = contract.get("contracts", {})
+    phase_contract_json = json.dumps(contracts.get(phase, {}), indent=2)
 
     default_slot = {"value": "", "confidence": "low", "evidence_excerpt": "", "evidence_source": "derived_default"}
-    global_phase_slots = {k: global_slots.get(k, default_slot) for k in phase_slot_names}
+    global_phase_slots = {key: global_slots.get(key, default_slot) for key in phase_slot_names}
 
-    combined_text = "\n\n".join(c.get("text", "") for c in chunks)
+    combined_text = "\n\n".join(chunk.get("text", "") for chunk in chunks)
     label = f"ALL_ADR_CHUNKS ({len(combined_text)} chars)"
     print(f"  [Prompt B:{phase}] Refining {len(phase_slot_names)} slots...", file=sys.stderr)
 
@@ -355,7 +360,7 @@ def run_phase_prompt(
         {
             "PHASE": phase,
             "PHASE_CONTRACT": phase_contract_json,
-            "PHASE_SLOT_LIST": "\n".join(f"- `{s}`" for s in phase_slot_names),
+            "PHASE_SLOT_LIST": "\n".join(f"- `{slot_name}`" for slot_name in phase_slot_names),
             "GLOBAL_SLOTS_JSON": json.dumps(global_phase_slots, indent=2),
             "ADR_CHUNK_LABEL": label,
             "ADR_CONTENT": combined_text[: args.phase_max_chars],
@@ -369,7 +374,7 @@ def run_phase_prompt(
         print(f"  [Prompt B:{phase}] Warning: could not parse JSON. Keeping global values.", file=sys.stderr)
         return {}
 
-    return {k: normalize_slot_entry(v, k) for k, v in parsed.items() if k in phase_slot_names}
+    return {key: normalize_slot_entry(value, key) for key, value in parsed.items() if key in phase_slot_names}
 
 
 def run_repair_prompt(
@@ -380,7 +385,7 @@ def run_repair_prompt(
     args: argparse.Namespace,
 ) -> Dict[str, Any]:
     """Run Prompt C to repair schema validation errors."""
-    combined_text = "\n\n".join(c.get("text", "") for c in chunks)
+    combined_text = "\n\n".join(chunk.get("text", "") for chunk in chunks)
     print(f"  [Prompt C] Repairing {len(errors)} error(s)...", file=sys.stderr)
 
     prompt = fill_prompt(
@@ -400,7 +405,7 @@ def run_repair_prompt(
         print("  [Prompt C] Warning: could not parse repaired JSON.", file=sys.stderr)
         return current_slots
 
-    return {k: normalize_slot_entry(v, k) for k, v in parsed.items()}
+    return {key: normalize_slot_entry(value, key) for key, value in parsed.items()}
 
 
 def run_empty_slot_repair(
@@ -418,7 +423,7 @@ def run_empty_slot_repair(
         return merged_slots
 
     print(f"=== Stage D: Empty-required slot repair ({len(empty_keys)} keys) ===", file=sys.stderr)
-    combined_text = "\n\n".join(c.get("text", "") for c in chunks)
+    combined_text = "\n\n".join(chunk.get("text", "") for chunk in chunks)
     prompt = fill_prompt(
         prompt_template,
         {
@@ -433,7 +438,7 @@ def run_empty_slot_repair(
         print("  [empty-repair] Warning: could not parse JSON. Keeping current values.", file=sys.stderr)
         return merged_slots
     allowed = set(empty_keys)
-    updates = {k: normalize_slot_entry(v, k) for k, v in parsed.items() if k in allowed}
+    updates = {key: normalize_slot_entry(value, key) for key, value in parsed.items() if key in allowed}
     (run_dir / "empty_repair_raw.json").write_text(json.dumps(updates, indent=2) + "\n", encoding="utf-8")
     return merge_slots(merged_slots, updates)
 
@@ -449,11 +454,11 @@ def collect_all_placeholders(template_paths: List[Path]) -> List[str]:
 def flatten_for_render(evidence_slots: Dict[str, Any]) -> Dict[str, str]:
     """Convert evidence-envelope slots to simple str->str for deterministic render."""
     result: Dict[str, str] = {}
-    for k, v in evidence_slots.items():
-        if isinstance(v, dict):
-            result[k] = str(v.get("value", "")).strip()
+    for key, value in evidence_slots.items():
+        if isinstance(value, dict):
+            result[key] = str(value.get("value", "")).strip()
         else:
-            result[k] = str(v).strip()
+            result[key] = str(value).strip()
     return result
 
 
@@ -529,9 +534,9 @@ def _load_prompts(args: argparse.Namespace, prompts_dir: Path) -> tuple[str, str
     prompt_repair_path = Path(args.prompt_repair) if args.prompt_repair else prompts_dir / "extract_hld_slots_repair.md"
     prompt_empty_path = prompts_dir / "extract_hld_slots_empty.md"
 
-    for p in [prompt_global_path, prompt_phase_path, prompt_repair_path, prompt_empty_path]:
-        if not p.exists():
-            raise SystemExit(f"Prompt file not found: {p}")
+    for prompt_path in [prompt_global_path, prompt_phase_path, prompt_repair_path, prompt_empty_path]:
+        if not prompt_path.exists():
+            raise SystemExit(f"Prompt file not found: {prompt_path}")
 
     return (
         prompt_global_path.read_text(encoding="utf-8"),
@@ -543,7 +548,7 @@ def _load_prompts(args: argparse.Namespace, prompts_dir: Path) -> tuple[str, str
 
 def _write_chunk_manifest(run_dir: Path, adr_files: List[Path], chunks: List[dict]) -> dict:
     manifest = {
-        "adr_files": [f.name for f in adr_files],
+        "adr_files": [adr_file.name for adr_file in adr_files],
         "chunk_count": len(chunks),
         "chunks": chunks,
     }
@@ -584,10 +589,10 @@ def _extract_global_slots_with_fallback(
         global_slots = _extract_global_slots(chunks, prompt_global, args, client_name, project_code, run_dir)
         used = "chunked" if adr_mode == "chunked" else "single"
         return global_slots, chunks, used
-    except PromptAFailed as exc:
+    except PromptAFailed as error:
         if adr_mode == "chunked":
-            raise SystemExit(f"Prompt A failed in chunked mode: {exc}") from exc
-        print(f"Single-pass Prompt A failed ({exc}). Retrying with 8x12k chunks.", file=sys.stderr)
+            raise SystemExit(f"Prompt A failed in chunked mode: {error}") from error
+        print(f"Single-pass Prompt A failed ({error}). Retrying with 8x12k chunks.", file=sys.stderr)
         adr_files = load_adr_files(adr_dir)
         chunks = build_chunks(adr_files, args.max_chars, args.max_chunks)
         _write_chunk_manifest(run_dir, adr_files, chunks)
@@ -602,10 +607,10 @@ def _extract_global_slots(
     global_slots = run_global_prompt(chunks, prompt_global, args)
     (run_dir / "global_slots_raw.json").write_text(json.dumps(global_slots, indent=2) + "\n", encoding="utf-8")
 
-    for slot, val in [("CLIENT", client_name), ("CLIENT_NAME", client_name), ("PROJECT_CODE", project_code)]:
+    for slot, value in [("CLIENT", client_name), ("CLIENT_NAME", client_name), ("PROJECT_CODE", project_code)]:
         if client_name and (slot not in global_slots or not global_slots[slot].get("value")):
             global_slots[slot] = {
-                "value": val,
+                "value": value,
                 "confidence": "high",
                 "evidence_excerpt": "",
                 "evidence_source": "project.yaml",
@@ -659,7 +664,7 @@ def _validate_and_repair(
 
 def _finalize_and_write(merged_slots: dict, manifest: dict, args: argparse.Namespace) -> None:
     merged_slots = apply_derived_slots(merged_slots)
-    template_paths = [Path(t) for t in args.templates]
+    template_paths = [Path(template) for template in args.templates]
     all_placeholders = collect_all_placeholders(template_paths)
     flat_slots = flatten_for_render(merged_slots)
 
@@ -672,7 +677,7 @@ def _finalize_and_write(merged_slots: dict, manifest: dict, args: argparse.Names
         "tool": args.tool,
         "model": args.model,
         "adr_files": manifest.get("adr_files", []),
-        "slots": {k: flat_slots[k] for k in sorted(flat_slots)},
+        "slots": {key: flat_slots[key] for key in sorted(flat_slots)},
     }
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -696,8 +701,8 @@ def main() -> None:
     import yaml
     from config import get_client_identity
 
-    cfg = yaml.safe_load(Path(args.project_yaml).read_text(encoding="utf-8")) or {}
-    client_name, project_code = get_client_identity(cfg)
+    config = yaml.safe_load(Path(args.project_yaml).read_text(encoding="utf-8")) or {}
+    client_name, project_code = get_client_identity(config)
 
     contract: dict = {}
     if args.contract and Path(args.contract).exists():
@@ -711,7 +716,7 @@ def main() -> None:
     manifest["chunk_count"] = len(chunks)
     manifest["adr_mode_used"] = adr_mode_used
     merged_slots = _refine_phases(global_slots, contract, chunks, prompt_phase, args, run_dir)
-    merged_slots = apply_yaml_overlay(merged_slots, cfg)
+    merged_slots = apply_yaml_overlay(merged_slots, config)
     schema_path = Path(__file__).parent / "slot_schema.json"
     schema: dict = json.loads(schema_path.read_text(encoding="utf-8")) if schema_path.exists() else {}
     merged_slots = run_empty_slot_repair(merged_slots, chunks, prompt_empty, args, run_dir, schema)

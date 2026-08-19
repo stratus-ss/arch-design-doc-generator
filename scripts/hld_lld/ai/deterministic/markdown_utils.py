@@ -61,7 +61,7 @@ def parse_section_citations(text: str) -> Dict[str, List[str]]:
             while heading_stack and heading_stack[-1][0] >= level:
                 heading_stack.pop()
             heading_stack.append((level, title))
-        path = " > ".join(h[1] for h in heading_stack) if heading_stack else "__root__"
+        path = " > ".join(heading[1] for heading in heading_stack) if heading_stack else "__root__"
         citations = CITATION_RE.findall(line)
         if citations:
             section_citations.setdefault(path, []).extend(citations)
@@ -74,9 +74,9 @@ def parse_headings_and_tables(text: str) -> Tuple[List[Tuple[int, str]], List[Tu
     tables: List[Tuple[str, str, int]] = []
     heading_stack: List[Tuple[int, str]] = []
 
-    i = 0
-    while i < len(lines):
-        line = lines[i]
+    index = 0
+    while index < len(lines):
+        line = lines[index]
         heading_match = HEADING_RE.match(line)
         if heading_match:
             level = len(heading_match.group(1))
@@ -88,16 +88,16 @@ def parse_headings_and_tables(text: str) -> Tuple[List[Tuple[int, str]], List[Tu
 
         if line.strip().startswith("|"):
             block = []
-            while i < len(lines) and lines[i].strip().startswith("|"):
-                block.append(lines[i].rstrip())
-                i += 1
+            while index < len(lines) and lines[index].strip().startswith("|"):
+                block.append(lines[index].rstrip())
+                index += 1
             if len(block) >= 2:
                 sep = block[1].replace("|", "").strip().replace(" ", "")
                 if sep and set(sep) <= set("-:"):
-                    path = " > ".join(h[1] for h in heading_stack)
+                    path = " > ".join(heading[1] for heading in heading_stack)
                     tables.append((path, block[0].strip(), max(0, len(block) - 2)))
             continue
-        i += 1
+        index += 1
     return headings, tables
 
 
@@ -217,9 +217,9 @@ def _write_slot_envelope(slot_map: dict, key: str, value: str, source: str) -> N
     }
 
 
-def apply_registry_mirror_policy(slots: dict, project_cfg: dict) -> dict:
+def apply_registry_mirror_policy(slots: dict, project_config: dict) -> dict:
     """Copy IMAGE_REGISTRY into empty REGISTRY_MIRROR when policy requests it."""
-    policy = str(project_cfg.get("registry_mirror_policy") or "unset").strip()
+    policy = str(project_config.get("registry_mirror_policy") or "unset").strip()
     if policy != MIRROR_POLICY_COPY:
         return slots
     if not _is_blank_slot_value(slots.get("REGISTRY_MIRROR", "")):
@@ -231,9 +231,9 @@ def apply_registry_mirror_policy(slots: dict, project_cfg: dict) -> dict:
     return slots
 
 
-def apply_yaml_overlay(slots: dict, project_cfg: dict) -> dict:
+def apply_yaml_overlay(slots: dict, project_config: dict) -> dict:
     """Apply nonempty project.yaml slots: keys. Empty overlay does not wipe extract."""
-    overlay = project_cfg.get("slots")
+    overlay = project_config.get("slots")
     if not isinstance(overlay, dict):
         overlay = {}
     for key in OVERLAY_SLOT_KEYS:
@@ -246,7 +246,7 @@ def apply_yaml_overlay(slots: dict, project_cfg: dict) -> dict:
         if value in BLANK_SLOT_VALUES:
             continue
         _write_slot_envelope(slots, key, value, "project.yaml")
-    apply_registry_mirror_policy(slots, project_cfg)
+    apply_registry_mirror_policy(slots, project_config)
     return slots
 
 
@@ -280,8 +280,8 @@ def render_contract_text(value: str, slot_map: dict) -> str:
         raw = slot_map.get(token, "")
         if isinstance(raw, dict):
             raw = raw.get("value", "")
-        v = str(raw).strip()
-        return v if v else "{TBD}"
+        value = str(raw).strip()
+        return value if value else "{TBD}"
 
     return PLACEHOLDER_TOKEN_RE.sub(repl, value)
 
@@ -307,11 +307,11 @@ def render_drawio_tree(examples_dir: Path, dest_root: Path, slot_map: dict) -> i
         return 0
     dest_root.mkdir(parents=True, exist_ok=True)
     written = 0
-    for src in sorted(examples_dir.glob("*.drawio")):
-        phase = diagram_dest_for(src.name)
+    for source in sorted(examples_dir.glob("*.drawio")):
+        phase = diagram_dest_for(source.name)
         dest_dir = dest_root / phase if phase else dest_root
         dest_dir.mkdir(parents=True, exist_ok=True)
-        text = src.read_text(encoding="utf-8")
-        dest_dir.joinpath(src.name).write_text(render_contract_text(text, slot_map), encoding="utf-8")
+        text = source.read_text(encoding="utf-8")
+        dest_dir.joinpath(source.name).write_text(render_contract_text(text, slot_map), encoding="utf-8")
         written += 1
     return written

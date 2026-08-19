@@ -189,13 +189,13 @@ def process_templates(workspace: Path, client_name: str, file_prefix: str, templ
     }
 
     changed = 0
-    for dir_rel in template_dirs:
-        dir_path = workspace / dir_rel
-        if not dir_path.exists():
+    for directory_relative in template_dirs:
+        directory_path = workspace / directory_relative
+        if not directory_path.exists():
             continue
-        for md in dir_path.rglob("*"):
-            if md.suffix in TEMPLATE_EXTENSIONS and md.is_file():
-                if replace_placeholders_in_file(md, replacements):
+        for markdown_file in directory_path.rglob("*"):
+            if markdown_file.suffix in TEMPLATE_EXTENSIONS and markdown_file.is_file():
+                if replace_placeholders_in_file(markdown_file, replacements):
                     changed += 1
 
     info(f"Updated {changed} file(s) with client placeholders.")
@@ -435,8 +435,8 @@ def scaffold_directories(workspace: Path, dirs: tuple[str, ...]) -> None:
     heading("Scaffolding directories...")
 
     created = 0
-    for d in dirs:
-        path = workspace / d
+    for directory in dirs:
+        path = workspace / directory
         if not path.exists():
             path.mkdir(parents=True, exist_ok=True)
             (path / ".gitkeep").touch()

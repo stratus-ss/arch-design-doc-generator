@@ -39,12 +39,12 @@ DEP_ROW_RE = re.compile(r"^\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|$")
 TIER_HEADER_RE = re.compile(r"^\|.*DC.*\|.*Tier 2.*\|.*Tier 3 Site.*\|", re.IGNORECASE)
 
 
-def _build_phase_maps(cfg: dict) -> tuple[dict[str, str], dict[str, str], dict[str, str]]:
+def _build_phase_maps(config: dict) -> tuple[dict[str, str], dict[str, str], dict[str, str]]:
     """Build phase file/name/dir maps keyed by yaml phase id."""
     phase_files = {}
     phase_names = {}
     phase_dir_names = {}
-    for phase in cfg["phases"]:
+    for phase in config["phases"]:
         phase_id = str(phase["id"])
         phase_files[phase_id] = phase["lld_file"]
         phase_names[phase_id] = f"{phase_id} — {phase['name']}"
@@ -62,7 +62,7 @@ def _normalize_phase_token(token: str) -> str:
 @dataclass
 class LLDSection:
     lld_id: str
-    lld_num: int
+    lld_number: int
     title: str
     full_heading: str
     description: str = ""
@@ -79,10 +79,10 @@ class LLDSection:
 def _build_section(match: re.Match, section_lines: list[str]) -> LLDSection:
     """Parse a single LLD section block into an LLDSection."""
     full_heading = match.group(1)
-    lld_num = int(match.group(2))
+    lld_number = int(match.group(2))
     title = match.group(3).strip()
-    lld_id = f"LLD-{lld_num:02d}"
-    sec = LLDSection(lld_id=lld_id, lld_num=lld_num, title=title, full_heading=full_heading)
+    lld_id = f"LLD-{lld_number:02d}"
+    sec = LLDSection(lld_id=lld_id, lld_number=lld_number, title=title, full_heading=full_heading)
     subsections = _split_subsections(section_lines)
     sec.raw_subsections = subsections
 
@@ -95,26 +95,38 @@ def _build_section(match: re.Match, section_lines: list[str]) -> LLDSection:
 
     cg_raw = subsections.get("Prerequisites", "") or subsections.get("Completion Gates", "")
     for line in cg_raw.split("\n"):
-        m = CG_ROW_RE.match(line)
-        if m:
-            cg_id = m.group(1).strip()
-            cols = [c.strip() for c in m.group(2).split("|")]
-            item = cols[0] if cols else ""
+        match = CG_ROW_RE.match(line)
+        if match:
+            cg_id = match.group(1).strip()
+            columns = []
+            for column_text in match.group(2).split("|"):
+                columns.append(column_text.strip())
+            item = columns[0] if columns else ""
             sec.completion_gates.append(f"{cg_id}: {item}")
 
     _parse_dependencies(sec, subsections.get("Dependencies", ""))
     sec.impl_full = subsections.get("Implementation Procedure", "").strip()
 
     for line in subsections.get("Acceptance Criteria", "").split("\n"):
-        m = AC_ROW_RE.match(line)
-        if m:
-            ac_id = m.group(1).strip()
-            cols = [c.strip() for c in m.group(2).split("|")]
-            criterion = cols[0] if cols else ""
+        match = AC_ROW_RE.match(line)
+        if match:
+            ac_id = match.group(1).strip()
+            columns = []
+            for column_text in match.group(2).split("|"):
+                columns.append(column_text.strip())
+            criterion = columns[0] if columns else ""
             sec.acceptance_criteria.append(f"{ac_id}: {criterion}")
 
-    tv_lines = [ln for ln in subsections.get("Tier Variance", "").strip().split("\n") if ln.strip()]
-    if tv_lines and any(TIER_HEADER_RE.match(ln) for ln in tv_lines):
+    tier_variance_lines = []
+    for line in subsections.get("Tier Variance", "").strip().split("\n"):
+        if line.strip():
+            tier_variance_lines.append(line)
+    has_tier_header = False
+    for line in tier_variance_lines:
+        if TIER_HEADER_RE.match(line):
+            has_tier_header = True
+            break
+    if tier_variance_lines and has_tier_header:
         sec.has_tier_variance = True
         sec.tier_scope = "DC, Tier 2, Tier 3 Site (variance exists)"
     else:
@@ -134,14 +146,14 @@ def parse_phase_file(filepath: Path) -> tuple[str, list[LLDSection]]:
             break
 
     section_starts: list[tuple[int, re.Match]] = []
-    for i, line in enumerate(lines):
-        m = SECTION_HEADING_RE.match(line)
-        if m:
-            section_starts.append((i, m))
+    for line_index, line in enumerate(lines):
+        match = SECTION_HEADING_RE.match(line)
+        if match:
+            section_starts.append((line_index, match))
 
     sections: list[LLDSection] = []
-    for idx, (start_line, match) in enumerate(section_starts):
-        end_line = section_starts[idx + 1][0] if idx + 1 < len(section_starts) else len(lines)
+    for index, (start_line, match) in enumerate(section_starts):
+        end_line = section_starts[index + 1][0] if index + 1 < len(section_starts) else len(lines)
         sections.append(_build_section(match, lines[start_line:end_line]))
 
     return phase_title, sections
@@ -157,10 +169,10 @@ def _parse_dependencies(sec: LLDSection, dep_text: str) -> None:
             continue
         if not past_header:
             continue
-        m = DEP_ROW_RE.match(stripped)
-        if m:
-            blocked_by = m.group(1).strip()
-            reason = m.group(2).strip()
+        match = DEP_ROW_RE.match(stripped)
+        if match:
+            blocked_by = match.group(1).strip()
+            reason = match.group(2).strip()
             if blocked_by and blocked_by != "Blocked By":
                 sec.dependencies.append((blocked_by, reason))
 
@@ -171,10 +183,10 @@ def _split_subsections(section_lines: list[str]) -> dict[str, str]:
     current_lines: list[str] = []
 
     for line in section_lines[1:]:
-        m = SUBSECTION_RE.match(line)
-        if m:
+        match = SUBSECTION_RE.match(line)
+        if match:
             result[current_key] = "\n".join(current_lines)
-            current_key = m.group(1).strip()
+            current_key = match.group(1).strip()
             current_lines = []
         else:
             current_lines.append(line)
@@ -184,7 +196,7 @@ def _split_subsections(section_lines: list[str]) -> dict[str, str]:
 
 
 def render_work_item_md(sec: LLDSection, phase_id: str, phase_dir_names: dict, phase_names: dict) -> str:
-    blocked_by_summary = ", ".join(b for b, _ in sec.dependencies) if sec.dependencies else "None"
+    blocked_by_summary = ", ".join(blocked_by for blocked_by, _ in sec.dependencies) if sec.dependencies else "None"
 
     lines = [
         f"# [{phase_dir_names[phase_id].split('_')[0]}-{sec.lld_id}] {sec.title}",
@@ -210,8 +222,8 @@ def render_work_item_md(sec: LLDSection, phase_id: str, phase_dir_names: dict, p
 
     if sec.completion_gates:
         lines += ["## Definition of Done"]
-        for cg in sec.completion_gates:
-            lines.append(f"- [ ] {cg}")
+        for completion_gate in sec.completion_gates:
+            lines.append(f"- [ ] {completion_gate}")
         lines.append("")
 
     if sec.impl_full:
@@ -219,8 +231,8 @@ def render_work_item_md(sec: LLDSection, phase_id: str, phase_dir_names: dict, p
 
     if sec.acceptance_criteria:
         lines += ["## Acceptance Criteria"]
-        for ac in sec.acceptance_criteria:
-            lines.append(f"- [ ] {ac}")
+        for criterion in sec.acceptance_criteria:
+            lines.append(f"- [ ] {criterion}")
         lines.append("")
 
     return "\n".join(lines)
@@ -229,7 +241,7 @@ def render_work_item_md(sec: LLDSection, phase_id: str, phase_dir_names: dict, p
 def render_csv_row(sec: LLDSection, phase_id: str, phase_dir_names: dict, phase_names: dict) -> dict[str, str]:
     ac_text = "; ".join(sec.acceptance_criteria) if sec.acceptance_criteria else ""
     cg_text = "; ".join(sec.completion_gates) if sec.completion_gates else ""
-    blocked_by = ", ".join(b for b, _ in sec.dependencies) if sec.dependencies else ""
+    blocked_by = ", ".join(blocked_by for blocked_by, _ in sec.dependencies) if sec.dependencies else ""
     return {
         "Summary": f"[{phase_dir_names[phase_id].split('_')[0]}-{sec.lld_id}] {sec.title}",
         "Description": sec.description,
@@ -277,12 +289,12 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    cfg = load_config(args.config)
-    phase_files, phase_names, phase_dir_names = _build_phase_maps(cfg)
+    config = load_config(args.config)
+    phase_files, phase_names, phase_dir_names = _build_phase_maps(config)
 
     project_root = find_project_yaml(args.config).parent if args.config else find_project_yaml().parent
-    lld_dir = args.lld_dir or (project_root / cfg["paths"]["lld"])
-    output_dir = args.output_dir or (project_root / cfg["paths"]["work_items"])
+    lld_dir = args.lld_dir or (project_root / config["paths"]["lld"])
+    output_dir = args.output_dir or (project_root / config["paths"]["work_items"])
     if args.phases:
         phases_to_process = [_normalize_phase_token(token) for token in args.phases]
     else:
@@ -337,8 +349,8 @@ def main() -> None:
             "Tier Scope",
             "Blocked By",
         ]
-        with open(csv_path, "w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
+        with open(csv_path, "w", newline="", encoding="utf-8") as csv_file:
+            writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(all_csv_rows)
         print(f"  CSV: {csv_path} ({len(all_csv_rows)} rows)")

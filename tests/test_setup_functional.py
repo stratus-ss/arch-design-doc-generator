@@ -50,8 +50,8 @@ def test_setup_ocpv(tmp_path: Path, project_root: Path) -> None:
 
     project_yaml = tmp_path / "project.yaml"
     assert project_yaml.exists()
-    cfg = yaml.safe_load(project_yaml.read_text(encoding="utf-8"))
-    assert cfg["client_name"] == "Test Client"
+    config = yaml.safe_load(project_yaml.read_text(encoding="utf-8"))
+    assert config["client_name"] == "Test Client"
 
     # Client working copies land under output/
     assert (tmp_path / "output" / "HLD" / "markdown_files" / "Test_OCP-V_HLD_DecisionJourney_phase1.md").exists()

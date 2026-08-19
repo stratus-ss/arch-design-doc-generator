@@ -39,7 +39,7 @@ def cmd_chunk(args: argparse.Namespace) -> int:
     chunks = slots.build_chunks(adr_files, args.max_chars, args.max_chunks)
     manifest = {
         "adr_dir": str(adr_dir),
-        "adr_files": [f.name for f in adr_files],
+        "adr_files": [adr_file.name for adr_file in adr_files],
         "max_chars_per_chunk": args.max_chars,
         "max_chunks": args.max_chunks,
         "chunk_count": len(chunks),
@@ -104,12 +104,12 @@ def cmd_validate_slots(args: argparse.Namespace) -> int:
 
 
 def cmd_build_contract(args: argparse.Namespace) -> int:
-    render.build_contract([Path(t) for t in args.templates], Path(args.out))
+    render.build_contract([Path(template_path) for template_path in args.templates], Path(args.out))
     return 0
 
 
 def cmd_build_citation_lock(args: argparse.Namespace) -> int:
-    render.build_citation_lock([Path(p) for p in args.canonical_files], Path(args.out))
+    render.build_citation_lock([Path(canonical_path) for canonical_path in args.canonical_files], Path(args.out))
     return 0
 
 
@@ -150,21 +150,21 @@ def cmd_inspect_slots(args: argparse.Namespace) -> int:
     if not slot_file.exists():
         print("No slot map found. Run draft-hld-ai-normalize first.", file=sys.stderr)
         return 1
-    p = json.loads(slot_file.read_text(encoding="utf-8"))
-    extractor = p.get("extractor", "rules")
-    adr_files = p.get("adr_files", [])
-    slots_map = p.get("slots", {})
-    tbd = sorted(k for k, v in slots_map.items() if str(v) in ("{TBD}", ""))
-    filled = {k: v for k, v in slots_map.items() if str(v) not in ("{TBD}", "")}
+    payload = json.loads(slot_file.read_text(encoding="utf-8"))
+    extractor = payload.get("extractor", "rules")
+    adr_files = payload.get("adr_files", [])
+    slots_map = payload.get("slots", {})
+    tbd = sorted(key for key, value in slots_map.items() if str(value) in ("{TBD}", ""))
+    filled = {key: value for key, value in slots_map.items() if str(value) not in ("{TBD}", "")}
     print(f"Extractor : {extractor}")
     print(f"ADR files : {adr_files}")
     print(f"Slots     : {len(filled)} filled, {len(tbd)} unresolved\n")
-    for k, v in sorted(filled.items()):
-        print(f"  {k:<35} {v!r}")
+    for key, value in sorted(filled.items()):
+        print(f"  {key:<35} {value!r}")
     if tbd:
         print(f"\n  Unresolved ({len(tbd)}):")
-        for k in tbd:
-            print(f"    {k}")
+        for key in tbd:
+            print(f"    {key}")
     return 0
 
 
@@ -176,10 +176,10 @@ def cmd_inspect_chunks(args: argparse.Namespace) -> int:
         return 1
     chunks = slots.build_chunks(files, args.max_chars, args.max_chunks)
     print(f"ADR directory : {adr_dir}")
-    print(f"ADR files     : {[f.name for f in files]}")
+    print(f"ADR files     : {[adr_file.name for adr_file in files]}")
     print(f"Chunks        : {len(chunks)}  (max {args.max_chars:,} chars each)\n")
-    for c in chunks:
-        print(f"  chunk_{c['chunk_index']}: {c['char_count']:>6,} chars  sources={c['sources']}")
+    for chunk in chunks:
+        print(f"  chunk_{chunk['chunk_index']}: {chunk['char_count']:>6,} chars  sources={chunk['sources']}")
     return 0
 
 
@@ -198,9 +198,9 @@ def _build_repeatability_cmd(args: argparse.Namespace, script: Path) -> list[str
 
 def _hash_phase_outputs(project_root: Path, phases: list[str]) -> dict[str, str]:
     hashes: dict[str, str] = {}
-    for p in phases:
-        f = project_root / "output" / "drafts_deterministic" / f"draft_hld_{p}.md"
-        hashes[p] = hashlib.sha256(f.read_bytes()).hexdigest() if f.exists() else "MISSING"
+    for phase in phases:
+        draft_file = project_root / "output" / "drafts_deterministic" / f"draft_hld_{phase}.md"
+        hashes[phase] = hashlib.sha256(draft_file.read_bytes()).hexdigest() if draft_file.exists() else "MISSING"
     return hashes
 
 
@@ -227,10 +227,10 @@ def _run_repeatability_pass(
 def _find_hash_drifts(all_hashes: list[dict[str, str]]) -> list[str]:
     baseline = all_hashes[0] if all_hashes else {}
     drifts = []
-    for idx, run_hashes in enumerate(all_hashes[1:], start=2):
-        for k in sorted(set(baseline.keys()) | set(run_hashes.keys())):
-            if baseline.get(k) != run_hashes.get(k):
-                drifts.append(f"Run 1 vs Run {idx}: {k} mismatch")
+    for index, run_hashes in enumerate(all_hashes[1:], start=2):
+        for key in sorted(set(baseline.keys()) | set(run_hashes.keys())):
+            if baseline.get(key) != run_hashes.get(key):
+                drifts.append(f"Run 1 vs Run {index}: {key} mismatch")
     return drifts
 
 
@@ -243,9 +243,9 @@ def cmd_test_repeatability(args: argparse.Namespace) -> int:
 
     all_hashes: list[dict[str, str]] = []
     for _ in range(1, args.runs + 1):
-        hashes, rc = _run_repeatability_pass(args, project_root, script)
+        hashes, return_code = _run_repeatability_pass(args, project_root, script)
         if hashes is None:
-            return rc
+            return return_code
         all_hashes.append(hashes)
 
     drifts = _find_hash_drifts(all_hashes)
@@ -260,8 +260,8 @@ def cmd_test_repeatability(args: argparse.Namespace) -> int:
     if args.out:
         _write_json(Path(args.out), payload)
     if drifts:
-        for d in drifts:
-            print(d, file=sys.stderr)
+        for drift in drifts:
+            print(drift, file=sys.stderr)
         return 1
     print(f"PASS: All {args.runs} run(s) produced identical output hashes.")
     return 0
@@ -269,105 +269,105 @@ def cmd_test_repeatability(args: argparse.Namespace) -> int:
 
 def _add_extraction_subparsers(sub: argparse._SubParsersAction) -> None:
     """Subcommands for chunking ADRs and extracting slots: chunk, extract-ai, validate-slots."""
-    p = sub.add_parser("chunk")
-    p.add_argument("--adr-dir", required=True)
-    p.add_argument("--out", required=True)
-    p.add_argument("--max-chars", type=int, default=12000)
-    p.add_argument("--max-chunks", type=int, default=8)
-    p.add_argument("--include-text", action=argparse.BooleanOptionalAction, default=True)
-    p.set_defaults(func=cmd_chunk)
+    subparser = sub.add_parser("chunk")
+    subparser.add_argument("--adr-dir", required=True)
+    subparser.add_argument("--out", required=True)
+    subparser.add_argument("--max-chars", type=int, default=12000)
+    subparser.add_argument("--max-chunks", type=int, default=8)
+    subparser.add_argument("--include-text", action=argparse.BooleanOptionalAction, default=True)
+    subparser.set_defaults(func=cmd_chunk)
 
-    p = sub.add_parser("extract-ai")
-    p.add_argument("--adr-dir", required=True)
-    p.add_argument("--project-yaml", required=True)
-    p.add_argument("--templates", nargs="+", required=True)
-    p.add_argument("--out", required=True)
-    p.add_argument("--run-dir", required=True)
-    p.add_argument("--tool", default="cursor")
-    p.add_argument("--model", default="claude-sonnet-4-6")
-    p.add_argument("--cursor-python", default="python3")
-    p.add_argument("--timeout", type=int, default=900)
-    p.add_argument("--retries", type=int, default=3)
-    p.add_argument("--max-chars", type=int, default=12000)
-    p.add_argument("--max-chunks", type=int, default=8)
-    p.add_argument("--phase-max-chars", type=int, default=24000)
-    p.add_argument("--max-repair-rounds", type=int, default=2)
-    p.add_argument("--prompt-global", default="")
-    p.add_argument("--prompt-phase", default="")
-    p.add_argument("--prompt-repair", default="")
-    p.add_argument("--contract", default="")
-    p.add_argument("--chunk-manifest", default="")
-    p.add_argument("--adr-mode", choices=["auto", "chunked"], default="auto")
-    p.add_argument("--refine-phases", action="store_true")
-    p.set_defaults(func=cmd_extract_ai)
+    subparser = sub.add_parser("extract-ai")
+    subparser.add_argument("--adr-dir", required=True)
+    subparser.add_argument("--project-yaml", required=True)
+    subparser.add_argument("--templates", nargs="+", required=True)
+    subparser.add_argument("--out", required=True)
+    subparser.add_argument("--run-dir", required=True)
+    subparser.add_argument("--tool", default="cursor")
+    subparser.add_argument("--model", default="claude-sonnet-4-6")
+    subparser.add_argument("--cursor-python", default="python3")
+    subparser.add_argument("--timeout", type=int, default=900)
+    subparser.add_argument("--retries", type=int, default=3)
+    subparser.add_argument("--max-chars", type=int, default=12000)
+    subparser.add_argument("--max-chunks", type=int, default=8)
+    subparser.add_argument("--phase-max-chars", type=int, default=24000)
+    subparser.add_argument("--max-repair-rounds", type=int, default=2)
+    subparser.add_argument("--prompt-global", default="")
+    subparser.add_argument("--prompt-phase", default="")
+    subparser.add_argument("--prompt-repair", default="")
+    subparser.add_argument("--contract", default="")
+    subparser.add_argument("--chunk-manifest", default="")
+    subparser.add_argument("--adr-mode", choices=["auto", "chunked"], default="auto")
+    subparser.add_argument("--refine-phases", action="store_true")
+    subparser.set_defaults(func=cmd_extract_ai)
 
-    p = sub.add_parser("validate-slots")
-    p.add_argument("--slots", required=True)
-    p.add_argument("--schema", default="")
-    p.add_argument("--phases", nargs="*", default=["phase1", "phase2", "phase3", "phase4"])
-    p.set_defaults(func=cmd_validate_slots)
+    subparser = sub.add_parser("validate-slots")
+    subparser.add_argument("--slots", required=True)
+    subparser.add_argument("--schema", default="")
+    subparser.add_argument("--phases", nargs="*", default=["phase1", "phase2", "phase3", "phase4"])
+    subparser.set_defaults(func=cmd_validate_slots)
 
 
 def _add_render_subparsers(sub: argparse._SubParsersAction) -> None:
     """Subcommands for rendering and validating HLD output: build-contract through validate-hld."""
-    p = sub.add_parser("build-contract")
-    p.add_argument("--templates", nargs="+", required=True)
-    p.add_argument("--out", required=True)
-    p.set_defaults(func=cmd_build_contract)
+    subparser = sub.add_parser("build-contract")
+    subparser.add_argument("--templates", nargs="+", required=True)
+    subparser.add_argument("--out", required=True)
+    subparser.set_defaults(func=cmd_build_contract)
 
-    p = sub.add_parser("build-citation-lock")
-    p.add_argument("--canonical-files", nargs="+", required=True)
-    p.add_argument("--out", required=True)
-    p.set_defaults(func=cmd_build_citation_lock)
+    subparser = sub.add_parser("build-citation-lock")
+    subparser.add_argument("--canonical-files", nargs="+", required=True)
+    subparser.add_argument("--out", required=True)
+    subparser.set_defaults(func=cmd_build_citation_lock)
 
-    p = sub.add_parser("render-phase")
-    p.add_argument("--template", required=True)
-    p.add_argument("--slots", required=True)
-    p.add_argument("--out", required=True)
-    p.set_defaults(func=cmd_render_phase)
+    subparser = sub.add_parser("render-phase")
+    subparser.add_argument("--template", required=True)
+    subparser.add_argument("--slots", required=True)
+    subparser.add_argument("--out", required=True)
+    subparser.set_defaults(func=cmd_render_phase)
 
-    p = sub.add_parser("stitch")
-    p.add_argument("--draft-dir", required=True)
-    p.add_argument("--output", required=True)
-    p.add_argument("--expect-byte-equal-to", default="")
-    p.set_defaults(func=cmd_stitch)
+    subparser = sub.add_parser("stitch")
+    subparser.add_argument("--draft-dir", required=True)
+    subparser.add_argument("--output", required=True)
+    subparser.add_argument("--expect-byte-equal-to", default="")
+    subparser.set_defaults(func=cmd_stitch)
 
-    p = sub.add_parser("validate-hld")
-    p.add_argument("--file", required=True)
-    p.add_argument("--contract", required=True)
-    p.add_argument("--document-key", required=True)
-    p.add_argument("--state-file", required=True)
-    p.add_argument("--phase", default="")
-    p.add_argument("--slots", default="")
-    p.add_argument("--citation-lock", default="")
-    p.add_argument("--expect-byte-equal-to", default="")
-    p.set_defaults(func=cmd_validate_hld)
+    subparser = sub.add_parser("validate-hld")
+    subparser.add_argument("--file", required=True)
+    subparser.add_argument("--contract", required=True)
+    subparser.add_argument("--document-key", required=True)
+    subparser.add_argument("--state-file", required=True)
+    subparser.add_argument("--phase", default="")
+    subparser.add_argument("--slots", default="")
+    subparser.add_argument("--citation-lock", default="")
+    subparser.add_argument("--expect-byte-equal-to", default="")
+    subparser.set_defaults(func=cmd_validate_hld)
 
 
 def _add_inspect_subparsers(sub: argparse._SubParsersAction) -> None:
     """Subcommands for read-only inspection: inspect-slots, inspect-chunks."""
-    p = sub.add_parser("inspect-slots")
-    p.add_argument("--slots", default="output/.deterministic/slots/slot_map.json")
-    p.set_defaults(func=cmd_inspect_slots)
+    subparser = sub.add_parser("inspect-slots")
+    subparser.add_argument("--slots", default="output/.deterministic/slots/slot_map.json")
+    subparser.set_defaults(func=cmd_inspect_slots)
 
-    p = sub.add_parser("inspect-chunks")
-    p.add_argument("--adr-dir", default="ADR")
-    p.add_argument("--max-chars", type=int, default=12000)
-    p.add_argument("--max-chunks", type=int, default=8)
-    p.set_defaults(func=cmd_inspect_chunks)
+    subparser = sub.add_parser("inspect-chunks")
+    subparser.add_argument("--adr-dir", default="ADR")
+    subparser.add_argument("--max-chars", type=int, default=12000)
+    subparser.add_argument("--max-chunks", type=int, default=8)
+    subparser.set_defaults(func=cmd_inspect_chunks)
 
 
 def _add_test_subparser(sub: argparse._SubParsersAction) -> None:
     """Subcommand for repeatability testing: test-repeatability."""
-    p = sub.add_parser("test-repeatability")
-    p.add_argument("--project-root", required=True)
-    p.add_argument("--runs", type=int, default=3)
-    p.add_argument("--phase", default="")
-    p.add_argument("--ai-tool", default="cursor")
-    p.add_argument("--ai-model", default="claude-sonnet-4-6")
-    p.add_argument("--canonical-dir", default="")
-    p.add_argument("--out", default="")
-    p.set_defaults(func=cmd_test_repeatability)
+    subparser = sub.add_parser("test-repeatability")
+    subparser.add_argument("--project-root", required=True)
+    subparser.add_argument("--runs", type=int, default=3)
+    subparser.add_argument("--phase", default="")
+    subparser.add_argument("--ai-tool", default="cursor")
+    subparser.add_argument("--ai-model", default="claude-sonnet-4-6")
+    subparser.add_argument("--canonical-dir", default="")
+    subparser.add_argument("--out", default="")
+    subparser.set_defaults(func=cmd_test_repeatability)
 
 
 def build_parser() -> argparse.ArgumentParser:

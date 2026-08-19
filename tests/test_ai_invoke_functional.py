@@ -47,9 +47,9 @@ def test_run_subprocess_emits_heartbeat(capsys: pytest.CaptureFixture[str]) -> N
         timeout=20,
     )
     assert out == "done"
-    err = capsys.readouterr().err
-    assert "elapsed, waiting for" in err
-    assert "python" in err or sys.executable in err
+    error = capsys.readouterr().err
+    assert "elapsed, waiting for" in error
+    assert "python" in error or sys.executable in error
 
 
 def test_run_subprocess_timeout_raises_runtime_error() -> None:

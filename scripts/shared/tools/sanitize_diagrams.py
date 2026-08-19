@@ -84,10 +84,10 @@ def collect_phase_diagrams(root: Path) -> list[tuple[Path, str]]:
     for phase_dir in _phase_dirs(root):
         if not phase_dir.exists():
             continue
-        for f in sorted(phase_dir.glob("*.drawio")):
-            if f.name.startswith("COMBINE") or f.name.startswith("."):
+        for drawio_file in sorted(phase_dir.glob("*.drawio")):
+            if drawio_file.name.startswith("COMBINE") or drawio_file.name.startswith("."):
                 continue
-            diagrams.append((f, get_example_name(f.name)))
+            diagrams.append((drawio_file, get_example_name(drawio_file.name)))
     return diagrams
 
 
@@ -110,19 +110,19 @@ def process_existing_examples(root: Path) -> None:
     print("\nSanitizing existing examples...")
 
     examples = _examples_dir(root)
-    for f in sorted(examples.glob("*.drawio")):
-        content = f.read_text(encoding="utf-8")
+    for drawio_file in sorted(examples.glob("*.drawio")):
+        content = drawio_file.read_text(encoding="utf-8")
         sanitized = sanitize_content(content)
-        normalized_name = normalize_example_filename(f.name)
+        normalized_name = normalize_example_filename(drawio_file.name)
         target_path = examples / normalized_name
 
-        if target_path != f:
+        if target_path != drawio_file:
             target_path.write_text(sanitized, encoding="utf-8")
-            f.unlink()
-            print(f"  {f.name} -> {normalized_name} (renamed + sanitized)")
+            drawio_file.unlink()
+            print(f"  {drawio_file.name} -> {normalized_name} (renamed + sanitized)")
         elif sanitized != content:
-            f.write_text(sanitized, encoding="utf-8")
-            print(f"  {f.name} (sanitized)")
+            drawio_file.write_text(sanitized, encoding="utf-8")
+            print(f"  {drawio_file.name} (sanitized)")
 
 
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:
@@ -152,9 +152,9 @@ def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
     root = args.root.resolve() if args.root else find_project_yaml().parent
     if args.from_output and not args.yes:
-        examples_rel = "templates/Diagrams/examples"
+        examples_relative = "templates/Diagrams/examples"
         for source_path, target_name in collect_phase_diagrams(root):
-            print(f"{source_path} -> {examples_rel}/{target_name}", file=sys.stderr)
+            print(f"{source_path} -> {examples_relative}/{target_name}", file=sys.stderr)
         return 2
     print("=== Diagram Sanitization ===\n")
     if args.from_output and args.yes:
