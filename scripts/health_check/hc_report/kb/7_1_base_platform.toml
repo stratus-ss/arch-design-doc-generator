@@ -1,0 +1,972 @@
+[[checks]]
+check_id = "7.1.sub.*"
+pattern = true
+title = "Operator subscription health"
+description = "A Subscription tracks the desired channel and installed/current CSV for an\ninstalled operator. Non-AtLatestKnown states, pending upgrades, or failed CSVs\nindicate the operator lifecycle needs attention before it drifts further from\nthe intended state.\n"
+recommendation = "1. Check subscription status and review `status.state` and `status.conditions`:\n   `oc get subscription <name> -n <ns> -o yaml`\n2. For a pending upgrade, confirm the InstallPlan is approved:\n   `oc get installplan -n <ns>`\n3. For manual approval subscriptions, review release notes and approve the InstallPlan if required:\n   `oc patch installplan <name> -n <ns> --type=merge -p '{\"spec\":{\"approved\":true}}'`\n4. For a failed CSV, inspect the underlying error:\n   `oc describe csv <csv-name> -n <ns>`\n"
+priority_hint = ""
+impact = "non-disruptive"
+impact_scope = "affected operator namespace"
+impact_detail = "Approving an InstallPlan or adjusting a Subscription does not reboot nodes, but it can roll the operator deployment and trigger managed-component reconciliation."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/operators/index#olm-status-viewing-cli_olm-troubleshooting-operator-issues"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/operators/index#olm-status-viewing-cli_olm-troubleshooting-operator-issues"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/operators/index#olm-status-viewing-cli_olm-troubleshooting-operator-issues"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/operators/index#olm-status-viewing-cli_olm-troubleshooting-operator-issues"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/operators/index#olm-status-viewing-cli_olm-troubleshooting-operator-issues"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/operators/index#olm-status-viewing-cli_olm-troubleshooting-operator-issues"
+
+[[checks]]
+check_id = "7.1.identity.channel"
+title = "Identity update channel"
+description = "The update channel determines which OCP releases are offered as updates.\nFor production clusters `stable-X.Y` is recommended. `fast` receives\nupdates 2-4 weeks earlier but with less soak time. `eus` channels allow\nskipping minor versions on supported paths.\n"
+recommendation = "1. Confirm the current release exists in the target `stable-X.Y` or `eus-X.Y` channel before switching.\n2. Patch `ClusterVersion` to the supported update stream:\n   `oc patch clusterversion version --type=merge -p '{\"spec\":{\"channel\":\"stable-<minor>\"}}'`\n3. Re-check `availableUpdates` and `conditionalUpdates`.\n"
+priority_hint = ""
+impact = "non-disruptive"
+impact_scope = "cluster update service"
+impact_detail = "Changing the update channel does not restart nodes or workloads; it only changes which releases the Cluster Version Operator offers."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/updating_clusters/index#fast-stable-channel-strategies_understanding-update-channels-releases"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/updating_clusters/index#fast-stable-channel-strategies_understanding-update-channels-releases"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/updating_clusters/index#fast-stable-channel-strategies_understanding-update-channels-releases"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/updating_clusters/index#fast-stable-channel-strategies_understanding-update-channels-releases"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/updating_clusters/index#fast-stable-channel-strategies_understanding-update-channels-releases"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/updating_clusters/index#fast-stable-channel-strategies_understanding-update-channels-releases"
+
+[[checks]]
+check_id = "7.1.identity.updates"
+title = "Identity available updates"
+description = "Red Hat recommends keeping OCP within 2 minor versions of the latest release\non the selected channel. Delaying updates increases exposure to security\nvulnerabilities and reduces supportability.\n"
+recommendation = "1. Review the current release and available updates:\n   `oc get clusterversion -o yaml`\n   `oc adm upgrade`\n2. Plan the upgrade using the OCP Upgrade Graph at https://access.redhat.com/labs/ocpupgradegraph/.\n3. After validating the supported path in non-production, apply the chosen release:\n   `oc adm upgrade --to=<target-version>`\n4. Monitor ClusterVersion conditions until the rollout completes.\n"
+priority_hint = ""
+impact = "maintenance-window"
+impact_scope = "cluster-wide"
+impact_detail = "Minor or z-stream upgrades reconcile cluster operators and can drain, reboot, or roll nodes and workloads over time."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/updating_clusters/index#upgrade-version-paths_understanding-update-channels-releases"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/updating_clusters/index#upgrade-version-paths_understanding-update-channels-releases"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/updating_clusters/index#upgrade-version-paths_understanding-update-channels-releases"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/updating_clusters/index#upgrade-version-paths_understanding-update-channels-releases"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/updating_clusters/index#upgrade-version-paths_understanding-update-channels-releases"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/updating_clusters/index#upgrade-version-paths_understanding-update-channels-releases"
+
+[[checks]]
+check_id = "7.1.infra.topology"
+title = "Infrastructure topology"
+description = "Highly Available topology requires at least 3 control plane nodes and ensures\nloss of any single node does not cause an outage. SingleReplica topology is\nsupported only for edge or test-style deployments.\n"
+recommendation = "1. Check the current topology:\n   `oc get infrastructure cluster -o jsonpath='{.status.controlPlaneTopology}{\"\\t\"}{.status.infrastructureTopology}{\"\\n\"}'`\n2. Confirm control plane sizing:\n   `oc get nodes -l node-role.kubernetes.io/master --no-headers`\n3. Keep production clusters on `HighlyAvailable` control plane and infrastructure topology unless this is a supported SNO or edge deployment.\n4. If the topology is undersized for the intended use case, plan a supported control-plane migration or rebuild rather than trying to toggle topology values in place.\n"
+priority_hint = ""
+impact = "maintenance-window"
+impact_scope = "control plane and infrastructure architecture"
+impact_detail = "Moving from non-HA to HA usually requires control-plane or infrastructure machine changes, not a simple in-place toggle, and should be planned as a migration."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#about-control-planes_architecture-overview"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/architecture/index#about-control-planes_architecture-overview"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/architecture/index#about-control-planes_architecture-overview"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/architecture/index#about-control-planes_architecture-overview"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/architecture/index#about-control-planes_architecture-overview"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/architecture/index#about-control-planes_architecture-overview"
+
+[[checks]]
+check_id = "7.1.subs.approval"
+title = "Subscription approval policy"
+description = "Automatic installPlanApproval causes operators to upgrade automatically when\nnew versions are available in the channel. This can introduce breaking changes\nwithout notice. Use Manual approval and review release notes before upgrades.\n"
+recommendation = "1. Review any `Automatic` subscriptions and change them to `Manual`:\n   `oc patch subscription <name> -n <ns> --type=merge -p '{\"spec\":{\"installPlanApproval\":\"Manual\"}}'`\n2. Use `Manual` approval in production to prevent disruptive automatic operator upgrades.\n"
+priority_hint = ""
+impact = "non-disruptive"
+impact_scope = "affected operator namespace"
+impact_detail = "Changing installPlanApproval updates Subscription behavior immediately without rebooting nodes or evicting workloads."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/operators/index#olm-installplan_olm-understanding-olm"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/operators/index#olm-installplan_olm-understanding-olm"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/operators/index#olm-installplan_olm-understanding-olm"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/operators/index#olm-installplan_olm-understanding-olm"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/operators/index#olm-installplan_olm-understanding-olm"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/operators/index#olm-installplan_olm-understanding-olm"
+
+[[checks]]
+check_id = "7.1.sys.firewall"
+title = "Firewall configuration"
+description = "OpenShift requires specific network ports open between nodes and to external\nservices. Missing firewall rules cause intermittent cluster instability, failed\nnode joins, broken Prometheus federation, or unreachable API endpoints.\n"
+recommendation = "1. Review the cluster network type:\n   `oc get network.config cluster -o jsonpath='{.spec.networkType}'`\n2. Validate node-to-node and API reachability from a debug shell:\n   `oc debug node/<name> -- chroot /host curl -k https://<api-vip>:6443/readyz`\n3. Review the required ports documented in the OCP installation prerequisites and validate that all host firewalls, security groups, and network ACLs allow the required traffic.\n4. Check for common gaps including etcd peer ports (2380), Kubernetes API (6443), NodePort range (30000-32767), and Geneve overlay (UDP 6081).\n"
+priority_hint = ""
+impact = "maintenance-window"
+impact_scope = "affected nodes and external network controls"
+impact_detail = "Security-group or ACL changes can be live, but host-firewall changes may briefly interrupt traffic and can require coordinated node-level rollout."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-network-connectivity-user-infra_installing-platform-agnostic"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-network-connectivity-user-infra_installing-platform-agnostic"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-network-connectivity-user-infra_installing-platform-agnostic"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-network-connectivity-user-infra_installing-platform-agnostic"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-network-connectivity-user-infra_installing-platform-agnostic"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-network-connectivity-user-infra_installing-platform-agnostic"
+
+[[checks]]
+check_id = "7.1.sys.auth"
+title = "Authentication configuration"
+description = "Cluster authentication determines how users and service accounts authenticate.\nThe default kubeadmin user should be removed after external identity providers\nare configured and validated.\n"
+recommendation = "1. Configure an external identity provider (LDAP, OIDC, or SAML) and validate login before removing kubeadmin.\n2. Review OAuth configuration:\n   `oc get oauth cluster -o yaml`\n3. Ensure break-glass emergency access procedures are documented for scenarios where the identity provider is unavailable.\n"
+priority_hint = ""
+impact = "non-disruptive"
+impact_scope = "authentication components"
+impact_detail = "Editing the cluster OAuth configuration rolls authentication pods and can briefly affect user logins, but it does not reboot nodes or stop running workloads."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/authentication_and_authorization/index#configuring-identity-providers"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/authentication_and_authorization/index#configuring-identity-providers"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/authentication_and_authorization/index#configuring-identity-providers"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/authentication_and_authorization/index#configuring-identity-providers"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/authentication_and_authorization/index#configuring-identity-providers"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/authentication_and_authorization/index#configuring-identity-providers"
+
+[[checks]]
+check_id = "7.1.tsr.1_5_2_3_dns_alerts"
+title = "TSR DNS alerts"
+description = "DNS-related alerts indicate resolution failures that can cascade into pod\nscheduling issues, service discovery failures, and operator degradation. DNS\nis a foundational cluster service — any degradation must be resolved promptly.\n"
+recommendation = "1. Review DNS operator health:\n   `oc get dns.operator/default -o yaml`\n2. Check CoreDNS pod logs in `openshift-dns` for errors.\n3. Validate that upstream resolvers are reachable and responding within timeout.\n4. Check for NetworkPolicy or firewall rules blocking UDP/TCP 53 between nodes.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_operators/index#nw-dns-operator_dns-operator"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_operators/index#nw-dns-operator_dns-operator"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_operators/index#nw-dns-operator_dns-operator"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_operators/index#nw-dns-operator_dns-operator"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_operators/index#nw-dns-operator_dns-operator"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_operators/index#nw-dns-operator_dns-operator"
+
+[[checks]]
+check_id = "7.1.tsr.openshift_must_gather_collection"
+title = "OpenShift Must Gather Collection"
+description = "Must-gather captures cluster-wide diagnostic data including logs, resource\ndefinitions, and event histories. Verifying collection success ensures\ndownstream analysis has complete data to work with.\n"
+recommendation = "1. Run must-gather:\n   `oc adm must-gather`\n2. Verify the output tarball was created successfully.\n3. Check the must-gather logs for collection errors or timeouts that may indicate incomplete data capture.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/support/index#about-must-gather_gathering-cluster-data"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/support/index#about-must-gather_gathering-cluster-data"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/support/index#about-must-gather_gathering-cluster-data"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/support/index#about-must-gather_gathering-cluster-data"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/support/index#about-must-gather_gathering-cluster-data"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/support/index#about-must-gather_gathering-cluster-data"
+
+[[checks]]
+check_id = "7.1.tsr.openshift_must_gather_data_capture_timestamps"
+title = "OpenShift Must Gather Data Capture Timestamps"
+description = "Timestamps within must-gather data indicate when diagnostic information was\ncollected. Stale or mismatched timestamps may indicate partial captures or\ntime-skew issues that reduce diagnostic accuracy.\n"
+recommendation = "1. Inspect must-gather output metadata for capture timestamps.\n2. Verify the collection window is recent and consistent across gathered resources.\n3. If timestamps are stale, re-run must-gather for fresh data:\n   `oc adm must-gather`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/support/index#about-must-gather_gathering-cluster-data"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/support/index#about-must-gather_gathering-cluster-data"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/support/index#about-must-gather_gathering-cluster-data"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/support/index#about-must-gather_gathering-cluster-data"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/support/index#about-must-gather_gathering-cluster-data"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/support/index#about-must-gather_gathering-cluster-data"
+
+[[checks]]
+check_id = "7.1.tsr.1_1_identification_and_state"
+title = "1.1. Identification and State"
+description = "Cluster identification and state provides the baseline for all health checks\nincluding cluster version, ID, update status, and overall operator health.\nThis section establishes whether the cluster is in a known-good state.\n"
+recommendation = "1. Review cluster identity and state:\n   `oc get clusterversion -o json`\n   `oc get clusteroperator -o json`\n2. Verify the cluster is reporting `Available` and not `Progressing` or `Degraded`.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#architecture-overview"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/architecture/index#architecture-overview"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/architecture/index#architecture-overview"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/architecture/index#architecture-overview"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/architecture/index#architecture-overview"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/architecture/index#architecture-overview"
+
+[[checks]]
+check_id = "7.1.tsr.1_2_subscriptions"
+title = "1.2. Subscriptions"
+description = "Operator subscriptions track installed operators, their channels, and update\npolicies. Unhealthy subscriptions lead to stale operator versions, failed\nCSVs, and degraded cluster capabilities.\n"
+recommendation = "1. List all subscriptions and review status fields:\n   `oc get subscription -A -o json`\n2. Check for failed InstallPlans:\n   `oc get installplan -A`\n3. Ensure all subscriptions are in `AtLatestKnown` state.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/operators/index#olm-status-viewing-cli_olm-troubleshooting-operator-issues"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/operators/index#olm-status-viewing-cli_olm-troubleshooting-operator-issues"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/operators/index#olm-status-viewing-cli_olm-troubleshooting-operator-issues"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/operators/index#olm-status-viewing-cli_olm-troubleshooting-operator-issues"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/operators/index#olm-status-viewing-cli_olm-troubleshooting-operator-issues"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/operators/index#olm-status-viewing-cli_olm-troubleshooting-operator-issues"
+
+[[checks]]
+check_id = "7.1.tsr.1_3_infrastructure_requirements"
+title = "1.3. Infrastructure Requirements"
+description = "Infrastructure requirements cover the installer method, platform/hypervisor\nconfiguration, and network restrictions. This parent section groups checks\nthat validate the cluster was deployed on a supported infrastructure stack.\n"
+recommendation = "1. Review infrastructure configuration:\n   `oc get infrastructure cluster -o json`\n2. Review install config:\n   `oc get configmap cluster-config-v1 -n kube-system -o json`\n3. See sub-checks for specific installer, platform, and network details.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+
+[[checks]]
+check_id = "7.1.tsr.1_3_1_installer"
+title = "1.3.1. Installer"
+description = "The installation method (IPI, UPI, assisted) determines the supported\nlifecycle operations and infrastructure management capabilities available.\nKnowing the installer type is critical for troubleshooting and upgrades.\n"
+recommendation = "1. Check the install config to determine the original installation method and any customizations applied during deployment:\n   `oc get configmap cluster-config-v1 -n kube-system -o jsonpath='{.data.install-config}'`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+
+[[checks]]
+check_id = "7.1.tsr.1_3_2_platform_hypervisor"
+title = "1.3.2. Platform/Hypervisor"
+description = "Platform and hypervisor settings define how the cluster integrates with the\nunderlying infrastructure for machine management, storage provisioning, and\ncloud provider operations.\n"
+recommendation = "1. Review platform type:\n   `oc get infrastructure cluster -o jsonpath='{.status.platform}'`\n2. Review platform status:\n   `oc get infrastructure cluster -o jsonpath='{.status.platformStatus}'`\n3. See sub-checks for specific platform and hypervisor validations.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+
+[[checks]]
+check_id = "7.1.tsr.1_3_2_1_platform"
+title = "1.3.2.1. Platform"
+description = "The platform type (AWS, vSphere, BareMetal, None, etc.) determines which\ncloud-controller and machine-API integrations are active. Mismatches between\nthe declared platform and actual infrastructure cause provisioning failures.\n"
+recommendation = "1. Verify platform configuration:\n   `oc get infrastructure cluster -o json`\n2. Confirm `status.platform` matches the actual deployment target.\n3. For vSphere, validate cloud-provider configuration:\n   `oc get cm cloud-provider-config -n openshift-config -o yaml`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+
+[[checks]]
+check_id = "7.1.tsr.1_3_2_2_hypervisor_checks"
+title = "1.3.2.2. Hypervisor Checks"
+description = "For virtualized deployments, hypervisor compatibility and configuration\ndirectly impacts cluster stability. CPU features, nested virtualization\nsettings, and resource overcommit affect node performance.\n"
+recommendation = "1. Check node hardware details and inspect `status.nodeInfo.systemUUID` and `status.capacity`:\n   `oc get nodes -o json`\n2. For virtualized nodes, confirm the hypervisor type:\n   `oc debug node/<name> -- chroot /host cat /sys/class/dmi/id/product_name`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+
+[[checks]]
+check_id = "7.1.tsr.1_3_3_restricted_network"
+title = "1.3.3. Restricted Network"
+description = "Disconnected or restricted-network clusters require mirrored registries and\nspecial proxy/trust configurations. Incomplete mirror setup causes image pull\nfailures and operator degradation.\n"
+recommendation = "1. Check proxy configuration for restricted network indicators:\n   `oc get proxy cluster -o json`\n2. Check mirror resource configuration using the resource type that exists in the cluster:\n   `oc get imagecontentsourcepolicy -o json`\n   `oc get imagedigestmirrorset -o json`\n3. Verify mirror registry connectivity and certificate trust bundles.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installing-restricted-networks-preparations"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installing-restricted-networks-preparations"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installing-restricted-networks-preparations"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installing-restricted-networks-preparations"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installing-restricted-networks-preparations"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installing-restricted-networks-preparations"
+
+[[checks]]
+check_id = "7.1.tsr.1_4_minimum_hardware_requirements"
+title = "1.4. Minimum Hardware Requirements"
+description = "OpenShift has documented minimum hardware requirements for control-plane and\nworker nodes. Running below minimums causes instability, etcd performance\ndegradation, and scheduling failures.\n"
+recommendation = "1. Review node resources, examining CPU, memory, and disk capacity fields:\n   `oc get nodes -o json`\n2. Compare the results against documented minimums for the cluster's version and topology.\n3. See sub-checks for per-role details.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+
+[[checks]]
+check_id = "7.1.tsr.1_4_1_master_nodes"
+title = "1.4.1. Master Nodes"
+description = "Control-plane (master) nodes run etcd, API server, controller-manager, and\nscheduler. They require sufficient CPU, memory, and fast storage to maintain\ncluster responsiveness under load.\n"
+recommendation = "1. List master nodes:\n   `oc get nodes -l node-role.kubernetes.io/master -o wide`\n2. Review capacity and allocatable resources:\n   `oc describe node <master-name>`\n3. See sub-checks for specific CPU, memory, and disk validations.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+
+[[checks]]
+check_id = "7.1.tsr.1_4_1_1_operating_system_version"
+title = "1.4.1.1. Operating System Version"
+description = "Master nodes must run Red Hat Enterprise Linux CoreOS (RHCOS) at a version\ncompatible with the installed OCP release. Version mismatches indicate\nincomplete upgrades or manual OS tampering.\n"
+recommendation = "1. Check OS version on master nodes:\n   `oc get nodes -l node-role.kubernetes.io/master -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.status.nodeInfo.osImage}{\"\\n\"}{end}'`\n2. Verify all masters report the same RHCOS version matching the cluster release.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#rhcos-about_architecture-rhcos"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/architecture/index#rhcos-about_architecture-rhcos"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/architecture/index#rhcos-about_architecture-rhcos"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/architecture/index#rhcos-about_architecture-rhcos"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/architecture/index#rhcos-about_architecture-rhcos"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/architecture/index#rhcos-about_architecture-rhcos"
+
+[[checks]]
+check_id = "7.1.tsr.1_4_1_2_master_cpus"
+title = "1.4.1.2. Master CPUs"
+description = "Control-plane nodes require a minimum of 4 vCPUs (8+ recommended for\nproduction). Insufficient CPU causes API server latency, etcd leader\nelections, and degraded cluster responsiveness.\n"
+recommendation = "1. Check master CPU capacity:\n   `oc get nodes -l node-role.kubernetes.io/master -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.status.capacity.cpu}{\"\\n\"}{end}'`\n2. Ensure all masters meet the minimum 4 vCPU requirement, with 8+ for production.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+
+[[checks]]
+check_id = "7.1.tsr.1_4_1_3_master_memory"
+title = "1.4.1.3. Master Memory"
+description = "Control-plane nodes require minimum 16 GiB RAM (32+ recommended for\nproduction). Insufficient memory causes OOM kills of critical components\nlike etcd and the API server.\n"
+recommendation = "1. Check master memory:\n   `oc get nodes -l node-role.kubernetes.io/master -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.status.capacity.memory}{\"\\n\"}{end}'`\n2. Ensure all masters have at least 16 GiB, with 32+ GiB for production workloads.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+
+[[checks]]
+check_id = "7.1.tsr.1_4_1_4_master_disk"
+title = "1.4.1.4. Master Disk"
+description = "Control-plane nodes require fast storage (SSD/NVMe recommended) with\nsufficient IOPS for etcd. Slow or full disks cause etcd latency warnings,\ncompaction failures, and potential data loss.\n"
+recommendation = "1. Check node disk pressure conditions:\n   `oc get nodes -l node-role.kubernetes.io/master -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.status.conditions[?(@.type==\"DiskPressure\")].status}{\"\\n\"}{end}'`\n2. Verify etcd disk usage and available space:\n   `oc debug node/<master> -- chroot /host df -h /var/lib/etcd`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+
+[[checks]]
+check_id = "7.1.tsr.1_4_1_5_master_schedulable"
+title = "1.4.1.5. Master Schedulable"
+description = "By default masters are schedulable in OCP 4.x, allowing workloads to run\non control-plane nodes. For large clusters or strict separation requirements,\nmastersSchedulable should be set to false.\n"
+recommendation = "1. Check scheduler configuration:\n   `oc get scheduler cluster -o jsonpath='{.spec.mastersSchedulable}'`\n2. If workload isolation is required, set `mastersSchedulable` to `false`:\n   `oc patch scheduler cluster --type=merge -p '{\"spec\":{\"mastersSchedulable\":false}}'`\n"
+priority_hint = ""
+impact = "non-disruptive"
+impact_scope = "control-plane scheduling"
+impact_detail = "Changing mastersSchedulable to false prevents new workloads from landing on control-plane nodes but does not evict existing pods or reboot nodes. On compact 3-node clusters where all nodes serve as both control-plane and worker, this affects 100% of cluster capacity."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/nodes/index#nodes-scheduler-about_nodes-scheduler-default"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/nodes/index#nodes-scheduler-about_nodes-scheduler-default"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/nodes/index#nodes-scheduler-about_nodes-scheduler-default"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/nodes/index#nodes-scheduler-about_nodes-scheduler-default"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/nodes/index#nodes-scheduler-about_nodes-scheduler-default"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/nodes/index#nodes-scheduler-about_nodes-scheduler-default"
+
+[[checks]]
+check_id = "7.1.tsr.1_4_1_6_master_kubernetes_version"
+title = "1.4.1.6. Master Kubernetes Version"
+description = "All control-plane nodes should report the same kubelet version matching the\ncluster's Kubernetes release. Version skew indicates incomplete upgrades or\nnode join failures.\n"
+recommendation = "1. Check kubelet versions:\n   `oc get nodes -l node-role.kubernetes.io/master -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.status.nodeInfo.kubeletVersion}{\"\\n\"}{end}'`\n2. Confirm all masters report the same version.\n3. If mismatches are present, investigate Machine Config Operator status and pending node updates.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#architecture-overview"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/architecture/index#architecture-overview"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/architecture/index#architecture-overview"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/architecture/index#architecture-overview"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/architecture/index#architecture-overview"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/architecture/index#architecture-overview"
+
+[[checks]]
+check_id = "7.1.tsr.1_4_2_non_master_nodes"
+title = "1.4.2. Non-Master Nodes"
+description = "Worker and infrastructure nodes run application workloads and platform\nservices. They must meet minimum resource requirements for the workloads\nscheduled to them.\n"
+recommendation = "1. List worker nodes:\n   `oc get nodes -l node-role.kubernetes.io/worker -o wide`\n2. Review capacity and allocatable resources:\n   `oc describe node <worker-name>`\n3. See sub-checks for disk and architecture validations.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+
+[[checks]]
+check_id = "7.1.tsr.1_4_2_4_node_disk"
+title = "1.4.2.4. Node Disk"
+description = "Worker nodes require sufficient disk space for container images, ephemeral\nstorage, and logs. Disk pressure causes pod evictions and scheduling failures\nthat impact application availability.\n"
+recommendation = "1. Check disk pressure on workers:\n   `oc get nodes -l node-role.kubernetes.io/worker -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.status.conditions[?(@.type==\"DiskPressure\")].status}{\"\\n\"}{end}'`\n2. Check filesystem usage:\n   `oc debug node/<worker> -- chroot /host df -h`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/nodes/index#nodes-nodes-resources-configuring-about_nodes-nodes-resources-configuring"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/nodes/index#nodes-nodes-resources-configuring-about_nodes-nodes-resources-configuring"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/nodes/index#nodes-nodes-resources-configuring-about_nodes-nodes-resources-configuring"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/nodes/index#nodes-nodes-resources-configuring-about_nodes-nodes-resources-configuring"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/nodes/index#nodes-nodes-resources-configuring-about_nodes-nodes-resources-configuring"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/nodes/index#nodes-nodes-resources-configuring-about_nodes-nodes-resources-configuring"
+
+[[checks]]
+check_id = "7.1.tsr.1_4_2_5_node_architecture"
+title = "1.4.2.5. Node Architecture"
+description = "Node CPU architecture (amd64, arm64, ppc64le, s390x) must be consistent\nor properly handled with multi-arch scheduling. Mismatched architectures\nwithout proper image support cause pod CrashLoopBackOff.\n"
+recommendation = "1. Check node architectures:\n   `oc get nodes -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.status.nodeInfo.architecture}{\"\\n\"}{end}'`\n2. For mixed-architecture clusters, verify multi-architecture images are available and node affinity rules are configured appropriately.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#architecture-overview"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/architecture/index#architecture-overview"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/architecture/index#architecture-overview"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/architecture/index#architecture-overview"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/architecture/index#architecture-overview"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/architecture/index#architecture-overview"
+
+[[checks]]
+check_id = "7.1.tsr.1_5_other_basic_checks"
+title = "1.5. Other Basic Checks"
+description = "This parent section groups additional platform-level checks covering SELinux,\nDNS, networking, time synchronization, FIPS, and security configurations that\nare foundational to cluster health.\n"
+recommendation = "1. Review overall node conditions:\n   `oc get nodes -o json`\n2. Check for any conditions in a non-healthy state.\n3. See sub-checks for specific SELinux, DNS, network, time, and security validations.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
+
+[[checks]]
+check_id = "7.1.tsr.1_5_1_selinux"
+title = "1.5.1. SELinux"
+description = "SELinux must be in Enforcing mode on all OCP nodes. Permissive or Disabled\nmodes leave the cluster vulnerable and are unsupported. Red Hat support\nrequires Enforcing mode for all production deployments.\n"
+recommendation = "1. Verify SELinux mode on nodes:\n   `oc debug node/<name> -- chroot /host getenforce`\n2. Confirm all nodes report `Enforcing`.\n3. If a node is in `Permissive` mode, investigate MachineConfig changes or manual host modifications that may have altered the SELinux configuration.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/security_and_compliance/index#security-hosts-vms-about_security-hardening"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/security_and_compliance/index#security-hosts-vms-about_security-hardening"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/security_and_compliance/index#security-hosts-vms-about_security-hardening"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/security_and_compliance/index#security-hosts-vms-about_security-hardening"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/security_and_compliance/index#security-hosts-vms-about_security-hardening"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/security_and_compliance/index#security-hosts-vms-about_security-hardening"
+
+[[checks]]
+check_id = "7.1.tsr.1_5_2_dns"
+title = "1.5.2. DNS"
+description = "DNS is a foundational cluster service. The DNS operator, CoreDNS pods, and\nupstream resolver configuration must all be healthy for service discovery,\npod networking, and operator functionality.\n"
+recommendation = "1. Check DNS operator status:\n   `oc get dns.operator/default -o yaml`\n2. Verify CoreDNS pods are running:\n   `oc get pods -n openshift-dns`\n3. See sub-checks for config and pod-level details.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#nw-dns-operator_dns-operator"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#nw-dns-operator_dns-operator"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#nw-dns-operator_dns-operator"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#nw-dns-operator_dns-operator"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#nw-dns-operator_dns-operator"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#nw-dns-operator_dns-operator"
+
+[[checks]]
+check_id = "7.1.tsr.1_5_2_1_dns_config"
+title = "1.5.2.1. DNS Config"
+description = "The cluster DNS configuration defines upstream resolvers and forwarding rules.\nMisconfigured DNS settings cause resolution failures for external services\nand can cascade into operator degradation.\n"
+recommendation = "1. Review DNS configuration:\n   `oc get dns.operator/default -o yaml`\n2. Check `spec.servers` and `spec.upstreamResolvers`.\n3. Verify upstream resolvers are reachable from cluster nodes:\n   `oc debug node/<name> -- chroot /host nslookup redhat.com <upstream-ip>`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#nw-dns-operator_dns-operator"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#nw-dns-operator_dns-operator"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#nw-dns-operator_dns-operator"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#nw-dns-operator_dns-operator"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#nw-dns-operator_dns-operator"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#nw-dns-operator_dns-operator"
+
+[[checks]]
+check_id = "7.1.tsr.1_5_2_2_dns_pods"
+title = "1.5.2.2. DNS Pods"
+description = "CoreDNS pods in the openshift-dns namespace handle all cluster DNS queries.\nPods not in Running state or with high restart counts indicate DNS service\ndegradation affecting the entire cluster.\n"
+recommendation = "1. Check DNS pod health:\n   `oc get pods -n openshift-dns -o wide`\n2. Verify all pods are `Running` with `0` restarts.\n3. For unhealthy pods, check logs:\n   `oc logs -n openshift-dns <pod-name>`\n4. Describe the pod for events:\n   `oc describe pod -n openshift-dns <pod-name>`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#nw-dns-operator_dns-operator"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#nw-dns-operator_dns-operator"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#nw-dns-operator_dns-operator"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#nw-dns-operator_dns-operator"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#nw-dns-operator_dns-operator"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#nw-dns-operator_dns-operator"
+
+[[checks]]
+check_id = "7.1.tsr.1_5_3_network_manager"
+title = "1.5.3. Network Manager"
+description = "NetworkManager is required on all RHCOS nodes for network configuration\nmanagement. It must be active and managing the primary interfaces for\nOVN-Kubernetes or OpenShift SDN to function correctly.\n"
+recommendation = "1. Verify NetworkManager is active on nodes:\n   `oc debug node/<name> -- chroot /host systemctl status NetworkManager`\n2. Check that primary interfaces are managed:\n   `oc debug node/<name> -- chroot /host nmcli device status`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#networking-operators-overview"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#networking-operators-overview"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#networking-operators-overview"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#networking-operators-overview"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#networking-operators-overview"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#networking-operators-overview"
+
+[[checks]]
+check_id = "7.1.tsr.1_5_4_shared_network"
+title = "1.5.4. Shared Network"
+description = "In shared network environments multiple clusters or services share the same\nL2/L3 network segment. This requires careful IP allocation, VLAN management,\nand awareness of broadcast domain impacts.\n"
+recommendation = "1. Review network configuration:\n   `oc get network.config cluster -o json`\n2. Verify `clusterNetwork` and `serviceNetwork` CIDR ranges do not overlap with other infrastructure.\n3. Check for DHCP conflicts or IP exhaustion in shared subnets using node network diagnostics.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#networking-operators-overview"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#networking-operators-overview"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#networking-operators-overview"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#networking-operators-overview"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#networking-operators-overview"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#networking-operators-overview"
+
+[[checks]]
+check_id = "7.1.tsr.1_5_5_firewalls"
+title = "1.5.5. Firewalls"
+description = "OpenShift requires specific ports open between nodes, to external registries,\nand to cloud APIs. Missing firewall rules cause intermittent failures in\nnode communication, image pulls, and operator reconciliation.\n"
+recommendation = "1. Review the cluster network config:\n   `oc get network.config cluster -o json`\n2. Test connectivity between nodes on key ports (6443, 2379-2380, 10250, 4789/6081):\n   `oc debug node/<name> -- chroot /host curl -k https://<target>:6443/healthz`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-network-connectivity-user-infra_installing-platform-agnostic"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-network-connectivity-user-infra_installing-platform-agnostic"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-network-connectivity-user-infra_installing-platform-agnostic"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-network-connectivity-user-infra_installing-platform-agnostic"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-network-connectivity-user-infra_installing-platform-agnostic"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-network-connectivity-user-infra_installing-platform-agnostic"
+
+[[checks]]
+check_id = "7.1.tsr.1_5_6_proxy"
+title = "1.5.6. Proxy"
+description = "Cluster-wide proxy configuration controls how nodes and pods reach external\nnetworks. Misconfigured proxy settings cause image pull failures, operator\ndegradation, and inability to reach update services.\n"
+recommendation = "1. Review proxy configuration:\n   `oc get proxy cluster -o json`\n2. Verify `spec.httpProxy`, `spec.httpsProxy`, and `spec.noProxy` are correct.\n3. Ensure `noProxy` includes cluster network CIDRs, service network, node subnet, and `.cluster.local`.\n"
+priority_hint = ""
+impact = "non-disruptive"
+impact_scope = "cluster-wide egress"
+impact_detail = "Proxy configuration changes roll out through Machine Config Operator and may cause node reboots if trustedCA bundle changes."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#enable-cluster-wide-proxy_config-cluster-wide-proxy"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#enable-cluster-wide-proxy_config-cluster-wide-proxy"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#enable-cluster-wide-proxy_config-cluster-wide-proxy"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#enable-cluster-wide-proxy_config-cluster-wide-proxy"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#enable-cluster-wide-proxy_config-cluster-wide-proxy"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#enable-cluster-wide-proxy_config-cluster-wide-proxy"
+
+[[checks]]
+check_id = "7.1.tsr.1_5_7_time"
+title = "1.5.7. Time"
+description = "Accurate time synchronization across all nodes is critical for certificate\nvalidation, etcd consistency, log correlation, and distributed system\ncoordination. Clock skew causes cryptographic failures and split-brain.\n"
+recommendation = "1. Check time synchronization status across nodes.\n2. Review chrony or NTP status:\n   `oc debug node/<name> -- chroot /host chronyc tracking`\n3. See sub-checks for NTP, Chrony, PTP, and clock alert specifics.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-special-config-chrony_installing-platform-agnostic"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-special-config-chrony_installing-platform-agnostic"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-special-config-chrony_installing-platform-agnostic"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-special-config-chrony_installing-platform-agnostic"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-special-config-chrony_installing-platform-agnostic"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-special-config-chrony_installing-platform-agnostic"
+
+[[checks]]
+check_id = "7.1.tsr.1_5_7_1_ntp"
+title = "1.5.7.1. NTP"
+description = "NTP time synchronization ensures all cluster nodes maintain accurate clocks.\nRHCOS uses chrony by default, but legacy NTP configuration may exist on\nRHEL worker nodes.\n"
+recommendation = "1. Verify time synchronization on nodes:\n   `oc debug node/<name> -- chroot /host timedatectl status`\n2. Confirm NTP is synchronized and the time source is reachable.\n3. For RHEL workers, check `chronyd` status:\n   `oc debug node/<name> -- chroot /host systemctl status chronyd`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-special-config-chrony_installing-platform-agnostic"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-special-config-chrony_installing-platform-agnostic"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-special-config-chrony_installing-platform-agnostic"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-special-config-chrony_installing-platform-agnostic"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-special-config-chrony_installing-platform-agnostic"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-special-config-chrony_installing-platform-agnostic"
+
+[[checks]]
+check_id = "7.1.tsr.1_5_7_2_chrony"
+title = "1.5.7.2. Chrony"
+description = "Chrony is the default NTP implementation on RHCOS. It must be configured with\nreachable time sources and maintaining synchronization within acceptable\nskew thresholds.\n"
+recommendation = "1. Check chrony tracking status:\n   `oc debug node/<name> -- chroot /host chronyc tracking`\n2. Review chrony sources:\n   `oc debug node/<name> -- chroot /host chronyc sources -v`\n3. Verify the reported offset is within acceptable bounds (`< 100ms`) and sources are reachable.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-special-config-chrony_installing-platform-agnostic"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-special-config-chrony_installing-platform-agnostic"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-special-config-chrony_installing-platform-agnostic"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-special-config-chrony_installing-platform-agnostic"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-special-config-chrony_installing-platform-agnostic"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-special-config-chrony_installing-platform-agnostic"
+
+[[checks]]
+check_id = "7.1.tsr.1_5_7_3_ptp"
+title = "1.5.7.3. PTP"
+description = "Precision Time Protocol provides sub-microsecond time accuracy for workloads\nrequiring strict synchronization (telco, financial). PTP operator and\ngrandmaster clock configuration must be validated where deployed.\n"
+recommendation = "1. Check whether the PTP operator is installed:\n   `oc get subscription -A | grep ptp`\n2. If present, verify PTP daemon configuration:\n   `oc get ptpconfig -A -o yaml`\n3. Check PTP pods:\n   `oc get pods -n openshift-ptp`\n4. Review PTP clock state and offset metrics.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#about-ptp_using-ptp"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#about-ptp_using-ptp"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#about-ptp_using-ptp"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#about-ptp_using-ptp"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#about-ptp_using-ptp"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#about-ptp_using-ptp"
+
+[[checks]]
+check_id = "7.1.tsr.1_5_7_4_clock_alerts"
+title = "1.5.7.4. Clock Alerts"
+description = "Clock-related alerts (ClockSkewDetected, NTPDaemonUnreachable) indicate\ntime synchronization failures that can cascade into certificate validation\nerrors and etcd consistency issues.\n"
+recommendation = "1. Check for active clock alerts:\n   `oc get prometheusrule -A -o json | grep -i clock`\n2. Review firing alerts:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -s http://localhost:9090/api/v1/alerts`\n3. Investigate affected nodes' chrony or NTP configuration.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-special-config-chrony_installing-platform-agnostic"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-special-config-chrony_installing-platform-agnostic"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-special-config-chrony_installing-platform-agnostic"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-special-config-chrony_installing-platform-agnostic"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-special-config-chrony_installing-platform-agnostic"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-special-config-chrony_installing-platform-agnostic"
+
+[[checks]]
+check_id = "7.1.tsr.1_5_8_sdn"
+title = "1.5.8. SDN"
+description = "The cluster network plugin (OVN-Kubernetes) provides pod networking, service\nload balancing, and network policy enforcement. OVN-Kubernetes is the only\nsupported network plugin from OCP 4.17 onward. Network health is critical for\nall pod-to-pod and pod-to-service communication.\n"
+recommendation = "1. Check network operator status:\n   `oc get clusteroperator network -o json`\n2. Review network type:\n   `oc get network.config cluster -o jsonpath='{.spec.networkType}'`\n3. Verify OVN-Kubernetes pods:\n   `oc get pods -n openshift-ovn-kubernetes`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#about-ovn-kubernetes"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#about-ovn-kubernetes"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#about-ovn-kubernetes"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#about-ovn-kubernetes"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#about-ovn-kubernetes"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#about-ovn-kubernetes"
+
+[[checks]]
+check_id = "7.1.tsr.1_5_9_swap"
+title = "1.5.9. Swap"
+description = "Kubernetes does not support swap on nodes by default. Enabled swap can cause\nunpredictable pod memory behavior, OOM kill ordering issues, and is\nunsupported in production OCP deployments.\n"
+recommendation = "1. Verify swap is disabled on all nodes:\n   `oc debug node/<name> -- chroot /host swapon --show`\n2. Confirm the output is empty.\n3. If swap is enabled, disable it via MachineConfig so the change persists across reboots.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/nodes/index#nodes-nodes-swap-memory_nodes-nodes-resources-configuring"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/nodes/index#nodes-nodes-swap-memory_nodes-nodes-resources-configuring"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/nodes/index#nodes-nodes-swap-memory_nodes-nodes-resources-configuring"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/nodes/index#nodes-nodes-swap-memory_nodes-nodes-resources-configuring"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/nodes/index#nodes-nodes-swap-memory_nodes-nodes-resources-configuring"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/nodes/index#nodes-nodes-swap-memory_nodes-nodes-resources-configuring"
+
+[[checks]]
+check_id = "7.1.tsr.1_5_10_machine_network"
+title = "1.5.10. Machine Network"
+description = "The machine network CIDR defines the subnet used for node IP addresses.\nThis must not overlap with cluster or service networks and must have\nsufficient address space for current and planned node scaling.\n"
+recommendation = "1. Review the machine network from install config:\n   `oc get configmap cluster-config-v1 -n kube-system -o jsonpath='{.data.install-config}'`\n2. Verify actual node IPs fall within the declared machine network CIDR:\n   `oc get nodes -o wide`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-network-connectivity-user-infra_installing-platform-agnostic"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-network-connectivity-user-infra_installing-platform-agnostic"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-network-connectivity-user-infra_installing-platform-agnostic"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-network-connectivity-user-infra_installing-platform-agnostic"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-network-connectivity-user-infra_installing-platform-agnostic"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-network-connectivity-user-infra_installing-platform-agnostic"
+
+[[checks]]
+check_id = "7.1.tsr.1_5_11_fips"
+title = "1.5.11. FIPS"
+description = "FIPS 140-2 mode enforces use of validated cryptographic modules. FIPS must\nbe enabled at install time and cannot be toggled post-install. This check\nverifies whether FIPS is active and consistent across nodes.\n"
+recommendation = "1. Check FIPS status in the install config:\n   `oc get configmap cluster-config-v1 -n kube-system -o jsonpath='{.data.install-config}' | grep fips`\n2. Verify FIPS on nodes:\n   `oc debug node/<name> -- chroot /host cat /proc/sys/crypto/fips_enabled`\n3. Confirm a value of `1` indicates FIPS is active.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-fips_installing-platform-agnostic"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-fips_installing-platform-agnostic"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-fips_installing-platform-agnostic"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-fips_installing-platform-agnostic"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-fips_installing-platform-agnostic"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-fips_installing-platform-agnostic"
+
+[[checks]]
+check_id = "7.1.tsr.1_5_12_huge_pages"
+title = "1.5.12. Huge Pages"
+description = "Huge pages provide large memory page allocations (2Mi or 1Gi) for performance-\nsensitive workloads like databases and DPDK applications. Configuration must\nmatch workload requirements without over-allocating node memory.\n"
+recommendation = "1. Check huge page allocation on nodes:\n   `oc get nodes -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.status.capacity.hugepages-2Mi}{\"\\t\"}{.status.capacity.hugepages-1Gi}{\"\\n\"}{end}'`\n2. Review detailed huge page configuration:\n   `oc debug node/<name> -- chroot /host cat /proc/meminfo | grep Huge`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/nodes/index#nodes-nodes-managing-huge-pages_nodes-nodes-resources-configuring"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/nodes/index#nodes-nodes-managing-huge-pages_nodes-nodes-resources-configuring"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/nodes/index#nodes-nodes-managing-huge-pages_nodes-nodes-resources-configuring"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/nodes/index#nodes-nodes-managing-huge-pages_nodes-nodes-resources-configuring"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/nodes/index#nodes-nodes-managing-huge-pages_nodes-nodes-resources-configuring"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/nodes/index#nodes-nodes-managing-huge-pages_nodes-nodes-resources-configuring"
+
+[[checks]]
+check_id = "7.1.tsr.1_5_13_gpu"
+title = "1.5.13. GPU"
+description = "GPU nodes require the NVIDIA GPU Operator or equivalent for device plugin,\ndriver, and container toolkit management. Misconfigured GPU support causes\nworkload scheduling failures and resource waste.\n"
+recommendation = "1. Check for a GPU operator subscription:\n   `oc get subscription -A | grep gpu`\n2. Verify GPU nodes expose allocatable resources:\n   `oc get nodes -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.status.allocatable.nvidia\\.com/gpu}{\"\\n\"}{end}'`\n3. Review GPU operator pods:\n   `oc get pods -n gpu-operator-resources`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#nvidia-gpu-architecture-overview"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/architecture/index#nvidia-gpu-architecture-overview"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/architecture/index#nvidia-gpu-architecture-overview"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/architecture/index#nvidia-gpu-architecture-overview"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/architecture/index#nvidia-gpu-architecture-overview"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/architecture/index#nvidia-gpu-architecture-overview"
+
+[[checks]]
+check_id = "7.1.tsr.1_5_14_entropy"
+title = "1.5.14. Entropy"
+description = "Sufficient entropy is required for cryptographic operations, TLS handshakes,\nand certificate generation. Low entropy causes random number generation\nblocking, slow TLS negotiations, and pod startup delays.\n"
+recommendation = "1. Check available entropy on nodes:\n   `oc debug node/<name> -- chroot /host cat /proc/sys/kernel/random/entropy_avail`\n2. Investigate values below `200`.\n3. Expect modern kernels with `virtio-rng` or `RDRAND` to report high entropy (`3000+`).\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/security_and_compliance/index#security-hosts-vms-about_security-hardening"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/security_and_compliance/index#security-hosts-vms-about_security-hardening"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/security_and_compliance/index#security-hosts-vms-about_security-hardening"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/security_and_compliance/index#security-hosts-vms-about_security-hardening"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/security_and_compliance/index#security-hosts-vms-about_security-hardening"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/security_and_compliance/index#security-hosts-vms-about_security-hardening"
+
+[[checks]]
+check_id = "7.1.tsr.1_5_15_remote_health_reporting"
+title = "1.5.15. Remote Health Reporting"
+description = "Remote health reporting (Insights/Telemetry) sends anonymized cluster data\nto Red Hat for proactive support and recommendations. Disabling it removes\naccess to Insights advisor recommendations and may affect support SLAs.\n"
+recommendation = "1. Check Insights operator status:\n   `oc get clusteroperator insights -o json`\n2. Verify the pull secret includes `cloud.openshift.com`:\n   `oc get secret pull-secret -n openshift-config -o jsonpath='{.data.\\.dockerconfigjson}' | base64 -d | python3 -m json.tool | grep cloud.openshift.com`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/support/index#about-remote-health-monitoring_about-remote-health-monitoring"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/support/index#about-remote-health-monitoring_about-remote-health-monitoring"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/support/index#about-remote-health-monitoring_about-remote-health-monitoring"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/support/index#about-remote-health-monitoring_about-remote-health-monitoring"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/support/index#about-remote-health-monitoring_about-remote-health-monitoring"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/support/index#about-remote-health-monitoring_about-remote-health-monitoring"
+
+[[checks]]
+check_id = "7.1.tsr.1_5_16_project_self_provisioner_state"
+title = "1.5.16. Project Self Provisioner State"
+description = "The self-provisioner cluster role binding allows authenticated users to create\nprojects without admin approval. In production, this is often restricted to\nprevent uncontrolled namespace proliferation.\n"
+recommendation = "1. Check self-provisioner state:\n   `oc get clusterrolebinding self-provisioners -o yaml`\n2. If project creation should be restricted, remove the self-provisioner binding:\n   `oc patch clusterrolebinding self-provisioners -p '{\"subjects\": null}'`\n3. Manage project requests through a controlled approval process.\n"
+priority_hint = ""
+impact = "non-disruptive"
+impact_scope = "user project creation"
+impact_detail = "Modifying the self-provisioners binding immediately changes who can create projects but does not affect existing namespaces or running workloads."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/authentication_and_authorization/index#disabling-self-provisioning_understanding-authentication"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/authentication_and_authorization/index#disabling-self-provisioning_understanding-authentication"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/authentication_and_authorization/index#disabling-self-provisioning_understanding-authentication"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/authentication_and_authorization/index#disabling-self-provisioning_understanding-authentication"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/authentication_and_authorization/index#disabling-self-provisioning_understanding-authentication"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/authentication_and_authorization/index#disabling-self-provisioning_understanding-authentication"
+
+[[checks]]
+check_id = "7.1.tsr.1_5_17_authentication"
+title = "1.5.17. Authentication"
+description = "Cluster authentication configuration determines identity providers, token\nlifetimes, and access controls. Production clusters should use enterprise\nidentity providers and remove the default kubeadmin account.\n"
+recommendation = "1. Review OAuth configuration:\n   `oc get oauth cluster -o json`\n2. Verify configured identity providers and token settings.\n3. Check whether kubeadmin still exists:\n   `oc get secret kubeadmin -n kube-system`\n4. If an external identity provider is configured and validated, remove kubeadmin for security.\n"
+priority_hint = ""
+impact = "non-disruptive"
+impact_scope = "authentication components"
+impact_detail = "OAuth configuration changes roll authentication pods but do not reboot nodes or stop running workloads."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/authentication_and_authorization/index#understanding-identity-provider"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/authentication_and_authorization/index#understanding-identity-provider"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/authentication_and_authorization/index#understanding-identity-provider"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/authentication_and_authorization/index#understanding-identity-provider"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/authentication_and_authorization/index#understanding-identity-provider"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/authentication_and_authorization/index#understanding-identity-provider"
+
+[[checks]]
+check_id = "7.1.tsr.1_5_18_security_context_constraints"
+title = "1.5.18. Security Context Constraints"
+description = "Security Context Constraints control the actions pods can perform and what\nresources they can access. Overly permissive SCCs (especially privileged or\nanyuid) increase the attack surface of the cluster.\n"
+recommendation = "1. Review SCCs:\n   `oc get scc -o json`\n2. List workloads using the `privileged` SCC:\n   `oc get pods -A -o json | jq '.items[] | select(.metadata.annotations[\"openshift.io/scc\"]==\"privileged\") | .metadata.namespace + \"/\" + .metadata.name'`\n3. Minimize use of `privileged` and `anyuid` SCCs to only validated workloads.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/security_and_compliance/index#security-context-constraints-about_configuring-internal-oauth"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/security_and_compliance/index#security-context-constraints-about_configuring-internal-oauth"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/security_and_compliance/index#security-context-constraints-about_configuring-internal-oauth"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/security_and_compliance/index#security-context-constraints-about_configuring-internal-oauth"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/security_and_compliance/index#security-context-constraints-about_configuring-internal-oauth"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/security_and_compliance/index#security-context-constraints-about_configuring-internal-oauth"

@@ -1,0 +1,305 @@
+[[checks]]
+check_id = "7.4.tsr.4_8_1_1_2_related_subscriptions"
+title = "TSR CNV related subscriptions"
+description = "OpenShift Virtualization depends on several operator subscriptions being\nhealthy and at compatible versions. Missing or degraded subscriptions prevent\nproper CNV functionality and block upgrades.\n"
+recommendation = "1. Verify all CNV-related subscriptions are installed and healthy.\n   `oc get csv -n openshift-cnv`\n2. Confirm HyperConverged CR status.\n   `oc get hyperconverged kubevirt-hyperconverged -n openshift-cnv -o jsonpath='{.status.conditions}'`\n3. Resolve any InstallPlan failures before proceeding with upgrades.\n"
+priority_hint = ""
+impact = "non-disruptive"
+impact_scope = "openshift-cnv operator namespace"
+impact_detail = "Approving InstallPlans or reconciling CNV subscriptions rolls operator-managed pods but does not reboot cluster nodes."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/virtualization/index#virt-subscribing-cli_installing-virt"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/virtualization/index#virt-subscribing-cli_installing-virt"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/virtualization/index#virt-subscribing-cli_installing-virt"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/virtualization/index#virt-subscribing-cli_installing-virt"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/virtualization/index#virt-subscribing-cli_installing-virt"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index#virt-subscribing-cli_installing-virt"
+
+[[checks]]
+check_id = "7.4.tsr.4_8_1_3_4_node_disk"
+title = "TSR node disk health"
+description = "This check monitors disk space on nodes that host virtual machines. When a node's disk usage is high, Kubernetes may start evicting pods and VMs to free space. VM disk images, container images, and ephemeral storage all compete for the same node filesystem."
+recommendation = "1. Check which nodes are under disk pressure:\n   `oc get nodes -o custom-columns=NAME:.metadata.name,DISK_PRESSURE:.status.conditions[?(@.type==\"DiskPressure\")].status`\n2. On affected nodes, identify the largest disk consumers:\n   `oc debug node/<node> -- chroot /host df -h`\n3. Common remediation options:\n   - Move VM disks to a dedicated StorageClass (e.g. Ceph, NFS, or local-path)\n   - Clean up unused container images: `oc adm node-logs <node> -u kubelet | grep -i garbage`\n   - Expand the node's root filesystem if the underlying infrastructure allows it\n"
+priority_hint = ""
+impact = "workload-shift"
+impact_scope = "VM-hosting worker nodes and attached VMs"
+impact_detail = "Freeing node capacity often requires evacuating VMs, moving disks, or rescheduling workloads away from pressured nodes."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/virtualization/index#virt-node-maintenance"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/virtualization/index#virt-node-maintenance"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/virtualization/index#virt-node-maintenance"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/virtualization/index#virt-node-maintenance"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/virtualization/index#virt-node-maintenance"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index#virt-node-maintenance"
+
+[[checks]]
+check_id = "7.4.tsr.4_8_1_5_1_1_cnv_operators_node_placement"
+title = "TSR CNV operators node placement"
+description = "CNV infrastructure components (virt-handler, virt-launcher) must run on nodes\nwith the appropriate hardware capabilities. Incorrect node placement leads to\nVM scheduling failures and live migration issues.\n"
+recommendation = "1. Verify the `virt-handler` DaemonSet is running on all compute or worker nodes.\n   `oc get ds virt-handler -n openshift-cnv`\n2. Check node selectors and tolerations on the HyperConverged CR.\n3. Confirm that nodes intended for VMs have the `node.kubevirt.io/schedulable` label.\n4. Confirm hardware virtualization is enabled on target nodes.\n   `oc debug node/<name> -- cat /proc/cpuinfo | grep -E 'vmx|svm'`\n"
+priority_hint = ""
+impact = "workload-shift"
+impact_scope = "CNV infrastructure pods and VM-capable worker nodes"
+impact_detail = "Changing schedulable labels or node placement reschedules CNV components and can require VM migration before draining or repurposing nodes."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/virtualization/index#virt-specifying-nodes-for-vms_virt-node-placement-virt-handler"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/virtualization/index#virt-specifying-nodes-for-vms_virt-node-placement-virt-handler"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/virtualization/index#virt-specifying-nodes-for-vms_virt-node-placement-virt-handler"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/virtualization/index#virt-specifying-nodes-for-vms_virt-node-placement-virt-handler"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/virtualization/index#virt-specifying-nodes-for-vms_virt-node-placement-virt-handler"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index#virt-specifying-nodes-for-vms_virt-node-placement-virt-handler"
+
+[[checks]]
+check_id = "7.4.tsr.4_8_1_5_1_5_vm_run_strategy_and_availability"
+title = "TSR VM run strategy and availability"
+description = "VM RunStrategy controls how VMs behave during node failures and maintenance.\n`Always` ensures automatic restart on healthy nodes; `Manual` requires operator\nintervention. Production VMs should use `Always` with live migration enabled.\n"
+recommendation = "1. Review VM run strategies.\n   `oc get vm -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,STRATEGY:.spec.runStrategy`\n2. For production VMs using `Manual` or `RerunOnFailure`, evaluate whether `Always` with eviction strategy `LiveMigrate` is more appropriate for uptime SLAs.\n"
+priority_hint = ""
+impact = "non-disruptive"
+impact_scope = "virtual machine policy"
+impact_detail = "Updating runStrategy or eviction policy changes future failover and maintenance behavior immediately, but it does not reboot nodes or stop running VMs by itself."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/virtualization/index#run-strategies"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/virtualization/index#run-strategies"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/virtualization/index#run-strategies"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/virtualization/index#run-strategies"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/virtualization/index#run-strategies"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index#run-strategies"
+
+[[checks]]
+check_id = "7.4.tsr.4_8_2_1_1_3_live_migration_network_readiness"
+title = "TSR live migration network readiness"
+description = "Live migration transfers VM memory over the network. Without a dedicated\nmigration network, large VMs can saturate the cluster network and cause\ntimeouts, migration failures, or collateral impact on other workloads.\n"
+recommendation = "1. Verify migration configuration.\n   `oc get kubevirt -n openshift-cnv -o jsonpath='{.items[0].spec.configuration.migrations}'`\n2. For production environments, configure a dedicated migration network using a `NetworkAttachmentDefinition` and set it in the HyperConverged CR.\n3. Ensure bandwidth limits are set to prevent saturation.\n"
+priority_hint = ""
+impact = "workload-shift"
+impact_scope = "live-migration traffic path and virt-handler pods"
+impact_detail = "Adding a dedicated migration network updates HyperConverged migration settings and restarts virt-handler pods; migration traffic then shifts off the primary cluster network."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/virtualization/index#virt-dedicated-network-live-migration"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/virtualization/index#virt-dedicated-network-live-migration"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/virtualization/index#virt-dedicated-network-live-migration"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/virtualization/index#virt-dedicated-network-live-migration"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/virtualization/index#virt-dedicated-network-live-migration"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index#virt-dedicated-network-live-migration"
+
+[[checks]]
+check_id = "7.4.tsr.4_8_2_2_1_2_network_configuration"
+title = "TSR network configuration"
+description = "This check verifies that the node network configuration required for virtual machine connectivity is properly set up. It looks for NodeNetworkConfigurationPolicy (NNCP) and NodeNetworkConnectionEnactment (NNCE) resources. Missing or failed network policies mean VMs may not be able to connect to external networks or other VMs."
+recommendation = "1. Check if node network policies exist and are applied:\n   `oc get nncp` and `oc get nnce`\n2. If NNCPs are missing and VMs need bridge or VLAN networking, create the\n   appropriate NodeNetworkConfigurationPolicy for your topology.\n3. If NNCPs exist but show errors, inspect the enactment status:\n   `oc get nnce -o wide`\n4. Verify VM network attachments are correctly defined:\n   `oc get net-attach-def -A`\n"
+priority_hint = ""
+impact = "maintenance-window"
+impact_scope = "targeted worker-node networking and attached VM interfaces"
+impact_detail = "Bridge, SR-IOV, or other host-network changes can interrupt node and VM connectivity while the node networking is reconfigured."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/kubernetes_nmstate/index#k8s-nmstate-updating-node-network-config"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/kubernetes_nmstate/index#k8s-nmstate-updating-node-network-config"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/kubernetes_nmstate/index#k8s-nmstate-updating-node-network-config"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/kubernetes_nmstate/index#k8s-nmstate-updating-node-network-config"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/kubernetes_nmstate/index#k8s-nmstate-updating-node-network-config"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/kubernetes_nmstate/index#k8s-nmstate-updating-node-network-config"
+
+[[checks]]
+check_id = "7.4.tsr.4_8_3_1_1_storage_profiles"
+title = "TSR storage profiles"
+description = "StorageProfiles define default volume modes and access modes per StorageClass\nfor CDI operations. Missing or misconfigured profiles cause DataVolume import\nfailures or suboptimal disk performance (filesystem mode instead of block).\n"
+recommendation = "1. Review storage profiles.\n   `oc get storageprofile`\n2. Confirm each profile has a `claimPropertySets` entry.\n3. For virtualization workloads, prefer Block mode with `ReadWriteMany` access.\n4. Update profiles to set appropriate defaults matching your storage backend capabilities.\n   `oc edit storageprofile <name>`\n"
+priority_hint = ""
+impact = "non-disruptive"
+impact_scope = "new DataVolumes and VM disk defaults"
+impact_detail = "StorageProfile changes affect future imports, clones, and PVC defaults; existing volumes and running VMs continue unchanged."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/virtualization/index#virt-customizing-storage-profile_virt-configuring-storage-profile"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/virtualization/index#virt-customizing-storage-profile_virt-configuring-storage-profile"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/virtualization/index#virt-customizing-storage-profile_virt-configuring-storage-profile"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/virtualization/index#virt-customizing-storage-profile_virt-configuring-storage-profile"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/virtualization/index#virt-customizing-storage-profile_virt-configuring-storage-profile"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index#virt-customizing-storage-profile_virt-configuring-storage-profile"
+
+[[checks]]
+check_id = "7.4.tsr.4_8_3_2_1_nmstate_operator"
+title = "TSR NMState operator"
+description = "The NMState operator enables declarative host networking configuration via\nNodeNetworkConfigurationPolicy CRs. It is required for bridge-based VM\nnetworking and advanced NIC bonding configurations.\n"
+recommendation = "1. Verify NMState operator health.\n   `oc get csv -n openshift-nmstate`\n2. Check node network state.\n   `oc get nns`\n3. For failed `NodeNetworkConfigurationPolicy` resources, review conditions.\n   `oc get nncp -o yaml`\n4. Check `nmstate-handler` pod logs on affected nodes.\n"
+priority_hint = ""
+impact = "maintenance-window"
+impact_scope = "nodes targeted by NodeNetworkConfigurationPolicy"
+impact_detail = "Applying or correcting NNCPs can briefly disrupt host networking; use controlled rollout settings such as maxUnavailable and validate rollback behavior."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/kubernetes_nmstate/index#k8s-nmstate-updating-node-network-config"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/kubernetes_nmstate/index#k8s-nmstate-updating-node-network-config"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/kubernetes_nmstate/index#k8s-nmstate-updating-node-network-config"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/kubernetes_nmstate/index#k8s-nmstate-updating-node-network-config"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/kubernetes_nmstate/index#k8s-nmstate-updating-node-network-config"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/kubernetes_nmstate/index#k8s-nmstate-updating-node-network-config"
+
+[[checks]]
+check_id = "7.4.tsr.4_8_3_2_2_sr_iov_operator"
+title = "TSR SR-IOV operator"
+description = "The SR-IOV Network Operator enables high-performance networking for VMs and pods\nby managing Virtual Functions on supported NICs. Misconfiguration leads to VF\nallocation failures and VM attachment errors.\n"
+recommendation = "1. Check SR-IOV operator status.\n   `oc get csv -n openshift-sriov-network-operator`\n2. Check node state.\n   `oc get sriovnetworknodestates -n openshift-sriov-network-operator`\n3. Verify `SriovNetworkNodePolicy` resources match available hardware.\n4. Confirm network definitions reference valid resource names.\n   `oc get sriovnetwork -A`\n"
+priority_hint = ""
+impact = "maintenance-window"
+impact_scope = "SR-IOV-capable worker nodes and attached VMs/pods"
+impact_detail = "Updating SR-IOV policies reprovisions virtual functions on the NIC and can interrupt workloads attached to those interfaces until reconciliation completes."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/hardware_networks/index#configuring-sriov-network-devices"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/hardware_networks/index#configuring-sriov-network-devices"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/hardware_networks/index#configuring-sriov-network-devices"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/hardware_networks/index#configuring-sriov-network-devices"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/hardware_networks/index#configuring-sriov-network-devices"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/hardware_networks/index#configuring-sriov-network-devices"
+
+[[checks]]
+check_id = "7.4.tsr.4_8_3_2_3_linux_bridge_network"
+title = "TSR Linux bridge network"
+description = "Linux bridge networks provide layer-2 connectivity for VMs. They require\nNMState-managed bridge interfaces on worker nodes and corresponding\nNetworkAttachmentDefinitions.\n"
+recommendation = "1. Verify bridge interfaces are configured on nodes.\n   `oc get nnce <node>.<policy> -o yaml`\n2. Confirm the bridge exists on target nodes.\n3. Check `NetworkAttachmentDefinition` resources reference the correct bridge name.\n4. Test connectivity by attaching a test VM to the bridge network and validating L2 reachability.\n"
+priority_hint = ""
+impact = "maintenance-window"
+impact_scope = "targeted worker nodes and bridge-attached VM interfaces"
+impact_detail = "Linux bridge changes are host-network reconfiguration events and can temporarily drop connectivity for affected nodes or VMs during application."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/virtualization/index#virt-connecting-vm-to-linux-bridge"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/virtualization/index#virt-connecting-vm-to-linux-bridge"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/virtualization/index#virt-connecting-vm-to-linux-bridge"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/virtualization/index#virt-connecting-vm-to-linux-bridge"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/virtualization/index#virt-connecting-vm-to-linux-bridge"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index#virt-connecting-vm-to-linux-bridge"
+
+[[checks]]
+check_id = "7.4.tsr.4_8_4_5_host_kernel_bsod_indicators"
+title = "TSR host kernel crash indicators"
+description = "Kernel panics or BSOD-equivalent events on nodes indicate hardware failures,\ndriver issues, or critical kernel bugs. Affected nodes are unreliable and may\ncause VM disruption without warning.\n"
+recommendation = "1. Check node journals for kernel panics.\n   `oc adm node-logs <node> --path=journal | grep -iE 'panic|oops|BUG:'`\n2. Review node readiness events for unexpected reboots.\n   `oc get events -A --field-selector reason=NodeNotReady`\n3. Investigate hardware health using IPMI, iDRAC, or iLO.\n4. Update kernel and firmware, and consider cordoning affected nodes until root cause is identified.\n"
+priority_hint = ""
+impact = "maintenance-window"
+impact_scope = "affected VM-hosting nodes"
+impact_detail = "Kernel or hardware remediation commonly requires cordon, drain, reboot, or replacement of the node, forcing VM migration or downtime if migration is unavailable."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/virtualization/index#virt-node-maintenance"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/virtualization/index#virt-node-maintenance"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/virtualization/index#virt-node-maintenance"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/virtualization/index#virt-node-maintenance"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/virtualization/index#virt-node-maintenance"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index#virt-node-maintenance"
+
+[[checks]]
+check_id = "7.4.tsr.4_8_4_6_nfs_client_mount_posture"
+title = "TSR NFS client mount posture"
+description = "NFS mounts on nodes must use appropriate options (hard, timeo, retrans) to avoid\ndata corruption and hanging processes. Soft mounts can silently corrupt data\nunder network interruption.\n"
+recommendation = "1. Review NFS mount options on worker nodes.\n   `oc debug node/<name> -- mount | grep nfs`\n2. Ensure production mounts use the `hard` mount option.\n3. Check `StorageClass` parameters for NFS-backed PVs.\n4. Validate the NFS server is accessible from all nodes without firewall interference.\n"
+priority_hint = ""
+impact = "maintenance-window"
+impact_scope = "nodes and workloads using NFS-backed VM storage"
+impact_detail = "Correcting NFS mount posture can require remounting or restarting NFS-backed workloads and is safest during a planned window."
+
+[checks.links]
+default = "https://access.redhat.com/solutions/4216421"
+"4.18" = "https://access.redhat.com/solutions/4216421"
+"4.19" = "https://access.redhat.com/solutions/4216421"
+"4.20" = "https://access.redhat.com/solutions/4216421"
+"4.21" = "https://access.redhat.com/solutions/4216421"
+"4.22" = "https://access.redhat.com/solutions/4216421"
+
+[[checks]]
+check_id = "7.4.tsr.4_8_4_7_nfs_client_sysctl_posture"
+title = "TSR NFS client sysctl posture"
+description = "NFS performance and reliability on OCP nodes depend on proper kernel parameters\n(sunrpc.tcp_max_slot_table_entries, nfs.max_session_slots). Default values may\nbe insufficient for high-IOPS VM workloads.\n"
+recommendation = "1. Check current sysctl values on nodes.\n   `oc debug node/<name> -- sysctl sunrpc.tcp_max_slot_table_entries`\n2. Apply tuning via a `MachineConfig` or the Node Tuning Operator (`Tuned` profile) to set appropriate values for the NFS workload characteristics.\n3. Set the recommended value: `sunrpc.tcp_max_slot_table_entries=128`.\n"
+priority_hint = ""
+impact = "maintenance-window"
+impact_scope = "nodes using NFS-backed virtualization workloads"
+impact_detail = "Tuned profiles can apply live, but MachineConfig-based sysctl changes drain and reboot nodes; treat this as planned node-by-node remediation."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/scalability_and_performance/index#custom-tuning-specification_node-tuning-operator"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/scalability_and_performance/index#custom-tuning-specification_node-tuning-operator"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/scalability_and_performance/index#custom-tuning-specification_node-tuning-operator"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/scalability_and_performance/index#custom-tuning-specification_node-tuning-operator"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/scalability_and_performance/index#custom-tuning-specification_node-tuning-operator"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/scalability_and_performance/index#custom-tuning-specification_node-tuning-operator"
+
+[[checks]]
+check_id = "7.4.tsr.4_8_5_1_1_quota_and_resources"
+title = "TSR CNV quota and resources"
+description = "ResourceQuotas and LimitRanges in namespaces running VMs must account for\nvirt-launcher pod overhead. Insufficient quotas prevent VM starts and live\nmigrations.\n"
+recommendation = "1. Review quotas in VM namespaces.\n   `oc get resourcequota -n <ns>`\n2. Confirm quotas account for `virt-launcher` pod requests, typically 1 CPU per vCPU plus overhead memory.\n3. For live migration, ensure quotas allow at least 2x the resources of the largest VM to accommodate the migration target pod.\n"
+priority_hint = ""
+impact = "non-disruptive"
+impact_scope = "VM namespaces and admission control"
+impact_detail = "Quota changes take effect immediately for new VM starts or migrations, but they do not restart nodes or stop already running VMs."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/virtualization/index"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/virtualization/index"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/virtualization/index"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/virtualization/index"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/virtualization/index"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index"
+
+[[checks]]
+check_id = "7.4.tsr.4_8_5_2_3_cnv_vmi_readiness_prometheus"
+title = "TSR CNV VMI readiness metrics"
+description = "VMI readiness metrics in Prometheus indicate whether virtual machines are\nsuccessfully reaching a running and accessible state. Low readiness rates\nsuggest scheduling, networking, or storage provisioning issues.\n"
+recommendation = "1. Query VMI readiness.\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -s 'http://localhost:9090/api/v1/query?query=kubevirt_vmi_phase_count'`\n2. Alternatively, review the metric in the OCP console under `Observe -> Metrics`.\n3. Investigate VMIs stuck in `Scheduling` or `Pending` phase.\n4. Check events on the VMI and its `DataVolumes` for provisioning errors.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/virtualization/index#virt-querying-metrics_virt-prometheus-queries"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/virtualization/index#virt-querying-metrics_virt-prometheus-queries"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/virtualization/index#virt-querying-metrics_virt-prometheus-queries"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/virtualization/index#virt-querying-metrics_virt-prometheus-queries"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/virtualization/index#virt-querying-metrics_virt-prometheus-queries"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index#virt-querying-metrics_virt-prometheus-queries"
+
+[[checks]]
+check_id = "7.4.tsr.4_8_5_3_1_oadp_operator"
+title = "TSR OADP operator"
+description = "OADP (OpenShift API for Data Protection) provides backup and restore for VMs and applications. This check verifies that the OADP operator is installed, its CSV (ClusterServiceVersion) is healthy, and the backup infrastructure is properly configured. Failures here mean disaster recovery is not functional."
+recommendation = "1. Verify the OADP operator is installed and healthy:\n   `oc get csv -n openshift-adp`\n   The phase should show \"Succeeded\".\n2. Check the DataProtectionApplication CR status:\n   `oc get dpa -n openshift-adp -o yaml`\n3. Ensure a BackupStorageLocation is configured and shows \"Available\":\n   `oc get backupstoragelocation -n openshift-adp`\n4. Test with a trial backup to confirm the pipeline works:\n   `velero backup create test-backup --include-namespaces <test-ns> -n openshift-adp`\n"
+priority_hint = ""
+impact = "non-disruptive"
+impact_scope = "openshift-adp backup and restore components"
+impact_detail = "Deploying or correcting OADP rolls backup components and adds backup I/O, but it does not reboot nodes or stop running VMs."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/backup_and_restore/index#configuring-oadp-with-openshift-virtualization"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/backup_and_restore/index#configuring-oadp-with-openshift-virtualization"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/backup_and_restore/index#configuring-oadp-with-openshift-virtualization"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/backup_and_restore/index#configuring-oadp-with-openshift-virtualization"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/backup_and_restore/index#configuring-oadp-with-openshift-virtualization"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/backup_and_restore/index#configuring-oadp-with-openshift-virtualization"
+
+[[checks]]
+check_id = "7.4.tsr.4_8_5_3_5_cdi_image_upload_posture"
+title = "TSR CDI image upload posture"
+description = "CDI (Containerized Data Importer) manages VM disk image imports and uploads.\nIssues with CDI configuration prevent DataVolume provisioning, blocking new VM\ncreation and disk cloning operations.\n"
+recommendation = "1. Check CDI status.\n   `oc get cdi -n openshift-cnv -o yaml`\n2. Review upload proxy health.\n   `oc get pods -n openshift-cnv -l app=cdi-uploadproxy`\n3. Verify the `uploadproxy` route is accessible and TLS certificates are valid.\n4. For slow imports, check network bandwidth between CDI importer pods and the source registry or HTTP endpoint.\n"
+priority_hint = ""
+impact = "non-disruptive"
+impact_scope = "CDI importer and upload components"
+impact_detail = "CDI remediation rolls import or upload control pods and affects new image imports or uploads, but not already running VMs."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/virtualization/index"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/virtualization/index"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/virtualization/index"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/virtualization/index"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/virtualization/index"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index"

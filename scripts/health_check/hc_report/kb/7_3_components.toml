@@ -1,0 +1,1505 @@
+[[checks]]
+check_id = "7.3.version"
+title = "Cluster version health"
+description = "ClusterVersion conditions indicate whether the cluster is in a healthy upgrade\nstate. Progressing, Failing, or RetrievedUpdates=False conditions indicate\nupgrade-path issues that require investigation before planning the next update.\n"
+recommendation = "1. Check ClusterVersion conditions and review the `status.conditions` array:\n   `oc get clusterversion -o yaml`\n2. If Progressing is stuck or Failing is True, review the cluster-version-operator logs:\n   `oc -n openshift-cluster-version logs deployment/cluster-version-operator`\n3. Resolve any blocking operators before attempting another upgrade.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/updating_clusters/index#understanding-clusterversion-conditiontypes_understanding-openshift-updates"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/updating_clusters/index#understanding-clusterversion-conditiontypes_understanding-openshift-updates"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/updating_clusters/index#understanding-clusterversion-conditiontypes_understanding-openshift-updates"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/updating_clusters/index#understanding-clusterversion-conditiontypes_understanding-openshift-updates"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/updating_clusters/index#understanding-clusterversion-conditiontypes_understanding-openshift-updates"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/updating_clusters/index#understanding-clusterversion-conditiontypes_understanding-openshift-updates"
+
+[[checks]]
+check_id = "7.3.co.kube-apiserver"
+title = "Cluster Operator: kube-apiserver"
+description = "The kube-apiserver operator manages the Kubernetes API server on all control\nplane nodes. When degraded, API availability is impaired — affecting all\ncluster operations including workload scheduling and oc/kubectl commands.\n"
+recommendation = "1. Review the kube-apiserver operator status and inspect pod logs:\n   `oc get co kube-apiserver -o yaml`\n   `oc -n openshift-kube-apiserver logs kube-apiserver-<node> -c kube-apiserver`\n2. Common causes include certificate issues, etcd connectivity, and resource exhaustion on control plane nodes.\n3. Check events:\n   `oc get events -n openshift-kube-apiserver --sort-by=.lastTimestamp`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#control-plane"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/architecture/index#control-plane"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/architecture/index#control-plane"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/architecture/index#control-plane"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/architecture/index#control-plane"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/architecture/index#control-plane"
+
+[[checks]]
+check_id = "7.3.co.*"
+pattern = true
+title = "Cluster Operator"
+description = "ClusterOperators provide core cluster functionality. When a cluster operator is\ndegraded or unavailable, one of its managed components is not functioning as\nintended and cluster stability or supportability may be impaired.\n"
+recommendation = "1. Describe the affected cluster operator to identify the failing conditions:\n   `oc describe clusteroperator <name>`\n2. Review the operator deployment and pods in the affected namespace:\n   `oc get pods -n <operator-ns>`\n3. Inspect the relevant operator pod logs for the root cause:\n   `oc logs -n <operator-ns> <pod>`\n4. Review recent namespace events to correlate certificate, dependency, networking, or resource issues:\n   `oc get events -n <operator-ns> --sort-by=.lastTimestamp`\n5. Resolve the underlying dependency or infrastructure issue before restarting operator-managed components.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#control-plane"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/architecture/index#control-plane"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/architecture/index#control-plane"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/architecture/index#control-plane"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/architecture/index#control-plane"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/architecture/index#control-plane"
+
+[[checks]]
+check_id = "7.3.tsr.3_2_1_platform_operators"
+title = "TSR platform operators"
+description = "Platform operators (ClusterOperators) provide core cluster functionality. Any\ndegraded or unavailable operator indicates a component that is not functioning\nas intended and may affect cluster stability or supportability.\n"
+recommendation = "1. Review degraded operators to find operators not in Available=True, Progressing=False, Degraded=False state:\n   `oc get co | grep -v 'True.*False.*False'`\n2. Inspect each degraded operator's conditions and namespace events.\n3. Common remediation involves restarting the operator pod or resolving underlying resource issues (certificates, networking, storage).\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#control-plane"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/architecture/index#control-plane"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/architecture/index#control-plane"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/architecture/index#control-plane"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/architecture/index#control-plane"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/architecture/index#control-plane"
+
+[[checks]]
+check_id = "7.3.tsr.3_3_custom_resource_definitions"
+title = "TSR custom resource definitions"
+description = "Orphaned CRDs from uninstalled operators bloat the API schema, slow discovery,\nand can cause conversion webhook errors. CRDs should be cleaned up when the\nowning operator is fully removed.\n"
+recommendation = "1. List non-Red Hat CRDs and cross-reference with installed operators:\n   `oc get crd -o name | grep -v '.openshift.io'`\n2. For CRDs with no owning operator, verify no custom resources exist before removing the CRD. Back up any remaining CRs before deletion:\n   `oc get <crd-kind> -A`\n"
+priority_hint = ""
+impact = "non-disruptive"
+impact_scope = "API schema and orphaned operator resources"
+impact_detail = "Removing truly orphaned CRDs updates API discovery immediately but does not reboot nodes; verify no live custom resources depend on them before deletion."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/operators/index#crd-managing-resources-from-crds"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/operators/index#crd-managing-resources-from-crds"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/operators/index#crd-managing-resources-from-crds"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/operators/index#crd-managing-resources-from-crds"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/operators/index#crd-managing-resources-from-crds"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/operators/index#crd-managing-resources-from-crds"
+
+[[checks]]
+check_id = "7.3.crds"
+title = "Custom resource definitions"
+description = "High CRD count can impact API server start time and list/watch performance.\nAudit CRDs for orphaned resources from uninstalled operators before removing\nthem, and confirm no custom resources still depend on them.\n"
+recommendation = "1. Inventory CRDs and group them by owning operator or API group:\n   `oc get crd`\n2. For unusually high counts, identify orphaned CRDs from removed operators, verify no custom resources remain, and remove only the unused definitions after backup.\n"
+priority_hint = ""
+impact = "non-disruptive"
+impact_scope = "API schema and orphaned operator resources"
+impact_detail = "CRD cleanup changes API discovery immediately but should not restart nodes or workloads when only unused definitions are removed."
+
+[checks.links]
+default = "https://docs.openshift.com/container-platform/latest/scalability_and_performance/planning-your-environment-according-to-object-maximums.html"
+"4.18" = "https://docs.openshift.com/container-platform/4.18/scalability_and_performance/planning-your-environment-according-to-object-maximums.html"
+"4.19" = "https://docs.openshift.com/container-platform/4.19/scalability_and_performance/planning-your-environment-according-to-object-maximums.html"
+"4.20" = "https://docs.openshift.com/container-platform/4.20/scalability_and_performance/planning-your-environment-according-to-object-maximums.html"
+"4.21" = "https://docs.openshift.com/container-platform/4.21/scalability_and_performance/planning-your-environment-according-to-object-maximums.html"
+"4.22" = "https://docs.openshift.com/container-platform/4.22/scalability_and_performance/planning-your-environment-according-to-object-maximums.html"
+
+[[checks]]
+check_id = "7.3.deprecated_apis"
+title = "Deprecated APIs"
+description = "Clusters cannot upgrade past the version where a deprecated API is removed if\nactive usage still exists. Use `oc get apirequestcounts` to identify callers\nand update clients before the next minor upgrade.\n"
+recommendation = "1. Migrate all workloads off deprecated API versions before the next minor version upgrade. Run to identify which clients are using deprecated APIs:\n   `oc get apirequestcounts`\n2. Update manifests, Helm charts, and Operators to use current API versions.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://kubernetes.io/docs/reference/using-api/deprecation-guide/"
+"4.18" = "https://kubernetes.io/docs/reference/using-api/deprecation-guide/"
+"4.19" = "https://kubernetes.io/docs/reference/using-api/deprecation-guide/"
+"4.20" = "https://kubernetes.io/docs/reference/using-api/deprecation-guide/"
+"4.21" = "https://kubernetes.io/docs/reference/using-api/deprecation-guide/"
+"4.22" = "https://kubernetes.io/docs/reference/using-api/deprecation-guide/"
+
+[[checks]]
+check_id = "7.3.network.plugin"
+title = "Cluster network plugin"
+description = "OVNKubernetes is the recommended network plugin for current OCP releases.\nOpenShiftSDN is deprecated and must be migrated before advancing beyond its\nsupported lifecycle.\n"
+recommendation = "1. Confirm the active network plugin and check network operator health:\n   `oc get network.config cluster -o jsonpath='{.spec.networkType}'`\n   `oc get co network -o yaml`\n2. Migrate from OpenShiftSDN to OVNKubernetes before upgrading to OCP 4.17 \u2014 SDN support is removed in 4.17 and later.\n3. Follow the live migration guide and validate the cluster network operator state before scheduling the upgrade window.\n"
+priority_hint = ""
+impact = "maintenance-window"
+impact_scope = "cluster networking and node data plane"
+impact_detail = "Network-plugin migration changes cluster networking behavior and can disrupt pod and service traffic if not executed in a planned maintenance window."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/updating_clusters/index#sdn-support-removal"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/updating_clusters/index#sdn-support-removal"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/updating_clusters/index#sdn-support-removal"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/updating_clusters/index#sdn-support-removal"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/updating_clusters/index#sdn-support-removal"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/updating_clusters/index#sdn-support-removal"
+
+[[checks]]
+check_id = "7.3.registry.state"
+title = "Internal registry state"
+description = "The internal image registry is required for builds and ImageStream-based\ndeployments. If set to `Removed`, registry-dependent workloads fail. On\nclusters without RWX storage, `Managed` state requires `emptyDir` or an\nobject-storage backend.\n"
+recommendation = "1. Confirm whether the internal registry is actually required for this cluster's workloads before changing its state \u2014 some clusters intentionally set it to `Removed` when using an external registry exclusively.\n2. If it is required, set it to `Managed` and configure a supported storage backend (`spec.storage`) before enabling it:\n   `oc patch configs.imageregistry.operator.openshift.io cluster --type=merge -p '{\"spec\":{\"managementState\":\"Managed\"}}'`\n"
+priority_hint = ""
+impact = "workload-shift"
+impact_scope = "image registry pods and dependent build/image workflows"
+impact_detail = "Changing registry state or storage rolls registry pods and can briefly interrupt internal image pushes, pulls, and build flows while the new backend comes online."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/registry/index#registry-operator-configuration-resource-overview_configuring-registry-operator"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/registry/index#registry-operator-configuration-resource-overview_configuring-registry-operator"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/registry/index#registry-operator-configuration-resource-overview_configuring-registry-operator"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/registry/index#registry-operator-configuration-resource-overview_configuring-registry-operator"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/registry/index#registry-operator-configuration-resource-overview_configuring-registry-operator"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/registry/index#registry-operator-configuration-resource-overview_configuring-registry-operator"
+
+[[checks]]
+check_id = "7.3.storage.csi"
+title = "CSI driver availability"
+description = "CSI drivers provide the standard interface for dynamic volume provisioning,\nsnapshots, and resize. Storage classes backed by legacy in-tree or\nvendor-specific provisioners without a CSI driver miss newer storage features\nand may not be supported on future OCP releases.\n"
+recommendation = "1. List installed CSI drivers and compare against the provisioners referenced by existing StorageClasses:\n   `oc get csidrivers`\n   `oc get storageclass -o custom-columns=NAME:.metadata.name,PROVISIONER:.provisioner`\n2. If a provisioner has no matching CSIDriver, install the vendor's CSI Operator (for example the Portworx or vendor-specific Operator from OperatorHub) so provisioning goes through the supported CSI path.\n"
+priority_hint = ""
+impact = "non-disruptive"
+impact_scope = "storage operator namespace and CSI controller/node pods"
+impact_detail = "Installing a CSI driver deploys controller and node pods but does not reboot cluster nodes; new storage provisioning begins using the new driver after rollout."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/storage/index#persistent-storage-csi-drivers-supported_persistent-storage-csi"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/storage/index#persistent-storage-csi-drivers-supported_persistent-storage-csi"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/storage/index#persistent-storage-csi-drivers-supported_persistent-storage-csi"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/storage/index#persistent-storage-csi-drivers-supported_persistent-storage-csi"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/storage/index#persistent-storage-csi-drivers-supported_persistent-storage-csi"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/storage/index#persistent-storage-csi-drivers-supported_persistent-storage-csi"
+
+[[checks]]
+check_id = "7.3.storage.default_sc"
+title = "Default storage class"
+description = "A default StorageClass is required for dynamic PVC provisioning. Without one,\nPVCs without an explicit `storageClassName` remain Pending. Only one\nStorageClass should be marked as default.\n"
+recommendation = "1. Designate a default StorageClass by annotating it:\n   `oc patch storageclass <name> -p '{\"metadata\":{\"annotations\":{\"storageclass.kubernetes.io/is-default-class\":\"true\"}}}'`\n2. Ensure only one StorageClass is marked as default.\n"
+priority_hint = ""
+impact = "non-disruptive"
+impact_scope = "new PVC provisioning behavior"
+impact_detail = "Changing the default StorageClass affects only future PVCs that omit storageClassName; existing volumes and nodes are untouched."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/storage/index#change-default-storage-class_dynamic-provisioning"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/storage/index#change-default-storage-class_dynamic-provisioning"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/storage/index#change-default-storage-class_dynamic-provisioning"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/storage/index#change-default-storage-class_dynamic-provisioning"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/storage/index#change-default-storage-class_dynamic-provisioning"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/storage/index#change-default-storage-class_dynamic-provisioning"
+
+[[checks]]
+check_id = "7.3.storage.pvcs"
+title = "Persistent volume claims"
+description = "Unbound PVCs indicate that requested storage could not be provisioned, often\nbecause the StorageClass is missing, capacity is unavailable, or the requested\naccess mode does not match the backend.\n"
+recommendation = "1. Investigate unbound PVCs:\n   `oc describe pvc <name> -n <ns>`\n2. Common causes include StorageClass not found, no available PVs, access mode mismatch, or insufficient capacity.\n3. Check provisioner pod logs in the storage namespace.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/storage/index#storage-persistent-storage-pvc_understanding-persistent-storage"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/storage/index#storage-persistent-storage-pvc_understanding-persistent-storage"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/storage/index#storage-persistent-storage-pvc_understanding-persistent-storage"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/storage/index#storage-persistent-storage-pvc_understanding-persistent-storage"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/storage/index#storage-persistent-storage-pvc_understanding-persistent-storage"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/storage/index#storage-persistent-storage-pvc_understanding-persistent-storage"
+
+[[checks]]
+check_id = "7.3.dns.operator"
+title = "DNS Operator"
+description = "The DNS Operator manages CoreDNS and is critical for service discovery. A\ndegraded DNS Operator can cause intermittent name-resolution failures across\nthe cluster.\n"
+recommendation = "1. Check DNS operator health:\n   `oc get dns.operator/default -o yaml`\n   `oc get pods -n openshift-dns`\n2. If forwarding, upstream, or placement changes are required, make them through the `dns.operator/default` resource and confirm the `dns-default` DaemonSet rollout completes cleanly afterward.\n"
+priority_hint = ""
+impact = "workload-shift"
+impact_scope = "CoreDNS DaemonSet and cluster DNS traffic"
+impact_detail = "DNS Operator configuration changes roll CoreDNS pods across nodes; queries shift to remaining replicas, but brief name-resolution blips are possible if capacity is tight."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_operators/index#nw-dns-operator_dns-operator"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_operators/index#nw-dns-operator_dns-operator"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_operators/index#nw-dns-operator_dns-operator"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_operators/index#nw-dns-operator_dns-operator"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_operators/index#nw-dns-operator_dns-operator"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_operators/index#nw-dns-operator_dns-operator"
+
+[[checks]]
+check_id = "7.3.monitoring.config"
+title = "Monitoring configuration"
+description = "The cluster monitoring stack (Prometheus and Alertmanager) is currently using temporary storage. This means all collected metrics, alert history, and dashboard data are lost whenever a monitoring pod restarts. For production clusters, persistent storage must be configured so metrics survive restarts."
+recommendation = "1. Check whether persistent storage is already configured:\n   `oc get configmap cluster-monitoring-config -n openshift-monitoring -o yaml`\n   Look for a `volumeClaimTemplate` section under `prometheusK8s`.\n2. If missing, create or update the `cluster-monitoring-config` ConfigMap to\n   include a `volumeClaimTemplate` that references an available StorageClass.\n3. Apply the updated ConfigMap:\n   `oc apply -f <cluster-monitoring-config.yaml> -n openshift-monitoring`\n4. Verify the Prometheus pods restart with bound PVCs:\n   `oc get pvc -n openshift-monitoring`\n"
+priority_hint = ""
+impact = "workload-shift"
+impact_scope = "Prometheus, Alertmanager, and related monitoring pods"
+impact_detail = "Updating cluster-monitoring-config redeploys affected monitoring components and can create temporary gaps in metrics collection, alert evaluation, or dashboards."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/latest/html-single/configuring_core_platform_monitoring/index#configuring-a-persistent-volume-claim_storing-and-recording-data"
+"4.18" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.18/html-single/configuring_core_platform_monitoring/index#configuring-a-persistent-volume-claim_storing-and-recording-data"
+"4.19" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.19/html-single/configuring_core_platform_monitoring/index#configuring-a-persistent-volume-claim_storing-and-recording-data"
+"4.20" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.20/html-single/configuring_core_platform_monitoring/index#configuring-a-persistent-volume-claim_storing-and-recording-data"
+"4.21" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.21/html-single/configuring_core_platform_monitoring/index#configuring-a-persistent-volume-claim_storing-and-recording-data"
+"4.22" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.22/html-single/configuring_core_platform_monitoring/index#configuring-a-persistent-volume-claim_storing-and-recording-data"
+
+[[checks]]
+check_id = "7.3.webhooks.validatingwebhooks"
+title = "Validating admission webhooks"
+description = "Admission webhooks with high timeouts or `failurePolicy=Fail` can block API\noperations when the webhook backend is unavailable. Ensure webhook backends are\nhighly available and tune timeouts for non-critical paths.\n"
+recommendation = "1. List all validating webhooks and check for high `timeoutSeconds` (>10s) or `failurePolicy: Fail` on non-critical webhooks:\n   `oc get validatingwebhookconfigurations`\n2. Ensure the backing service has multiple replicas and health probes.\n3. For orphaned webhooks from removed operators, delete the configuration.\n"
+priority_hint = ""
+impact = "non-disruptive"
+impact_scope = "API admission path"
+impact_detail = "Webhook configuration changes apply immediately without node restarts, but they can instantly change create/update admission behavior for affected resources."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#configuring-dynamic-admission_admission-plug-ins"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/architecture/index#configuring-dynamic-admission_admission-plug-ins"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/architecture/index#configuring-dynamic-admission_admission-plug-ins"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/architecture/index#configuring-dynamic-admission_admission-plug-ins"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/architecture/index#configuring-dynamic-admission_admission-plug-ins"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/architecture/index#configuring-dynamic-admission_admission-plug-ins"
+
+[[checks]]
+check_id = "7.3.webhooks.mutatingwebhooks"
+title = "Mutating admission webhooks"
+description = "Admission webhooks with high timeouts or `failurePolicy=Fail` can block API\noperations when the webhook backend is unavailable. Ensure webhook backends are\nhighly available and tune timeouts for non-critical paths.\n"
+recommendation = "1. List all mutating webhooks and check for high `timeoutSeconds` (>10s) or `failurePolicy: Fail` on non-critical webhooks:\n   `oc get mutatingwebhookconfigurations`\n2. Ensure the backing service has multiple replicas and health probes.\n3. For orphaned webhooks from removed operators, delete the configuration.\n"
+priority_hint = ""
+impact = "non-disruptive"
+impact_scope = "API admission path"
+impact_detail = "Webhook configuration changes apply immediately without node restarts, but they can instantly change create/update admission behavior for affected resources."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#configuring-dynamic-admission_admission-plug-ins"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/architecture/index#configuring-dynamic-admission_admission-plug-ins"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/architecture/index#configuring-dynamic-admission_admission-plug-ins"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/architecture/index#configuring-dynamic-admission_admission-plug-ins"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/architecture/index#configuring-dynamic-admission_admission-plug-ins"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/architecture/index#configuring-dynamic-admission_admission-plug-ins"
+
+[[checks]]
+check_id = "7.3.tsr.3_5_5_etcd_compaction"
+title = "TSR etcd compaction"
+description = "This check measures how long etcd takes to compact (clean up) its internal database on each control plane node. The reported percentile value (e.g. \"95% quantile: 816ms\") means that 95 out of 100 compaction operations completed within that time. High values indicate the etcd database is under stress — usually from slow disks, a large database, or heavy API traffic — and the cluster's API responsiveness may be degraded."
+recommendation = "1. Check the current etcd database size on every member:\n   `oc -n openshift-etcd exec -c etcd etcd-<member> -- etcdctl endpoint status --cluster -w table`\n   Look at the DB SIZE column — healthy clusters are typically under 8 GB.\n2. If the database is large, schedule a defragmentation during a maintenance window:\n   `oc -n openshift-etcd exec -c etcd etcd-<member> -- etcdctl defrag --cluster`\n3. After defragmentation, verify that DB SIZE dropped and compaction latency improved.\n4. If compaction latency remains high, investigate disk I/O on the control plane\n   nodes — slow storage is the most common root cause.\n"
+priority_hint = ""
+impact = "maintenance-window"
+impact_scope = "control plane and etcd members"
+impact_detail = "Manual etcd defragmentation or backend recovery work affects the control plane and should be done in a planned window with etcd backup protection."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/etcd/index#etcd-defrag_etcd-performance"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/scalability_and_performance/index#etcd-defrag_recommended-etcd-practices"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/etcd/index#etcd-defrag_etcd-performance"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/etcd/index#etcd-defrag_etcd-performance"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/etcd/index#etcd-defrag_etcd-performance"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/etcd/index#etcd-defrag_etcd-performance"
+
+[[checks]]
+check_id = "7.3.tsr.3_5_7_etcd_log_errors"
+title = "TSR etcd log errors"
+description = "This check counts error messages in the etcd logs on each control plane node. The evidence shows how many errors were found and over what time window (e.g. \"Found 8 messages within 16 minutes\"). Any recurring errors — such as missed heartbeats, slow disk warnings, or peer communication failures — signal that etcd is struggling and the cluster's API layer may become unreliable if the root cause is not resolved."
+recommendation = "1. Review recent etcd logs on the affected member:\n   `oc -n openshift-etcd logs etcd-<member> -c etcd --since=1h`\n2. Look for repeated patterns such as:\n   - \"failed to send out heartbeat on time\" — indicates slow disks or CPU starvation\n   - \"request timed out\" — suggests network issues between control plane nodes\n   - \"rafthttp: failed to read\" — points to peer connectivity or TLS problems\n3. Correlate errors across all three etcd members to determine if the issue\n   is isolated to one node or cluster-wide.\n4. Address the underlying cause (disk latency, network, or resource pressure)\n   before the errors escalate into quorum loss.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/etcd/index#understand-etcd-performance_etcd-overview"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/scalability_and_performance/index#recommended-etcd-practices"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/etcd/index#understand-etcd-performance_etcd-overview"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/etcd/index#understand-etcd-performance_etcd-overview"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/etcd/index#understand-etcd-performance_etcd-overview"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/etcd/index#understand-etcd-performance_etcd-overview"
+
+[[checks]]
+check_id = "7.3.tsr.3_5_8_1_etcd_disk_performance"
+title = "TSR etcd disk performance"
+description = "This check measures how quickly the control plane disks can write data durably (called \"fsync\"). The reported value (e.g. \"99% quantile: 31ms\") means that 99 out of 100 write operations completed within that time. Red Hat requires the 99th percentile WAL fsync to stay below 10ms. When disks are too slow, etcd cannot keep up with cluster changes, causing API timeouts, leader elections, and potential cluster instability."
+recommendation = "1. Validate control plane storage with fio on each etcd node:\n   `sudo podman run --volume /var/lib/etcd:/var/lib/etcd:Z quay.io/cloud-bulldozer/etcd-perf`\n2. Check if control plane nodes are under CPU or memory pressure:\n   `oc adm top nodes -l node-role.kubernetes.io/master=`\n3. Review etcd latency metrics in Prometheus:\n   - `histogram_quantile(0.99, rate(etcd_disk_wal_fsync_duration_seconds_bucket[5m]))`\n   - `histogram_quantile(0.99, rate(etcd_disk_backend_commit_duration_seconds_bucket[5m]))`\n   - `histogram_quantile(0.99, rate(etcd_network_peer_round_trip_time_seconds_bucket[2m]))`\n4. If disk latency exceeds 10ms at the 99th percentile:\n   - On bare metal: move /var/lib/etcd to a dedicated NVMe or SSD partition\n   - On virtualized platforms: check for noisy-neighbor conditions, ensure\n     storage is not shared with high-I/O workloads, and verify the backing\n     datastore meets latency requirements\n5. Keep the 99th percentile WAL fsync under 10ms and peer RTT under 50ms.\n"
+recommendation_supported_versions = [
+    "4.18",
+    "4.19",
+    "4.20",
+    "4.21",
+    "4.22",
+]
+priority_hint = ""
+impact = "maintenance-window"
+impact_scope = "control plane nodes and etcd storage path"
+impact_detail = "Fixing etcd disk-performance problems usually requires control-plane infrastructure or storage changes that can reduce API capacity while nodes are remediated."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/scalability_and_performance/index#etcd-verify-hardware_recommended-etcd-practices"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
+
+[[checks]]
+check_id = "7.3.tsr.3_6_2_registry_storage_type"
+title = "TSR registry storage type"
+description = "The internal image registry is using \"emptyDir\" (temporary) storage. This means all container images stored in the registry are lost when the registry pod restarts. Production clusters must use persistent storage (such as a PVC or object storage) so that pushed images are retained reliably."
+recommendation = "1. Check the current registry storage configuration:\n   `oc get configs.imageregistry.operator.openshift.io cluster -o jsonpath='{.spec.storage}'`\n2. If storage shows \"emptyDir\", configure a persistent backend:\n   - For bare metal: use a PVC with a supported StorageClass\n   - For cloud: use the platform's native object storage (S3, Azure Blob, GCS)\n3. Verify registry pods restart with healthy storage:\n   `oc get pods -n openshift-image-registry`\n4. Confirm the image pruner is enabled to manage storage growth:\n   `oc get imagepruner cluster -o yaml`\n"
+priority_hint = ""
+impact = "workload-shift"
+impact_scope = "image registry pods and backing storage"
+impact_detail = "Changing registry storage backends rolls registry pods and can briefly interrupt image pushes, pulls, and build flows during cutover."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/registry/index#registry-configuring-storage-baremetal_configuring-registry-storage-baremetal"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/registry/index#registry-configuring-storage-baremetal_configuring-registry-storage-baremetal"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/registry/index#registry-configuring-storage-baremetal_configuring-registry-storage-baremetal"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/registry/index#registry-configuring-storage-baremetal_configuring-registry-storage-baremetal"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/registry/index#registry-configuring-storage-baremetal_configuring-registry-storage-baremetal"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/registry/index#registry-configuring-storage-baremetal_configuring-registry-storage-baremetal"
+
+[[checks]]
+check_id = "7.3.tsr.3_7_2_monitoring_storage_type"
+title = "TSR monitoring storage type"
+description = "The monitoring stack storage is configured as \"emptyDir\" (temporary). Prometheus metrics, Alertmanager state, and alert history will be lost whenever monitoring pods restart. This is the storage-type counterpart to the monitoring configuration check above."
+recommendation = "1. Check if monitoring PVCs exist:\n   `oc get pvc -n openshift-monitoring`\n2. If no PVCs are bound, update the `cluster-monitoring-config` ConfigMap to\n   include `volumeClaimTemplate` entries for both Prometheus and Alertmanager.\n3. Choose a StorageClass that supports ReadWriteOnce access mode and set\n   retention to match your metrics history requirements (default: 15d).\n4. After applying, confirm pods restart with bound storage:\n   `oc get pods -n openshift-monitoring -w`\n"
+priority_hint = ""
+impact = "workload-shift"
+impact_scope = "Prometheus, Alertmanager, and related monitoring pods"
+impact_detail = "Persistent-storage changes redeploy the affected monitoring components and can temporarily interrupt alert evaluation or metrics retention while pods reschedule."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/latest/html-single/configuring_core_platform_monitoring/index#configuring-a-persistent-volume-claim_storing-and-recording-data"
+"4.18" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.18/html-single/configuring_core_platform_monitoring/index#configuring-a-persistent-volume-claim_storing-and-recording-data"
+"4.19" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.19/html-single/configuring_core_platform_monitoring/index#configuring-a-persistent-volume-claim_storing-and-recording-data"
+"4.20" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.20/html-single/configuring_core_platform_monitoring/index#configuring-a-persistent-volume-claim_storing-and-recording-data"
+"4.21" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.21/html-single/configuring_core_platform_monitoring/index#configuring-a-persistent-volume-claim_storing-and-recording-data"
+"4.22" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.22/html-single/configuring_core_platform_monitoring/index#configuring-a-persistent-volume-claim_storing-and-recording-data"
+
+[[checks]]
+check_id = "7.3.tsr.3_13_webhooks"
+title = "TSR admission webhooks"
+description = "Webhooks intercept every API request (e.g. creating pods, updating configs) and can approve, reject, or modify them. If a webhook's backing service is down or slow, it can block all API operations cluster-wide. This check flags webhooks that monitor critical resources or are configured to hard-fail (failurePolicy=Fail) when their service is unavailable."
+recommendation = "1. List all webhook configurations and their target services:\n   `oc get validatingwebhookconfigurations,mutatingwebhookconfigurations`\n2. For each webhook, check if its backing service is running:\n   `oc get endpoints <service-name> -n <namespace>`\n3. For non-critical webhooks, consider changing `failurePolicy` from \"Fail\"\n   to \"Ignore\" so the webhook cannot block cluster operations when its\n   service is unavailable.\n4. Reduce `timeoutSeconds` to 5-10s for webhooks that are not performance-critical.\n"
+priority_hint = ""
+impact = "non-disruptive"
+impact_scope = "API admission path"
+impact_detail = "Webhook tuning applies live without node restarts, but it can immediately change whether API requests are blocked, mutated, or allowed."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#configuring-dynamic-admission_admission-plug-ins"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/architecture/index#configuring-dynamic-admission_admission-plug-ins"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/architecture/index#configuring-dynamic-admission_admission-plug-ins"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/architecture/index#configuring-dynamic-admission_admission-plug-ins"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/architecture/index#configuring-dynamic-admission_admission-plug-ins"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/architecture/index#configuring-dynamic-admission_admission-plug-ins"
+
+[[checks]]
+check_id = "7.3.tsr.3_1_cluster_version"
+title = "3.1. Cluster Version"
+description = "Validates the current cluster version, available updates, and upgrade channel\nconfiguration. Ensures the cluster is on a supported release and that the\nupgrade path is clear for future maintenance.\n"
+recommendation = "1. Review cluster version status and inspect conditions:\n   `oc get clusterversion`\n   `oc get clusterversion version -o json`\n2. Verify the update channel is set appropriately:\n   `oc get clusterversion -o jsonpath='{.items[0].spec.channel}'`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/updating_clusters/index#understanding-openshift-updates"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/updating_clusters/index#understanding-openshift-updates"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/updating_clusters/index#understanding-openshift-updates"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/updating_clusters/index#understanding-openshift-updates"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/updating_clusters/index#understanding-openshift-updates"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/updating_clusters/index#understanding-openshift-updates"
+
+[[checks]]
+check_id = "7.3.tsr.3_2_operators"
+title = "3.2. Operators"
+description = "Overview section covering all installed operators including platform and\nadditional OLM-managed operators. Validates overall operator health, version\nconsistency, and subscription status across the cluster.\n"
+recommendation = "1. Review all cluster operators and OLM-managed operators:\n   `oc get co`\n   `oc get csv -A`\n2. Check for degraded conditions and pending updates:\n   `oc get subscription -A -o json`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/operators/index#olm-what-operators-are"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/operators/index#olm-what-operators-are"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/operators/index#olm-what-operators-are"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/operators/index#olm-what-operators-are"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/operators/index#olm-what-operators-are"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/operators/index#olm-what-operators-are"
+
+[[checks]]
+check_id = "7.3.tsr.3_2_2_additional_operators"
+title = "3.2.2. Additional Operators"
+description = "Validates OLM-managed operators installed from OperatorHub beyond the platform\ndefaults. Checks subscription health, CSV phase, and whether installed operators\nare actively used or orphaned.\n"
+recommendation = "1. List additional operator subscriptions and verify CSV status:\n   `oc get subscription -A`\n   `oc get csv -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,PHASE:.status.phase`\n2. Investigate any CSV not in 'Succeeded' phase.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/operators/index#olm-adding-operators-to-a-cluster"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/operators/index#olm-adding-operators-to-a-cluster"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/operators/index#olm-adding-operators-to-a-cluster"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/operators/index#olm-adding-operators-to-a-cluster"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/operators/index#olm-adding-operators-to-a-cluster"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/operators/index#olm-adding-operators-to-a-cluster"
+
+[[checks]]
+check_id = "7.3.tsr.3_2_3_operators_plan_approval"
+title = "3.2.3. Operators Plan approval"
+description = "Checks whether operator subscriptions use Automatic or Manual install plan\napproval. Automatic approval can lead to unplanned operator upgrades that may\nintroduce breaking changes or require cluster-version prerequisites.\n"
+recommendation = "1. Review approval strategies:\n   `oc get subscription -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,APPROVAL:.spec.installPlanApproval`\n2. For production clusters, consider setting critical operators to Manual approval to control upgrade timing.\n"
+priority_hint = ""
+impact = "non-disruptive"
+impact_scope = "operator upgrade behavior"
+impact_detail = "Changing installPlanApproval from Automatic to Manual does not restart anything but changes how future operator updates are applied."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/operators/index#olm-installing-operators-from-operatorhub"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/operators/index#olm-installing-operators-from-operatorhub"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/operators/index#olm-installing-operators-from-operatorhub"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/operators/index#olm-installing-operators-from-operatorhub"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/operators/index#olm-installing-operators-from-operatorhub"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/operators/index#olm-installing-operators-from-operatorhub"
+
+[[checks]]
+check_id = "7.3.tsr.3_4_master_configuration"
+title = "3.4. Master Configuration"
+description = "Validates control plane node configuration including resource allocation,\nschedulability settings, and infrastructure topology. Ensures control plane\nnodes are properly sized and configured for the cluster workload.\n"
+recommendation = "1. Check control plane node status and review schedulability:\n   `oc get nodes -l node-role.kubernetes.io/master=`\n   `oc get scheduler cluster -o json`\n2. Inspect control plane resource pressure:\n   `oc adm top nodes -l node-role.kubernetes.io/master=`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#control-plane"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/architecture/index#control-plane"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/architecture/index#control-plane"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/architecture/index#control-plane"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/architecture/index#control-plane"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/architecture/index#control-plane"
+
+[[checks]]
+check_id = "7.3.tsr.3_5_etcd"
+title = "3.5. ETCD"
+description = "Parent section covering etcd cluster health including membership, leader\nelection, database size, compaction, defragmentation, performance, and alerts.\netcd is the backbone of the Kubernetes control plane.\n"
+recommendation = "1. Review overall etcd health:\n   `oc get pods -n openshift-etcd`\n   `oc get etcd cluster -o json`\n2. For detailed member status use:\n   `oc -n openshift-etcd exec -c etcd etcd-<node> -- etcdctl endpoint status --cluster -w table`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/etcd/index#etcd-overview"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/etcd/index#etcd-overview"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/etcd/index#etcd-overview"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/etcd/index#etcd-overview"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/etcd/index#etcd-overview"
+
+[[checks]]
+check_id = "7.3.tsr.3_5_1_etcd_endpoints"
+title = "3.5.1. ETCD Endpoints"
+description = "Validates that all etcd member endpoints are reachable and responding. Missing\nor unreachable endpoints indicate member failure or network partitioning that\ncan lead to quorum loss.\n"
+recommendation = "1. Check etcd endpoint health:\n   `oc -n openshift-etcd exec -c etcd etcd-<node> -- etcdctl endpoint health --cluster -w table`\n2. Verify all members are listed and healthy.\n3. Investigate any unreachable endpoints for network or pod issues.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/etcd/index#etcd-overview"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/etcd/index#etcd-overview"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/etcd/index#etcd-overview"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/etcd/index#etcd-overview"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/etcd/index#etcd-overview"
+
+[[checks]]
+check_id = "7.3.tsr.3_5_2_etcd_leader"
+title = "3.5.2. ETCD Leader"
+description = "Verifies that the etcd cluster has a stable leader. Frequent leader changes\nindicate network instability, disk latency, or resource pressure on control\nplane nodes that can cause API server timeouts.\n"
+recommendation = "1. Check the current leader and look at the IS LEADER column:\n   `oc -n openshift-etcd exec -c etcd etcd-<node> -- etcdctl endpoint status --cluster -w table`\n2. Monitor leader changes in etcd logs:\n   `oc -n openshift-etcd logs etcd-<node> -c etcd | grep 'elected leader'`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/etcd/index#etcd-overview"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/etcd/index#etcd-overview"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/etcd/index#etcd-overview"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/etcd/index#etcd-overview"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/etcd/index#etcd-overview"
+
+[[checks]]
+check_id = "7.3.tsr.3_5_3_etcd_health"
+title = "3.5.3. ETCD Health"
+description = "Assesses the overall health status of all etcd members including alarm state,\nresponse time, and cluster consistency. Unhealthy members must be remediated\nbefore they affect quorum.\n"
+recommendation = "1. Verify member health:\n   `oc -n openshift-etcd exec -c etcd etcd-<node> -- etcdctl endpoint health --cluster -w table`\n2. Check for alarms:\n   `oc -n openshift-etcd exec -c etcd etcd-<node> -- etcdctl alarm list`\n3. Investigate and resolve any raised alarms.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/etcd/index#etcd-overview"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/etcd/index#etcd-overview"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/etcd/index#etcd-overview"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/etcd/index#etcd-overview"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/etcd/index#etcd-overview"
+
+[[checks]]
+check_id = "7.3.tsr.3_5_4_etcd_database_size"
+title = "3.5.4. ETCD Database Size"
+description = "Monitors the etcd database size to ensure it remains within safe limits.\nA database approaching the space quota (default 8GB) triggers alarms that\nprevent further writes and can freeze the control plane.\n"
+recommendation = "1. Check database size and review the DB SIZE column:\n   `oc -n openshift-etcd exec -c etcd etcd-<node> -- etcdctl endpoint status --cluster -w table`\n2. If DB SIZE is approaching quota, review fragmentation in Prometheus and check etcd latency:\n   `(etcd_mvcc_db_total_size_in_bytes - etcd_mvcc_db_total_size_in_use_in_bytes)/1024/1024`\n   `histogram_quantile(0.99, rate(etcd_disk_backend_commit_duration_seconds_bucket[5m]))`\n   `histogram_quantile(0.99, rate(etcd_disk_wal_fsync_duration_seconds_bucket[5m]))`\n3. If fragmentation remains high and DB SIZE greatly exceeds the in-use portion, schedule defragmentation.\n"
+recommendation_supported_versions = [
+    "4.18",
+    "4.19",
+    "4.20",
+    "4.21",
+    "4.22",
+]
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/etcd/index#etcd-defrag_etcd-performance"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/etcd/index#etcd-defrag_etcd-performance"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/etcd/index#etcd-defrag_etcd-performance"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/etcd/index#etcd-defrag_etcd-performance"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/etcd/index#etcd-defrag_etcd-performance"
+
+[[checks]]
+check_id = "7.3.tsr.3_5_6_etcd_defragmentation"
+title = "3.5.6. ETCD Defragmentation"
+description = "Checks whether etcd defragmentation is needed or has been recently performed.\nFragmented backends consume more disk space than necessary and increase\nfsync latency.\n"
+recommendation = "1. Compare DB SIZE vs IN USE columns from:\n   `oc -n openshift-etcd exec -c etcd etcd-<node> -- etcdctl endpoint status --cluster -w table`\n2. If fragmentation is high, schedule defragmentation during maintenance:\n   `oc -n openshift-etcd exec -c etcd etcd-<node> -- etcdctl defrag --cluster`\n"
+priority_hint = ""
+impact = "maintenance-window"
+impact_scope = "control plane and etcd members"
+impact_detail = "Defragmentation briefly locks each etcd member and can cause transient API latency; schedule during a maintenance window."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/etcd/index#etcd-defrag_etcd-performance"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/etcd/index#etcd-defrag_etcd-performance"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/etcd/index#etcd-defrag_etcd-performance"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/etcd/index#etcd-defrag_etcd-performance"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/etcd/index#etcd-defrag_etcd-performance"
+
+[[checks]]
+check_id = "7.3.tsr.3_5_8_etcd_performance"
+title = "3.5.8. ETCD Performance"
+description = "Parent section covering etcd performance metrics including disk I/O, network\nlatency, and CPU utilization. Poor performance in any dimension causes raft\ntimeouts and API instability.\n"
+recommendation = "1. Validate control plane storage with `quay.io/cloud-bulldozer/etcd-perf`.\n2. Review etcd latency metrics in Prometheus:\n   `histogram_quantile(0.99, rate(etcd_disk_wal_fsync_duration_seconds_bucket[5m]))`\n   `histogram_quantile(0.99, rate(etcd_disk_backend_commit_duration_seconds_bucket[5m]))`\n   `histogram_quantile(0.99, rate(etcd_network_peer_round_trip_time_seconds_bucket[2m]))`\n3. Use the disk and network subsections below to isolate the bottleneck.\n"
+recommendation_supported_versions = [
+    "4.18",
+    "4.19",
+    "4.20",
+    "4.21",
+    "4.22",
+]
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
+
+[[checks]]
+check_id = "7.3.tsr.3_5_8_2_etcd_network_performance"
+title = "3.5.8.2. ETCD Network Performance"
+description = "Measures network round-trip latency between etcd members. High inter-member\nlatency causes heartbeat timeouts, leader elections, and request failures\nthat propagate to the API server.\n"
+recommendation = "1. Test network latency between control plane nodes hosting etcd.\n2. Review etcd logs for peer connectivity warnings:\n   `oc -n openshift-etcd logs etcd-<node> -c etcd | grep -i 'overloaded network\\|dial timeout\\|peer'`\n3. Ensure control plane nodes are on a low-latency network segment.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
+
+[[checks]]
+check_id = "7.3.tsr.3_5_8_3_etcd_cpu_performance"
+title = "3.5.8.3. ETCD CPU Performance"
+description = "Checks CPU utilization on control plane nodes running etcd. CPU starvation\ncauses etcd request timeouts, slow commits, and can trigger leader elections\nthat affect the entire cluster.\n"
+recommendation = "1. Review CPU usage on control plane nodes:\n   `oc adm top nodes -l node-role.kubernetes.io/master=`\n2. Check etcd container CPU usage:\n   `oc adm top pods -n openshift-etcd`\n3. Investigate noisy-neighbor workloads if control plane nodes are schedulable.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
+
+[[checks]]
+check_id = "7.3.tsr.3_5_9_etcd_alerts"
+title = "3.5.9. ETCD Alerts"
+description = "Reviews active Prometheus alerts related to etcd health, performance, and\nquorum. Firing etcd alerts indicate conditions that require immediate\ninvestigation to prevent control plane degradation.\n"
+recommendation = "1. Check for firing etcd alerts and review active alerts in the console:\n   `oc get prometheusrules -n openshift-etcd-operator -o json`\n   `oc -n openshift-monitoring exec -c prometheus prometheus-k8s-0 -- promtool query instant http://localhost:9090 'ALERTS{alertname=~\"etcd.*\",alertstate=\"firing\"}'`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/etcd/index#etcd-overview"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/etcd/index#etcd-overview"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/etcd/index#etcd-overview"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/etcd/index#etcd-overview"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/etcd/index#etcd-overview"
+
+[[checks]]
+check_id = "7.3.tsr.3_6_registry"
+title = "3.6. Registry"
+description = "Parent section covering internal image registry configuration, scaling, and\nstorage. The image registry is critical for builds, ImageStreams, and internal\nimage distribution.\n"
+recommendation = "1. Review registry configuration:\n   `oc get configs.imageregistry.operator.openshift.io cluster -o json`\n2. Check registry pod health:\n   `oc get pods -n openshift-image-registry`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/registry/index#configuring-registry-operator"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/registry/index#configuring-registry-operator"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/registry/index#configuring-registry-operator"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/registry/index#configuring-registry-operator"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/registry/index#configuring-registry-operator"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/registry/index#configuring-registry-operator"
+
+[[checks]]
+check_id = "7.3.tsr.3_6_1_registry_scaled"
+title = "3.6.1. Registry Scaled"
+description = "Validates that the internal image registry is running multiple replicas for\nhigh availability. A single-replica registry creates a single point of failure\nfor image pulls and pushes.\n"
+recommendation = "1. Check registry replica count:\n   `oc get configs.imageregistry.operator.openshift.io cluster -o jsonpath='{.spec.replicas}'`\n2. For HA, scale to at least 2 replicas and ensure the storage backend supports RWX access mode or use object storage.\n"
+priority_hint = ""
+impact = "non-disruptive"
+impact_scope = "image registry pods"
+impact_detail = "Scaling registry replicas adds pods without disrupting existing image operations."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/registry/index#configuring-registry-operator"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/registry/index#configuring-registry-operator"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/registry/index#configuring-registry-operator"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/registry/index#configuring-registry-operator"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/registry/index#configuring-registry-operator"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/registry/index#configuring-registry-operator"
+
+[[checks]]
+check_id = "7.3.tsr.3_7_monitoring"
+title = "3.7. Monitoring"
+description = "Parent section covering cluster monitoring stack health, installation status,\nand storage configuration. The monitoring stack provides metrics, alerting,\nand observability for the entire cluster.\n"
+recommendation = "1. Review monitoring stack status:\n   `oc get pods -n openshift-monitoring`\n   `oc get prometheus -n openshift-monitoring -o json`\n2. Check the cluster-monitoring-config ConfigMap for storage and retention settings.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/monitoring/index#monitoring-overview"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/monitoring/index#monitoring-overview"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/monitoring/index#monitoring-overview"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/monitoring/index#monitoring-overview"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/monitoring/index#monitoring-overview"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/monitoring/index#monitoring-overview"
+
+[[checks]]
+check_id = "7.3.tsr.3_7_1_monitoring_installed"
+title = "3.7.1. Monitoring Installed"
+description = "Verifies that the cluster monitoring stack is installed and all required\ncomponents (Prometheus, Alertmanager, Thanos, Grafana) are running. Missing\ncomponents impair observability and alerting.\n"
+recommendation = "1. Verify all monitoring pods are running and check the cluster-monitoring-operator status:\n   `oc get pods -n openshift-monitoring`\n   `oc get co monitoring`\n2. Investigate any pods not in Running/Completed state.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/monitoring/index#monitoring-overview"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/monitoring/index#monitoring-overview"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/monitoring/index#monitoring-overview"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/monitoring/index#monitoring-overview"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/monitoring/index#monitoring-overview"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/monitoring/index#monitoring-overview"
+
+[[checks]]
+check_id = "7.3.tsr.3_8_ingress_controller"
+title = "3.8. Ingress Controller"
+description = "Parent section covering ingress controller configuration including HAProxy\nstatus, tuning parameters, and sharding. Ingress controllers handle all\nexternal traffic routing into the cluster.\n"
+recommendation = "1. Review ingress controllers and check router pod health:\n   `oc get ingresscontroller -n openshift-ingress-operator -o json`\n   `oc get pods -n openshift-ingress`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#configuring-ingress-cluster-traffic-ingress-controller"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#configuring-ingress-cluster-traffic-ingress-controller"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#configuring-ingress-cluster-traffic-ingress-controller"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#configuring-ingress-cluster-traffic-ingress-controller"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#configuring-ingress-cluster-traffic-ingress-controller"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#configuring-ingress-cluster-traffic-ingress-controller"
+
+[[checks]]
+check_id = "7.3.tsr.3_8_1_haproxy_status"
+title = "3.8.1. HAProxy Status"
+description = "Validates that the default HAProxy-based ingress router pods are running and\nhealthy across scheduled nodes. Degraded routers cause external traffic\nblackouts for affected routes.\n"
+recommendation = "1. Check router pod status and verify all replicas are running:\n   `oc get pods -n openshift-ingress -o wide`\n2. Review router logs for errors:\n   `oc logs -n openshift-ingress deployment/router-default --tail=50`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#configuring-ingress-cluster-traffic-ingress-controller"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#configuring-ingress-cluster-traffic-ingress-controller"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#configuring-ingress-cluster-traffic-ingress-controller"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#configuring-ingress-cluster-traffic-ingress-controller"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#configuring-ingress-cluster-traffic-ingress-controller"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#configuring-ingress-cluster-traffic-ingress-controller"
+
+[[checks]]
+check_id = "7.3.tsr.3_8_2_ingress_controller_tuning"
+title = "3.8.2. Ingress Controller Tuning"
+description = "Reviews ingress controller tuning parameters such as thread count, connection\ntimeouts, and resource limits. Suboptimal tuning can cause connection drops\nunder load or excessive resource consumption.\n"
+recommendation = "1. Review tuning options:\n   `oc get ingresscontroller default -n openshift-ingress-operator -o jsonpath='{.spec.tuningOptions}'`\n2. Check resource limits:\n   `oc get pods -n openshift-ingress -o jsonpath='{.items[0].spec.containers[0].resources}'`\n"
+priority_hint = ""
+impact = "rolling-restart"
+impact_scope = "ingress router pods"
+impact_detail = "Tuning changes trigger a rolling restart of router pods which can briefly affect active connections during the rollout."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#nw-ingress-controller-configuration-parameters_configuring-ingress"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#nw-ingress-controller-configuration-parameters_configuring-ingress"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#nw-ingress-controller-configuration-parameters_configuring-ingress"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#nw-ingress-controller-configuration-parameters_configuring-ingress"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#nw-ingress-controller-configuration-parameters_configuring-ingress"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#nw-ingress-controller-configuration-parameters_configuring-ingress"
+
+[[checks]]
+check_id = "7.3.tsr.3_8_3_ingress_sharding"
+title = "3.8.3. Ingress Sharding"
+description = "Checks whether ingress sharding is configured to distribute routes across\nmultiple ingress controllers. Sharding enables traffic isolation, separate\nscaling, and domain-based routing policies.\n"
+recommendation = "1. List all ingress controllers and review route selectors and namespace selectors:\n   `oc get ingresscontroller -n openshift-ingress-operator`\n   `oc get ingresscontroller -n openshift-ingress-operator -o json`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#nw-ingress-sharding_configuring-ingress"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#nw-ingress-sharding_configuring-ingress"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#nw-ingress-sharding_configuring-ingress"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#nw-ingress-sharding_configuring-ingress"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#nw-ingress-sharding_configuring-ingress"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#nw-ingress-sharding_configuring-ingress"
+
+[[checks]]
+check_id = "7.3.tsr.3_9_storage"
+title = "3.9. Storage"
+description = "Parent section covering storage provisioners, persistent volumes, CSI drivers,\nand volume status. Storage is foundational for stateful workloads, monitoring,\nand the image registry.\n"
+recommendation = "1. Review storage classes and persistent volume status:\n   `oc get storageclass`\n   `oc get pv`\n   `oc get pvc -A`\n2. Check for unbound PVCs and verify CSI driver health:\n   `oc get csidrivers`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/storage/index#understanding-persistent-storage"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/storage/index#understanding-persistent-storage"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/storage/index#understanding-persistent-storage"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/storage/index#understanding-persistent-storage"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/storage/index#understanding-persistent-storage"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/storage/index#understanding-persistent-storage"
+
+[[checks]]
+check_id = "7.3.tsr.3_9_1_storage_provisioner_plugins"
+title = "3.9.1. Storage Provisioner Plugins"
+description = "Validates installed storage provisioners and their associated StorageClasses.\nMissing or misconfigured provisioners prevent dynamic volume creation and\ncan block workload deployments.\n"
+recommendation = "1. List storage classes and their provisioners:\n   `oc get storageclass -o custom-columns=NAME:.metadata.name,PROVISIONER:.provisioner,DEFAULT:.metadata.annotations.storageclass\\.kubernetes\\.io/is-default-class`\n2. Verify each provisioner has healthy controller pods running.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/storage/index#dynamic-provisioning"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/storage/index#dynamic-provisioning"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/storage/index#dynamic-provisioning"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/storage/index#dynamic-provisioning"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/storage/index#dynamic-provisioning"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/storage/index#dynamic-provisioning"
+
+[[checks]]
+check_id = "7.3.tsr.3_9_2_storage_local_persistent_volumes"
+title = "3.9.2. Storage Local Persistent Volumes"
+description = "Checks for local persistent volumes and their binding status. Local PVs tie\nworkloads to specific nodes, which complicates scheduling, failover, and\nmaintenance operations.\n"
+recommendation = "1. List local PVs:\n   `oc get pv -o json | jq '.items[] | select(.spec.local) | {name: .metadata.name, node: .spec.nodeAffinity, status: .status.phase}'`\n2. Verify bound PVCs and assess node-affinity constraints for maintenance planning.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/storage/index#persistent-storage-using-local-volume"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/storage/index#persistent-storage-using-local-volume"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/storage/index#persistent-storage-using-local-volume"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/storage/index#persistent-storage-using-local-volume"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/storage/index#persistent-storage-using-local-volume"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/storage/index#persistent-storage-using-local-volume"
+
+[[checks]]
+check_id = "7.3.tsr.3_9_3_dynamic_storage_provisioner_plugins"
+title = "3.9.3. Dynamic Storage Provisioner Plugins"
+description = "Validates that dynamic storage provisioners are functioning correctly and can\ncreate volumes on demand. Failed provisioners leave PVCs in Pending state\nand block workload deployments.\n"
+recommendation = "1. Check provisioner health by reviewing pods in storage-related namespaces and testing dynamic provisioning with a temporary PVC.\n2. Verify provisioner logs for errors:\n   `oc logs -n <provisioner-ns> deployment/<provisioner-name>`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/storage/index#dynamic-provisioning"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/storage/index#dynamic-provisioning"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/storage/index#dynamic-provisioning"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/storage/index#dynamic-provisioning"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/storage/index#dynamic-provisioning"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/storage/index#dynamic-provisioning"
+
+[[checks]]
+check_id = "7.3.tsr.3_9_4_storage_pv_status"
+title = "3.9.4. Storage PV Status"
+description = "Reviews the status of all persistent volumes in the cluster. Released or Failed\nPVs represent unusable storage capacity that may need reclamation or manual\ncleanup.\n"
+recommendation = "1. List all PVs and their status:\n   `oc get pv -o custom-columns=NAME:.metadata.name,CAPACITY:.spec.capacity.storage,STATUS:.status.phase,CLAIM:.spec.claimRef.name,SC:.spec.storageClassName`\n2. Investigate Released or Failed PVs and reclaim or delete as appropriate.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/storage/index#understanding-persistent-storage"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/storage/index#understanding-persistent-storage"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/storage/index#understanding-persistent-storage"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/storage/index#understanding-persistent-storage"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/storage/index#understanding-persistent-storage"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/storage/index#understanding-persistent-storage"
+
+[[checks]]
+check_id = "7.3.tsr.3_9_5_csi_drivers"
+title = "3.9.5. CSI Drivers"
+description = "Validates installed CSI drivers, their health status, and compatibility with\ncluster storage classes. CSI is the standard interface for storage operations\nand replaces legacy in-tree provisioners.\n"
+recommendation = "1. List installed CSI drivers and verify their node plugin DaemonSets are healthy:\n   `oc get csidrivers`\n   `oc get pods -A -l app=<csi-driver-name>`\n2. Compare against storage class provisioners to ensure all classes have a functioning driver.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/storage/index#persistent-storage-csi-drivers-supported_persistent-storage-csi"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/storage/index#persistent-storage-csi-drivers-supported_persistent-storage-csi"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/storage/index#persistent-storage-csi-drivers-supported_persistent-storage-csi"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/storage/index#persistent-storage-csi-drivers-supported_persistent-storage-csi"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/storage/index#persistent-storage-csi-drivers-supported_persistent-storage-csi"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/storage/index#persistent-storage-csi-drivers-supported_persistent-storage-csi"
+
+[[checks]]
+check_id = "7.3.tsr.3_9_6_storage_flexvolumes"
+title = "3.9.6. Storage Flexvolumes"
+description = "Detects usage of deprecated FlexVolume plugins. FlexVolumes are replaced by\nCSI and may not be supported in future OCP versions. Migrate to CSI-based\nstorage before upgrading.\n"
+recommendation = "1. Search for FlexVolume usage. Plan migration to the equivalent CSI driver before the next major version upgrade:\n   `oc get pv -o json | jq '.items[] | select(.spec.flexVolume) | .metadata.name'`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/storage/index#persistent-storage-csi"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/storage/index#persistent-storage-csi"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/storage/index#persistent-storage-csi"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/storage/index#persistent-storage-csi"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/storage/index#persistent-storage-csi"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/storage/index#persistent-storage-csi"
+
+[[checks]]
+check_id = "7.3.tsr.3_10_kubernetes"
+title = "3.10. Kubernetes"
+description = "Parent section covering core Kubernetes networking and configuration components\nincluding kube-proxy, OVN-Kubernetes, feature gates, and kubelet configuration.\n"
+recommendation = "1. Review cluster network configuration and kubelet configs:\n   `oc get network cluster -o json`\n   `oc get kubeletconfig -o json`\n2. Check feature gates:\n   `oc get featuregate cluster -o json`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#cluster-network-operator"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#cluster-network-operator"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#cluster-network-operator"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#cluster-network-operator"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#cluster-network-operator"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#cluster-network-operator"
+
+[[checks]]
+check_id = "7.3.tsr.3_10_1_kubeproxy"
+title = "3.10.1. KubeProxy"
+description = "Validates kube-proxy configuration including proxy mode and iptables/IPVS\nsettings. On OVN-Kubernetes clusters, kube-proxy functionality is integrated\ninto OVN and separate proxy config may not apply.\n"
+recommendation = "1. Check proxy configuration:\n   `oc get network.operator cluster -o jsonpath='{.spec.defaultNetwork.ovnKubernetesConfig}'`\n2. For OpenShiftSDN clusters, review kube-proxy settings in:\n   `oc get network.operator cluster -o json`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#cluster-network-operator"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#cluster-network-operator"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#cluster-network-operator"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#cluster-network-operator"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#cluster-network-operator"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#cluster-network-operator"
+
+[[checks]]
+check_id = "7.3.tsr.3_10_2_ovnkube"
+title = "3.10.2. OVNKube"
+description = "Validates OVN-Kubernetes network plugin health, pod status, and configuration.\nOVN-Kubernetes provides the cluster networking data plane and any degradation\naffects pod-to-pod and service communication.\n"
+recommendation = "1. Check OVN-Kubernetes pod health and review the network operator status:\n   `oc get pods -n openshift-ovn-kubernetes`\n   `oc get co network`\n2. Inspect OVN configuration:\n   `oc get network.operator cluster -o json`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#about-ovn-kubernetes"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#about-ovn-kubernetes"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#about-ovn-kubernetes"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#about-ovn-kubernetes"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#about-ovn-kubernetes"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#about-ovn-kubernetes"
+
+[[checks]]
+check_id = "7.3.tsr.3_10_3_featuregates"
+title = "3.10.3. Featuregates"
+description = "Checks enabled feature gates on the cluster. Non-default feature gates may\nenable tech-preview features that affect supportability or introduce\nbehavior changes that complicate upgrades.\n"
+recommendation = "1. Review enabled feature gates:\n   `oc get featuregate cluster -o json`\n2. Verify that enabled feature sets (TechPreviewNoUpgrade, CustomNoUpgrade) are intentional and understand their impact on cluster supportability and upgrades.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/nodes/index#nodes-cluster-enabling-features-about_nodes-cluster-enabling"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/nodes/index#nodes-cluster-enabling-features-about_nodes-cluster-enabling"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/nodes/index#nodes-cluster-enabling-features-about_nodes-cluster-enabling"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/nodes/index#nodes-cluster-enabling-features-about_nodes-cluster-enabling"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/nodes/index#nodes-cluster-enabling-features-about_nodes-cluster-enabling"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/nodes/index#nodes-cluster-enabling-features-about_nodes-cluster-enabling"
+
+[[checks]]
+check_id = "7.3.tsr.3_10_4_kubelet_config"
+title = "3.10.4. Kubelet-Config"
+description = "Validates custom KubeletConfig resources that override default kubelet\nparameters. Misconfigured kubelet settings can cause node instability,\npod eviction issues, or resource management problems.\n"
+recommendation = "1. List kubelet configurations and review custom parameters:\n   `oc get kubeletconfig -o json`\n2. Verify MachineConfigPool status after changes to ensure nodes successfully apply the new configuration:\n   `oc get mcp`\n"
+priority_hint = ""
+impact = "rolling-restart"
+impact_scope = "nodes in targeted MachineConfigPool"
+impact_detail = "KubeletConfig changes trigger a MachineConfig update that rolls nodes in the targeted pool one by one."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/nodes/index#nodes-nodes-managing"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/nodes/index#nodes-nodes-managing"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/nodes/index#nodes-nodes-managing"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/nodes/index#nodes-nodes-managing"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/nodes/index#nodes-nodes-managing"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/nodes/index#nodes-nodes-managing"
+
+[[checks]]
+check_id = "7.3.tsr.3_11_ocp_limits"
+title = "3.11. OCP Limits"
+description = "Validates whether the cluster is approaching or exceeding documented OpenShift\nscalability limits for nodes, pods, services, or other objects. Exceeding\nlimits can cause degraded performance or unsupported configurations.\n"
+recommendation = "1. Review cluster scale:\n   `oc get nodes | wc -l`\n   `oc get pods -A --no-headers | wc -l`\n2. Compare against published limits in the OCP scalability documentation for the current version.\n3. Check namespace and service counts for limit proximity.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/scalability_and_performance/index#planning-your-environment-according-to-object-maximums"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/scalability_and_performance/index#planning-your-environment-according-to-object-maximums"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/scalability_and_performance/index#planning-your-environment-according-to-object-maximums"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/scalability_and_performance/index#planning-your-environment-according-to-object-maximums"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/scalability_and_performance/index#planning-your-environment-according-to-object-maximums"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/scalability_and_performance/index#planning-your-environment-according-to-object-maximums"
+
+[[checks]]
+check_id = "7.3.tsr.3_14_load_balancer"
+title = "3.14. Load Balancer"
+description = "Parent section covering load balancer configuration including platform load\nbalancers and MetalLB for bare-metal environments. Proper load balancing\nis critical for API and ingress high availability.\n"
+recommendation = "1. Review load balancer services:\n   `oc get svc -A -o json | jq '.items[] | select(.spec.type==\"LoadBalancer\") | {ns: .metadata.namespace, name: .metadata.name, ip: .status.loadBalancer}'`\n2. Check MetalLB status if deployed:\n   `oc get metallb -n metallb-system`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#load-balancing"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#load-balancing"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#load-balancing"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#load-balancing"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#load-balancing"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#load-balancing"
+
+[[checks]]
+check_id = "7.3.tsr.3_14_1_platform_load_balancer"
+title = "3.14.1. Platform Load Balancer"
+description = "Validates the platform-provided load balancer configuration for API and ingress\nVIPs. Misconfigured or unhealthy platform LBs cause API unreachability or\ningress traffic failures.\n"
+recommendation = "1. Review infrastructure platform LB config and check API/Ingress VIP assignments:\n   `oc get infrastructure cluster -o json`\n2. Verify external LB health checks are passing for both API (6443) and ingress (80/443) ports.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#load-balancing"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#load-balancing"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#load-balancing"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#load-balancing"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#load-balancing"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#load-balancing"
+
+[[checks]]
+check_id = "7.3.tsr.3_14_2_metallb"
+title = "3.14.2. MetalLB"
+description = "Parent section covering MetalLB load balancer deployment, configuration, and\nprotocol settings for bare-metal clusters. MetalLB provides LoadBalancer-type\nservice support without cloud provider integration.\n"
+recommendation = "1. Check MetalLB deployment status and verify speaker/controller pods:\n   `oc get metallb -n metallb-system -o json`\n   `oc get pods -n metallb-system`\n2. Review IP address pools and BGP/L2 advertisements.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#about-metallb"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#about-metallb"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#about-metallb"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#about-metallb"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#about-metallb"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#about-metallb"
+
+[[checks]]
+check_id = "7.3.tsr.3_14_2_1_metallb_installed"
+title = "3.14.2.1. Metallb Installed"
+description = "Verifies that the MetalLB operator and instance are correctly installed and\nrunning. Without a healthy MetalLB deployment, LoadBalancer-type services on\nbare-metal clusters remain in Pending state.\n"
+recommendation = "1. Verify MetalLB operator subscription and instance:\n   `oc get subscription -n metallb-system`\n   `oc get metallb -n metallb-system`\n2. Check that controller and speaker pods are running:\n   `oc get pods -n metallb-system`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#metallb-operator-install"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#metallb-operator-install"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#metallb-operator-install"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#metallb-operator-install"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#metallb-operator-install"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#metallb-operator-install"
+
+[[checks]]
+check_id = "7.3.tsr.3_14_2_2_lb_metallb_config"
+title = "3.14.2.2. Lb Metallb Config"
+description = "Validates MetalLB IP address pool configuration and advertisement settings.\nMisconfigured address pools or missing advertisements prevent IP allocation\nto LoadBalancer services.\n"
+recommendation = "1. Review IP address pools and L2/BGP advertisements:\n   `oc get ipaddresspool -n metallb-system -o json`\n   `oc get l2advertisement,bgpadvertisement -n metallb-system -o json`\n2. Verify pools have available addresses.\n"
+priority_hint = ""
+impact = "non-disruptive"
+impact_scope = "MetalLB IP allocation"
+impact_detail = "Address pool changes affect future IP assignments but do not disrupt existing allocated IPs or restart nodes."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#metallb-configure-address-pools"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#metallb-configure-address-pools"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#metallb-configure-address-pools"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#metallb-configure-address-pools"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#metallb-configure-address-pools"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#metallb-configure-address-pools"
+
+[[checks]]
+check_id = "7.3.tsr.3_14_2_3_metallb_l2_arp_ndp"
+title = "3.14.2.3. MetalLB L2 ARP/NDP"
+description = "Checks MetalLB Layer 2 mode ARP/NDP advertisement configuration and speaker\nhealth. L2 mode relies on ARP (IPv4) or NDP (IPv6) to announce VIPs, and\nmisconfiguration causes unreachable services.\n"
+recommendation = "1. Review L2 advertisements and verify speaker pods are running on all nodes:\n   `oc get l2advertisement -n metallb-system -o json`\n   `oc get pods -n metallb-system -l component=speaker -o wide`\n2. Check speaker logs for ARP/NDP errors.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#metallb-configure-l2-advertisement"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#metallb-configure-l2-advertisement"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#metallb-configure-l2-advertisement"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#metallb-configure-l2-advertisement"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#metallb-configure-l2-advertisement"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#metallb-configure-l2-advertisement"
+
+[[checks]]
+check_id = "7.3.tsr.3_15_machine_config_pool"
+title = "3.15. Machine Config Pool"
+description = "Validates MachineConfigPool status including update progress, degraded nodes,\nand configuration drift. Degraded or paused MCPs indicate nodes that are not\napplying the desired machine configuration.\n"
+recommendation = "1. Check MCP status and look for DEGRADED or non-zero MACHINECOUNT vs UPDATEDMACHINECOUNT deltas:\n   `oc get mcp`\n2. Investigate degraded nodes and review MachineConfig rendering errors in:\n   `oc get nodes -l node-role.kubernetes.io/<role>= -o json`\n   `oc describe mcp <pool>`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/postinstallation_configuration/index#understanding-the-machine-config-operator"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/postinstallation_configuration/index#understanding-the-machine-config-operator"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/postinstallation_configuration/index#understanding-the-machine-config-operator"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/postinstallation_configuration/index#understanding-the-machine-config-operator"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/postinstallation_configuration/index#understanding-the-machine-config-operator"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/postinstallation_configuration/index#understanding-the-machine-config-operator"
+
+[[checks]]
+check_id = "7.3.tsr.3_16_stream_control_transmission_protocol_sctp"
+title = "3.16. Stream Control Transmission Protocol (SCTP)"
+description = "Checks whether SCTP protocol support is enabled on the cluster via\nMachineConfig. SCTP is required for telco workloads but is not enabled by\ndefault and requires kernel module loading on nodes.\n"
+recommendation = "1. Check if SCTP is enabled by looking for the load-sctp MachineConfig:\n   `oc get mc | grep sctp`\n2. Verify the kernel module is loaded on target nodes:\n   `oc debug node/<node> -- chroot /host lsmod | grep sctp`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#nw-sctp-about_using-sctp"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#nw-sctp-about_using-sctp"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#nw-sctp-about_using-sctp"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#nw-sctp-about_using-sctp"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#nw-sctp-about_using-sctp"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#nw-sctp-about_using-sctp"
+
+[[checks]]
+check_id = "7.3.tsr.3_17_network"
+title = "3.17. Network"
+description = "Parent section covering cluster networking configuration including IP stack,\nIPsec, multiple networks, hardware networks, bond/VLAN configuration, and\nconsistency checks.\n"
+recommendation = "1. Review cluster network configuration and network operator config:\n   `oc get network cluster -o json`\n   `oc get network.operator cluster -o json`\n2. Check for node network policies:\n   `oc get nncp -o json`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#understanding-networking"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#understanding-networking"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#understanding-networking"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#understanding-networking"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#understanding-networking"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#understanding-networking"
+
+[[checks]]
+check_id = "7.3.tsr.3_17_1_ip_stack"
+title = "3.17.1. IP Stack"
+description = "Identifies whether the cluster is configured for single-stack (IPv4 or IPv6)\nor dual-stack networking. The IP stack choice affects service CIDR allocation,\npod networking, and external connectivity patterns.\n"
+recommendation = "1. Check IP stack configuration:\n   `oc get network cluster -o jsonpath='{.spec.clusterNetwork}'`\n   `oc get network cluster -o jsonpath='{.spec.serviceNetwork}'`\n2. Dual-stack clusters will show entries for both IPv4 and IPv6 CIDRs.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#nw-operator-cr-ip-address-family"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#nw-operator-cr-ip-address-family"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#nw-operator-cr-ip-address-family"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#nw-operator-cr-ip-address-family"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#nw-operator-cr-ip-address-family"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#nw-operator-cr-ip-address-family"
+
+[[checks]]
+check_id = "7.3.tsr.3_17_2_ipsec_encryption"
+title = "3.17.2. IPsec Encryption"
+description = "Checks whether IPsec encryption is enabled for pod-to-pod traffic. IPsec\nprovides network-level encryption for compliance requirements but adds\nCPU overhead and latency to network communication.\n"
+recommendation = "1. Check IPsec configuration:\n   `oc get network.operator cluster -o jsonpath='{.spec.defaultNetwork.ovnKubernetesConfig.ipsecConfig}'`\n2. Review node performance impact if enabled and verify certificates are valid.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#nw-ovn-ipsec-about_configuring-ipsec-ovn"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#nw-ovn-ipsec-about_configuring-ipsec-ovn"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#nw-ovn-ipsec-about_configuring-ipsec-ovn"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#nw-ovn-ipsec-about_configuring-ipsec-ovn"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#nw-ovn-ipsec-about_configuring-ipsec-ovn"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#nw-ovn-ipsec-about_configuring-ipsec-ovn"
+
+[[checks]]
+check_id = "7.3.tsr.3_17_3_multiple_networks"
+title = "3.17.3. Multiple Networks"
+description = "Validates additional network attachment definitions for secondary pod networks.\nMultiple networks enable traffic isolation, dedicated storage networks, or\ntelco-specific data plane separation.\n"
+recommendation = "1. List network attachment definitions and review their configurations:\n   `oc get net-attach-def -A`\n2. Verify that referenced CNI plugins are installed and functional on target nodes.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#understanding-multiple-networks"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#understanding-multiple-networks"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#understanding-multiple-networks"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#understanding-multiple-networks"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#understanding-multiple-networks"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#understanding-multiple-networks"
+
+[[checks]]
+check_id = "7.3.tsr.3_17_4_hardware_networks"
+title = "3.17.4. Hardware Networks"
+description = "Checks for SR-IOV or other hardware network device configurations. Hardware\nnetworks provide high-performance, low-latency networking for specialized\nworkloads like NFV and HPC.\n"
+recommendation = "1. Check SR-IOV configuration and node states:\n   `oc get sriovnetworknodepolicies -n openshift-sriov-network-operator`\n   `oc get sriovnetworknodestates -n openshift-sriov-network-operator -o json`\n2. Verify VF allocation matches workload requirements.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#about-sriov"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#about-sriov"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#about-sriov"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#about-sriov"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#about-sriov"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#about-sriov"
+
+[[checks]]
+check_id = "7.3.tsr.3_17_5_network_config_consistent"
+title = "3.17.5. Network Config Consistent"
+description = "Validates that node network configurations are consistent across nodes in the\nsame role. Inconsistent network config can cause routing asymmetry, DNS\nfailures, and unpredictable connectivity issues.\n"
+recommendation = "1. Review node network configuration policies and their status:\n   `oc get nncp`\n   `oc get nnce`\n2. Compare configurations across nodes in the same MachineConfigPool to identify drift or failed applications.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#k8s-nmstate-about-the-kubernetes-nmstate-operator"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#k8s-nmstate-about-the-kubernetes-nmstate-operator"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#k8s-nmstate-about-the-kubernetes-nmstate-operator"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#k8s-nmstate-about-the-kubernetes-nmstate-operator"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#k8s-nmstate-about-the-kubernetes-nmstate-operator"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#k8s-nmstate-about-the-kubernetes-nmstate-operator"
+
+[[checks]]
+check_id = "7.3.tsr.3_17_6_network_bond_configuration"
+title = "3.17.6. Network Bond Configuration"
+description = "Reviews network bonding configuration on cluster nodes for redundancy and\nthroughput. Proper bonding ensures network resilience against single NIC\nor switch failures.\n"
+recommendation = "1. Review bond configurations via NMState and filter for bond interfaces:\n   `oc get nncp -o json`\n2. Verify bond mode, slave interfaces, and LACP settings are consistent across nodes in each role.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#k8s-nmstate-about-the-kubernetes-nmstate-operator"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#k8s-nmstate-about-the-kubernetes-nmstate-operator"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#k8s-nmstate-about-the-kubernetes-nmstate-operator"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#k8s-nmstate-about-the-kubernetes-nmstate-operator"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#k8s-nmstate-about-the-kubernetes-nmstate-operator"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#k8s-nmstate-about-the-kubernetes-nmstate-operator"
+
+[[checks]]
+check_id = "7.3.tsr.3_17_7_network_vlan_configuration"
+title = "3.17.7. Network VLAN Configuration"
+description = "Reviews VLAN interface configurations on cluster nodes. VLANs provide network\nsegmentation for storage, management, and workload traffic isolation.\n"
+recommendation = "1. Review VLAN configurations via NMState and filter for VLAN interfaces:\n   `oc get nncp -o json`\n2. Verify VLAN IDs, parent interfaces, and IP assignments are consistent across nodes in each role.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#k8s-nmstate-about-the-kubernetes-nmstate-operator"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#k8s-nmstate-about-the-kubernetes-nmstate-operator"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#k8s-nmstate-about-the-kubernetes-nmstate-operator"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#k8s-nmstate-about-the-kubernetes-nmstate-operator"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#k8s-nmstate-about-the-kubernetes-nmstate-operator"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#k8s-nmstate-about-the-kubernetes-nmstate-operator"
+
+[[checks]]
+check_id = "7.3.tsr.3_18_cluster_capabilities"
+title = "3.18. Cluster Capabilities"
+description = "Reviews enabled and disabled cluster capabilities (formerly known as optional\ncomponents). Disabled capabilities reduce attack surface and resource usage\nbut limit available platform features.\n"
+recommendation = "1. Check cluster capabilities:\n   `oc get clusterversion version -o jsonpath='{.status.capabilities}'`\n2. Review which capabilities are enabled vs available and validate that disabled capabilities are intentional for the cluster's use case.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installation_configuration/index#cluster-capabilities"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installation_configuration/index#cluster-capabilities"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installation_configuration/index#cluster-capabilities"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installation_configuration/index#cluster-capabilities"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installation_configuration/index#cluster-capabilities"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installation_configuration/index#cluster-capabilities"
+
+[[checks]]
+check_id = "7.3.tsr.3_19_sandboxed_containers_workloads"
+title = "3.19. Sandboxed Containers Workloads"
+description = "Checks whether OpenShift sandboxed containers (Kata Containers) are deployed\nand configured. Sandboxed containers provide VM-level isolation for untrusted\nor multi-tenant workloads.\n"
+recommendation = "1. Check for the sandboxed containers operator and verify the KataConfig resource:\n   `oc get csv -A | grep sandboxed`\n   `oc get kataconfig -o json`\n2. Review runtimeclass availability:\n   `oc get runtimeclass | grep kata`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/openshift_sandboxed_containers/index#about-sandboxed-containers"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/openshift_sandboxed_containers/index#about-sandboxed-containers"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/openshift_sandboxed_containers/index#about-sandboxed-containers"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/openshift_sandboxed_containers/index#about-sandboxed-containers"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/openshift_sandboxed_containers/index#about-sandboxed-containers"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/openshift_sandboxed_containers/index#about-sandboxed-containers"
+
+[[checks]]
+check_id = "7.3.tsr.3_20_linux_cgroups_version"
+title = "3.20. Linux Cgroups Version"
+description = "Identifies whether the cluster nodes use cgroups v1 or v2. OCP 4.14+ defaults\nto cgroups v2 which provides better resource isolation but may break workloads\nthat depend on cgroups v1 filesystem paths.\n"
+recommendation = "1. Check cgroups version and verify:\n   `oc get nodes -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.status.nodeInfo.containerRuntimeVersion}{\"\\n\"}{end}'`\n   `oc debug node/<node> -- chroot /host stat -fc %T /sys/fs/cgroup`\n2. A tmpfs indicates v2; a cgroup indicates v1.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/nodes/index#nodes-cluster-cgroups-2_nodes-cluster-cgroups-2"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/nodes/index#nodes-cluster-cgroups-2_nodes-cluster-cgroups-2"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/nodes/index#nodes-cluster-cgroups-2_nodes-cluster-cgroups-2"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/nodes/index#nodes-cluster-cgroups-2_nodes-cluster-cgroups-2"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/nodes/index#nodes-cluster-cgroups-2_nodes-cluster-cgroups-2"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/nodes/index#nodes-cluster-cgroups-2_nodes-cluster-cgroups-2"
+
+[[checks]]
+check_id = "7.3.tsr.3_21_deployment_config_usage"
+title = "3.21. Deployment Config Usage"
+description = "Detects usage of the deprecated DeploymentConfig API. DeploymentConfigs are\nreplaced by Kubernetes Deployments and will be removed in a future OCP release.\nMigration should be planned proactively.\n"
+recommendation = "1. List all DeploymentConfigs and plan migration to Kubernetes Deployments:\n   `oc get dc -A`\n2. Review each DC for OCP-specific triggers (image change, config change) and replicate equivalent behavior using Deployments and image stream tags where needed.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/building_applications/index#deployment-operations"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/building_applications/index#deployment-operations"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/building_applications/index#deployment-operations"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/building_applications/index#deployment-operations"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/building_applications/index#deployment-operations"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/building_applications/index#deployment-operations"
+
+[[checks]]
+check_id = "7.3.tsr.3_22_workload_partitioning"
+title = "3.22. Workload Partitioning"
+description = "Parent section covering workload partitioning configuration that pins platform\nworkloads to specific CPUs, freeing remaining cores for application use.\nCritical for telco and real-time workloads.\n"
+recommendation = "1. Check workload partitioning status and review MCP annotations:\n   `oc get performanceprofile -A`\n2. Verify CPU pinning:\n   `oc get nodes -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.metadata.annotations.workload\\.openshift\\.io/cores}{\"\\n\"}{end}'`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/scalability_and_performance/index#workload-partitioning"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/scalability_and_performance/index#workload-partitioning"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/scalability_and_performance/index#workload-partitioning"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/scalability_and_performance/index#workload-partitioning"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/scalability_and_performance/index#workload-partitioning"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/scalability_and_performance/index#workload-partitioning"
+
+[[checks]]
+check_id = "7.3.tsr.3_22_1_workload_partitioning_enabled"
+title = "3.22.1. Workload Partitioning Enabled"
+description = "Validates that workload partitioning is enabled at install time and properly\nconfigured. Workload partitioning must be set during installation and cannot\nbe enabled post-install.\n"
+recommendation = "1. Verify workload partitioning is enabled by checking the infrastructure resource:\n   `oc get infrastructure cluster -o jsonpath='{.status.cpuPartitioning}'`\n2. A value of 'AllNodes' indicates workload partitioning is active.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/scalability_and_performance/index#workload-partitioning"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/scalability_and_performance/index#workload-partitioning"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/scalability_and_performance/index#workload-partitioning"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/scalability_and_performance/index#workload-partitioning"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/scalability_and_performance/index#workload-partitioning"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/scalability_and_performance/index#workload-partitioning"
+
+[[checks]]
+check_id = "7.3.tsr.3_22_2_performance_profile_match_mcp"
+title = "3.22.2. Performance Profile Match MCP"
+description = "Validates that PerformanceProfile node selectors correctly target the intended\nMachineConfigPool. Mismatched selectors can leave nodes without performance\ntuning or apply tuning to unintended nodes.\n"
+recommendation = "1. Compare PerformanceProfile nodeSelector with MCP machineConfigSelector:\n   `oc get performanceprofile -A -o json`\n   `oc get mcp -o json`\n2. Ensure the profile's nodeSelector matches exactly one MCP's node label selector.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/scalability_and_performance/index#about-hyperthreading-for-low-latency-and-real-time-applications_cnf-understanding-low-latency"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/scalability_and_performance/index#about-hyperthreading-for-low-latency-and-real-time-applications_cnf-understanding-low-latency"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/scalability_and_performance/index#about-hyperthreading-for-low-latency-and-real-time-applications_cnf-understanding-low-latency"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/scalability_and_performance/index#about-hyperthreading-for-low-latency-and-real-time-applications_cnf-understanding-low-latency"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/scalability_and_performance/index#about-hyperthreading-for-low-latency-and-real-time-applications_cnf-understanding-low-latency"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/scalability_and_performance/index#about-hyperthreading-for-low-latency-and-real-time-applications_cnf-understanding-low-latency"
+
+[[checks]]
+check_id = "7.3.tsr.3_22_3_performance_profile_status"
+title = "3.22.3. Performance Profile Status"
+description = "Checks the status conditions of applied PerformanceProfiles. Degraded or\nprogressing profiles indicate nodes that have not successfully applied the\nperformance tuning configuration.\n"
+recommendation = "1. Check profile status and review status conditions:\n   `oc get performanceprofile -A -o json`\n2. Investigate degraded profiles by examining the tuned daemon logs:\n   `oc logs -n openshift-cluster-node-tuning-operator ds/tuned --tail=50`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/scalability_and_performance/index#cnf-understanding-low-latency"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/scalability_and_performance/index#cnf-understanding-low-latency"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/scalability_and_performance/index#cnf-understanding-low-latency"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/scalability_and_performance/index#cnf-understanding-low-latency"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/scalability_and_performance/index#cnf-understanding-low-latency"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/scalability_and_performance/index#cnf-understanding-low-latency"
+
+[[checks]]
+check_id = "7.3.tsr.3_22_4_performance_profile_configuration"
+title = "3.22.4. Performance Profile Configuration"
+description = "Reviews PerformanceProfile configuration details including CPU isolation,\nhugepages, NUMA topology, and real-time kernel settings. Incorrect\nconfiguration can degrade workload performance or waste resources.\n"
+recommendation = "1. Review profile configuration and validate CPU sets (reserved vs isolated), hugepages allocation, NUMA policy, and realTimeKernel settings against workload requirements:\n   `oc get performanceprofile -A -o yaml`\n"
+priority_hint = ""
+impact = "rolling-restart"
+impact_scope = "nodes in targeted MachineConfigPool"
+impact_detail = "PerformanceProfile changes generate new MachineConfig and TunedProfile resources that trigger a rolling node reboot in the targeted pool."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/scalability_and_performance/index#cnf-understanding-low-latency"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/scalability_and_performance/index#cnf-understanding-low-latency"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/scalability_and_performance/index#cnf-understanding-low-latency"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/scalability_and_performance/index#cnf-understanding-low-latency"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/scalability_and_performance/index#cnf-understanding-low-latency"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/scalability_and_performance/index#cnf-understanding-low-latency"

@@ -1,0 +1,12 @@
+# Active OpenShift versions. Update this list when versions go EOL or GA.
+# The report pipeline uses these values to pick version-specific doc links.
+# Last updated: 2026-08-07
+# Source: https://access.redhat.com/support/policy/updates/openshift
+
+[active_versions]
+versions = ["4.18", "4.19", "4.20", "4.21", "4.22"]
+
+[doc_base_urls]
+redhat = "https://docs.redhat.com/en/documentation/openshift_container_platform"
+kubernetes = "https://kubernetes.io/docs"
+etcd = "https://etcd.io/docs/latest"

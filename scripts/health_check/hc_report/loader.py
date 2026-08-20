@@ -39,17 +39,17 @@ def _first_item(data: dict) -> dict:
 
 def _scan_results_dir(results_dir: Path) -> list[str]:
     """Fallback: scan directory for category/name.json files when manifest is absent."""
-    files = []
-    for cat_dir in sorted(results_dir.iterdir()):
-        if not cat_dir.is_dir():
+    relative_paths = []
+    for category_dir in sorted(results_dir.iterdir()):
+        if not category_dir.is_dir():
             continue
-        for json_file in sorted(cat_dir.glob("*.json")):
+        for json_file in sorted(category_dir.glob("*.json")):
             if json_file.name == "manifest.json":
                 continue
             if json_file.name.endswith(".meta.json"):
                 continue
-            files.append(f"{cat_dir.name}/{json_file.name}")
-    return files
+            relative_paths.append(f"{category_dir.name}/{json_file.name}")
+    return relative_paths
 
 
 def _find_cluster_result_dirs(results_dir: Path) -> list[Path]:

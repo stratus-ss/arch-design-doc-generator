@@ -27,7 +27,7 @@ RUN dnf install -y --setopt=install_weak_deps=False \
     && dnf clean all
 
 # ── Python packages ──────────────────────────────────────────────────
-RUN pip3 install --no-cache-dir weasyprint==66.0 pyyaml==6.0.3 openpyxl==3.1.5
+RUN pip3 install --no-cache-dir weasyprint==66.0 pyyaml==6.0.3 openpyxl==3.1.5 tomli>=2.0
 
 # ── stitchmd (Go binary) ────────────────────────────────────────────
 ENV GOPATH=/usr/local/go
@@ -78,6 +78,9 @@ COPY scripts/rvtools/ /toolkit/rvtools/
 
 # ── Shared Python libraries ──────────────────────────────────────────
 COPY scripts/shared/ /toolkit/shared/
+
+# ── Health Check report engine ─────────────────────────────────────
+COPY scripts/health_check/ /toolkit/health_check/
 
 # ── Toolkit entrypoint + setup script ────────────────────────────────
 COPY scripts/entrypoint.sh /toolkit/entrypoint.sh

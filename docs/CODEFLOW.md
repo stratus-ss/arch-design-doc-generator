@@ -7,6 +7,8 @@
 3. HLD publish pipeline (`make publish`)
 4. LLD + work item pipeline (`make build-lld`, `make workitems`, `make lld-closeness`)
 5. Host vs container execution
+6. Health Check collection (host)
+7. Health Check report engine (container)
 
 ---
 
@@ -135,6 +137,8 @@ The report writes `tmp/lld_closeness.md`. Default rendered dir is `output/LLD`.
 | `setup`, `publish`, `build-lld`, `build`, `workitems` | Container (`entrypoint.sh`) | `scripts/hld_lld/build/*`, `scripts/hld_lld/lld_to_workitems.py` |
 | `build-hld-from-adr`, `prepare-hld-ai`, `validate-slots` | Host | `scripts/hld_lld/ai/ai_draft_deterministic.py`, `scripts/hld_lld/ai/deterministic/*` |
 | `lld-closeness` | Host | `scripts/hld_lld/report_lld_closeness.py` |
+| `hc-collect`, `hc-push-scripts`, `hc-collect-remote`, `hc-fetch-results`, `hc-merge`, `hc-skip-summary`, `hc-command-ref` | Host | `scripts/health_check/collect/*`, `scripts/health_check/supportshell/*` |
+| `hc-report`, `hc-investigate` | Container (`entrypoint.sh`) | `scripts/health_check/generate_report.py`, `scripts/health_check/hc_investigate.py` |
 | Utility targets (`sanitize-diagrams`, `combine-drawio`, `sample-schedule`, `check-annotations`, `package`) | Host | `scripts/shared/tools/*`, `scripts/rvtools/*`, `scripts/hld_lld/build/check_annotations.py` |
 
 Operational note:
@@ -177,4 +181,31 @@ make hc-merge MERGE_INPUTS="output/hc_collect/2026-08-01 output/hc_collect/2026-
 
 Runs `hc_merge.py` on the host (no container). Prefers real JSON over `_hc_error` stubs; unions Kubernetes List items by `metadata.uid`.
 
-AI is not used for health check (DR-8). Report generation (`make hc-report`) does not exist on this branch.
+AI is not used for health check (company policy).
+
+---
+
+## 7) Health Check report engine (container)
+
+`make hc-report` requires collected JSON under `output/hc_collect` (or `HC_COLLECT_OUT`). It runs in the toolkit container via `entrypoint.sh cmd_hc_report`.
+
+```mermaid
+flowchart TD
+    MakeReport[make hc-report] --> Entrypoint[entrypoint.sh cmd_hc_report]
+    Entrypoint --> Generate[generate_report.py]
+    Generate --> CliMain[cli.main]
+    CliMain --> Load[load_results]
+    Load --> Evaluate[evaluate_checks]
+    Evaluate --> Findings[derive_findings]
+    Findings --> Render[render_report]
+    Render --> Write[markdown + audit JSON]
+```
+
+Key flow details:
+- Default `--check-profile core` runs the deterministic evaluator registry only. TSR/CCX parity expansion is not yet available.
+- Template: `templates/Health_Check/Template_HC_Report.md`.
+- Outputs: markdown report and `*_audit_*.json` under `output/Health_Check_Report/`.
+- `make hc-investigate FINDING_ARGS='--results-dir … --finding-id …'` re-runs load/evaluate/findings and prints the matching raw JSON evidence (container).
+- `make hc-skip-summary` and `make hc-command-ref` run on the host.
+
+PDF/HTML export is deferred.
