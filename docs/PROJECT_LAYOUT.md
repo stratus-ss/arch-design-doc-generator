@@ -79,6 +79,8 @@
 - `hc_report/` — report engine:
   - `evaluators/` — 12 category evaluator modules (`platform`, `topology`, `components` plus `components_infra` / `components_network` / `components_misc`, `layered`, `health`, `day2`, `security`, `metrics`, `hardware`) plus `_common.py` and `_shared_checks.py`.
   - `kb/` — TOML knowledge base (`7_1`–`7_9` plus `versions.toml`).
+  - `parity.py`, `tsr_parser.py`, `_text.py`, `build_crosswalk_catalog.py` — TSR/CCX catalog expansion, HTML parse, catalog rebuild.
+  - `catalogs/` — `tsr_ccx_crosswalk.json`.
   - `registry.py`, `findings.py`, `notes.py`, `renderer.py`, `cli.py`, `kb_loader.py` — pipeline after load.
   - `models.py`, `loader.py`, `metadata.py` — collected JSON models, load, and cluster metadata.
 - `generate_report.py` — thin entrypoint (`from hc_report import main`).
@@ -158,4 +160,5 @@ Generated during setup/build (gitignored; never commit):
 - PDFs, PNG exports, and work item outputs
 - `output/hc_collect/` — collected Health Check JSON (gitignored via `output/`)
 - `output/Health_Check_Report/` — generated Health Check markdown and audit JSON (gitignored via `output/`)
+- `output/tsr_html/` — optional TSR HTML drop directory for `make hc-report` discovery
 - `**/kubeconfig`, `**/kubeconfig.*`, `**/.kube/` — kubeconfigs (gitignored)

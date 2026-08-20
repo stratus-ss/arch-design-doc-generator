@@ -88,16 +88,17 @@ flowchart LR
     Remote -->|hc_fetch_results.sh| CollectOut
     CollectOut --> Loader[loader.py]
     Loader --> Evaluate[evaluate_checks registry]
-    Evaluate --> Findings[derive_findings]
+    Evaluate --> Expand[parity.py catalog expand]
+    Expand --> Findings[derive_findings]
     Findings --> Renderer[render_report]
     Renderer --> ReportMd[markdown + audit JSON]
 ```
 
 Collection (host): OpenShift cluster JSON via live `oc` or offline `omc`, loaded by `hc_report.loader.load_results`. Metadata comes from `hc_report.metadata.derive_metadata`.
 
-Report (`make hc-report`, container): `generate_report.py` → `cli.main()` → load results → `evaluate_checks()` (registry of category evaluators) → knowledge-base lookup by `check_id` → `derive_findings()` → `render_report()` fills `{SLOT}` placeholders in `templates/Health_Check/Template_HC_Report.md` → markdown and audit JSON under `output/Health_Check_Report/`.
+Report (`make hc-report`, container): `generate_report.py` → `cli.main()` → load results → `evaluate_checks()` (registry of category evaluators; for `extended`/`advisory`, `parity.py` expands catalog rows from TSR HTML and optional CCX runtime) → knowledge-base lookup by `check_id` → `derive_findings()` → `render_report()` fills `{SLOT}` placeholders in `templates/Health_Check/Template_HC_Report.md` → markdown and audit JSON under `output/Health_Check_Report/`. Missing TSR HTML or live Insights data leaves catalog rows SKIPPED (CCX `status_hint` is not applied unless `--ccx-baseline-status`).
 
-AI is excluded from the Health Check path by company policy. TSR/CCX parity expansion is not yet available; `--check-profile core` is the supported profile. PDF/HTML export is deferred.
+AI is excluded from the Health Check path by company policy. Default check profile is `advisory`. PDF/HTML export is deferred.
 
 ## Key Dependencies
 

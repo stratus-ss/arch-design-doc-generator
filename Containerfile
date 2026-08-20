@@ -27,7 +27,7 @@ RUN dnf install -y --setopt=install_weak_deps=False \
     && dnf clean all
 
 # ── Python packages ──────────────────────────────────────────────────
-RUN pip3 install --no-cache-dir weasyprint==66.0 pyyaml==6.0.3 openpyxl==3.1.5 tomli>=2.0
+RUN pip3 install --no-cache-dir weasyprint==66.0 pyyaml==6.0.3 openpyxl==3.1.5 tomli>=2.0 curl_cffi
 
 # ── stitchmd (Go binary) ────────────────────────────────────────────
 ENV GOPATH=/usr/local/go

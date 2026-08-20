@@ -75,7 +75,7 @@ Run `make help` or `make status` at any time to see available targets and curren
 
 ## Health Check
 
-A second engagement type (`PROJECT=HC`) collects OpenShift cluster JSON and generates a deterministic markdown report plus audit JSON. Collection runs on the host; report generation runs in the container. AI is not used for health check (company policy). TSR/CCX parity expansion is not yet available (`--check-profile core` only). PDF/HTML export is deferred.
+A second engagement type (`PROJECT=HC`) collects OpenShift cluster JSON and generates a deterministic markdown report plus audit JSON. Collection runs on the host; report generation runs in the container. AI is not used for health check (company policy). TSR/CCX parity expansion is available: `make hc-report` defaults to `--check-profile advisory` and scores catalog checks from a TSR HTML export (and optional `12_ccx/ccx_rules.json`). Missing HTML or Insights data stays SKIPPED. PDF/HTML export is deferred.
 
 | Target | Runtime | Purpose |
 |---|---|---|
@@ -85,31 +85,35 @@ A second engagement type (`PROJECT=HC`) collects OpenShift cluster JSON and gene
 | `make hc-collect-remote HC_SSH_HOST=... HC_MG_INPUT=<path>` | Host | Run `hc_collect_multi.sh` on the remote via SSH |
 | `make hc-fetch-results HC_SSH_HOST=...` | Host | Fetch results tarball from remote into `output/hc_collect/<date>` |
 | `make hc-merge MERGE_INPUTS="dir1 dir2"` | Host | Merge multiple `hc_results` dirs on the host |
-| `make hc-report` | Container | Generate markdown report + audit JSON from collected data |
+| `make hc-report` | Container | Generate markdown report + audit JSON from collected data (default profile `advisory`) |
+| `make hc-build-catalog TSR_HTML=<path>` | Host | Rebuild `tsr_ccx_crosswalk.json` from a TSR HTML export |
 | `make hc-investigate FINDING_ARGS='--results-dir … --finding-id …'` | Container | Trace a finding or check back to raw evidence |
 | `make hc-skip-summary` | Host | Summarize skipped collection commands from `skipped_commands.jsonl` |
 | `make hc-command-ref` | Host | Generate a markdown reference of collection commands |
+| `make hc-link-review` | Container | Suggest KB doc URLs and HTTP-check pages with `curl_cffi` |
 | `make clean-hc` | Host | Remove `output/hc_collect` and `output/Health_Check_Report` |
 
 ### Health Check report engine (container)
 
-`make hc-report` runs `generate_report.py` inside the toolkit container (`--check-profile core` by default). Outputs land under `output/Health_Check_Report/`. Optional: `HC_DRY_RUN=1` for the same deterministic summary without extra flags.
+`make hc-report` runs `generate_report.py` inside the toolkit container (`HC_CHECK_PROFILE` defaults to `advisory`). Place TSR HTML under `output/tsr_html/` or set `HC_TSR_HTML` to a repo-relative path so catalog rows get real statuses. Without matching HTML, those rows are SKIPPED. `HC_CHECK_PROFILE=core` still runs native evaluators only.
+
+Rebuild the catalog with `make hc-build-catalog TSR_HTML=path/to/export.html`. Outputs land under `output/Health_Check_Report/`. Optional: `HC_DRY_RUN=1` for the same deterministic summary without extra flags.
 
 `project.example.hc.yaml` is the HC template; never commit `project.yaml` or kubeconfigs.
 
-### KB documentation link review (host)
+### KB documentation link review (container)
 
-Produces a suggested-URL table comparing KB TOML links against a local documentation checkout. Does not modify TOMLs; output is for SME review.
+Produces a suggested-URL table comparing KB TOML links against a local documentation checkout. Does not modify TOMLs. Suggested URLs never invent `#` fragments (existing fragments are kept only when the book is unchanged). Unique suggested **page** URLs are HTTP GET-checked with `curl_cffi` Chrome TLS impersonation inside the toolkit container (same anti-bot approach as the sibling repo’s `validate_links.py`). Fragments are not sent to the server; a 200 means the page exists.
 
 ```bash
-PYTHONPATH=scripts/health_check python scripts/health_check/hc_link_review.py \
-  --kb-dir scripts/health_check/hc_report/kb \
-  --docs-root "$HOME/git_projects/openshift_documentation" \
-  --notes tmp/consultant_notes.md \
-  --output-dir agent_planning/execution/hc_kb_link_precision
+make hc-link-review
+# optional: HC_DOCS_ROOT=/path/to/openshift_documentation HC_LINK_REVIEW_OUT=agent_planning/execution/hc_kb_link_precision
+# skip live GET: append --no-validate-http via a direct python invocation
 ```
 
-Outputs `kb_link_review.md` (summary with verdict counts) and `kb_link_review.csv` (one row per check per version key). Requires a local documentation checkout; not a `make` target.
+Requires `make force-image` once so the image contains `curl_cffi`. Host urllib against `docs.redhat.com` is expected to 403.
+
+Outputs `kb_link_review.md` and `kb_link_review.csv`.
 
 ## Key Variables
 
@@ -133,6 +137,10 @@ AI_MAX_CHUNKS       max ADR chunks in chunked mode (default: 8)
 CANONICAL           path to canonical LLD directory for `make lld-closeness`
 CANONICAL_DIR       path to canonical files for AI benchmark mode
 REGISTRY            container registry for make push
+HC_CHECK_PROFILE    core | extended | advisory (default: advisory)
+HC_TSR_HTML         repo-relative path to a TSR HTML export (optional)
+HC_TSR_HTML_DIR     directory to auto-discover TSR HTML (default: output/tsr_html)
+TSR_HTML            path for `make hc-build-catalog` (required for that target)
 ```
 
 Operator facts the ADR often omits (`CLIENT_DOMAIN`, `GITOPS_HOST`, `REGISTRY_MIRROR`, `REGISTRY_MIRROR_FQDN`, `HUB_CLUSTER_NAME`, `NTP_DOMAIN`) go in `project.yaml` under `slots:`. Non-empty overlay values override extract; empty overlay does not wipe a filled extract. `prepare-hld-ai` always rewrites stampable `.drawio` files into `output/Diagrams`.

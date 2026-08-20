@@ -63,7 +63,7 @@ health_check:
   output_workitems_path: "output/Work_Items/"
   output_collect_path: "output/hc_collect/"
   check_profile: "advisory"      # core | extended | advisory
-  ccx_baseline_status: true      # use baseline CCX status hints when no live CCX payload exists
+  ccx_baseline_status: false     # SKIPPED unless live CCX payload or --ccx-baseline-status
   tsr_ccx_catalog_path: "scripts/health_check/hc_report/catalogs/tsr_ccx_crosswalk.json"
   tsr_html_path: ""              # path to TSR HTML export for runtime parity scoring (optional)
 
