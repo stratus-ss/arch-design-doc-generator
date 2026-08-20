@@ -303,3 +303,129 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/virtualization/index"
 "4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/virtualization/index"
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index"
+
+[[checks]]
+check_id = "7.4.tsr.4_1_2_logging_storage_type"
+title = "4.1.2. Logging Storage Type"
+description = "Report on the kind of storage used to back OpenShift Logging.\n"
+recommendation = "1. Review the configured logging storage backend and retention requirements.\n2. If the Loki operator is installed but logging is not configured, complete\n   logging stack configuration before treating storage findings as hard failures.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
+"4.18" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
+"4.19" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
+"4.20" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
+"4.21" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
+"4.22" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
+
+[[checks]]
+check_id = "7.4.tsr.4_1_4_logging_pod_status"
+title = "4.1.4. Logging Pod Status"
+description = "Check whether all pods expected for the configured logging stack are running.\n"
+recommendation = "1. List logging-related pods and confirm they are Running.\n   `oc get pods -n openshift-logging`\n2. If pods are missing, verify that logging has been configured for this cluster.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
+"4.18" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
+"4.19" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
+"4.20" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
+"4.21" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
+"4.22" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
+
+[[checks]]
+check_id = "7.4.tsr.4_1_5_2_loki_health"
+title = "4.1.5.2. Loki Health"
+description = "Report on the health of Loki when used with OpenShift Logging.\n"
+recommendation = "1. Check LokiStack or Loki operator health in the logging namespace.\n   `oc get lokistack -n openshift-logging`\n2. If Loki is not configured, configure logging before treating health\n   findings as hard failures.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
+"4.18" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
+"4.19" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
+"4.20" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
+"4.21" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
+"4.22" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
+
+[[checks]]
+check_id = "7.4.tsr.4_1_6_cluster_log_forwarders"
+title = "4.1.6. Cluster Log Forwarders"
+description = "Report on the configuration of cluster log forwarders.\n"
+recommendation = "1. Review configured ClusterLogForwarder resources.\n   `oc get clusterlogforwarder -n openshift-logging`\n2. When using multiple forwarders, confirm the collector engine supports the\n   configuration (Vector supports multi-forwarding; Fluentd does not).\n3. Consolidate to a single forwarder or switch to Vector if multiple outputs\n   are required.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/configuring_logging/configuring-log-forwarding"
+"4.18" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/configuring_logging/configuring-log-forwarding"
+"4.19" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/configuring_logging/configuring-log-forwarding"
+"4.20" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/configuring_logging/configuring-log-forwarding"
+"4.21" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/configuring_logging/configuring-log-forwarding"
+"4.22" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/configuring_logging/configuring-log-forwarding"
+
+[[checks]]
+check_id = "7.4.tsr.4_1_8_logging_security_context_constraints"
+title = "4.1.8. Logging Security Context Constraints"
+description = "Compare logging-related SecurityContextConstraints against expected defaults.\n"
+recommendation = "1. Review SCC changes tied to logging components such as node-exporter.\n   `oc get scc`\n2. Restore expected SCC settings or document approved deviations.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/authentication_and_authorization/managing-pod-security-policies"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/authentication_and_authorization/managing-pod-security-policies"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html/authentication_and_authorization/managing-pod-security-policies"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/authentication_and_authorization/managing-pod-security-policies"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/authentication_and_authorization/managing-pod-security-policies"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html/authentication_and_authorization/managing-pod-security-policies"
+
+[[checks]]
+check_id = "7.4.tsr.4_8_1_1_1_identification_and_state"
+title = "4.8.1.1.1. Identification and State"
+description = "OpenShift Virtualization installation and support posture checks.\n"
+recommendation = "1. Review CNV operator, subscription, and support status.\n   `oc get csv -n openshift-cnv`\n2. Plan upgrades when the installed operator is in maintenance support or\n   behind the current release.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://access.redhat.com/support/policy/updates/openshift_operators"
+"4.18" = "https://access.redhat.com/support/policy/updates/openshift_operators"
+"4.19" = "https://access.redhat.com/support/policy/updates/openshift_operators"
+"4.20" = "https://access.redhat.com/support/policy/updates/openshift_operators"
+"4.21" = "https://access.redhat.com/support/policy/updates/openshift_operators"
+"4.22" = "https://access.redhat.com/support/policy/updates/openshift_operators"
+
+[[checks]]
+check_id = "7.4.tsr.4_12_1_2_mtv_supported_configuration"
+title = "4.12.1.2. MTV Supported Configuration"
+description = "Migration Toolkit for Virtualization supported configuration and lifecycle posture.\n"
+recommendation = "1. Review MTV operator version, channel, and support status.\n   `oc get csv -n openshift-mtv`\n2. Upgrade when the installed MTV release is no longer supported.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://access.redhat.com/support/policy/updates/openshift_operators"
+"4.18" = "https://access.redhat.com/support/policy/updates/openshift_operators"
+"4.19" = "https://access.redhat.com/support/policy/updates/openshift_operators"
+"4.20" = "https://access.redhat.com/support/policy/updates/openshift_operators"
+"4.21" = "https://access.redhat.com/support/policy/updates/openshift_operators"
+"4.22" = "https://access.redhat.com/support/policy/updates/openshift_operators"

@@ -8,6 +8,7 @@ from pathlib import Path
 
 from hc_report.kb_loader import KBEntry, KnowledgeBase, load_kb
 from hc_report.link_review.docs_index import build_docs_index
+from hc_report.link_review.finalize import suppress_unchanged_suggestions
 from hc_report.link_review.http_check import (
     PageStatusChecker,
     apply_page_checks,
@@ -73,6 +74,7 @@ def run_link_review(
         }
         print(f"HTTP-checking {len(unique_pages)} unique suggested page URLs", file=sys.stderr)
         suggestions = apply_page_checks(suggestions, checker)
+    suggestions = suppress_unchanged_suggestions(suggestions)
     write_review_report(
         suggestions,
         output_directory,
