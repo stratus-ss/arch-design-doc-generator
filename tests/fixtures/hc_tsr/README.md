@@ -1,0 +1,1 @@
+`minimal.html` is a synthetic TSR export for unit tests (no PII). `one-6x489.html` is a sanitized homelab TSR used as a parseable real-DOM fixture; do not copy unsanitized customer TSR dumps into this directory.

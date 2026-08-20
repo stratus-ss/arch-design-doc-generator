@@ -21,14 +21,9 @@ from hc_report.evaluators._common import (
 from hc_report.findings import derive_findings
 from hc_report.loader import load_results, resolve_cluster_targets
 from hc_report.metadata import derive_metadata
+from hc_report.parity import discover_tsr_html
 from hc_report.renderer import find_unfilled_slots, render_report
-
-try:
-    from hc_report.parity import discover_tsr_html
-    _HAS_PARITY = True
-except ImportError:
-    discover_tsr_html = None
-    _HAS_PARITY = False
+from hc_report.tsr_parser import parse_tsr_html
 
 _OCP_MINOR_RE = re.compile(r"^(\d+\.\d+)")
 
@@ -341,8 +336,6 @@ def _discover_tsr_html_if_needed(
     args: argparse.Namespace, project_root: Path, hc_config: dict, results: dict, meta: dict
 ) -> None:
     """Auto-discover a matching TSR HTML export when none was resolved explicitly."""
-    if not _HAS_PARITY:
-        return
     if args.tsr_html is not None:
         return
     cluster_id = _extract_cluster_id(results)
@@ -365,15 +358,6 @@ def _discover_tsr_html_if_needed(
 def _parse_tsr_html_runtime(args: argparse.Namespace, output_dir: Path) -> Path | None:
     """Parse the resolved TSR HTML (if any) and persist the runtime JSON for parity matching."""
     if not args.tsr_html:
-        return None
-    try:
-        from hc_report.tsr_parser import parse_tsr_html
-    except ImportError:
-        print(
-            "Warning: --tsr-html was provided but tsr_parser is not installed. "
-            "Skipping TSR HTML parse.",
-            file=sys.stderr,
-        )
         return None
     print(f"  Parsing TSR HTML: {args.tsr_html}")
     tsr_html_text = args.tsr_html.read_text(encoding="utf-8", errors="ignore")

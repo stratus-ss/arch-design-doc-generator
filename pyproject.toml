@@ -6,7 +6,7 @@ dependencies = ["pyyaml>=6.0"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff>=0.9"]
-hc = ["tomli>=2.0; python_version < '3.11'"]
+hc = ["tomli>=2.0; python_version < '3.11'", "curl_cffi"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

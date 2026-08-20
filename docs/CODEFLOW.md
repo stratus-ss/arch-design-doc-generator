@@ -139,6 +139,8 @@ The report writes `tmp/lld_closeness.md`. Default rendered dir is `output/LLD`.
 | `lld-closeness` | Host | `scripts/hld_lld/report_lld_closeness.py` |
 | `hc-collect`, `hc-push-scripts`, `hc-collect-remote`, `hc-fetch-results`, `hc-merge`, `hc-skip-summary`, `hc-command-ref` | Host | `scripts/health_check/collect/*`, `scripts/health_check/supportshell/*` |
 | `hc-report`, `hc-investigate` | Container (`entrypoint.sh`) | `scripts/health_check/generate_report.py`, `scripts/health_check/hc_investigate.py` |
+| `hc-build-catalog` | Host | `scripts/health_check/hc_report/build_crosswalk_catalog.py` |
+| `hc-link-review` | Container (`curl_cffi`) | `scripts/health_check/hc_link_review.py` |
 | Utility targets (`sanitize-diagrams`, `combine-drawio`, `sample-schedule`, `check-annotations`, `package`) | Host | `scripts/shared/tools/*`, `scripts/rvtools/*`, `scripts/hld_lld/build/check_annotations.py` |
 
 Operational note:
@@ -196,15 +198,18 @@ flowchart TD
     Generate --> CliMain[cli.main]
     CliMain --> Load[load_results]
     Load --> Evaluate[evaluate_checks]
-    Evaluate --> Findings[derive_findings]
+    Evaluate --> Expand[parity.py catalog expand]
+    Expand --> Findings[derive_findings]
     Findings --> Render[render_report]
     Render --> Write[markdown + audit JSON]
 ```
 
 Key flow details:
-- Default `--check-profile core` runs the deterministic evaluator registry only. TSR/CCX parity expansion is not yet available.
+- Default `HC_CHECK_PROFILE` is `advisory`. `evaluate_checks` expands TSR/CCX catalog rows via `parity.py`. Place exports under `output/tsr_html/` (or set `HC_TSR_HTML`); discovery matches cluster id, then cluster name. Missing HTML or Insights data → SKIPPED.
+- `HC_CHECK_PROFILE=core` runs the deterministic evaluator registry only.
 - Template: `templates/Health_Check/Template_HC_Report.md`.
 - Outputs: markdown report and `*_audit_*.json` under `output/Health_Check_Report/`.
+- `make hc-build-catalog TSR_HTML=<path>` rebuilds `scripts/health_check/hc_report/catalogs/tsr_ccx_crosswalk.json` on the host.
 - `make hc-investigate FINDING_ARGS='--results-dir … --finding-id …'` re-runs load/evaluate/findings and prints the matching raw JSON evidence (container).
 - `make hc-skip-summary` and `make hc-command-ref` run on the host.
 

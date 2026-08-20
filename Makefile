@@ -70,7 +70,8 @@ endef
         combine-drawio sanitize-diagrams sample-schedule check-annotations package \
         force-image \
         hc-collect hc-push-scripts hc-collect-remote hc-fetch-results hc-merge clean-hc \
-        hc-report hc-investigate hc-skip-summary hc-command-ref \
+        hc-report hc-investigate hc-skip-summary hc-command-ref hc-build-catalog \
+        hc-link-review \
         clean clean-build clean-hld clean-lld clean-pdfs clean-diagrams clean-workitems clean-ai clean-setup push
 
 # Extra goal: `make build-hld-from-adr force` (GNU make cannot take --force).
@@ -124,9 +125,11 @@ help: ## Show this help
 	print_target hc-fetch-results; \
 	print_target hc-merge; \
 	print_target hc-report; \
+	print_target hc-build-catalog; \
 	print_target hc-investigate; \
 	print_target hc-skip-summary; \
 	print_target hc-command-ref; \
+	print_target hc-link-review; \
 	print_target clean-hc; \
 	echo ""; \
 	echo "  Maintenance:"; \
@@ -384,15 +387,32 @@ clean-hc: ## Remove health check pipeline output
 
 # ── Health Check report (container) ────────────────────────────────
 HC_REPORT_OUT     ?= output/Health_Check_Report
-HC_CHECK_PROFILE  ?= core
+HC_CHECK_PROFILE  ?= advisory
+# HC_TSR_HTML must be a path relative to the repo root (workspace mount).
+HC_TSR_HTML       ?=
+HC_TSR_HTML_DIR   ?= output/tsr_html
 
 hc-report: image ## Generate HC report from collected data (container)
-	@mkdir -p output
-	@$(_RUNOUT) hc-report \
+	@mkdir -p output output/tsr_html
+	@$(ENGINE) run --rm \
+		-v "$$(pwd)":/workspace:Z \
+		-v "$$(pwd)/output":/output:Z \
+		-e HC_CHECK_PROFILE="$(HC_CHECK_PROFILE)" \
+		-e HC_TSR_HTML_DIR="$(HC_TSR_HTML_DIR)" \
+		$(if $(HC_TSR_HTML),-e HC_TSR_HTML="$(HC_TSR_HTML)") \
+		--entrypoint /workspace/scripts/entrypoint.sh $(IMAGE) \
+		hc-report \
 		--results-dir "$(HC_COLLECT_OUT)" \
 		--output-dir "$(HC_REPORT_OUT)" \
 		--check-profile "$(HC_CHECK_PROFILE)" \
+		$(if $(HC_TSR_HTML),--tsr-html "$(HC_TSR_HTML)") \
 		$(if $(HC_DRY_RUN),--dry-run)
+
+hc-build-catalog: ## Rebuild TSR/CCX catalog JSON from a TSR HTML export (set TSR_HTML=path)
+	$(call require,TSR_HTML,Error: set TSR_HTML=path/to/export.html)
+	@$(PYTHON) scripts/health_check/hc_report/build_crosswalk_catalog.py \
+		--input-html "$(TSR_HTML)" \
+		--output-json scripts/health_check/hc_report/catalogs/tsr_ccx_crosswalk.json
 
 hc-investigate: image ## Trace a finding to raw evidence (container)
 	@$(_RUNOUT) hc-investigate $(FINDING_ARGS)
@@ -402,6 +422,24 @@ hc-skip-summary: ## Summarize skipped commands from supportshell collection (hos
 
 hc-command-ref: ## Generate command reference documentation (host)
 	@$(PYTHON) scripts/health_check/generate_command_reference.py
+
+# Local OpenShift docs tree used to pick books; HTTP checks use curl_cffi in the image.
+HC_DOCS_ROOT ?= $(HOME)/git_projects/openshift_documentation
+HC_LINK_REVIEW_OUT ?= agent_planning/execution/hc_kb_link_precision
+HC_LINK_REVIEW_NOTES ?= tmp/consultant_notes.md
+
+hc-link-review: image ## Suggest+HTTP-check KB doc URLs (container, curl_cffi)
+	@mkdir -p "$(HC_LINK_REVIEW_OUT)"
+	@$(ENGINE) run --rm --entrypoint "" \
+		-v "$$(pwd)":/workspace:Z \
+		-v "$(HC_DOCS_ROOT)":/docs:ro,Z \
+		-e PYTHONPATH=/workspace/scripts/health_check:/workspace/scripts/shared/lib \
+		$(IMAGE) \
+		python3 /workspace/scripts/health_check/hc_link_review.py \
+			--kb-dir /workspace/scripts/health_check/hc_report/kb \
+			--docs-root /docs \
+			$(if $(wildcard $(HC_LINK_REVIEW_NOTES)),--notes /workspace/$(HC_LINK_REVIEW_NOTES)) \
+			--output-dir /workspace/$(HC_LINK_REVIEW_OUT)
 
 # ── Housekeeping ─────────────────────────────────────────────────────
 
