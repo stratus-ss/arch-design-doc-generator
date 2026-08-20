@@ -1,0 +1,69 @@
+[[checks]]
+check_id = "7.9.hw.*.identity"
+title = "Hardware Identity"
+description = "Server vendor, model, and BIOS version provide context for hardware support,\nfirmware advisories, and capacity planning. Verifying these details against the\nvendor support matrix ensures the platform runs on certified hardware.\n"
+recommendation = "1. Review the hardware vendor, server model, and BIOS version reported by each node.\n2. Verify that the server model appears on the Red Hat certified hardware list.\n3. Ensure BIOS or UEFI firmware is current per the vendor's advisory channel.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://catalog.redhat.com/hardware"
+"4.18" = "https://catalog.redhat.com/hardware"
+"4.21" = "https://catalog.redhat.com/hardware"
+"4.22" = "https://catalog.redhat.com/hardware"
+
+[[checks]]
+check_id = "7.9.hw.*.cpu"
+title = "CPU"
+description = "CPU model and core count determine the node's compute capacity. Control plane\nnodes require a minimum of 4 vCPUs; worker nodes should be sized according to\nthe expected workload profile.\n"
+recommendation = "1. Verify that CPU core counts meet or exceed the minimum requirements for each node role.\n2. Confirm that every control plane node has at least 4 vCPUs.\n3. For worker nodes, validate sizing against the workload profile and monitor utilization:\n   `oc adm top nodes`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_bare_metal/index#installation-requirements-user-infra_installing-bare-metal"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_bare_metal/index#installation-requirements-user-infra_installing-bare-metal"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_bare_metal/index#installation-requirements-user-infra_installing-bare-metal"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_bare_metal/index#installation-requirements-user-infra_installing-bare-metal"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_bare_metal/index#installation-requirements-user-infra_installing-bare-metal"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_bare_metal/index#installation-requirements-user-infra_installing-bare-metal"
+
+[[checks]]
+check_id = "7.9.hw.*.memory"
+title = "Memory"
+description = "Physical RAM determines the node's memory capacity. Control plane nodes require\na minimum of 16 GiB; worker nodes should be sized for the expected workload\nfootprint including kubelet, container runtime, and application pods.\n"
+recommendation = "1. Verify that each node's physical RAM meets or exceeds the minimum for its role.\n2. Confirm that every control plane node has at least 16 GiB of memory.\n3. Monitor memory pressure and investigate nodes approaching capacity limits:\n   `oc adm top nodes`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_bare_metal/index#installation-requirements-user-infra_installing-bare-metal"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_bare_metal/index#installation-requirements-user-infra_installing-bare-metal"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_bare_metal/index#installation-requirements-user-infra_installing-bare-metal"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_bare_metal/index#installation-requirements-user-infra_installing-bare-metal"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_bare_metal/index#installation-requirements-user-infra_installing-bare-metal"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_bare_metal/index#installation-requirements-user-infra_installing-bare-metal"
+
+[[checks]]
+check_id = "7.9.hw.*.disk"
+title = "Disk"
+description = "Disk type and capacity affect cluster performance and supportability. Rotational\n(HDD) storage causes etcd latency and raft timeouts on control plane nodes.\nSSD or NVMe storage is strongly recommended for all nodes, especially those\nrunning etcd.\n"
+recommendation = "1. Verify that all control plane nodes use SSD or NVMe storage.\n2. If rotational disks are detected, plan migration to solid-state storage.\n3. Validate etcd disk performance with fio benchmarks on control plane nodes to confirm the storage meets the minimum 50 sequential IOPS and <10ms P99 fsync latency requirement.\n4. Review etcd backend health:\n   `oc -n openshift-etcd exec -c etcd etcd-<member> -- etcdctl endpoint status --cluster -w table`\n"
+priority_hint = ""
+impact = "maintenance-window"
+impact_scope = "control plane storage and etcd performance"
+impact_detail = "Replacing rotational storage with SSD/NVMe on control plane nodes requires a maintenance window and may involve node drain, reinstallation, or disk migration."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/scalability_and_performance/index#etcd-verify-hardware_recommended-etcd-practices"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/etcd/index#etcd-verify-hardware_etcd-practices"

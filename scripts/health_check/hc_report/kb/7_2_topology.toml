@@ -1,0 +1,270 @@
+[[checks]]
+check_id = "7.2.node.*.sysreserved"
+pattern = true
+title = "Node systemReserved memory"
+description = "Nodes with large amounts of RAM (64 GiB or more) need a proportionally larger\nsystemReserved memory allocation in KubeletConfig. Without it, the kubelet and\ncontainer runtime compete with workloads for memory and can themselves be\nOOM-killed under pressure, taking the node out of service.\n"
+recommendation = "1. Increase systemReserved memory proportional to node capacity using a KubeletConfig MachineConfig scoped to the affected MachineConfigPool.\n2. Size systemReserved to at least 1-2 GiB for nodes with >=64 GiB RAM, and scale higher for larger nodes.\n3. Verify that the KubeletConfig `machineConfigPoolSelector` matches the target pool.\n4. Confirm that the setting took effect:\n   `oc get --raw /api/v1/nodes/<node>/proxy/configz`\n"
+priority_hint = ""
+impact = "rolling-restart"
+impact_scope = "nodes in the targeted MachineConfigPool"
+impact_detail = "KubeletConfig changes are applied through the Machine Config Operator, which drains and reboots affected nodes one at a time and shifts workloads per MCP rollout settings. On compact 3-node clusters where all nodes serve as both control-plane and worker, this affects 100% of cluster capacity."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/nodes/index#nodes-nodes-resources-configuring-setting_nodes-nodes-resources-configuring"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/nodes/index#nodes-nodes-resources-configuring-setting_nodes-nodes-resources-configuring"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/nodes/index#nodes-nodes-resources-configuring-setting_nodes-nodes-resources-configuring"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/nodes/index#nodes-nodes-resources-configuring-setting_nodes-nodes-resources-configuring"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/nodes/index#nodes-nodes-resources-configuring-setting_nodes-nodes-resources-configuring"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/nodes/index#nodes-nodes-resources-configuring-setting_nodes-nodes-resources-configuring"
+
+[[checks]]
+check_id = "7.2.etcd.members"
+title = "etcd member health"
+description = "etcd requires a quorum of (n/2)+1 members to operate. A 3-member etcd cluster\ntolerates the loss of 1 member. Degraded etcd members must be investigated\nimmediately because data loss or control plane instability can follow.\n"
+recommendation = "1. Check member placement:\n   `oc get pods -n openshift-etcd -o wide`\n2. Verify cluster health:\n   `oc -n openshift-etcd exec -c etcd etcd-<member> -- etcdctl endpoint health --cluster -w table`\n3. Recover a degraded etcd member immediately to prevent quorum loss.\n4. Take an etcd backup before any recovery operation and follow the documented etcd recovery procedure.\n"
+priority_hint = ""
+impact = "maintenance-window"
+impact_scope = "control plane and etcd members"
+impact_detail = "Member recovery can require backup, replacement, or restore work on control-plane nodes and may reduce API availability while the cluster is stabilized."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/etcd/index#replacing-an-unhealthy-etcd-member"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/backup_and_restore/index#replacing-unhealthy-etcd-member"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/etcd/index#replacing-an-unhealthy-etcd-member"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/etcd/index#replacing-an-unhealthy-etcd-member"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/etcd/index#replacing-an-unhealthy-etcd-member"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/etcd/index#replacing-an-unhealthy-etcd-member"
+
+[[checks]]
+check_id = "7.2.etcd.quorum"
+title = "etcd quorum"
+description = "Quorum loss in etcd is a critical failure mode requiring manual recovery.\nAlways maintain an odd number of etcd members, typically 3 or 5. Never scale\netcd to 2 or 4 members.\n"
+recommendation = "1. Review the cluster state:\n   `oc get etcd cluster -o yaml`\n2. Confirm the member set:\n   `oc -n openshift-etcd exec -c etcd etcd-<member> -- etcdctl member list -w table`\n3. Restore and preserve an odd-member etcd quorum before attempting other remediation.\n4. If quorum is already lost, follow the documented disaster recovery procedure to recover enough members to re-establish a majority.\n5. Validate ClusterVersion and ClusterOperator health before resuming normal operations.\n"
+priority_hint = ""
+impact = "maintenance-window"
+impact_scope = "control plane and etcd quorum"
+impact_detail = "Quorum recovery is manual control-plane recovery work and can temporarily remove or reduce API availability until a majority of members is healthy."
+
+[checks.links]
+default = "https://etcd.io/docs/latest/op-guide/clustering/"
+"4.18" = "https://etcd.io/docs/latest/op-guide/clustering/"
+"4.19" = "https://etcd.io/docs/latest/op-guide/clustering/"
+"4.20" = "https://etcd.io/docs/latest/op-guide/clustering/"
+"4.21" = "https://etcd.io/docs/latest/op-guide/clustering/"
+"4.22" = "https://etcd.io/docs/latest/op-guide/clustering/"
+
+[[checks]]
+check_id = "7.2.topo.master_az"
+title = "Control plane availability zone distribution"
+description = "Control plane nodes should be distributed across separate failure domains\n(availability zones, racks, or hosts) to survive zone-level failures. All\ncontrol plane nodes in the same AZ creates a single point of failure for etcd\nquorum and API availability.\n"
+recommendation = "1. Verify control plane node placement:\n   `oc get nodes -l node-role.kubernetes.io/master -o custom-columns=NAME:.metadata.name,ZONE:.metadata.labels.topology\\.kubernetes\\.io/zone`\n2. If all masters are in one zone, plan a control plane migration.\n3. Add zone labels and anti-affinity rules as needed to redistribute control-plane nodes across available failure domains.\n"
+priority_hint = ""
+impact = "maintenance-window"
+impact_scope = "control plane machines and failure-domain placement"
+impact_detail = "Redistributing control-plane nodes across failure domains typically replaces or migrates masters sequentially and should be performed in a planned window."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/machine_management/managing-control-plane-machines"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/machine_management/managing-control-plane-machines"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html/machine_management/managing-control-plane-machines"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/machine_management/managing-control-plane-machines"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/machine_management/managing-control-plane-machines"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html/machine_management/managing-control-plane-machines"
+
+[[checks]]
+check_id = "7.2.tsr.2_1_consistency"
+title = "2.1. Consistency"
+description = "Section overview for cluster consistency checks. Validates that all nodes in\nthe cluster run the same OCP and OS releases, preventing version skew that can\ncause unpredictable behaviour during upgrades or day-2 operations.\n"
+recommendation = "1. Review sub-checks 2.1.1 and 2.1.2 for detailed findings.\n2. List node versions:\n   `oc get nodes -o wide`\n3. Review MachineConfigPool sync status:\n   `oc get machineconfigpool`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#architecture-overview"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/architecture/index#architecture-overview"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/architecture/index#architecture-overview"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/architecture/index#architecture-overview"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/architecture/index#architecture-overview"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/architecture/index#architecture-overview"
+
+[[checks]]
+check_id = "7.2.tsr.2_1_1_consistent_ocp_release"
+title = "2.1.1. Consistent OCP Release"
+description = "All nodes should report the same OpenShift release version. Version skew across\nnodes indicates an incomplete or stalled upgrade and can cause workload\nscheduling failures, operator degradation, and API incompatibilities.\n"
+recommendation = "1. Compare node kubelet versions:\n   `oc get nodes -o custom-columns=NAME:.metadata.name,VERSION:.status.nodeInfo.kubeletVersion`\n2. If versions differ, check MachineConfigPool rollout status and investigate any paused or degraded pools:\n   `oc get machineconfigpool`\n3. Resume stalled upgrades when appropriate:\n   `oc patch machineconfigpool/<pool> --type merge -p '{\"spec\":{\"paused\":false}}'`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#architecture-overview"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/architecture/index#architecture-overview"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/architecture/index#architecture-overview"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/architecture/index#architecture-overview"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/architecture/index#architecture-overview"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/architecture/index#architecture-overview"
+
+[[checks]]
+check_id = "7.2.tsr.2_1_2_consistent_os_release"
+title = "2.1.2. Consistent OS Release"
+description = "All nodes should run the same RHCOS (or RHEL) version. OS-level skew can\nintroduce kernel, cgroup, or container-runtime inconsistencies that affect\nworkload stability and complicate troubleshooting.\n"
+recommendation = "1. Check OS versions:\n   `oc get nodes -o custom-columns=NAME:.metadata.name,OS:.status.nodeInfo.osImage,KERNEL:.status.nodeInfo.kernelVersion`\n2. If OS versions diverge, verify MachineConfig rollout state:\n   `oc get machineconfigpool -o wide`\n3. Check for degraded or paused pools that are blocking the OS update.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#architecture-platform-introduction_architecture-rhcos"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/architecture/index#architecture-platform-introduction_architecture-rhcos"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/architecture/index#architecture-platform-introduction_architecture-rhcos"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/architecture/index#architecture-platform-introduction_architecture-rhcos"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/architecture/index#architecture-platform-introduction_architecture-rhcos"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/architecture/index#architecture-platform-introduction_architecture-rhcos"
+
+[[checks]]
+check_id = "7.2.tsr.2_2_high_availability"
+title = "2.2. High Availability"
+description = "Section overview for high availability checks. Evaluates control plane\nresiliency including master node count, failure-domain distribution, and load\nbalancer redundancy to ensure the cluster can survive component failures.\n"
+recommendation = "1. Review sub-checks 2.2.1 through 2.2.3 for detailed findings.\n2. Summarize control plane topology:\n   `oc get nodes -l node-role.kubernetes.io/master -o wide`\n3. Review etcd cluster status:\n   `oc get etcd cluster -o json | jq '.status'`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#about-control-planes_architecture-overview"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/architecture/index#about-control-planes_architecture-overview"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/architecture/index#about-control-planes_architecture-overview"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/architecture/index#about-control-planes_architecture-overview"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/architecture/index#about-control-planes_architecture-overview"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/architecture/index#about-control-planes_architecture-overview"
+
+[[checks]]
+check_id = "7.2.tsr.2_2_1_number_of_master_nodes"
+title = "2.2.1. Number of Master Nodes"
+description = "A production OpenShift cluster requires 3 control plane nodes to maintain etcd\nquorum and tolerate a single node failure. Bare-metal clusters may use up to 5\ncontrol plane nodes. Fewer than 3 masters risks quorum loss.\n"
+recommendation = "1. Count master nodes:\n   `oc get nodes -l node-role.kubernetes.io/master --no-headers | wc -l`\n2. If the count is not 3, review the cluster installation topology.\n3. For single-node or compact clusters, ensure the deployment model is intentional and documented.\n4. Verify etcd health:\n   `oc get pods -n openshift-etcd -o wide`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#about-control-planes_architecture-overview"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/architecture/index#about-control-planes_architecture-overview"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/architecture/index#about-control-planes_architecture-overview"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/architecture/index#about-control-planes_architecture-overview"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/architecture/index#about-control-planes_architecture-overview"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/architecture/index#about-control-planes_architecture-overview"
+
+[[checks]]
+check_id = "7.2.tsr.2_2_2_master_av_zone_labels"
+title = "2.2.2. Master AV Zone Labels"
+description = "Control plane nodes should carry topology.kubernetes.io/zone labels and be\ndistributed across at least 2 (ideally 3) distinct availability zones. Missing\nor identical zone labels indicate a single-zone control plane vulnerable to\nzone-level outages.\n"
+recommendation = "1. Check zone labels on master nodes:\n   `oc get nodes -l node-role.kubernetes.io/master -o custom-columns=NAME:.metadata.name,ZONE:.metadata.labels.topology\\.kubernetes\\.io/zone`\n2. If labels are missing, apply them:\n   `oc label node <node> topology.kubernetes.io/zone=<zone>`\n3. If all masters share one zone, plan redistribution across failure domains.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#about-control-planes_architecture-overview"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/architecture/index#about-control-planes_architecture-overview"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/architecture/index#about-control-planes_architecture-overview"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/architecture/index#about-control-planes_architecture-overview"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/architecture/index#about-control-planes_architecture-overview"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/architecture/index#about-control-planes_architecture-overview"
+
+[[checks]]
+check_id = "7.2.tsr.2_2_3_haproxy_ha"
+title = "2.2.3. HAProxy HA"
+description = "The API and ingress load balancers (commonly HAProxy) must be highly available.\nA single load balancer is a single point of failure for all cluster traffic.\nHA is typically achieved via keepalived/VRRP or external load balancer\nredundancy.\n"
+recommendation = "1. Verify the IngressController replica count:\n   `oc get ingresscontroller default -n openshift-ingress-operator -o jsonpath='{.status.availableReplicas}'`\n2. Check router pod distribution:\n   `oc get pods -n openshift-ingress -o wide`\n3. For bare-metal clusters, confirm that keepalived pods are healthy:\n   `oc get pods -n openshift-kube-apiserver -l app=keepalived`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#configuring-ingress-cluster-traffic-ingress-controller"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#configuring-ingress-cluster-traffic-ingress-controller"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#configuring-ingress-cluster-traffic-ingress-controller"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#configuring-ingress-cluster-traffic-ingress-controller"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#configuring-ingress-cluster-traffic-ingress-controller"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#configuring-ingress-cluster-traffic-ingress-controller"
+
+[[checks]]
+check_id = "7.2.tsr.2_3_scalability"
+title = "2.3. Scalability"
+description = "Section overview for scalability checks. Assesses whether the cluster's node\ncount, pod density, and routing configuration are within tested limits and\nscaled appropriately for the workload.\n"
+recommendation = "1. Review sub-checks 2.3.1 through 2.3.3 for detailed findings.\n2. Get a cluster size summary:\n   `oc get nodes --no-headers | wc -l`\n3. Get the total pod count:\n   `oc get pods -A --no-headers | wc -l`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/scalability_and_performance/index#recommended-performance-scale-practices_recommended-performance-scale-practices"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/scalability_and_performance/index#recommended-performance-scale-practices_recommended-performance-scale-practices"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/scalability_and_performance/index#recommended-performance-scale-practices_recommended-performance-scale-practices"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/scalability_and_performance/index#recommended-performance-scale-practices_recommended-performance-scale-practices"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/scalability_and_performance/index#recommended-performance-scale-practices_recommended-performance-scale-practices"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/scalability_and_performance/index#recommended-performance-scale-practices_recommended-performance-scale-practices"
+
+[[checks]]
+check_id = "7.2.tsr.2_3_1_sdn_number_of_nodes"
+title = "2.3.1. SDN Number of Nodes"
+description = "The software-defined network plugin has tested scalability limits on the number\nof nodes it can manage. Exceeding these limits can cause increased API server\nload, flow table exhaustion, and network programming delays.\n"
+recommendation = "1. Count cluster nodes:\n   `oc get nodes --no-headers | wc -l`\n2. Identify the active network plugin:\n   `oc get network.config cluster -o jsonpath='{.spec.networkType}'`\n3. Compare the node count against Red Hat's published limits for the active SDN plugin.\n4. Treat 2,000 nodes as the tested OVN-Kubernetes cluster maximum, and note that OpenShift SDN was removed in OCP 4.17 and does not apply to current releases.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/scalability_and_performance/index#recommended-performance-scale-practices_recommended-performance-scale-practices"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/scalability_and_performance/index#recommended-performance-scale-practices_recommended-performance-scale-practices"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/scalability_and_performance/index#recommended-performance-scale-practices_recommended-performance-scale-practices"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/scalability_and_performance/index#recommended-performance-scale-practices_recommended-performance-scale-practices"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/scalability_and_performance/index#recommended-performance-scale-practices_recommended-performance-scale-practices"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/scalability_and_performance/index#recommended-performance-scale-practices_recommended-performance-scale-practices"
+
+[[checks]]
+check_id = "7.2.tsr.2_3_2_sdn_number_of_pods"
+title = "2.3.2. SDN Number of Pods"
+description = "Each node has a maximum pod capacity (default 250) and the cluster has overall\npod density limits tied to the SDN plugin. Exceeding pod limits causes\nscheduling failures and degrades network performance due to iptables/OVS flow\ntable pressure.\n"
+recommendation = "1. Check per-node pod capacity:\n   `oc get nodes -o custom-columns=NAME:.metadata.name,PODS:.status.allocatable.pods`\n2. Check actual running pods per node:\n   `oc get pods -A -o wide --no-headers | awk '{print $8}' | sort | uniq -c | sort -rn`\n3. Compare the result against the `maxPods` setting:\n   `oc get kubeletconfig -o json | jq '.items[].spec.kubeletConfig.maxPods'`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/scalability_and_performance/index#recommended-performance-scale-practices_recommended-performance-scale-practices"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/scalability_and_performance/index#recommended-performance-scale-practices_recommended-performance-scale-practices"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/scalability_and_performance/index#recommended-performance-scale-practices_recommended-performance-scale-practices"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/scalability_and_performance/index#recommended-performance-scale-practices_recommended-performance-scale-practices"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/scalability_and_performance/index#recommended-performance-scale-practices_recommended-performance-scale-practices"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/scalability_and_performance/index#recommended-performance-scale-practices_recommended-performance-scale-practices"
+
+[[checks]]
+check_id = "7.2.tsr.2_3_3_routing_scaling"
+title = "2.3.3. Routing Scaling"
+description = "Ingress router capacity must scale with the number of Routes and traffic\nvolume. Undersized router deployments cause connection queuing, increased\nlatency, and dropped connections under load.\n"
+recommendation = "1. Check current router replicas and IngressController status:\n   `oc get ingresscontroller default -n openshift-ingress-operator -o json | jq '{replicas: .spec.replicas, status: .status}'`\n2. Review router pod placement and resource usage:\n   `oc get pods -n openshift-ingress -o wide`\n3. Count total routes:\n   `oc get routes -A --no-headers | wc -l`\n4. Scale routers if needed:\n   `oc patch ingresscontroller default -n openshift-ingress-operator --type merge -p '{\"spec\":{\"replicas\":<N>}}'`\n"
+priority_hint = ""
+impact = "non-disruptive"
+impact_scope = "ingress router pods"
+impact_detail = "Scaling the IngressController replica count adds or removes router pods without disrupting existing connections."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#configuring-ingress-cluster-traffic-ingress-controller"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#configuring-ingress-cluster-traffic-ingress-controller"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#configuring-ingress-cluster-traffic-ingress-controller"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#configuring-ingress-cluster-traffic-ingress-controller"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#configuring-ingress-cluster-traffic-ingress-controller"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#configuring-ingress-cluster-traffic-ingress-controller"

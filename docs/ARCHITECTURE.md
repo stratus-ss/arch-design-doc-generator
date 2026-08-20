@@ -7,6 +7,8 @@ flowchart LR
     Makefile[Makefile Targets] --> Setup[setup_project.py]
     Makefile --> HostAI[Host AI Pipeline]
     Makefile --> ContainerBuild[Container Build Pipeline]
+    Makefile --> HcCollect[HC Collection Host]
+    Makefile --> HcReport[HC Report Container]
 
     Setup --> ProjectYaml[project.yaml]
     ProjectYaml --> ConfigPy[scripts/shared/lib/config.py]
@@ -29,6 +31,10 @@ flowchart LR
     ExportDiagrams --> OutputArtifacts
     GeneratePdfs --> OutputArtifacts
     Workitems --> OutputArtifacts
+
+    HcCollect --> CollectOut[output/hc_collect]
+    CollectOut --> HcReport
+    HcReport --> HcMarkdown[output/Health_Check_Report]
 ```
 
 ## Data Pipeline
@@ -60,6 +66,8 @@ flowchart TD
 | AI extraction | Host | Full-ADR Prompt A (chunked fallback), optional Prompt B, yaml overlay, empty-slot repair, one `slot_map.json`, deterministic HLD, LLD, and drawio render |
 | Build and publish | Container | Stitch markdown, export diagrams, generate PDFs |
 | Utilities | Host or container | Diagram sanitization, drawio merge, RVTools conversion |
+| Health Check collection | Host | Live `oc` / remote `omc` JSON into `output/hc_collect` |
+| Health Check report | Container | Deterministic markdown + audit JSON from collected JSON |
 
 ## Configuration Architecture
 
@@ -71,25 +79,31 @@ flowchart TD
 - `scripts/shared/lib/config.py` is the single configuration adapter used by Python and bash workflows.
 - `scripts/shared/lib/common.sh` bridges bash scripts to the same config source.
 
-## Health Check Collection
+## Health Check Collection and Report Engine
 
 ```mermaid
 flowchart LR
     Live[Live oc CLI] -->|hc_collect.sh| CollectOut[output/hc_collect]
     MG[Supportshell omc] -->|hc_collect_multi.sh| Remote[remote hc_results]
     Remote -->|hc_fetch_results.sh| CollectOut
-    CollectOut --> Loader[hc_report/loader.py]
-    Loader --> Metadata[hc_report/metadata.py]
-    Metadata --> MetaJSON[cluster metadata JSON]
+    CollectOut --> Loader[loader.py]
+    Loader --> Evaluate[evaluate_checks registry]
+    Evaluate --> Findings[derive_findings]
+    Findings --> Renderer[render_report]
+    Renderer --> ReportMd[markdown + audit JSON]
 ```
 
-The Health Check subsystem collects OpenShift cluster data as JSON files (live `oc` or offline `omc`), loads them via `hc_report.loader.load_results`, and derives cluster metadata via `hc_report.metadata.derive_metadata`. Container-based report generation is future work.
+Collection (host): OpenShift cluster JSON via live `oc` or offline `omc`, loaded by `hc_report.loader.load_results`. Metadata comes from `hc_report.metadata.derive_metadata`.
+
+Report (`make hc-report`, container): `generate_report.py` → `cli.main()` → load results → `evaluate_checks()` (registry of category evaluators) → knowledge-base lookup by `check_id` → `derive_findings()` → `render_report()` fills `{SLOT}` placeholders in `templates/Health_Check/Template_HC_Report.md` → markdown and audit JSON under `output/Health_Check_Report/`.
+
+AI is excluded from the Health Check path by company policy. TSR/CCX parity expansion is not yet available; `--check-profile core` is the supported profile. PDF/HTML export is deferred.
 
 ## Key Dependencies
 
 - **Core runtime:** Python 3, PyYAML, make
 - **Containerized build toolchain:** pandoc, weasyprint, draw.io export tooling, mermaid-cli, stitchmd
-- **AI path:** Cursor SDK (or compatible CLI path selected via `AI_TOOL`)
+- **AI path:** Cursor SDK (or compatible CLI path selected via `AI_TOOL`) — HLD/LLD only, never Health Check
 
 ## Related Documentation
 

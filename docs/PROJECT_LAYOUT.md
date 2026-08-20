@@ -7,6 +7,7 @@
 ├── templates/                          # canonical generic sources (git-tracked)
 │   ├── ADR/
 │   ├── Diagrams/examples/
+│   ├── Health_Check/
 │   ├── HLD/markdown_files/
 │   └── LLD/
 ├── ADR/                                # filled engagement ADR (gitignored; not templates)
@@ -20,6 +21,14 @@
 │   │   ├── build/
 │   │   ├── lld_to_workitems.py
 │   │   └── report_lld_closeness.py
+│   ├── health_check/
+│   │   ├── collect/
+│   │   ├── supportshell/
+│   │   ├── hc_report/
+│   │   ├── generate_report.py
+│   │   ├── hc_investigate.py
+│   │   ├── hc_skip_summary.py
+│   │   └── generate_command_reference.py
 │   ├── shared/
 │   │   ├── lib/
 │   │   └── tools/
@@ -44,6 +53,7 @@
 - `templates/LLD/` — LLD phase templates and examples.
 - `templates/ADR/` — git-tracked ADR and agenda templates (`ADR_template.md`, `ADR_EXAMPLE.md`, `Agenda_template.md`).
 - `templates/Diagrams/examples/` — sanitized diagram baseline.
+- `templates/Health_Check/` — Health Check report template (`Template_HC_Report.md`).
 
 ### `ADR/`
 - Filled engagement ADR working copy. Gitignored in full (`/ADR/` — repo-root only so `templates/ADR/` stays tracked).
@@ -63,13 +73,22 @@
 - Architecture, code flow, and this layout reference.
 
 ### `scripts/health_check/`
-- Health Check collection and data layer.
+- Health Check collection, deterministic report engine, and operator tools.
 - `collect/` — live `oc` collectors (`hc_collect.sh`, `lib/common.sh`, category scripts `03`–`12`).
 - `supportshell/` — offline `omc` collectors, `hc_merge.py`, `hc_collect_multi.sh`.
-- `hc_report/` — data layer only: `models.py`, `loader.py`, `metadata.py`. Report CLI is future.
+- `hc_report/` — report engine:
+  - `evaluators/` — 12 category evaluator modules (`platform`, `topology`, `components` plus `components_infra` / `components_network` / `components_misc`, `layered`, `health`, `day2`, `security`, `metrics`, `hardware`) plus `_common.py` and `_shared_checks.py`.
+  - `kb/` — TOML knowledge base (`7_1`–`7_9` plus `versions.toml`).
+  - `registry.py`, `findings.py`, `notes.py`, `renderer.py`, `cli.py`, `kb_loader.py` — pipeline after load.
+  - `models.py`, `loader.py`, `metadata.py` — collected JSON models, load, and cluster metadata.
+- `generate_report.py` — thin entrypoint (`from hc_report import main`).
+- `hc_link_review.py` — CLI that produces a suggested-URL CSV/markdown from KB TOML links and a local docs tree.
+  - `hc_report/link_review/` — models, URL parser, docs index, product-routing matcher, and report writer.
+- `hc_investigate.py` — trace a finding or check to raw evidence.
+- `hc_skip_summary.py` — summarize skipped collection commands.
+- `generate_command_reference.py` — markdown reference of collection commands.
 - `hc_fetch_results.sh` — fetch results from remote.
 - `mg_short_names.yaml` — must-gather short-name resolution.
-- `templates/Health_Check/` is reserved for report templates (not populated yet).
 
 ### `scripts/shared/lib/`
 - Shared config and helper layer.
@@ -138,4 +157,5 @@ Generated during setup/build (gitignored; never commit):
 - `Diagrams/phase1..phase4/` seeded working directories
 - PDFs, PNG exports, and work item outputs
 - `output/hc_collect/` — collected Health Check JSON (gitignored via `output/`)
+- `output/Health_Check_Report/` — generated Health Check markdown and audit JSON (gitignored via `output/`)
 - `**/kubeconfig`, `**/kubeconfig.*`, `**/.kube/` — kubeconfigs (gitignored)

@@ -70,6 +70,7 @@ endef
         combine-drawio sanitize-diagrams sample-schedule check-annotations package \
         force-image \
         hc-collect hc-push-scripts hc-collect-remote hc-fetch-results hc-merge clean-hc \
+        hc-report hc-investigate hc-skip-summary hc-command-ref \
         clean clean-build clean-hld clean-lld clean-pdfs clean-diagrams clean-workitems clean-ai clean-setup push
 
 # Extra goal: `make build-hld-from-adr force` (GNU make cannot take --force).
@@ -116,12 +117,16 @@ help: ## Show this help
 	print_target check-annotations; \
 	print_target package; \
 	echo ""; \
-	echo "  Health Check (host):"; \
+	echo "  Health Check:"; \
 	print_target hc-collect; \
 	print_target hc-push-scripts; \
 	print_target hc-collect-remote; \
 	print_target hc-fetch-results; \
 	print_target hc-merge; \
+	print_target hc-report; \
+	print_target hc-investigate; \
+	print_target hc-skip-summary; \
+	print_target hc-command-ref; \
 	print_target clean-hc; \
 	echo ""; \
 	echo "  Maintenance:"; \
@@ -376,6 +381,27 @@ clean-hc: ## Remove health check pipeline output
 	@echo "Cleaning health check output..."
 	@rm -rf output/hc_collect output/Health_Check_Report
 	@echo "Done."
+
+# ── Health Check report (container) ────────────────────────────────
+HC_REPORT_OUT     ?= output/Health_Check_Report
+HC_CHECK_PROFILE  ?= core
+
+hc-report: image ## Generate HC report from collected data (container)
+	@mkdir -p output
+	@$(_RUNOUT) hc-report \
+		--results-dir "$(HC_COLLECT_OUT)" \
+		--output-dir "$(HC_REPORT_OUT)" \
+		--check-profile "$(HC_CHECK_PROFILE)" \
+		$(if $(HC_DRY_RUN),--dry-run)
+
+hc-investigate: image ## Trace a finding to raw evidence (container)
+	@$(_RUNOUT) hc-investigate $(FINDING_ARGS)
+
+hc-skip-summary: ## Summarize skipped commands from supportshell collection (host)
+	@$(PYTHON) scripts/health_check/hc_skip_summary.py --ledger "$(if $(RESULTS_DIR),$(RESULTS_DIR),$(HC_COLLECT_OUT))/skipped_commands.jsonl"
+
+hc-command-ref: ## Generate command reference documentation (host)
+	@$(PYTHON) scripts/health_check/generate_command_reference.py
 
 # ── Housekeeping ─────────────────────────────────────────────────────
 

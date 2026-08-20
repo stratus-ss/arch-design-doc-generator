@@ -271,6 +271,20 @@ cmd_status() {
     python3 "/toolkit/setup_project.py" "$WORKSPACE" --status
 }
 
+cmd_hc_report() {
+    bold "=== Generating Health Check Report ==="
+    export PYTHONPATH="$WORKSPACE/scripts/health_check:$WORKSPACE/scripts/shared/lib:/toolkit/health_check:/toolkit/shared/lib:${PYTHONPATH:-}"
+    python3 /toolkit/health_check/generate_report.py "$@"
+    collect_outputs
+    green "Health Check report complete."
+}
+
+cmd_hc_investigate() {
+    bold "=== Investigating Health Check finding ==="
+    export PYTHONPATH="$WORKSPACE/scripts/health_check:$WORKSPACE/scripts/shared/lib:/toolkit/health_check:/toolkit/shared/lib:${PYTHONPATH:-}"
+    python3 /toolkit/health_check/hc_investigate.py "$@"
+}
+
 cmd_help() {
     bold "Arch Design Doc Generator (container)"
     echo ""
@@ -282,6 +296,8 @@ cmd_help() {
     echo "  pdfs              Regenerate PDFs only (skip diagram export)"
     echo "  workitems         Create sprint work items from LLD"
     echo "  rvtools <files>   Process RVTools XLSX into migration schedule"
+    echo "  hc-report         Generate Health Check report from collected data"
+    echo "  hc-investigate    Trace a Health Check finding to raw evidence"
     echo "  status            Show project health and readiness"
     echo "  help              Show this message"
     echo ""
@@ -304,6 +320,8 @@ case "${1:-help}" in
     pdfs)       cmd_pdfs ;;
     workitems)  cmd_workitems ;;
     rvtools)    shift; cmd_rvtools "$@" ;;
+    hc-report)  shift; cmd_hc_report "$@" ;;
+    hc-investigate) shift; cmd_hc_investigate "$@" ;;
     status)     cmd_status ;;
     help|--help|-h) cmd_help ;;
     *)          red "Unknown command: $1"; cmd_help; exit 1 ;;

@@ -1,0 +1,431 @@
+[[checks]]
+check_id = "7.5.alerts.critical"
+title = "Critical alerts"
+description = "Critical alerts indicate conditions that require immediate attention. All\ncritical alerts should be investigated and resolved as quickly as possible.\n"
+recommendation = "1. Investigate all critical alerts immediately.\n2. Review the alert details and attached runbooks in the OpenShift console under `Observe -> Alerting`.\n3. Retrieve the active alert set:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl http://localhost:9090/api/v1/alerts`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/latest/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
+"4.18" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.18/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
+"4.19" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.19/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
+"4.20" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.20/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
+"4.21" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.21/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
+"4.22" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.22/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
+
+[[checks]]
+check_id = "7.5.alerts.warning"
+title = "Warning alerts"
+description = "Warning alerts indicate conditions that may become critical if not addressed.\nReview the firing warnings and decide whether they represent accepted risk or\nrequire remediation.\n"
+recommendation = "1. Review warning alerts in the OCP console under `Observe -> Alerting`.\n2. Compare the warning alerts with the live alert feed:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -s http://localhost:9090/api/v1/alerts`\n3. Classify the warnings as accepted risk, tuning debt, or real incidents.\n4. Check linked runbooks, silence only known-noisy alerts with documented justification, and remediate any warning that is trending toward a critical condition.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/latest/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
+"4.18" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.18/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
+"4.19" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.19/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
+"4.20" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.20/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
+"4.21" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.21/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
+"4.22" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.22/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
+
+[[checks]]
+check_id = "7.5.pods.crashloop"
+title = "CrashLoopBackOff pods"
+description = "One or more pods are in CrashLoopBackOff state, meaning the container is\nrepeatedly crashing after startup. This typically indicates application errors,\nmissing configuration, failed dependency connections, or resource exhaustion.\nPods in this state consume restart cycles and may mask other cluster issues.\n"
+recommendation = "1. View the previous container exit logs:\n   `oc logs <pod> -p`\n2. Check for OOM kills:\n   `oc describe pod <pod>`\n3. Investigate application errors, missing dependencies, or resource constraints.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/support/index#understanding-pod-error-states_investigating-pod-issues"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/support/index#understanding-pod-error-states_investigating-pod-issues"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/support/index#understanding-pod-error-states_investigating-pod-issues"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/support/index#understanding-pod-error-states_investigating-pod-issues"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/support/index#understanding-pod-error-states_investigating-pod-issues"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/support/index#understanding-pod-error-states_investigating-pod-issues"
+
+[[checks]]
+check_id = "7.5.master_taints"
+title = "Control plane taints"
+description = "Control plane nodes should have the `node-role.kubernetes.io/master:NoSchedule`\ntaint to prevent user workloads from being scheduled there. This taint is\nnormally applied during installation but may be missing on manually adjusted\nnodes.\n"
+recommendation = "1. Apply the standard `NoSchedule` taint to all control plane nodes:\n   `oc adm taint nodes <node> node-role.kubernetes.io/master=:NoSchedule`\n2. Prevent user workloads from competing with etcd, the API server, and the scheduler for critical resources.\n"
+priority_hint = ""
+impact = "non-disruptive"
+impact_scope = "control-plane scheduling"
+impact_detail = "Adding the taint stops new user workloads from landing on control-plane nodes, but it does not reboot nodes or evict existing pods automatically."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/nodes/index#nodes-nodes-working-master-schedulable_nodes-nodes-managing"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/nodes/index#nodes-nodes-working-master-schedulable_nodes-nodes-managing"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/nodes/index#nodes-nodes-working-master-schedulable_nodes-nodes-managing"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/nodes/index#nodes-nodes-working-master-schedulable_nodes-nodes-managing"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/nodes/index#nodes-nodes-working-master-schedulable_nodes-nodes-managing"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/nodes/index#nodes-nodes-working-master-schedulable_nodes-nodes-managing"
+
+[[checks]]
+check_id = "7.5.k8s_version"
+title = "Kubelet version skew"
+description = "Mixed kubelet versions usually indicate that some nodes have not completed the\nMachineConfig update rollout. Review MachineConfigPool status and investigate\nany degraded nodes before proceeding with upgrades.\n"
+recommendation = "1. Check MachineConfigPool status:\n   `oc get mcp`\n2. Identify any pools still `Updating` or `Degraded`.\n3. Review node versions:\n   `oc get nodes -o custom-columns=NAME:.metadata.name,KUBELET:.status.nodeInfo.kubeletVersion`\n4. Do not start another upgrade until all nodes complete the current rollout.\n"
+priority_hint = ""
+impact = "rolling-restart"
+impact_scope = "nodes in the affected MachineConfigPool"
+impact_detail = "Completing a stalled kubelet or machine-config rollout drains and reboots lagging nodes one at a time. On compact 3-node clusters where all nodes serve as both control-plane and worker, this affects 100% of cluster capacity."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/machine_configuration/index#troubleshooting-mco"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/machine_configuration/index#troubleshooting-mco"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/postinstallation_configuration/index#troubleshooting-mco"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/postinstallation_configuration/index#troubleshooting-mco"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/machine_configuration/index#troubleshooting-mco"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/machine_configuration/index#troubleshooting-mco"
+
+[[checks]]
+check_id = "7.5.pruning.pods"
+title = "Pod pruning"
+description = "Accumulated completed pods consume etcd storage and slow list operations.\nConfigure cleanup behavior so finished workloads do not persist indefinitely.\n"
+recommendation = "1. Review completed-object buildup:\n   `oc get pods -A --field-selector=status.phase=Succeeded`\n   `oc get jobs -A`\n2. Configure automatic pruning for completed pods and jobs.\n3. Set `ttlSecondsAfterFinished` on Job specs, or deploy the image-pruner CronJob.\n4. For builds, configure the build-pruning settings in the BuildConfig workflow.\n"
+priority_hint = ""
+impact = "non-disruptive"
+impact_scope = "completed pod and build object cleanup"
+impact_detail = "Pruning settings affect completed-object retention and future cleanup behavior without rebooting nodes or interrupting running workloads."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/building_applications/index#pruning-objects"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/building_applications/index#pruning-objects"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/building_applications/index#pruning-objects"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/building_applications/index#pruning-objects"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/building_applications/index#pruning-objects"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/building_applications/index#pruning-objects"
+
+[[checks]]
+check_id = "7.5.pruning.jobs"
+title = "Job pruning"
+description = "Stale completed Jobs accumulate in etcd and slow API list operations. Add TTL\ncleanup to Job specs so completed objects are removed automatically.\n"
+recommendation = "1. Set `ttlSecondsAfterFinished` on Job templates.\n2. Configure CronJob `successfulJobsHistoryLimit` and `failedJobsHistoryLimit` to keep completed jobs from accumulating indefinitely.\n3. Review large namespaces:\n   `oc get jobs -A`\n4. Delete stale completed jobs after confirming they are no longer needed.\n"
+priority_hint = ""
+impact = "non-disruptive"
+impact_scope = "completed job retention"
+impact_detail = "Job TTL and history-limit changes affect cleanup behavior for completed jobs without disrupting running workloads."
+
+[checks.links]
+default = "https://kubernetes.io/docs/concepts/workloads/controllers/ttlafterfinished/"
+"4.18" = "https://kubernetes.io/docs/concepts/workloads/controllers/ttlafterfinished/"
+"4.19" = "https://kubernetes.io/docs/concepts/workloads/controllers/ttlafterfinished/"
+"4.20" = "https://kubernetes.io/docs/concepts/workloads/controllers/ttlafterfinished/"
+"4.21" = "https://kubernetes.io/docs/concepts/workloads/controllers/ttlafterfinished/"
+"4.22" = "https://kubernetes.io/docs/concepts/workloads/controllers/ttlafterfinished/"
+
+[[checks]]
+check_id = "7.5.registry_health"
+title = "Internal registry health"
+description = "The internal image registry's managementState and pod health directly affect\nbuild and ImageStream-based deployment reliability. A `Removed` state or\nunhealthy registry pods will fail any workload that depends on the internal\nregistry.\n"
+recommendation = "1. Review the registry configuration:\n   `oc get configs.imageregistry.operator.openshift.io cluster -o yaml`\n2. Confirm `spec.managementState` matches the cluster's intended usage.\n3. If `Managed`, verify registry pods are healthy:\n   `oc get pods -n openshift-image-registry`\n4. Ensure the configured storage backend is reachable and has capacity.\n"
+priority_hint = ""
+impact = "workload-shift"
+impact_scope = "image registry pods and internal image workflows"
+impact_detail = "Changing registry state or storage rolls registry pods and can briefly interrupt builds or internal image pulls/pushes."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/registry/configuring-registry-operator"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/registry/configuring-registry-operator"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html/registry/configuring-registry-operator"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/registry/configuring-registry-operator"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/registry/configuring-registry-operator"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html/registry/configuring-registry-operator"
+
+[[checks]]
+check_id = "7.5.pod_restarts"
+title = "Pod frequent restarts"
+description = "Pods with high restart counts indicate recurring failures — OOMKills, liveness\nprobe failures, application crashes, or dependency unavailability. High restart\ncounts waste cluster resources and may indicate production reliability issues.\n"
+recommendation = "1. Identify high-restart pods:\n   `oc get pods -A --sort-by='.status.containerStatuses[0].restartCount'`\n2. Investigate each affected pod:\n   `oc describe pod <pod> -n <ns>`\n   `oc logs <pod> -n <ns> --previous`\n3. Check for `OOMKilled` status in container `lastState`.\n4. Review resource limits, liveness probe timeouts, and external dependency availability.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/support/index#reviewing-pod-status_investigating-pod-issues"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/support/index#reviewing-pod-status_investigating-pod-issues"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/support/index#reviewing-pod-status_investigating-pod-issues"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/support/index#reviewing-pod-status_investigating-pod-issues"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/support/index#reviewing-pod-status_investigating-pod-issues"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/support/index#reviewing-pod-status_investigating-pod-issues"
+
+[[checks]]
+check_id = "7.5.tsr.5_6_node_role_values"
+title = "TSR node-role values"
+description = "This check verifies that each node has the correct role labels (master, worker, infra) and associated taints. Missing or incorrect labels can cause user workloads to run on control plane nodes, infrastructure workloads to land on worker nodes, or subscription entitlements to be miscounted."
+recommendation = "1. Review current node roles and labels:\n   `oc get nodes --show-labels | grep node-role`\n2. If infra workloads (monitoring, logging, routers) should run on dedicated\n   nodes, label them:\n   `oc label node <node> node-role.kubernetes.io/infra=\"\"`\n3. Add taints to infra nodes to prevent user workloads from scheduling there:\n   `oc adm taint nodes <node> node-role.kubernetes.io/infra=:NoSchedule`\n4. Verify control plane nodes have the standard NoSchedule taint to keep\n   user pods off the masters.\n"
+priority_hint = ""
+impact = "workload-shift"
+impact_scope = "node scheduling and infra workload placement"
+impact_detail = "Changing node roles or taints affects where future workloads land and may require workload migration or rollout to move existing infra pods."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/machine_management/index#binding-infra-node-workloads-using-taints-tolerations_creating-infrastructure-machinesets"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/machine_management/index#binding-infra-node-workloads-using-taints-tolerations_creating-infrastructure-machinesets"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/machine_management/index#binding-infra-node-workloads-using-taints-tolerations_creating-infrastructure-machinesets"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/machine_management/index#binding-infra-node-workloads-using-taints-tolerations_creating-infrastructure-machinesets"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/machine_management/index#binding-infra-node-workloads-using-taints-tolerations_creating-infrastructure-machinesets"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/machine_management/index#binding-infra-node-workloads-using-taints-tolerations_creating-infrastructure-machinesets"
+
+[[checks]]
+check_id = "7.5.tsr.5_1_node_kubelet_health"
+title = "5.1. Node Kubelet Health"
+description = "Assesses the health of kubelet on each node by examining Ready condition,\nkubelet version alignment, and node event anomalies. Unhealthy kubelets\ncause scheduling failures and workload disruptions.\n"
+recommendation = "1. Check node conditions:\n   `oc get nodes -o wide`\n2. Inspect kubelet logs on affected nodes:\n   `oc adm node-logs <node> -u kubelet --since=-1h`\n3. Review recent node events:\n   `oc get events -A --field-selector involvedObject.kind=Node`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/nodes/index#nodes-nodes-viewing-listing_nodes-nodes-viewing"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/nodes/index#nodes-nodes-viewing-listing_nodes-nodes-viewing"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/nodes/index#nodes-nodes-viewing-listing_nodes-nodes-viewing"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/nodes/index#nodes-nodes-viewing-listing_nodes-nodes-viewing"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/nodes/index#nodes-nodes-viewing-listing_nodes-nodes-viewing"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/nodes/index#nodes-nodes-viewing-listing_nodes-nodes-viewing"
+
+[[checks]]
+check_id = "7.5.tsr.5_2_machine_config"
+title = "5.2. Machine Config"
+description = "Evaluates MachineConfig rendering and drift status across nodes. Mismatched or\nfailed MachineConfig application can leave nodes in a degraded state with\ninconsistent system configuration.\n"
+recommendation = "1. Review rendered MachineConfigs:\n   `oc get mc`\n2. Compare the current vs desired config on nodes:\n   `oc describe node <node> | grep -A5 machineconfig`\n3. Check for degraded MachineConfigPools:\n   `oc get mcp`\n4. Inspect MCO logs:\n   `oc -n openshift-machine-config-operator logs -l k8s-app=machine-config-operator`\n"
+priority_hint = ""
+impact = "rolling-restart"
+impact_scope = "nodes in the affected MachineConfigPool"
+impact_detail = "Correcting MachineConfig drift causes the MCO to drain and reboot affected nodes to apply the desired configuration."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/machine_configuration/index#understanding-the-machine-config-operator"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/machine_configuration/index#understanding-the-machine-config-operator"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/postinstallation_configuration/index#understanding-the-machine-config-operator"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/postinstallation_configuration/index#understanding-the-machine-config-operator"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/machine_configuration/index#understanding-the-machine-config-operator"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/machine_configuration/index#understanding-the-machine-config-operator"
+
+[[checks]]
+check_id = "7.5.tsr.5_3_operator_state"
+title = "5.3. Operator State"
+description = "Checks all ClusterOperators for Available, Progressing, and Degraded conditions.\nDegraded operators indicate feature loss or blocked upgrades and require\nimmediate investigation.\n"
+recommendation = "1. Review operator status:\n   `oc get co`\n2. Identify any operator not showing `Available=True`, `Progressing=False`, and `Degraded=False`.\n3. Inspect degraded operators:\n   `oc describe co <name>`\n4. Check their namespace pod logs.\n5. Investigate common causes such as resource exhaustion, expired secrets, or failed rollouts.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/support/index#troubleshooting-operator-issues"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/support/index#troubleshooting-operator-issues"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/support/index#troubleshooting-operator-issues"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/support/index#troubleshooting-operator-issues"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/support/index#troubleshooting-operator-issues"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/support/index#troubleshooting-operator-issues"
+
+[[checks]]
+check_id = "7.5.tsr.5_4_registry_health"
+title = "5.4. Registry Health"
+description = "Validates internal image registry pod health, storage backend availability, and\nmanagementState. A degraded registry blocks builds, ImageStream imports, and\ninternal image distribution.\n"
+recommendation = "1. Check registry operator status:\n   `oc get co image-registry`\n2. Inspect pod health:\n   `oc get pods -n openshift-image-registry`\n3. Validate storage configuration:\n   `oc get configs.imageregistry.operator.openshift.io cluster -o yaml`\n4. Ensure `spec.managementState` is `Managed` with adequate storage capacity.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/registry/index#checking-the-status-of-registry-pods_accessing-the-registry"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/registry/index#checking-the-status-of-registry-pods_accessing-the-registry"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/registry/index#checking-the-status-of-registry-pods_accessing-the-registry"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/registry/index#checking-the-status-of-registry-pods_accessing-the-registry"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/registry/index#checking-the-status-of-registry-pods_accessing-the-registry"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/registry/index#checking-the-status-of-registry-pods_accessing-the-registry"
+
+[[checks]]
+check_id = "7.5.tsr.5_5_pod_frequent_restarts"
+title = "5.5. Pod Frequent Restarts"
+description = "Identifies pods with abnormally high restart counts indicating recurring\nfailures such as OOMKills, liveness probe failures, or application crashes.\nFrequent restarts waste resources and signal reliability issues.\n"
+recommendation = "1. List high-restart pods:\n   `oc get pods -A --sort-by='.status.containerStatuses[0].restartCount'`\n2. Investigate root cause:\n   `oc describe pod <pod> -n <ns>`\n   `oc logs <pod> -n <ns> --previous`\n3. Check for `OOMKilled` in `lastState`.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/support/index#reviewing-pod-status_investigating-pod-issues"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/support/index#reviewing-pod-status_investigating-pod-issues"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/support/index#reviewing-pod-status_investigating-pod-issues"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/support/index#reviewing-pod-status_investigating-pod-issues"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/support/index#reviewing-pod-status_investigating-pod-issues"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/support/index#reviewing-pod-status_investigating-pod-issues"
+
+[[checks]]
+check_id = "7.5.tsr.5_7_machine_config_pool"
+title = "5.7. Machine Config Pool"
+description = "Assesses MachineConfigPool update status and degradation. Pools stuck in\nUpdating or Degraded state block node rollouts and cluster upgrades.\n"
+recommendation = "1. Check pool status:\n   `oc get mcp`\n2. Investigate degraded pools:\n   `oc describe mcp <pool>`\n3. Review which nodes are updating or degraded:\n   `oc get nodes -l node.openshift.io/os_id=rhcos --sort-by=.metadata.name`\n4. Ensure `maxUnavailable` settings allow progress without over-draining capacity.\n"
+priority_hint = ""
+impact = "rolling-restart"
+impact_scope = "nodes in the degraded or updating MachineConfigPool"
+impact_detail = "Resolving MCP degradation may require the MCO to drain and reboot stuck nodes to complete configuration rollout."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/machine_configuration/index#understanding-the-machine-config-operator"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/machine_configuration/index#understanding-the-machine-config-operator"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/postinstallation_configuration/index#understanding-the-machine-config-operator"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/postinstallation_configuration/index#understanding-the-machine-config-operator"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/machine_configuration/index#understanding-the-machine-config-operator"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/machine_configuration/index#understanding-the-machine-config-operator"
+
+[[checks]]
+check_id = "7.5.tsr.5_8_machine_set"
+title = "5.8. Machine Set"
+description = "Validates MachineSet desired vs actual replica counts and machine provisioning\nstate. Mismatched replicas or stuck machines indicate infrastructure provisioning\nfailures or capacity constraints.\n"
+recommendation = "1. Review MachineSets:\n   `oc get machineset -A`\n2. Compare desired vs available replica counts.\n3. Inspect failed machines:\n   `oc get machines -A`\n   `oc describe machine <name> -n openshift-machine-api`\n4. Identify provisioning errors from the underlying infrastructure provider.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/machine_management/index#machine-mgmt-intro-managing-compute_overview-of-machine-management"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/machine_management/index#machine-mgmt-intro-managing-compute_overview-of-machine-management"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/machine_management/index#machine-mgmt-intro-managing-compute_overview-of-machine-management"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/machine_management/index#machine-mgmt-intro-managing-compute_overview-of-machine-management"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/machine_management/index#machine-mgmt-intro-managing-compute_overview-of-machine-management"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/machine_management/index#machine-mgmt-intro-managing-compute_overview-of-machine-management"
+
+[[checks]]
+check_id = "7.5.tsr.5_9_pod_disruption_budget"
+title = "5.9. Pod Disruption Budget"
+description = "Evaluates PodDisruptionBudget configuration to ensure voluntary disruptions\n(drains, upgrades) cannot violate application availability requirements.\nMissing or misconfigured PDBs risk downtime during maintenance.\n"
+recommendation = "1. List PDBs:\n   `oc get pdb -A`\n2. Verify `minAvailable` or `maxUnavailable` is set appropriately for critical workloads.\n3. Check for PDBs that block node drains:\n   `oc get pdb -A -o json | jq '.items[] | select(.status.disruptionsAllowed==0)'`\n4. Ensure PDB selectors match the intended pod labels.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/nodes/index#nodes-pods-configuring-pod-distruption-about_nodes-pods-configuring"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/nodes/index#nodes-pods-configuring-pod-distruption-about_nodes-pods-configuring"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/nodes/index#nodes-pods-configuring-pod-distruption-about_nodes-pods-configuring"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/nodes/index#nodes-pods-configuring-pod-distruption-about_nodes-pods-configuring"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/nodes/index#nodes-pods-configuring-pod-distruption-about_nodes-pods-configuring"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/nodes/index#nodes-pods-configuring-pod-distruption-about_nodes-pods-configuring"
+
+[[checks]]
+check_id = "7.5.tsr.5_10_volume_mount_durations"
+title = "5.10. Volume Mount Durations"
+description = "Checks for slow volume attach/mount operations that delay pod startup. Extended\nmount times indicate storage backend latency, CSI driver issues, or volume\ndetach failures from previous node assignments.\n"
+recommendation = "1. Review pod events for slow volume mounts:\n   `oc get events -A --field-selector reason=FailedMount`\n   `oc get events -A --field-selector reason=FailedAttachVolume`\n2. Check CSI driver pod health in the storage namespace and verify storage backend responsiveness.\n3. Investigate any `VolumeAttachment` objects stuck in attaching state:\n   `oc get volumeattachment`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/storage/index#persistent-storage-csi"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/storage/index#persistent-storage-csi"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/storage/index#persistent-storage-csi"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/storage/index#persistent-storage-csi"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/storage/index#persistent-storage-csi"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/storage/index#persistent-storage-csi"
+
+[[checks]]
+check_id = "7.5.tsr.5_11_health_related_alerts"
+title = "5.11. Health Related Alerts"
+description = "Parent section covering health-related alerts including control plane, node,\nand overcommit alert categories. Active alerts signal conditions that may\ndegrade cluster stability or workload reliability.\n"
+recommendation = "1. Review all health-related alerts:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -s http://localhost:9090/api/v1/alerts`\n2. Alternatively, review them in the OCP console under `Observe -> Alerting`.\n3. Triage by severity, investigate root causes, and remediate or document accepted risk.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/latest/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
+"4.18" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.18/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
+"4.19" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.19/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
+"4.20" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.20/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
+"4.21" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.21/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
+"4.22" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.22/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
+
+[[checks]]
+check_id = "7.5.tsr.5_11_1_control_plane_alerts"
+title = "5.11.1. Control Plane Alerts"
+description = "Evaluates alerts specific to control plane components — API server, etcd,\nscheduler, and controller-manager. Control plane alerts indicate conditions\nthat can affect cluster-wide API responsiveness and scheduling.\n"
+recommendation = "1. Filter control plane alerts:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -s http://localhost:9090/api/v1/alerts | jq '.data.alerts[] | select(.labels.namespace != null and (.labels.namespace | test(\"openshift-etcd|openshift-kube\")))'`\n2. Check etcd health, API server latency, and scheduler queue depth.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/latest/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
+"4.18" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.18/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
+"4.19" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.19/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
+"4.20" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.20/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
+"4.21" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.21/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
+"4.22" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.22/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
+
+[[checks]]
+check_id = "7.5.tsr.5_11_2_node_alerts"
+title = "5.11.2. Node Alerts"
+description = "Evaluates alerts related to node health — NotReady conditions, disk pressure,\nmemory pressure, PID pressure, and kernel issues. Node alerts often precede\nworkload eviction or scheduling failures.\n"
+recommendation = "1. Filter node alerts and check node conditions:\n   `oc get nodes -o json | jq '.items[] | select(.status.conditions[] | select(.type!=\"Ready\" and .status==\"True\"))'`\n2. Review kubelet logs on flagged nodes:\n   `oc adm node-logs <node> -u kubelet`\n3. Check for disk or memory pressure conditions.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/nodes/index#nodes-nodes-viewing-listing_nodes-nodes-viewing"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/nodes/index#nodes-nodes-viewing-listing_nodes-nodes-viewing"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/nodes/index#nodes-nodes-viewing-listing_nodes-nodes-viewing"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/nodes/index#nodes-nodes-viewing-listing_nodes-nodes-viewing"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/nodes/index#nodes-nodes-viewing-listing_nodes-nodes-viewing"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/nodes/index#nodes-nodes-viewing-listing_nodes-nodes-viewing"
+
+[[checks]]
+check_id = "7.5.tsr.5_11_3_overcommit_alerts"
+title = "5.11.3. Overcommit Alerts"
+description = "Evaluates alerts related to resource overcommitment — when the sum of pod\nresource requests exceeds node allocatable capacity. Overcommitment risks\nOOMKills and scheduling failures under load.\n"
+recommendation = "1. Check cluster-level overcommit by comparing actual usage vs allocatable:\n   `oc adm top nodes`\n2. Review node allocatable vs requested resources:\n   `oc describe nodes | grep -A5 Allocated`\n3. Identify namespaces driving overcommit:\n   `oc adm top pods -A --sort-by=memory`\n4. Right-size resource requests.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/nodes/index#nodes-cluster-overcommit-reserving-resources_nodes-cluster-overcommit"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/nodes/index#nodes-cluster-overcommit-reserving-resources_nodes-cluster-overcommit"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/nodes/index#nodes-cluster-overcommit-reserving-resources_nodes-cluster-overcommit"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/nodes/index#nodes-cluster-overcommit-reserving-resources_nodes-cluster-overcommit"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/nodes/index#nodes-cluster-overcommit-reserving-resources_nodes-cluster-overcommit"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/nodes/index#nodes-cluster-overcommit-reserving-resources_nodes-cluster-overcommit"
+
+[[checks]]
+check_id = "7.5.tsr.5_12_dns_health"
+title = "5.12. DNS Health"
+description = "Validates CoreDNS pod health, DNS resolution latency, and DNS operator status.\nDNS failures cascade into service discovery issues, health probe failures,\nand operator degradation across the entire cluster.\n"
+recommendation = "1. Check DNS operator status:\n   `oc get dns.operator/default -o yaml`\n2. Check DNS pod health:\n   `oc get pods -n openshift-dns`\n3. Test cluster DNS from a pod-network session:\n   `oc run dns-test --rm -i --restart=Never --image=registry.access.redhat.com/ubi9/ubi-minimal -- nslookup kubernetes.default.svc`\n4. Review CoreDNS logs for `SERVFAIL` patterns:\n   `oc -n openshift-dns logs -l dns.operator.openshift.io/daemonset-dns`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_operators/index#nw-dns-operator_dns-operator"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_operators/index#nw-dns-operator_dns-operator"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_operators/index#nw-dns-operator_dns-operator"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_operators/index#nw-dns-operator_dns-operator"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_operators/index#nw-dns-operator_dns-operator"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_operators/index#nw-dns-operator_dns-operator"

@@ -85,9 +85,11 @@ def _extract_cluster_version_data(base: dict) -> dict:
         if cluster_version_raw.get("kind") == "List" or "items" in cluster_version_raw
         else []
     )
-    return cluster_version_items[0] if cluster_version_items else (
-        cluster_version_raw if cluster_version_raw.get("kind") == "ClusterVersion" else {}
-    )
+    if cluster_version_items:
+        return cluster_version_items[0]
+    if cluster_version_raw.get("kind") == "ClusterVersion":
+        return cluster_version_raw
+    return {}
 
 
 def derive_metadata(results: dict, config: dict) -> dict:
