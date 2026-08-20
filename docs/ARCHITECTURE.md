@@ -98,7 +98,7 @@ Collection (host): OpenShift cluster JSON via live `oc` or offline `omc`, loaded
 
 Report (`make hc-report`, container): `generate_report.py` → `cli.main()` → load results → `evaluate_checks()` (registry of category evaluators; for `extended`/`advisory`, `parity.py` expands catalog rows from TSR HTML and optional CCX runtime) → knowledge-base lookup by `check_id` → `derive_findings()` → `render_report()` fills `{SLOT}` placeholders in `templates/Health_Check/Template_HC_Report.md` → markdown and audit JSON under `output/Health_Check_Report/`. Missing TSR HTML or live Insights data leaves catalog rows SKIPPED (CCX `status_hint` is not applied unless `--ccx-baseline-status`).
 
-AI is excluded from the Health Check path by company policy. Default check profile is `advisory`. PDF/HTML export is deferred.
+AI is excluded from the Health Check path by company policy. Default check profile is `advisory`. HTML and PDF are follow-on container commands (`make hc-html`, `make hc-pdf`) that convert report markdown under `output/Health_Check_Report/`; cover-meta colgroups at 42%/58% apply only on that HTML/PDF path.
 
 ## Key Dependencies
 

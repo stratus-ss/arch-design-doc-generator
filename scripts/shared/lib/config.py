@@ -106,19 +106,69 @@ def _css_string(value: str) -> str:
     return str(value).replace("\\", "\\\\").replace('"', '\\"').replace("\n", " ")
 
 
+def _brand_css_values(config: dict) -> tuple[str, str, str, str, str]:
+    """Return primary, secondary, header_font, code_font, footer_text for CSS interpolation."""
+    brand = config["brand"]
+    return (
+        brand["primary_color"],
+        brand["secondary_color"],
+        _css_string(brand["header_font"]),
+        _css_string(brand["code_font"]),
+        _css_string(brand["footer_text"]),
+    )
+
+
+def _cover_meta_css(primary: str, *, for_print: bool) -> str:
+    """Shared cover-meta table rules for print and screen HC stylesheets."""
+    if for_print:
+        wrapper = """div.cover-meta {
+  page-break-after: always;
+  padding-top: 1in;
+}
+"""
+        cell_rules = """div.cover-meta th, div.cover-meta td {
+  border: none;
+  background: none;
+  color: #1a1a1a;
+  font-size: 10pt;
+  padding: 4px 8px;
+  overflow-wrap: normal;
+}
+div.cover-meta tbody tr:nth-child(even) { background-color: transparent; }
+"""
+    else:
+        wrapper = ""
+        cell_rules = """div.cover-meta th, div.cover-meta td {
+  border: none; background: none;
+  overflow-wrap: normal; white-space: normal;
+}
+div.cover-meta tbody tr:nth-child(even) { background: transparent; }
+"""
+
+    return f"""{wrapper}div.cover-meta table {{
+  width: 70%; border: none; table-layout: fixed;
+}}
+{cell_rules}div.cover-meta thead {{ display: none; }}
+div.cover-meta td:first-child {{
+  font-weight: 600; color: {primary};
+  white-space: nowrap; width: 42%;
+}}
+div.cover-meta td:last-child {{
+  overflow-wrap: break-word;
+}}
+"""
+
+
 def render_css(config: dict, doc_type: str) -> str:
     """Render the print CSS with brand values substituted."""
-    brand = config["brand"]
-    primary = brand["primary_color"]
-    secondary = brand["secondary_color"]
-    header_font = _css_string(brand["header_font"])
-    code_font = _css_string(brand["code_font"])
-    footer_text = _css_string(brand["footer_text"])
+    primary, secondary, header_font, code_font, footer_text = _brand_css_values(config)
 
     if doc_type == "hld":
         title = config["document_title_hld"]
     elif doc_type == "lld":
         title = config["document_title_lld"]
+    elif doc_type == "hc":
+        title = f"{config.get('client_name', '')} OpenShift Health Check"
     else:
         title = f"{config.get('client_name', '')} {config.get('project_code', '')} — {doc_type.upper()}"
     title = _css_string(title)
@@ -251,37 +301,126 @@ div.cover-page p {{
   font-size: 11pt; color: #333;
   margin: 4px 0;
 }}
-div.cover-meta {{
-  page-break-after: always;
-  padding-top: 1in;
-}}
-div.cover-meta table {{
-  width: 70%;
-  border: none;
-  table-layout: fixed;
-}}
-div.cover-meta th, div.cover-meta td {{
-  border: none;
-  background: none;
-  color: #1a1a1a;
-  font-size: 10pt;
-  padding: 4px 8px;
-  overflow-wrap: normal;
-}}
-div.cover-meta thead {{ display: none; }}
-div.cover-meta tbody tr:nth-child(even) {{ background-color: transparent; }}
-div.cover-meta td:first-child {{
-  font-weight: 600; color: {primary};
-  white-space: nowrap;
-  width: 42%;
-}}
-div.cover-meta td:last-child {{
-  overflow-wrap: break-word;
-}}
-/* PDF bookmarks — WeasyPrint renders these as the collapsible outline sidebar */
+{_cover_meta_css(primary, for_print=True)}/* PDF bookmarks — WeasyPrint renders these as the collapsible outline sidebar */
 h1 {{ bookmark-level: 1; bookmark-label: content(); }}
 h2 {{ bookmark-level: 2; bookmark-label: content(); }}
 h3 {{ bookmark-level: 3; bookmark-label: content(); }}"""
+
+
+def render_css_html(config: dict) -> str:
+    """Render a screen-optimised CSS stylesheet for the collapsible HTML report."""
+    primary, secondary, header_font, code_font, _ = _brand_css_values(config)
+    client = config.get("client_name", "")
+
+    return f"""/* HC HTML Report — screen stylesheet */
+:root {{
+  --primary:   {primary};
+  --secondary: {secondary};
+}}
+* {{ box-sizing: border-box; }}
+body {{
+  font-family: {header_font};
+  font-size: 15px; line-height: 1.6; color: #1a1a1a;
+  max-width: 1100px; margin: 0 auto; padding: 0 24px 60px;
+  background: #ffffff;
+  overflow-wrap: break-word;
+}}
+h1 {{
+  font-size: 2em; color: {primary};
+  border-bottom: 3px solid {primary};
+  padding-bottom: 6px; margin-top: 32px;
+}}
+h2 {{
+  font-size: 1.4em; color: {primary};
+  border-bottom: 1.5px solid {secondary};
+  padding-bottom: 3px; margin-top: 28px;
+}}
+h3 {{
+  font-size: 1.1em; color: {primary}; margin-top: 18px;
+}}
+h4 {{ font-size: 1em; color: {primary}; margin-top: 14px; }}
+table {{
+  border-collapse: collapse; width: 100%;
+  margin: 10px 0 16px 0; font-size: 0.88em;
+  table-layout: auto;
+}}
+th {{
+  background: #be0000; color: #fff; font-weight: 600;
+  text-align: left; padding: 7px 10px; border: 1px solid #be0000;
+  overflow-wrap: break-word; white-space: nowrap;
+}}
+td {{
+  padding: 6px 10px; border: 1px solid #cbd5e1; vertical-align: top;
+  overflow-wrap: break-word;
+}}
+tbody tr:nth-child(even) {{ background: #f8fafc; }}
+td strong {{ color: {primary}; }}
+hr {{ border: none; border-top: 1.5px solid {secondary}; margin: 24px 0; }}
+code {{
+  font-family: {code_font};
+  font-size: 0.85em; background: #f1f5f9;
+  padding: 1px 5px; border-radius: 3px; color: #b91c1c;
+}}
+pre {{
+  background: #f8fafc; border: 1px solid #e2e8f0;
+  border-left: 3px solid {primary}; padding: 10px 14px;
+  border-radius: 4px; font-size: 0.82em; overflow-x: auto;
+}}
+pre code {{ background: none; padding: 0; color: inherit; }}
+a {{ color: {secondary}; }}
+p {{ margin: 6px 0; }}
+ul, ol {{ margin: 6px 0; padding-left: 22px; }}
+blockquote {{
+  border-left: 4px solid {secondary}; margin: 12px 0;
+  padding: 4px 14px; background: #f8fafc; color: #444;
+}}
+div.cover-page {{
+  padding-top: 80px; padding-bottom: 40px;
+  border-bottom: 3px solid {primary}; margin-bottom: 40px;
+}}
+div.cover-page h1 {{
+  font-size: 2.4em; border-bottom: none;
+}}
+{_cover_meta_css(primary, for_print=False)}/* sticky top-bar */
+#hc-header {{
+  position: sticky; top: 0; z-index: 200;
+  background: {primary}; color: #fff;
+  padding: 6px 16px; font-size: 0.8em; font-weight: 600;
+  display: flex; align-items: center; gap: 16px;
+  margin: 0 -24px;
+}}
+#hc-header .title {{ flex: 1; }}
+#hc-header button {{
+  padding: 3px 12px; border: 1px solid rgba(255,255,255,0.5);
+  border-radius: 4px; background: transparent; color: #fff;
+  cursor: pointer; font-size: 0.9em;
+}}
+#hc-header button:hover {{ background: rgba(255,255,255,0.15); }}
+/* details/summary */
+details {{ margin: 4px 0; }}
+details > summary {{
+  cursor: pointer; list-style: none;
+  padding: 7px 12px; border-radius: 4px; font-weight: 600;
+  user-select: none; background: #f1f5f9;
+  border-left: 3px solid {primary};
+  display: flex; align-items: center; gap: 8px;
+}}
+details > summary::-webkit-details-marker {{ display: none; }}
+details > summary::before {{
+  content: "▶"; font-size: 0.7em;
+  transition: transform 0.15s; flex-shrink: 0;
+}}
+details[open] > summary::before {{ transform: rotate(90deg); }}
+details > summary:hover {{ background: #e2e8f0; }}
+details details {{ margin-left: 14px; }}
+details details > summary {{
+  background: #f8fafc;
+  border-left: 2px solid {secondary};
+  font-size: 0.92em; font-weight: 500;
+}}
+/* title of {client} HC report */
+title {{ display: none; }}
+"""
 
 
 def main() -> None:
@@ -299,7 +438,9 @@ def main() -> None:
     getmap_p.add_argument("key", help="Dot-separated key path")
 
     css_p = sub.add_parser("render-css", help="Render print CSS")
-    css_p.add_argument("--doc-type", required=True, choices=["hld", "lld"], help="Document type for header title")
+    css_p.add_argument("--doc-type", required=True, choices=["hld", "lld", "hc"], help="Document type for header title")
+
+    sub.add_parser("render-css-html", help="Render screen CSS for collapsible HTML report")
 
     args = parser.parse_args()
     if not args.command:
@@ -330,6 +471,8 @@ def main() -> None:
         print(json.dumps(value, indent=2))
     elif args.command == "render-css":
         print(render_css(config, args.doc_type))
+    elif args.command == "render-css-html":
+        print(render_css_html(config))
 
 
 if __name__ == "__main__":

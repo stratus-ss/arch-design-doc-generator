@@ -97,6 +97,9 @@
 - `config.py` parses `project.yaml`.
 - `common.sh` exposes config accessors to bash scripts.
 
+### `scripts/shared/rendering/`
+- HC HTML/PDF post-processing: `html_utils.py` (colgroup injection), `html_collapsible.py` (collapsible HTML + cross-links), `pdf_preprocess.py` (emoji badges + PDF CSS).
+
 ### `scripts/hld_lld/ai/`
 - Host-only deterministic extraction and render workflow.
 - Prompt templates live in `scripts/hld_lld/ai/deterministic/prompts/`.
@@ -160,5 +163,7 @@ Generated during setup/build (gitignored; never commit):
 - PDFs, PNG exports, and work item outputs
 - `output/hc_collect/` — collected Health Check JSON (gitignored via `output/`)
 - `output/Health_Check_Report/` — generated Health Check markdown and audit JSON (gitignored via `output/`)
+  - `HTML/` — collapsible HTML from `make hc-html`
+  - `PDFs/` — branded PDF from `make hc-pdf`
 - `output/tsr_html/` — optional TSR HTML drop directory for `make hc-report` discovery
 - `**/kubeconfig`, `**/kubeconfig.*`, `**/.kube/` — kubeconfigs (gitignored)
