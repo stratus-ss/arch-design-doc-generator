@@ -434,7 +434,6 @@ hc-command-ref: ## Generate command reference documentation (host)
 # Local OpenShift docs tree used to pick books; HTTP checks use curl_cffi in the image.
 HC_DOCS_ROOT ?= $(HOME)/git_projects/openshift_documentation
 HC_LINK_REVIEW_OUT ?= agent_planning/execution/hc_kb_link_precision
-HC_LINK_REVIEW_NOTES ?= tmp/consultant_notes.md
 
 hc-link-review: image ## Suggest+HTTP-check KB doc URLs (container, curl_cffi)
 	@mkdir -p "$(HC_LINK_REVIEW_OUT)"
@@ -446,7 +445,6 @@ hc-link-review: image ## Suggest+HTTP-check KB doc URLs (container, curl_cffi)
 		python3 /workspace/scripts/health_check/hc_link_review.py \
 			--kb-dir /workspace/scripts/health_check/hc_report/kb \
 			--docs-root /docs \
-			$(if $(wildcard $(HC_LINK_REVIEW_NOTES)),--notes /workspace/$(HC_LINK_REVIEW_NOTES)) \
 			--output-dir /workspace/$(HC_LINK_REVIEW_OUT)
 
 # ── Housekeeping ─────────────────────────────────────────────────────
