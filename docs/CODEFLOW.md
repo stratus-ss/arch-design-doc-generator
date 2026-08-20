@@ -213,4 +213,4 @@ Key flow details:
 - `make hc-investigate FINDING_ARGS='--results-dir … --finding-id …'` re-runs load/evaluate/findings and prints the matching raw JSON evidence (container).
 - `make hc-skip-summary` and `make hc-command-ref` run on the host.
 
-PDF/HTML export is deferred.
+`make hc-html` converts report markdown via pandoc and `scripts/shared/rendering/html_collapsible.py` (collapsible `<details>` sections, Chapter 6↔7 cross-links). Output: `output/Health_Check_Report/HTML/`. `make hc-pdf` runs pandoc, `scripts/shared/rendering/pdf_preprocess.py`, and weasyprint. Output: `output/Health_Check_Report/PDFs/`. Both require existing report markdown and exit non-zero without it.

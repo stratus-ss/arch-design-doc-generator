@@ -70,7 +70,7 @@ endef
         combine-drawio sanitize-diagrams sample-schedule check-annotations package \
         force-image \
         hc-collect hc-push-scripts hc-collect-remote hc-fetch-results hc-merge clean-hc \
-        hc-report hc-investigate hc-skip-summary hc-command-ref hc-build-catalog \
+        hc-report hc-html hc-pdf hc-investigate hc-skip-summary hc-command-ref hc-build-catalog \
         hc-link-review \
         clean clean-build clean-hld clean-lld clean-pdfs clean-diagrams clean-workitems clean-ai clean-setup push
 
@@ -125,6 +125,8 @@ help: ## Show this help
 	print_target hc-fetch-results; \
 	print_target hc-merge; \
 	print_target hc-report; \
+	print_target hc-html; \
+	print_target hc-pdf; \
 	print_target hc-build-catalog; \
 	print_target hc-investigate; \
 	print_target hc-skip-summary; \
@@ -407,6 +409,12 @@ hc-report: image ## Generate HC report from collected data (container)
 		--check-profile "$(HC_CHECK_PROFILE)" \
 		$(if $(HC_TSR_HTML),--tsr-html "$(HC_TSR_HTML)") \
 		$(if $(HC_DRY_RUN),--dry-run)
+
+hc-html: image ## Collapsible HTML from HC report markdown (container)
+	@$(_RUNOUT) hc-html
+
+hc-pdf: image ## Branded PDF from HC report markdown (container)
+	@$(_RUNOUT) hc-pdf
 
 hc-build-catalog: ## Rebuild TSR/CCX catalog JSON from a TSR HTML export (set TSR_HTML=path)
 	$(call require,TSR_HTML,Error: set TSR_HTML=path/to/export.html)

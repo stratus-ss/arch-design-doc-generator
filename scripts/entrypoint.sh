@@ -12,7 +12,7 @@ OUTPUT="/output"
 cd "$WORKSPACE"
 
 export PROJECT_ROOT="$WORKSPACE"
-export PYTHONPATH="$WORKSPACE/scripts/shared/lib:/toolkit/shared/lib:${PYTHONPATH:-}"
+export PYTHONPATH="$WORKSPACE/scripts/shared/lib:$WORKSPACE/scripts/shared/rendering:/toolkit/shared/lib:/toolkit/shared/rendering:${PYTHONPATH:-}"
 
 green()  { printf '\033[32m%s\033[0m\n' "$*"; }
 red()    { printf '\033[31m%s\033[0m\n' "$*"; }
@@ -27,6 +27,42 @@ require_project_yaml() {
         echo "Run 'make setup CLIENT=\"Your Client Name\" PROJECT=\"OCP-V\"' first."
         exit 1
     fi
+}
+
+# Render a markdown file to standalone HTML via pandoc, then post-process it.
+# Extra positional args after the four required ones are passed to pandoc.
+_render_md_to_html() {
+    local source_path="$1" css_file="$2" postprocess="$3" output_html="$4"
+    shift 4
+    local raw_html
+    raw_html="$(mktemp --suffix=.html)"
+    # -yaml_metadata_block: our docs use bare "---" as a visual horizontal rule
+    # throughout, not YAML frontmatter; without this, pandoc will try to parse
+    # markdown body content between two blank-line-preceded "---" as YAML and crash.
+    pandoc -f markdown-yaml_metadata_block+autolink_bare_uris "$source_path" -o "$raw_html" --standalone --embed-resources \
+        "--css=${css_file}" "$@" 2>/dev/null
+    python3 "$postprocess" "$raw_html" "$output_html"
+    rm -f "$raw_html"
+}
+
+# Convert a single markdown file to PDF in the given output directory.
+_convert_md_to_pdf() {
+    local source_path="$1"
+    local pdf_dir="$2"
+    local css_file="$3"
+    local base preprocessed_html pdf
+    base="$(basename "$source_path" .md)"
+    preprocessed_html="$(mktemp --suffix=_pp.html)"
+    pdf="${pdf_dir}/${base}.pdf"
+
+    _render_md_to_html "$source_path" "$css_file" "/workspace/scripts/shared/rendering/pdf_preprocess.py" "$preprocessed_html" \
+        "--resource-path=$(dirname "$source_path")" --metadata "title= "
+
+    weasyprint "$preprocessed_html" "$pdf" 2>/dev/null
+    local size
+    size="$(du -k "$pdf" 2>/dev/null | cut -f1)"
+    echo "  ✓ ${base}.pdf (${size} KiB)"
+    rm -f "$preprocessed_html"
 }
 
 validate_hld_generated_placeholders() {
@@ -285,6 +321,67 @@ cmd_hc_investigate() {
     python3 /toolkit/health_check/hc_investigate.py "$@"
 }
 
+cmd_hc_html() {
+    require_project_yaml
+    bold "=== Generating Health Check HTML Report ==="
+    echo ""
+
+    local report_dir="$WORKSPACE/output/Health_Check_Report"
+    local html_dir="${report_dir}/HTML"
+
+    if ! find "$report_dir" -maxdepth 2 -name '*.md' -print -quit | grep -q .; then
+        red "Error: no report markdown found in ${report_dir}/"
+        echo "Run 'make hc-report' first."
+        exit 1
+    fi
+
+    mkdir -p "$html_dir"
+
+    local css_file
+    css_file="$(mktemp --suffix=.css)"
+    python3 /workspace/scripts/shared/lib/config.py render-css-html > "$css_file"
+
+    local source_markdown base output_html
+    while IFS= read -r -d '' source_markdown; do
+        base="$(basename "$source_markdown" .md)"
+        output_html="${html_dir}/${base}.html"
+        _render_md_to_html "$source_markdown" "$css_file" \
+            "/workspace/scripts/shared/rendering/html_collapsible.py" "$output_html" \
+            --metadata "title=${base}"
+    done < <(find "$report_dir" -maxdepth 2 -name '*.md' -print0)
+
+    rm -f "$css_file"
+    green "HTML report → output/Health_Check_Report/HTML/"
+}
+
+cmd_hc_pdf() {
+    require_project_yaml
+    bold "=== Generating Health Check PDFs ==="
+    echo ""
+
+    local report_dir="$WORKSPACE/output/Health_Check_Report"
+
+    if ! find "$report_dir" -maxdepth 2 -name '*.md' -print -quit | grep -q .; then
+        red "Error: no report markdown found in ${report_dir}/"
+        echo "Run 'make hc-report' first."
+        exit 1
+    fi
+
+    mkdir -p "$report_dir/PDFs"
+
+    local css_file
+    css_file="$(mktemp --suffix=.css)"
+    python3 /workspace/scripts/shared/lib/config.py render-css --doc-type hc > "$css_file"
+
+    local source_markdown
+    while IFS= read -r -d '' source_markdown; do
+        _convert_md_to_pdf "$source_markdown" "$report_dir/PDFs" "$css_file"
+    done < <(find "$report_dir" -maxdepth 2 -name '*.md' -print0)
+
+    rm -f "$css_file"
+    green "Health Check PDF generation complete."
+}
+
 cmd_help() {
     bold "Arch Design Doc Generator (container)"
     echo ""
@@ -297,6 +394,8 @@ cmd_help() {
     echo "  workitems         Create sprint work items from LLD"
     echo "  rvtools <files>   Process RVTools XLSX into migration schedule"
     echo "  hc-report         Generate Health Check report from collected data"
+    echo "  hc-html           Generate collapsible HTML from Health Check report markdown"
+    echo "  hc-pdf            Generate branded PDF from Health Check report markdown"
     echo "  hc-investigate    Trace a Health Check finding to raw evidence"
     echo "  status            Show project health and readiness"
     echo "  help              Show this message"
@@ -321,6 +420,8 @@ case "${1:-help}" in
     workitems)  cmd_workitems ;;
     rvtools)    shift; cmd_rvtools "$@" ;;
     hc-report)  shift; cmd_hc_report "$@" ;;
+    hc-html)    shift; cmd_hc_html "$@" ;;
+    hc-pdf)     shift; cmd_hc_pdf "$@" ;;
     hc-investigate) shift; cmd_hc_investigate "$@" ;;
     status)     cmd_status ;;
     help|--help|-h) cmd_help ;;
