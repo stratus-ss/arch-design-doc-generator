@@ -100,6 +100,8 @@ Report (`make hc-report`, container): `generate_report.py` → `cli.main()` → 
 
 AI is excluded from the Health Check path by company policy. Default check profile is `advisory`. HTML and PDF are follow-on container commands (`make hc-html`, `make hc-pdf`) that convert report markdown under `output/Health_Check_Report/`; cover-meta colgroups at 42%/58% apply only on that HTML/PDF path.
 
+Consultant per-check rationale lives in `docs/HC_CHECK_RATIONALE.md` (ratification log: `docs/HC_CHECK_RATIFICATION_LOG.md`). Operator runbooks are stitchmd fragments under `scripts/health_check/docs/`; `make hc-docs` regenerates `collect/README.md` and `supportshell/README.md`. `make hc-report-from-supportshell` fetches remote results then runs `hc-report`. `make check-hc-sync` diffs shared collect/supportshell scripts 03–09.
+
 ## Key Dependencies
 
 - **Core runtime:** Python 3, PyYAML, make

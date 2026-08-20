@@ -137,8 +137,11 @@ The report writes `tmp/lld_closeness.md`. Default rendered dir is `output/LLD`.
 | `setup`, `publish`, `build-lld`, `build`, `workitems` | Container (`entrypoint.sh`) | `scripts/hld_lld/build/*`, `scripts/hld_lld/lld_to_workitems.py` |
 | `build-hld-from-adr`, `prepare-hld-ai`, `validate-slots` | Host | `scripts/hld_lld/ai/ai_draft_deterministic.py`, `scripts/hld_lld/ai/deterministic/*` |
 | `lld-closeness` | Host | `scripts/hld_lld/report_lld_closeness.py` |
-| `hc-collect`, `hc-push-scripts`, `hc-collect-remote`, `hc-fetch-results`, `hc-merge`, `hc-skip-summary`, `hc-command-ref` | Host | `scripts/health_check/collect/*`, `scripts/health_check/supportshell/*` |
+| `hc-collect`, `hc-push-scripts`, `hc-collect-remote`, `hc-fetch-results`, `hc-merge`, `hc-skip-summary`, `hc-command-ref`, `check-hc-sync` | Host | `scripts/health_check/collect/*`, `scripts/health_check/supportshell/*` |
+| `hc-report-from-supportshell` | Host fetch, then container report | `hc-fetch-results` then `hc-report` with `HC_COLLECT_OUT=$(HC_FETCH_STAGE)` |
 | `hc-report`, `hc-investigate` | Container (`entrypoint.sh`) | `scripts/health_check/generate_report.py`, `scripts/health_check/hc_investigate.py` |
+| `hc-html`, `hc-pdf` | Container (`entrypoint.sh`) | `scripts/shared/rendering/html_collapsible.py`, `pdf_preprocess.py` |
+| `hc-docs` | Container (stitchmd) | `scripts/health_check/docs/` fragments → collect/supportshell READMEs |
 | `hc-build-catalog` | Host | `scripts/health_check/hc_report/build_crosswalk_catalog.py` |
 | `hc-link-review` | Container (`curl_cffi`) | `scripts/health_check/hc_link_review.py` |
 | Utility targets (`sanitize-diagrams`, `combine-drawio`, `sample-schedule`, `check-annotations`, `package`) | Host | `scripts/shared/tools/*`, `scripts/rvtools/*`, `scripts/hld_lld/build/check_annotations.py` |

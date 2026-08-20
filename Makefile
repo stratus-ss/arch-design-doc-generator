@@ -71,7 +71,7 @@ endef
         force-image \
         hc-collect hc-push-scripts hc-collect-remote hc-fetch-results hc-merge clean-hc \
         hc-report hc-html hc-pdf hc-investigate hc-skip-summary hc-command-ref hc-build-catalog \
-        hc-link-review \
+        hc-link-review hc-report-from-supportshell check-hc-sync hc-docs \
         clean clean-build clean-hld clean-lld clean-pdfs clean-diagrams clean-workitems clean-ai clean-setup push
 
 # Extra goal: `make build-hld-from-adr force` (GNU make cannot take --force).
@@ -132,6 +132,9 @@ help: ## Show this help
 	print_target hc-skip-summary; \
 	print_target hc-command-ref; \
 	print_target hc-link-review; \
+	print_target hc-report-from-supportshell; \
+	print_target check-hc-sync; \
+	print_target hc-docs; \
 	print_target clean-hc; \
 	echo ""; \
 	echo "  Maintenance:"; \
@@ -367,7 +370,7 @@ hc-collect-remote: ## Run supportshell collection on the remote server via SSH (
 	$(call require,HC_MG_INPUT,Error: set HC_MG_INPUT=<must-gather-path-on-remote> — run 'yank <case>' on the server first)
 	$(call warn_missing_project_yaml)
 	@ssh -t "$(HC_SSH_HOST)" "if [ ! -e $(HC_MG_INPUT) ]; then echo \"[ERROR] HC_MG_INPUT not found: $(HC_MG_INPUT)\" >&2; echo \"Hint: run 'yank <case-number>' on the remote host, then pass the exact extracted path.\" >&2; echo \"Example: make hc-collect-remote HC_SSH_HOST=$(HC_SSH_HOST) HC_MG_INPUT=<absolute-path-from-yank>\" >&2; exit 1; fi; bash $(HC_SSH_SCRIPTS)/hc_collect_multi.sh --input $(HC_MG_INPUT) --output-dir $(HC_SSH_RESULTS) --tar"
-	@echo "Done. Run 'make hc-fetch-results HC_SSH_HOST=$(HC_SSH_HOST)' to copy results."
+	@echo "Done. Run 'make hc-report-from-supportshell HC_SSH_HOST=$(HC_SSH_HOST)' to fetch + report."
 
 hc-fetch-results: ## Fetch hc_results from remote support shell server — tarball preferred, raw dir fallback (set HC_SSH_HOST=user@host)
 	$(call require,HC_SSH_HOST,Error: set HC_SSH_HOST=user@host)
@@ -376,6 +379,10 @@ hc-fetch-results: ## Fetch hc_results from remote support shell server — tarba
 		--remote-results "$(HC_SSH_RESULTS)" \
 		--staging-dir "$(HC_FETCH_STAGE)"
 	@echo "Done. Results staged at $(HC_FETCH_STAGE)."
+	@echo "Run 'make hc-report HC_COLLECT_OUT=$(HC_FETCH_STAGE)' or 'make hc-report-from-supportshell' to generate the report."
+
+hc-report-from-supportshell: hc-fetch-results ## Fetch supportshell results then generate HC report (set HC_SSH_HOST=user@host)
+	@$(MAKE) hc-report HC_COLLECT_OUT="$(HC_FETCH_STAGE)"
 
 hc-merge: ## Merge multiple hc_results dirs on the host (set MERGE_INPUTS="dir1 dir2")
 	$(call require,MERGE_INPUTS,Error: set MERGE_INPUTS=\"dir1 dir2 ...\")
@@ -428,8 +435,9 @@ hc-investigate: image ## Trace a finding to raw evidence (container)
 hc-skip-summary: ## Summarize skipped commands from supportshell collection (host)
 	@$(PYTHON) scripts/health_check/hc_skip_summary.py --ledger "$(if $(RESULTS_DIR),$(RESULTS_DIR),$(HC_COLLECT_OUT))/skipped_commands.jsonl"
 
-hc-command-ref: ## Generate command reference documentation (host)
-	@$(PYTHON) scripts/health_check/generate_command_reference.py
+hc-command-ref: ## Generate docs/HC_Command_Reference.md from collect scripts (host)
+	@$(PYTHON) scripts/health_check/generate_command_reference.py > docs/HC_Command_Reference.md
+	@echo "Wrote docs/HC_Command_Reference.md"
 
 # Local OpenShift docs tree used to pick books; HTTP checks use curl_cffi in the image.
 HC_DOCS_ROOT ?= $(HOME)/git_projects/openshift_documentation
@@ -446,6 +454,28 @@ hc-link-review: image ## Suggest+HTTP-check KB doc URLs (container, curl_cffi)
 			--kb-dir /workspace/scripts/health_check/hc_report/kb \
 			--docs-root /docs \
 			--output-dir /workspace/$(HC_LINK_REVIEW_OUT)
+
+check-hc-sync: ## Verify collect/ and supportshell/ shared scripts 03–09 are in sync
+	@for script_name in 03_base_platform.sh 04_topology.sh 05_components.sh 06_layered.sh \
+	          07_cluster_health.sh 08_day2.sh 09_security.sh; do \
+	    diff -q "scripts/health_check/collect/$$script_name" "scripts/health_check/supportshell/$$script_name" \
+	        || { echo "DRIFT: $$script_name differs between collect/ and supportshell/"; exit 1; }; \
+	done
+	@echo "All shared HC scripts are in sync."
+
+hc-docs: image ## Regenerate health check READMEs from stitchmd sections (container)
+	@$(ENGINE) run --rm --entrypoint "" -v "$$(pwd)":/workspace:Z $(IMAGE) \
+		stitchmd -C /workspace/scripts/health_check/docs -no-toc \
+		-preface /workspace/scripts/health_check/docs/readme_preface.md \
+		-o /workspace/scripts/health_check/collect/README.md \
+		/workspace/scripts/health_check/docs/collect.md
+	@$(ENGINE) run --rm --entrypoint "" -v "$$(pwd)":/workspace:Z $(IMAGE) \
+		stitchmd -C /workspace/scripts/health_check/docs -no-toc \
+		-preface /workspace/scripts/health_check/docs/readme_preface.md \
+		-o /workspace/scripts/health_check/supportshell/README.md \
+		/workspace/scripts/health_check/docs/supportshell.md
+	@echo "Wrote scripts/health_check/collect/README.md"
+	@echo "Wrote scripts/health_check/supportshell/README.md"
 
 # ── Housekeeping ─────────────────────────────────────────────────────
 
