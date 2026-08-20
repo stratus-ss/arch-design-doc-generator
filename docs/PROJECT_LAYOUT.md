@@ -93,7 +93,8 @@
   - `models.py`, `loader.py`, `metadata.py` — collected JSON models, load, and cluster metadata.
 - `generate_report.py` — thin entrypoint (`from hc_report import main`).
 - `hc_link_review.py` — CLI that produces a suggested-URL CSV/markdown from KB TOML links and a local docs tree.
-  - `hc_report/link_review/` — models, URL parser, docs index, product-routing matcher, and report writer.
+  - `hc_report/link_review/` — models, URL parser, docs index, product-routing matcher, report writer, and CSV→TOML apply (`finalize.py`).
+- `hc_link_apply.py` — host CLI that writes accepted `REPLACE` rows into `[checks.links]`.
 - `hc_investigate.py` — trace a finding or check to raw evidence.
 - `hc_skip_summary.py` — summarize skipped collection commands.
 - `generate_command_reference.py` — writes `docs/HC_Command_Reference.md` from collect scripts.

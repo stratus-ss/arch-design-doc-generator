@@ -35,6 +35,7 @@ Each target below runs one discrete step and can be re-run on its own — useful
 | Target | Purpose |
 |--------|---------|
 | `hc-link-review` | Suggest + HTTP-check KB doc URLs (does not rewrite TOMLs) |
+| `hc-link-apply` | Write accepted `REPLACE` rows from `kb_link_review.csv` into `[checks.links]` |
 
 ##### Combined (multi-step) targets
 

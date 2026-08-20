@@ -28,12 +28,12 @@ impact_scope = ""
 impact_detail = ""
 
 [checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/scalability_and_performance/recommended-performance-and-scalability-practices-2"
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/etcd/index"
 "4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/scalability_and_performance/recommended-performance-and-scalability-practices-2"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html/scalability_and_performance/recommended-performance-and-scalability-practices-2"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/etcd/index"
 "4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/scalability_and_performance/recommended-performance-and-scalability-practices-2"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/scalability_and_performance/recommended-performance-and-scalability-practices-2"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html/scalability_and_performance/recommended-performance-and-scalability-practices-2"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/etcd/index"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/etcd/index"
 
 [[checks]]
 check_id = "7.8.etcd.proposals"

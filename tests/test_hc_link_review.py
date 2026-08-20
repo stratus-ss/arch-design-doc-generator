@@ -4,7 +4,11 @@ from __future__ import annotations
 from pathlib import Path
 
 from hc_report.link_review.cli import run_link_review
-from hc_report.link_review.finalize import suppress_unchanged_suggestions
+from hc_report.link_review.finalize import (
+    apply_main,
+    apply_replace_rows_from_csv,
+    suppress_unchanged_suggestions,
+)
 from hc_report.link_review.match import suggest_documentation_link
 from hc_report.link_review.models import LinkSuggestion
 from hc_report.link_review.parse_url import parse_documentation_url
@@ -195,9 +199,68 @@ def test_cli_missing_docs_root_exits_nonzero(tmp_path: Path) -> None:
     assert exit_code == 1
 
 
+def test_apply_replace_row_updates_matching_link(tmp_path: Path) -> None:
+    kb_directory, csv_path = _write_apply_fixture(tmp_path)
+    exit_code = apply_replace_rows_from_csv(csv_path, kb_directory)
+    toml_text = (kb_directory / "7_3_components.toml").read_text(encoding="utf-8")
+    assert exit_code == 0
+    assert 'default = "https://example.com/new-default"' in toml_text
+    assert '"4.18" = "https://example.com/old-418"' in toml_text
+
+
+def test_apply_refuses_stale_current_url(tmp_path: Path) -> None:
+    kb_directory, csv_path = _write_apply_fixture(tmp_path)
+    stale_csv = tmp_path / "stale.csv"
+    stale_csv.write_text(
+        csv_path.read_text(encoding="utf-8").replace(
+            "https://example.com/old-default",
+            "https://example.com/not-in-toml",
+        ),
+        encoding="utf-8",
+    )
+    original = (kb_directory / "7_3_components.toml").read_text(encoding="utf-8")
+    exit_code = apply_replace_rows_from_csv(stale_csv, kb_directory)
+    assert exit_code == 1
+    assert (kb_directory / "7_3_components.toml").read_text(encoding="utf-8") == original
+
+
+def test_hc_link_apply_missing_csv_exits_nonzero(tmp_path: Path) -> None:
+    missing = tmp_path / "missing.csv"
+    kb_directory = tmp_path / "kb"
+    kb_directory.mkdir()
+    assert apply_main(["--csv", str(missing), "--kb-dir", str(kb_directory)]) == 1
+
+
 def _write_logging_book(docs_root: Path) -> Path:
     book_directory = docs_root / "Red_Hat_Openshift_Logging-6.5-docs" / "txt"
     book_directory.mkdir(parents=True, exist_ok=True)
     book_path = book_directory / "Red_Hat_Openshift_Logging-6.5-configuring_logging-en-US.txt"
     book_path.write_text("2.5. Configuring LokiStack storage\n", encoding="utf-8")
     return book_path
+
+
+def _write_apply_fixture(tmp_path: Path) -> tuple[Path, Path]:
+    kb_directory = tmp_path / "kb"
+    kb_directory.mkdir()
+    (kb_directory / "7_3_components.toml").write_text(
+        "[[checks]]\n"
+        'check_id = "7.3.demo"\n'
+        'title = "Demo"\n'
+        "\n"
+        "[checks.links]\n"
+        'default = "https://example.com/old-default"\n'
+        '"4.18" = "https://example.com/old-418"\n',
+        encoding="utf-8",
+    )
+    csv_path = tmp_path / "kb_link_review.csv"
+    csv_path.write_text(
+        "check_id,toml_file,title,version_key,verdict,confidence,"
+        "current_url,suggested_url,evidence\n"
+        "7.3.demo,7_3_components.toml,Demo,4.18,KEEP,HIGH,"
+        "https://example.com/old-418,https://example.com/old-418,same book\n"
+        "7.3.demo,7_3_components.toml,Demo,default,REPLACE,MEDIUM,"
+        "https://example.com/old-default,https://example.com/new-default,"
+        "HTTP 200 for https://example.com/new-default\n",
+        encoding="utf-8",
+    )
+    return kb_directory, csv_path

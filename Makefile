@@ -71,7 +71,7 @@ endef
         force-image \
         hc-collect hc-push-scripts hc-collect-remote hc-fetch-results hc-merge clean-hc \
         hc-report hc-html hc-pdf hc-investigate hc-skip-summary hc-command-ref hc-build-catalog \
-        hc-link-review hc-report-from-supportshell check-hc-sync hc-docs \
+        hc-link-review hc-link-apply hc-report-from-supportshell check-hc-sync hc-docs \
         clean clean-build clean-hld clean-lld clean-pdfs clean-diagrams clean-workitems clean-ai clean-setup push
 
 # Extra goal: `make build-hld-from-adr force` (GNU make cannot take --force).
@@ -132,6 +132,7 @@ help: ## Show this help
 	print_target hc-skip-summary; \
 	print_target hc-command-ref; \
 	print_target hc-link-review; \
+	print_target hc-link-apply; \
 	print_target hc-report-from-supportshell; \
 	print_target check-hc-sync; \
 	print_target hc-docs; \
@@ -454,6 +455,11 @@ hc-link-review: image ## Suggest+HTTP-check KB doc URLs (container, curl_cffi)
 			--kb-dir /workspace/scripts/health_check/hc_report/kb \
 			--docs-root /docs \
 			--output-dir /workspace/$(HC_LINK_REVIEW_OUT)
+
+hc-link-apply: ## Apply REPLACE rows from kb_link_review.csv into KB TOMLs (host)
+	@$(PYTHON) scripts/health_check/hc_link_apply.py \
+		--csv "$(HC_LINK_REVIEW_OUT)/kb_link_review.csv" \
+		--kb-dir scripts/health_check/hc_report/kb
 
 check-hc-sync: ## Verify collect/ and supportshell/ shared scripts 03–09 are in sync
 	@for script_name in 03_base_platform.sh 04_topology.sh 05_components.sh 06_layered.sh \
