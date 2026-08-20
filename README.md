@@ -75,7 +75,7 @@ Run `make help` or `make status` at any time to see available targets and curren
 
 ## Health Check
 
-A second engagement type (`PROJECT=HC`) collects OpenShift cluster JSON and generates a deterministic markdown report plus audit JSON. Collection runs on the host; report generation runs in the container. AI is not used for health check (company policy). TSR/CCX parity expansion is available: `make hc-report` defaults to `--check-profile advisory` and scores catalog checks from a TSR HTML export (and optional `12_ccx/ccx_rules.json`). Missing HTML or Insights data stays SKIPPED. After the report exists, `make hc-html` and `make hc-pdf` export collapsible HTML and branded PDF from that markdown; both exit non-zero when no report markdown is present.
+A second engagement type (`PROJECT=HC`) collects OpenShift cluster JSON and generates a deterministic markdown report plus audit JSON. Collection runs on the host; report generation runs in the container. AI is not used for health check (company policy). TSR/CCX parity expansion is available: `make hc-report` defaults to `--check-profile advisory` and scores catalog checks from a TSR HTML export (and optional `12_ccx/ccx_rules.json`). Missing HTML or Insights data stays SKIPPED. After the report exists, `make hc-html` and `make hc-pdf` export collapsible HTML and branded PDF from that markdown; both exit non-zero when no report markdown is present. Operator runbooks start at [`scripts/health_check/README.md`](scripts/health_check/README.md); per-check consultant rationale is in [`docs/HC_CHECK_RATIONALE.md`](docs/HC_CHECK_RATIONALE.md).
 
 | Target | Runtime | Purpose |
 |---|---|---|
@@ -84,6 +84,7 @@ A second engagement type (`PROJECT=HC`) collects OpenShift cluster JSON and gene
 | `make hc-push-scripts HC_SSH_HOST=user@host` | Host | Push supportshell scripts to a remote server |
 | `make hc-collect-remote HC_SSH_HOST=... HC_MG_INPUT=<path>` | Host | Run `hc_collect_multi.sh` on the remote via SSH |
 | `make hc-fetch-results HC_SSH_HOST=...` | Host | Fetch results tarball from remote into `output/hc_collect/<date>` |
+| `make hc-report-from-supportshell HC_SSH_HOST=user@host` | Host fetch, then container report | Fetch supportshell results, then run `hc-report` against the dated staging dir |
 | `make hc-merge MERGE_INPUTS="dir1 dir2"` | Host | Merge multiple `hc_results` dirs on the host |
 | `make hc-report` | Container | Generate markdown report + audit JSON from collected data (default profile `advisory`) |
 | `make hc-html` | Container | Collapsible HTML from report markdown under `output/Health_Check_Report/` |
@@ -91,8 +92,10 @@ A second engagement type (`PROJECT=HC`) collects OpenShift cluster JSON and gene
 | `make hc-build-catalog TSR_HTML=<path>` | Host | Rebuild `tsr_ccx_crosswalk.json` from a TSR HTML export |
 | `make hc-investigate FINDING_ARGS='--results-dir … --finding-id …'` | Container | Trace a finding or check back to raw evidence |
 | `make hc-skip-summary` | Host | Summarize skipped collection commands from `skipped_commands.jsonl` |
-| `make hc-command-ref` | Host | Generate a markdown reference of collection commands |
+| `make hc-command-ref` | Host | Write `docs/HC_Command_Reference.md` from collect scripts |
 | `make hc-link-review` | Container | Suggest KB doc URLs and HTTP-check pages with `curl_cffi` |
+| `make check-hc-sync` | Host | Diff collect/ vs supportshell/ shared scripts 03–09 |
+| `make hc-docs` | Container | Regenerate collect/supportshell READMEs from stitchmd fragments |
 | `make clean-hc` | Host | Remove `output/hc_collect` and `output/Health_Check_Report` |
 
 ### Health Check report engine (container)
