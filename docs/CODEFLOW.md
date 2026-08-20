@@ -144,6 +144,7 @@ The report writes `tmp/lld_closeness.md`. Default rendered dir is `output/LLD`.
 | `hc-docs` | Container (stitchmd) | `scripts/health_check/docs/` fragments → collect/supportshell READMEs |
 | `hc-build-catalog` | Host | `scripts/health_check/hc_report/build_crosswalk_catalog.py` |
 | `hc-link-review` | Container (`curl_cffi`) | `scripts/health_check/hc_link_review.py` |
+| `hc-link-apply` | Host | `scripts/health_check/hc_link_apply.py` |
 | Utility targets (`sanitize-diagrams`, `combine-drawio`, `sample-schedule`, `check-annotations`, `package`) | Host | `scripts/shared/tools/*`, `scripts/rvtools/*`, `scripts/hld_lld/build/check_annotations.py` |
 
 Operational note:

@@ -179,6 +179,42 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index#virt-connecting-vm-to-linux-bridge"
 
 [[checks]]
+check_id = "7.4.tsr.4_8_4_2_windows_bsod_risk_posture"
+title = "4.8.4.2. Windows BSOD Risk Posture"
+description = "Windows VMs without liveness probes or a watchdog can hang undetected and\nfail to recover from guest OS crashes such as a BSOD.\n"
+recommendation = "1. Review Windows VM health checks and add readiness or liveness probes.\n2. Configure a watchdog device on the VM and install the watchdog agent in the guest.\n   `oc get vm -A -o yaml`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/virtualization/index"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/virtualization/index"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/virtualization/index"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/virtualization/index"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/virtualization/index"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index"
+
+[[checks]]
+check_id = "7.4.tsr.4_8_4_3_windows_hyper_v_enlightenments"
+title = "4.8.4.3. Windows Hyper-V Enlightenments"
+description = "Windows VMs perform better with Hyper-V enlightenments, VirtIO drivers, and\nthe QEMU guest agent installed in the guest.\n"
+recommendation = "1. Review Windows VM templates and confirm guest tools are installed.\n2. Install VirtIO drivers and the QEMU guest agent on Windows VMs that lack them.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/virtualization/index"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/virtualization/index"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/virtualization/index"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/virtualization/index"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/virtualization/index"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index"
+
+[[checks]]
 check_id = "7.4.tsr.4_8_4_5_host_kernel_bsod_indicators"
 title = "TSR host kernel crash indicators"
 description = "Kernel panics or BSOD-equivalent events on nodes indicate hardware failures,\ndriver issues, or critical kernel bugs. Affected nodes are unreliable and may\ncause VM disruption without warning.\n"
@@ -251,6 +287,24 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index"
 
 [[checks]]
+check_id = "7.4.tsr.4_8_5_2_1_active_alerts"
+title = "4.8.5.2.1. Active Alerts"
+description = "Active OpenShift Virtualization alerts, including VMCannotBeEvicted, indicate\nVMs that cannot live-migrate or be evicted during node drain.\n"
+recommendation = "1. Review firing kubevirt alerts in Observe → Alerting.\n2. For VMCannotBeEvicted, inspect the VM eviction strategy and live-migration readiness.\n   `oc get vmi -A -o yaml`\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/virtualization/index#virt-runbooks"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/virtualization/index#virt-runbooks"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/virtualization/index#virt-runbooks"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/virtualization/index#virt-runbooks"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/virtualization/index#virt-runbooks"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index#virt-runbooks"
+
+[[checks]]
 check_id = "7.4.tsr.4_8_5_2_3_cnv_vmi_readiness_prometheus"
 title = "TSR CNV VMI readiness metrics"
 description = "VMI readiness metrics in Prometheus indicate whether virtual machines are\nsuccessfully reaching a running and accessible state. Low readiness rates\nsuggest scheduling, networking, or storage provisioning issues.\n"
@@ -315,12 +369,12 @@ impact_scope = ""
 impact_detail = ""
 
 [checks.links]
-default = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
-"4.18" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
-"4.19" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
-"4.20" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
-"4.21" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
-"4.22" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
+default = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
+"4.18" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
+"4.19" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
+"4.20" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
+"4.21" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
+"4.22" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
 
 [[checks]]
 check_id = "7.4.tsr.4_1_4_logging_pod_status"
@@ -333,30 +387,30 @@ impact_scope = ""
 impact_detail = ""
 
 [checks.links]
-default = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
-"4.18" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
-"4.19" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
-"4.20" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
-"4.21" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
-"4.22" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
+default = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
+"4.18" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
+"4.19" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
+"4.20" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
+"4.21" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
+"4.22" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
 
 [[checks]]
 check_id = "7.4.tsr.4_1_5_2_loki_health"
 title = "4.1.5.2. Loki Health"
 description = "Report on the health of Loki when used with OpenShift Logging.\n"
-recommendation = "1. Check LokiStack or Loki operator health in the logging namespace.\n   `oc get lokistack -n openshift-logging`\n2. If Loki is not configured, configure logging before treating health\n   findings as hard failures.\n"
+recommendation = "1. Check LokiStack or Loki operator health in the logging namespace.\n   `oc get lokistack -n openshift-logging`\n2. If Loki is not configured, create the LokiStack before treating health\n   findings as hard failures.\n3. Review LokiStack component alerts:\n   https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/logging_alerts/index\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
 impact_detail = ""
 
 [checks.links]
-default = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
-"4.18" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
-"4.19" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
-"4.20" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
-"4.21" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
-"4.22" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/about_openshift_logging/index"
+default = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
+"4.18" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
+"4.19" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
+"4.20" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
+"4.21" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
+"4.22" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
 
 [[checks]]
 check_id = "7.4.tsr.4_1_6_cluster_log_forwarders"
@@ -411,6 +465,42 @@ default = "https://access.redhat.com/support/policy/updates/openshift_operators"
 "4.20" = "https://access.redhat.com/support/policy/updates/openshift_operators"
 "4.21" = "https://access.redhat.com/support/policy/updates/openshift_operators"
 "4.22" = "https://access.redhat.com/support/policy/updates/openshift_operators"
+
+[[checks]]
+check_id = "7.4.tsr.4_12_1_1_1_mtv_installation_and_state"
+title = "4.12.1.1.1. MTV Installation And State"
+description = "Migration Toolkit for Virtualization installation and ForkliftController readiness.\n"
+recommendation = "1. Confirm the MTV operator and ForkliftController resources are Ready.\n   `oc get csv -n openshift-mtv`\n   `oc get forkliftcontroller -A`\n2. MTV is installed separately from OpenShift Virtualization.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/virtualization/index"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/virtualization/index"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/virtualization/index"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/virtualization/index"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/virtualization/index"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index"
+
+[[checks]]
+check_id = "7.4.tsr.4_12_1_1_2_operator_subscription_posture"
+title = "4.12.1.1.2. Operator Subscription Posture"
+description = "MTV operator subscription health, including pending upgrades.\n"
+recommendation = "1. Review the MTV operator subscription and InstallPlan approval state.\n   `oc get subscription -n openshift-mtv`\n   `oc get installplan -n openshift-mtv`\n2. Approve or complete the pending upgrade when the channel is ready.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/operators/index"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/operators/index"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/operators/index"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/operators/index"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/operators/index"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/operators/index"
 
 [[checks]]
 check_id = "7.4.tsr.4_12_1_2_mtv_supported_configuration"

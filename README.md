@@ -94,6 +94,7 @@ A second engagement type (`PROJECT=HC`) collects OpenShift cluster JSON and gene
 | `make hc-skip-summary` | Host | Summarize skipped collection commands from `skipped_commands.jsonl` |
 | `make hc-command-ref` | Host | Write `docs/HC_Command_Reference.md` from collect scripts |
 | `make hc-link-review` | Container | Suggest KB doc URLs and HTTP-check pages with `curl_cffi` |
+| `make hc-link-apply` | Host | Write accepted `REPLACE` URLs from `kb_link_review.csv` into KB `[checks.links]` |
 | `make check-hc-sync` | Host | Diff collect/ vs supportshell/ shared scripts 03–09 |
 | `make hc-docs` | Container | Regenerate collect/supportshell READMEs from stitchmd fragments |
 | `make clean-hc` | Host | Remove `output/hc_collect` and `output/Health_Check_Report` |
@@ -108,12 +109,13 @@ Rebuild the catalog with `make hc-build-catalog TSR_HTML=path/to/export.html`. O
 
 ### KB documentation link review (container)
 
-Produces a suggested-URL table comparing KB TOML links against a local documentation checkout. Does not modify TOMLs. Suggested URLs never invent `#` fragments (existing fragments are kept only when the book is unchanged). Unique suggested **page** URLs are HTTP GET-checked with `curl_cffi` Chrome TLS impersonation inside the toolkit container (same anti-bot approach as the sibling repo’s `validate_links.py`). Fragments are not sent to the server; a 200 means the page exists.
+Produces a suggested-URL table comparing KB TOML links against a local documentation checkout. Does not modify TOMLs. Suggested URLs never invent `#` fragments (existing fragments are kept only when the book is unchanged). Unique suggested **page** URLs are HTTP GET-checked with `curl_cffi` Chrome TLS impersonation inside the toolkit container (same anti-bot approach as the sibling repo’s `validate_links.py`). Fragments are not sent to the server; a 200 means the page exists. After reviewing the CSV, `make hc-link-apply` writes `REPLACE` rows (HTTP 200) into `[checks.links]` only.
 
 ```bash
 make hc-link-review
 # optional: HC_DOCS_ROOT=/path/to/openshift_documentation HC_LINK_REVIEW_OUT=agent_planning/execution/hc_kb_link_precision
 # skip live GET: append --no-validate-http via a direct python invocation
+make hc-link-apply
 ```
 
 Requires `make force-image` once so the image contains `curl_cffi`. Host urllib against `docs.redhat.com` is expected to 403.

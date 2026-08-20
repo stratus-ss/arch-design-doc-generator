@@ -370,7 +370,7 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.3.tsr.3_7_2_monitoring_storage_type"
 title = "TSR monitoring storage type"
 description = "The monitoring stack storage is configured as \"emptyDir\" (temporary). Prometheus metrics, Alertmanager state, and alert history will be lost whenever monitoring pods restart. This is the storage-type counterpart to the monitoring configuration check above."
-recommendation = "1. Check if monitoring PVCs exist:\n   `oc get pvc -n openshift-monitoring`\n2. If no PVCs are bound, update the `cluster-monitoring-config` ConfigMap to\n   include `volumeClaimTemplate` entries for both Prometheus and Alertmanager.\n3. Choose a StorageClass that supports ReadWriteOnce access mode and set\n   retention to match your metrics history requirements (default: 15d).\n4. After applying, confirm pods restart with bound storage:\n   `oc get pods -n openshift-monitoring -w`\n5. Review monitoring scalability guidance:\n   https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/scalability_and_performance/recommended-performance-and-scalability-practices-2#scaling-cluster-monitoring-operator_recommended-infrastructure-practices\n"
+recommendation = "1. Check if monitoring PVCs exist:\n   `oc get pvc -n openshift-monitoring`\n2. If no PVCs are bound, update the `cluster-monitoring-config` ConfigMap to\n   include `volumeClaimTemplate` entries for both Prometheus and Alertmanager.\n3. Choose a StorageClass that supports ReadWriteOnce access mode and set\n   retention to match your metrics history requirements (default: 15d).\n4. After applying, confirm pods restart with bound storage:\n   `oc get pods -n openshift-monitoring -w`\n5. Review monitoring scalability guidance:\n   https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/scalability_and_performance/recommended-performance-and-scalability-practices-2#scaling-cluster-monitoring-operator_recommended-infrastructure-practices\n6. Review Prometheus database storage requirements:\n   https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/scalability_and_performance/index#prometheus-database-storage-requirements_recommended-infrastructure-practices\n   https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/scalability_and_performance/recommended-performance-and-scalability-practices-2#prometheus-database-storage-requirements_recommended-infrastructure-practices\n"
 priority_hint = ""
 impact = "workload-shift"
 impact_scope = "Prometheus, Alertmanager, and related monitoring pods"
@@ -741,12 +741,12 @@ impact_scope = ""
 impact_detail = ""
 
 [checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/monitoring/index#monitoring-overview"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/monitoring/index#monitoring-overview"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/monitoring/index#monitoring-overview"
+default = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/latest/html-single/configuring_core_platform_monitoring/index"
+"4.18" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.18/html-single/configuring_core_platform_monitoring/index"
+"4.19" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.19/html-single/configuring_core_platform_monitoring/index"
 "4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/monitoring/index#monitoring-overview"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/monitoring/index#monitoring-overview"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/monitoring/index#monitoring-overview"
+"4.21" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.21/html-single/configuring_core_platform_monitoring/index"
+"4.22" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.22/html-single/configuring_core_platform_monitoring/index"
 
 [[checks]]
 check_id = "7.3.tsr.3_8_ingress_controller"
