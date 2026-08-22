@@ -170,18 +170,18 @@ imageContentSources:
 
 | Variable | Description | Example | Source |
 |----------|-------------|---------|--------|
-| `${CLUSTER_NAME}` | Cluster name | `ocp-sa-prod-01` | Cluster planning |
-| `${BASE_DOMAIN}` | Base DNS domain | `ocp.example.corp` | DNS standards |
-| `${API_VIP}` | API virtual IP | `10.1.1.200` | Infoblox reservation |
-| `${INGRESS_VIP}` | Ingress virtual IP | `10.1.1.201` | Infoblox reservation |
+| `${CLUSTER_NAME}` | Cluster name | `{CLUSTER_NAME}` | Cluster planning |
+| `${BASE_DOMAIN}` | Base DNS domain | `<base_domain>` | DNS standards |
+| `${API_VIP}` | API virtual IP | `<api_vip>` | Infoblox reservation |
+| `${INGRESS_VIP}` | Ingress virtual IP | `<ingress_vip>` | Infoblox reservation |
 | `${CP_N_HOSTNAME}` | Control plane hostname | `cp-0` | Naming convention |
-| `${CP_N_BMC_IP}` | BMC IP for CP node | `10.1.100.10` | Intersight/Infoblox |
-| `${CP_N_BOOT_MAC}` | Boot NIC MAC address | `AA:BB:CC:01:01:00` | Intersight |
-| `${BMC_USER}` | BMC username | (from CyberArk) | Secrets management |
-| `${BMC_PASS}` | BMC password | (from CyberArk) | Secrets management |
+| `${CP_N_BMC_IP}` | BMC IP for CP node | `<bmc_ip>` | Intersight/Infoblox |
+| `${CP_N_BOOT_MAC}` | Boot NIC MAC address | `<boot_mac>` | Intersight |
+| `${BMC_USER}` | BMC username | (from {SECRET_MGMT_VENDOR}) | Secrets management |
+| `${BMC_PASS}` | BMC password | (from {SECRET_MGMT_VENDOR}) | Secrets management |
 | `${PULL_SECRET}` | OCP + Artifactory pull secret | (JSON blob) | Secrets management |
 | `${SSH_PUBLIC_KEY}` | SSH key for node access | (public key) | Platform team |
-| `${ARTIFACTORY_MIRROR}` | Artifactory registry URL | `artifactory.example.corp` | ADR 4 |
+| `${ARTIFACTORY_MIRROR}` | Artifactory registry URL | `artifactory.<base_domain>` | ADR 4 |
 
 **Validation:**
 
@@ -263,8 +263,8 @@ spec:
 |----------|-------------|---------|--------|
 | `${OCP_VERSION}` | Target OCP version | `4.21.3` | HLD — OCP Version Strategy |
 | `${TIER}` | Deployment tier label | `{TIER_PRIMARY_LOWER}` | HLD — Tier Model |
-| `${SITE}` | Site identifier | `site-alpha` | Site planning |
-| `${CP_N_MGMT_IP}` | Management IP | `10.1.1.10` | Infoblox |
+| `${SITE}` | Site identifier | `{SITE_1}` | Site planning |
+| `${CP_N_MGMT_IP}` | Management IP | `<mgmt_ip>` | Infoblox |
 
 **Validation:**
 
@@ -330,8 +330,8 @@ logdir /var/log/chrony
 
 | Variable | Description | Example | Source |
 |----------|-------------|---------|--------|
-| `${NTP_SERVER_1}` | Primary NTP server | `ntp1.ash.example.corp` | SRE / Network team |
-| `${NTP_SERVER_2}` | Secondary NTP server | `ntp2.ash.example.corp` | SRE / Network team |
+| `${NTP_SERVER_1}` | Primary NTP server | `ntp1.<base_domain>` | SRE / Network team |
+| `${NTP_SERVER_2}` | Secondary NTP server | `ntp2.<base_domain>` | SRE / Network team |
 
 **Validation:**
 
@@ -605,29 +605,29 @@ All substitution variables used across artifacts:
 
 | Variable | Description | Example | Used In | Source |
 |----------|-------------|---------|---------|--------|
-| `${CLUSTER_NAME}` | Cluster identifier | `ocp-sa-prod-01` | ART-01, 02, 07, 08 | Cluster planning |
-| `${BASE_DOMAIN}` | Base DNS domain | `ocp.example.corp` | ART-01, 02 | DNS standards |
-| `${API_VIP}` | API virtual IP | `10.1.1.200` | ART-01, 02 | Infoblox |
-| `${INGRESS_VIP}` | Ingress virtual IP | `10.1.1.201` | ART-01, 02 | Infoblox |
+| `${CLUSTER_NAME}` | Cluster identifier | `{CLUSTER_NAME}` | ART-01, 02, 07, 08 | Cluster planning |
+| `${BASE_DOMAIN}` | Base DNS domain | `<base_domain>` | ART-01, 02 | DNS standards |
+| `${API_VIP}` | API virtual IP | `<api_vip>` | ART-01, 02 | Infoblox |
+| `${INGRESS_VIP}` | Ingress virtual IP | `<ingress_vip>` | ART-01, 02 | Infoblox |
 | `${OCP_VERSION}` | OCP release version | `4.21.3` | ART-02 | HLD |
 | `${TIER}` | Deployment tier | `{TIER_PRIMARY_LOWER}` | ART-02 | HLD — Tier Model |
-| `${SITE}` | Site name | `site-alpha` | ART-02 | Site planning |
+| `${SITE}` | Site name | `{SITE_1}` | ART-02 | Site planning |
 | `${CP_N_HOSTNAME}` | CP node hostname | `cp-0` | ART-01, 02 | Naming convention |
-| `${CP_N_BMC_IP}` | CP node BMC IP | `10.1.100.10` | ART-01, 02 | Intersight/Infoblox |
-| `${CP_N_BOOT_MAC}` | CP node boot MAC | `AA:BB:CC:01:01:00` | ART-01, 02 | Intersight |
-| `${CP_N_MGMT_IP}` | CP node management IP | `10.1.1.10` | ART-02 | Infoblox |
-| `${BMC_USER}` | BMC username | (secret) | ART-01 | CyberArk |
-| `${BMC_PASS}` | BMC password | (secret) | ART-01 | CyberArk |
+| `${CP_N_BMC_IP}` | CP node BMC IP | `<bmc_ip>` | ART-01, 02 | Intersight/Infoblox |
+| `${CP_N_BOOT_MAC}` | CP node boot MAC | `<boot_mac>` | ART-01, 02 | Intersight |
+| `${CP_N_MGMT_IP}` | CP node management IP | `<mgmt_ip>` | ART-02 | Infoblox |
+| `${BMC_USER}` | BMC username | (secret) | ART-01 | {SECRET_MGMT_VENDOR} |
+| `${BMC_PASS}` | BMC password | (secret) | ART-01 | {SECRET_MGMT_VENDOR} |
 | `${PULL_SECRET}` | OCP + Artifactory pull secret | (JSON) | ART-01 | Secrets management |
 | `${SSH_PUBLIC_KEY}` | SSH public key for node access | (key) | ART-01, 02 | Platform team |
-| `${ARTIFACTORY_MIRROR}` | Artifactory registry URL | `artifactory.example.corp` | ART-01 | ADR 4 |
-| `${NTP_SERVER_1}` | Primary NTP server | `ntp1.ash.example.corp` | ART-03, 04 | SRE / Network |
-| `${NTP_SERVER_2}` | Secondary NTP server | `ntp2.ash.example.corp` | ART-03, 04 | SRE / Network |
+| `${ARTIFACTORY_MIRROR}` | Artifactory registry URL | `artifactory.<base_domain>` | ART-01 | ADR 4 |
+| `${NTP_SERVER_1}` | Primary NTP server | `ntp1.<base_domain>` | ART-03, 04 | SRE / Network |
+| `${NTP_SERVER_2}` | Secondary NTP server | `ntp2.<base_domain>` | ART-03, 04 | SRE / Network |
 | `${CHRONY_CONF_B64}` | Base64-encoded chrony.conf | (derived) | ART-03, 04 | Derived from NTP vars |
 | `${INGRESS_CERT_B64}` | Base64-encoded ingress cert | (secret) | ART-07 | Internal CA |
 | `${INGRESS_KEY_B64}` | Base64-encoded ingress key | (secret) | ART-07 | Internal CA |
 
-**Sensitive variables** (`${BMC_USER}`, `${BMC_PASS}`, `${PULL_SECRET}`, `${INGRESS_KEY_B64}`) must be managed via CyberArk/ESO and never committed to Git in plaintext.
+**Sensitive variables** (`${BMC_USER}`, `${BMC_PASS}`, `${PULL_SECRET}`, `${INGRESS_KEY_B64}`) must be managed via {SECRET_MGMT_VENDOR}/ESO and never committed to Git in plaintext.
 
 ---
 

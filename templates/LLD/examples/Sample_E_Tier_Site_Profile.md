@@ -56,11 +56,11 @@ Quick-reference delta table — consult individual tier profiles for full detail
 
 | Domain | Datacenter | {TIER_MIDDLE} | {TIER_EDGE} |
 |--------|-----------|-----|--------|
-| **Sites** | Site Alpha, Site Beta | {TIER_MIDDLE} sites | ~400 {TIER_EDGE} locations |
+| **Sites** | {SITE_1}, {SITE_2} | {TIER_MIDDLE} sites | ~400 {TIER_EDGE} locations |
 | **Nodes** | 3 CP + 16+ workers | 3 CP + variable workers | 3 compact (CP + worker + ODF) |
 | **Hardware** | Cisco UCS M8 | Cisco UCS M8 | Cisco Unified Edge |
 | **vNICs** | 4 (full bond separation) | 4 (baseline) | 2 (TBD, combined bonds) |
-| **Storage** | IBM FlashSystem FC SAN | IBM FlashSystem FC SAN | ODF local NVMe (replica 3) |
+| **Storage** | {BLOCK_STORAGE_ARRAY} FC SAN | {BLOCK_STORAGE_ARRAY} FC SAN | ODF local NVMe (replica 3) |
 | **Network layers** | Mgmt, VM, Storage, Migration, Backup, FC, BMC | Mgmt, VM, Storage, Migration, Backup, FC, BMC | Mgmt, VM, Backup, BMC |
 | **MTU (non-mgmt)** | 9000/9216 | 9000/9216 | 9000 (backup only) |
 | **ACM Hub** | {TIER_PRIMARY}/{TIER_MIDDLE} hub | {TIER_PRIMARY}/{TIER_MIDDLE} hub | {TIER_EDGE} hub |
@@ -79,7 +79,7 @@ Quick-reference delta table — consult individual tier profiles for full detail
 | Field | Value |
 |---|---|
 | **Tier** | Datacenter |
-| **Sites** | Site Alpha, Site Beta |
+| **Sites** | {SITE_1}, {SITE_2} |
 | **ACM Hub** | {TIER_PRIMARY}/{TIER_MIDDLE} hub |
 | **Node topology** | 3 control plane (schedulable) + 16+ workers |
 | **Hardware** | Cisco UCS M8 managed via Intersight |
@@ -125,10 +125,10 @@ spec:
 |-------|------|-----|---------|
 | Management | Site-specific | 1500 | OCP API, etcd, DNS, NTP, node-to-node |
 | VM Data | Multiple (all presented) | 1500 | VM tenant traffic via OVS bridges + NADs |
-| Storage | Site-specific | 9000/9216 | FlashSystem FC block access |
+| Storage | Site-specific | 9000/9216 | {BLOCK_STORAGE_ARRAY} FC block access |
 | Migration | Dedicated | 9000 | Live migration memory page transfer |
 | Backup | Dedicated | 9000 | {BACKUP_VENDOR} agent backup traffic |
-| FC SAN | FC zoning | N/A | FlashSystem block access |
+| FC SAN | FC zoning | N/A | {BLOCK_STORAGE_ARRAY} block access |
 | BMC/CIMC | Site-specific | 1500 | Out-of-band management, Redfish |
 
 **IP allocation per cluster:**
@@ -192,7 +192,7 @@ Egress model: Firewall-only (no proxy, ADR 16). VM traffic bypasses cluster egre
 | Hub <-> Nodes (Ironic) | 5050, 6385, 9999 | TCP | Provisioning |
 | Nodes → External | 123/UDP, 443/TCP, 53/TCP+UDP | Mixed | NTP, Artifactory, DNS |
 
-**Additional {TIER_PRIMARY}-specific:** FC SAN ports between nodes and FlashSystem (site-specific).
+**Additional {TIER_PRIMARY}-specific:** FC SAN ports between nodes and {BLOCK_STORAGE_ARRAY} (site-specific).
 
 ### {TIER_PRIMARY}-8: Capacity
 
@@ -281,7 +281,7 @@ Same layers as {TIER_PRIMARY}. Key differences:
 |---|---|
 | VLAN IDs | Site-specific (differ from {TIER_PRIMARY}) |
 | Worker count | Variable — smaller than {TIER_PRIMARY} |
-| Object storage | ICOS (or WAN to nearest {TIER_PRIMARY}) |
+| Object storage | {OBJECT_STORAGE} (or WAN to nearest {TIER_PRIMARY}) |
 
 ### {TIER_MIDDLE}-4: DNS, NTP, Certificates
 

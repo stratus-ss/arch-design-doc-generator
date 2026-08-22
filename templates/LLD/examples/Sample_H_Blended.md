@@ -370,7 +370,7 @@ Name `99-*` is lexicographically > `98-*` (default disables PSI). Prometheus RSS
 10. **Configure VLAN trunking** on Nexus switches:
     - Management (1500), VM Data (1500), Storage (9000), Migration (9000), Backup (9000), BMC (1500)
 
-11. **Configure FC SAN zoning** ({TIER_PRIMARY}/{TIER_MIDDLE} only) — zone each node FC HBA WWPN to FlashSystem targets
+11. **Configure FC SAN zoning** ({TIER_PRIMARY}/{TIER_MIDDLE} only) — zone each node FC HBA WWPN to {BLOCK_STORAGE_ARRAY} targets
 
 12. **Verify MTU end-to-end:**
 
@@ -484,8 +484,8 @@ spec:
 **chrony.conf content (before base64 encoding):**
 
 ```
-server ntp1.<site>.example.corp iburst
-server ntp2.<site>.example.corp iburst
+server ntp1.<base_domain> iburst
+server ntp2.<base_domain> iburst
 driftfile /var/lib/chrony/drift
 makestep 1.0 3
 rtcsync

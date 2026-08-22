@@ -440,7 +440,7 @@ PTR records are required — RHCOS uses them to set hostnames.
 |---|---|---|---|
 | Nodes | 3 CP + 16+ workers | 3 CP + variable workers | 3 compact |
 | CP schedulable | Yes | Yes | Yes (compact) |
-| Storage | FlashSystem FC SAN | FlashSystem FC SAN | ODF local NVMe |
+| Storage | {BLOCK_STORAGE_ARRAY} FC SAN | {BLOCK_STORAGE_ARRAY} FC SAN | ODF local NVMe |
 | ACM Hub | {TIER_PRIMARY}/{TIER_MIDDLE} hub | {TIER_PRIMARY}/{TIER_MIDDLE} hub | {TIER_EDGE} hub |
 | vNICs | 4 (full bond separation) | 4 (baseline) | 2 (TBD) |
 | maxUnavailable | 2-4 | 1-2 | 1 |

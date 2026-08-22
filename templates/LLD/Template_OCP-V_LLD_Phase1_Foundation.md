@@ -12,18 +12,18 @@
 | **Version**            | 0.3                                                    |
 | **Status**             | Draft                                                  |
 | **Classification**     | Internal — Confidential                                |
-| **Author**             | {AUTHOR}                                                  |
+| **Author**             | {AUTHOR}                                               |
 | **Reviewers**          | {REVIEWER_LIST}                                        |
 | **Approval Authority** | {APPROVER}                                             |
-| **Last Updated**       | 2026-06-16                                                 |
+| **Last Updated**       | {DATE}                                                 |
 
 ### Revision History
 
 | Ver | Date       | Author      | Changes |
 | --- | ---------- | ----------- | ------- |
-| 0.1 | 2026-06-04 | {AUTHOR} | Initial Phase 1 Foundation LLD |
-| 0.2 | 2026-06-16 | {AUTHOR} | Consolidated 2026-06-16 updates: prescriptiveness remediation, vendor-neutral networking language, corrected dependencies/sequencing, and dual-path LLD-11 template flow (Path A ClusterInstance, Path B install-config.yaml). |
-| 0.3 | 2026-06-16 | {AUTHOR} | Split Phase 1: Foundation now assumes ACM hub is pre-existing (external prerequisite). Hub deployment flow removed from implementation diagram; Path A still requires hub but references companion hub LLD. |
+| 0.1 | {DATE} | {AUTHOR} | Initial Phase 1 Foundation LLD |
+| 0.2 | {DATE} | {AUTHOR} | Consolidated {DATE} updates: prescriptiveness remediation, vendor-neutral networking language, corrected dependencies/sequencing, and dual-path LLD-11 template flow (Path A ClusterInstance, Path B install-config.yaml). |
+| 0.3 | {DATE} | {AUTHOR} | Split Phase 1: Foundation now assumes ACM hub is pre-existing (external prerequisite). Hub deployment flow removed from implementation diagram; Path A still requires hub but references companion hub LLD. |
 
 ---
 
@@ -100,7 +100,7 @@ No sample configuration for pre-install procurement. Post-install certificate de
 
 ### Tier Variance
 
-| Parameter           | {TIER_PRIMARY}            | {TIER_MIDDLE}           | {TIER_EDGE}        |
+| Parameter           | DC            | {TIER_MIDDLE}           | {TIER_EDGE}        |
 | ------------------- | ------------- | ------------- | ------------- |
 | API cert issuer     | Enterprise CA | Enterprise CA | Enterprise CA |
 | Ingress cert issuer | Internal CA   | Internal CA   | Internal CA   |
@@ -182,7 +182,7 @@ Open all required inter-node, ACM hub-spoke, BMC/Ironic provisioning, and extern
 | ID      | Item                                                       | Owner                     | Status |
 | ------- | ---------------------------------------------------------- | ------------------------- | ------ |
 | CG-02-1 | Decide whether {TIER_EDGE} network egress uses a proxy or direct firewall rules                 | Network / Architecture    | Open   |
-| CG-02-2 | Finalise {TIER_EDGE} firewall rules and IP subnet allocations                                   | Network / Sam ({TIER_EDGE} PM) | Open   |
+| CG-02-2 | Finalise {TIER_EDGE} firewall rules and IP subnet allocations                                   | Network / {TIER_EDGE} PM | Open   |
 
 ### Dependencies
 
@@ -192,7 +192,7 @@ Open all required inter-node, ACM hub-spoke, BMC/Ironic provisioning, and extern
 
 | Parameter                                       | Value                     | Description                                                       | Source                |
 | ----------------------------------------------- | ------------------------- | ----------------------------------------------------------------- | --------------------- |
-| Egress model ({TIER_PRIMARY}/{TIER_MIDDLE})                           | Firewall-only             | No cluster-wide proxy                                             | ADR 16                |
+| Egress model (DC/{TIER_MIDDLE})                           | Firewall-only             | No cluster-wide proxy                                             | ADR 16                |
 | Egress model ({TIER_EDGE})                           | **TBD**                   | Firewall or proxy pending {TIER_EDGE} infra maturity                   | ADR 16                |
 | Inter-node — ICMP                               | ICMP all                  | Network reachability tests                                        | OCP install guide     |
 | Inter-node — metrics                            | TCP 1936                  | Ingress health-check probes                                       | OCP install guide     |
@@ -224,7 +224,7 @@ Open all required inter-node, ACM hub-spoke, BMC/Ironic provisioning, and extern
 | **Managed Cluster → Image Repo (provisioning)** |                           |                                                                   |                       |
 | Managed → Image Repo — rootfs                   | TCP 443 (80 disconnected) | Download rootfs/ISO image during cluster install                  | MCE Infra Operator    |
 | **ACM Hub → External**                          |                           |                                                                   |                       |
-| Hub → ObjectStore — Observability               | TCP 443                   | Thanos long-term metrics storage (ICOS / Cluster Backup Operator) | RHACM 2.12 networking |
+| Hub → ObjectStore — Observability               | TCP 443                   | Thanos long-term metrics storage ({OBJECT_STORAGE} / Cluster Backup Operator) | RHACM 2.12 networking |
 | Hub → Channel sources — GitOps                  | TCP 443                   | Git, Helm, Object Store for Application lifecycle / ArgoCD        | RHACM 2.12 networking |
 | **External Connectivity**                       |                           |                                                                   |                       |
 | External — NTP                                  | UDP 123                   | Time sync                                                         | OCP firewall guide    |
@@ -277,7 +277,7 @@ The hub cluster (and {REGISTRY_MIRROR} itself) must reach the following upstream
 ```
 Cluster: <cluster_name>
 Site: <site_name>
-Tier: {TIER_PRIMARY} / {TIER_MIDDLE} / {TIER_EDGE}
+Tier: DC / {TIER_MIDDLE} / {TIER_EDGE}
 ACM Hub: <hub_cluster_fqdn> / <hub_api_vip>
 
 Source → Destination rules:
@@ -321,10 +321,10 @@ Source → Destination rules:
 
 ### Tier Variance
 
-| Parameter                         | {TIER_PRIMARY}                                   | {TIER_MIDDLE}                                  | {TIER_EDGE}                               |
+| Parameter                         | DC                                   | {TIER_MIDDLE}                                  | {TIER_EDGE}                               |
 | --------------------------------- | ------------------------------------ | ------------------------------------ | ------------------------------------ |
 | Egress model                      | Firewall-only                        | Firewall-only                        | **TBD**                              |
-| Firewall locations                | {SITE_PRIMARY}/{SITE_SECONDARY}/{SITE_LAB}                 | Site-specific                        | **TBD**                              |
+| Firewall locations                | {SITE_1}/{SITE_2}/{SITE_3}                 | Site-specific                        | **TBD**                              |
 | MCE Infra Operator / Ironic ports | Yes (ACM ZTP via Assisted Installer) | Yes (ACM ZTP via Assisted Installer) | Yes (ACM ZTP via Assisted Installer) |
 | VM traffic impacted               | No (bridged VLANs)                   | No (bridged VLANs)                   | No (bridged VLANs)                   |
 
@@ -344,7 +344,7 @@ Source → Destination rules:
 
 2. **Submit change request** to Network team per {CLIENT} change management process
 
-3. **Network team implements rules** on site-specific firewalls ({SITE_PRIMARY}, {SITE_SECONDARY}, {SITE_LAB}, or {TIER_MIDDLE}/{TIER_EDGE} firewalls)
+3. **Network team implements rules** on site-specific firewalls ({SITE_1}, {SITE_2}, {SITE_3}, or {TIER_MIDDLE}/{TIER_EDGE} firewalls)
 
 4. **Validate inter-node connectivity:**
    
@@ -493,7 +493,7 @@ No sample configuration for pre-install hardware provisioning. PSI MachineConfig
 
 ### Tier Variance
 
-| Parameter           | {TIER_PRIMARY}                       | {TIER_MIDDLE}                      | {TIER_EDGE}                  |
+| Parameter           | DC                       | {TIER_MIDDLE}                      | {TIER_EDGE}                  |
 | ------------------- | ------------------------ | ------------------------ | ----------------------- |
 | vNIC count          | 4 (full bond separation) | 4 (baseline)             | 2 (TBD, combined bonds) |
 | FC HBA / SAN zoning | Required                 | Required                 | N/A                     |
@@ -545,7 +545,7 @@ No sample configuration for pre-install hardware provisioning. PSI MachineConfig
     
     - Management (1500), VM Data (1500), Storage (9000), Migration (9000), Backup (9000), BMC (1500)
 
-11. **Configure FC SAN zoning** ({TIER_PRIMARY}/{TIER_MIDDLE} only) — zone each node FC HBA WWPN to {BLOCK_STORAGE_VENDOR} targets
+11. **Configure FC SAN zoning** (DC/{TIER_MIDDLE} only) — zone each node FC HBA WWPN to {BLOCK_STORAGE_ARRAY} targets
 
 12. **Verify MTU end-to-end:**
     
@@ -581,7 +581,7 @@ ip link show <iface> | grep mtu
 
 ## LLD-04: IP Reservations & Load Balancer VIPs
 
-Reserve all node IPs, API/ingress VIPs, BMC IPs, and storage interface IPs in {DNS_IPAM_VENDOR} (IPAM) per cluster and validate no address conflicts exist. DNS record creation for these IPs is handled in LLD-05. *(ADR 12)*
+Reserve all node IPs, API/ingress VIPs, BMC IPs, and storage interface IPs in {IPAM_PLATFORM} (IPAM) per cluster and validate no address conflicts exist. DNS record creation for these IPs is handled in LLD-05. *(ADR 12)*
 
 ### Prerequisites
 
@@ -605,11 +605,11 @@ Reserve all node IPs, API/ingress VIPs, BMC IPs, and storage interface IPs in {D
 | CP node IPs           | 3 static per cluster               | NMState-managed                                  | HLD               |
 | Worker node IPs       | N static per cluster               | NMState-managed                                  | HLD               |
 | BMC/CIMC IPs          | 1 per node on management/BMC VLAN  | Out-of-band management                           | HLD               |
-| Storage interface IPs | 1 per node on storage VLAN         | FC ({TIER_PRIMARY}/{TIER_MIDDLE}); ODF ({TIER_EDGE})                        | HLD               |
+| Storage interface IPs | 1 per node on storage VLAN         | FC (DC/{TIER_MIDDLE}); ODF ({TIER_EDGE})                        | HLD               |
 | LB target — API       | TCP 6443, TCP 22623                | Backend: control plane nodes                     | OCP install guide |
 | LB target — Ingress   | TCP 80, TCP 443                    | Backend: workers (or all if schedulable masters) | OCP install guide |
-| IPAM system           | {DNS_IPAM_VENDOR}                           | Enterprise DNS/IPAM                              | ADR 13            |
-| F5 role               | DNS path only (GTM)                | Pool members are {DNS_IPAM_VENDOR}; not LB for OCP        | ADR 12            |
+| IPAM system           | {IPAM_PLATFORM}                           | Enterprise DNS/IPAM                              | ADR 13            |
+| F5 role               | DNS path only (GTM)                | Pool members are {IPAM_PLATFORM}; not LB for OCP        | ADR 12            |
 
 ### Sample Configuration
 
@@ -639,7 +639,7 @@ spec:
 
 ### Tier Variance
 
-| Parameter             | {TIER_PRIMARY}                          | {TIER_MIDDLE}                         | {TIER_EDGE}                                 |
+| Parameter             | DC                          | {TIER_MIDDLE}                         | {TIER_EDGE}                                 |
 | --------------------- | --------------------------- | --------------------------- | -------------------------------------- |
 | Worker node count     | 16+                         | Variable (4-10)             | 0 (compact — 3 CP/worker)              |
 | Total IPs per cluster | ~30+                        | ~20-30                      | ~12                                    |
@@ -651,7 +651,7 @@ spec:
 **Execution Readiness Checks:**
 
 - [ ] Cluster name, tier, and node count finalized
-- [ ] {DNS_IPAM_VENDOR} access with permissions to create reservations
+- [ ] {IPAM_PLATFORM} access with permissions to create reservations
 - [ ] Baremetal network VLAN and subnet identified
 - [ ] BMC/CIMC VLAN identified
 
@@ -663,9 +663,9 @@ spec:
    - 3 CP node IPs
    - N worker node IPs
    - 1 BMC IP per node
-   - 1 storage interface IP per node ({TIER_PRIMARY}/{TIER_MIDDLE})
+   - 1 storage interface IP per node (DC/{TIER_MIDDLE})
 
-2. **Reserve all IPs in {DNS_IPAM_VENDOR}** — ensure VIPs are not assigned to any host
+2. **Reserve all IPs in {IPAM_PLATFORM}** — ensure VIPs are not assigned to any host
 
 3. **Reserve BMC IPs** on the management/BMC VLAN
 
@@ -691,23 +691,23 @@ ping -c 1 <node_ip>
 
 **Rollback:**
 
-- Release IP reservations in {DNS_IPAM_VENDOR}
+- Release IP reservations in {IPAM_PLATFORM}
 - IPs return to available pool
 
 ### Acceptance Criteria
 
 | ID      | Criterion                     | Test                         | Expected Result           |
 | ------- | ----------------------------- | ---------------------------- | ------------------------- |
-| AC-04-1 | All IPs reserved              | {DNS_IPAM_VENDOR} query               | All cluster IPs allocated |
+| AC-04-1 | All IPs reserved              | {IPAM_PLATFORM} query               | All cluster IPs allocated |
 | AC-04-2 | No IP conflicts               | `arping -D -c 3 <ip>` per IP | No duplicate detected     |
-| AC-04-3 | VIPs not host-assigned        | {DNS_IPAM_VENDOR} — VIP records       | Reserved but unassigned   |
+| AC-04-3 | VIPs not host-assigned        | {IPAM_PLATFORM} — VIP records       | Reserved but unassigned   |
 | AC-04-4 | IP-to-host mapping documented | Mapping document reviewed    | Complete and accurate     |
 
 ---
 
 ## LLD-05: DNS, Static IPs & NTP
 
-Create DNS A/PTR records in {DNS_IPAM_VENDOR} for the IPs reserved in LLD-04 and validate resolution before cluster installation. Post-install NTP/chrony configuration is in LLD-13. *(ADR 48)*
+Create DNS A/PTR records in {IPAM_PLATFORM} for the IPs reserved in LLD-04 and validate resolution before cluster installation. Post-install NTP/chrony configuration is in LLD-13. *(ADR 48)*
 
 ### Prerequisites
 
@@ -726,7 +726,7 @@ Create DNS A/PTR records in {DNS_IPAM_VENDOR} for the IPs reserved in LLD-04 and
 
 | Parameter        | Value                                          | Description           | Source            |
 | ---------------- | ---------------------------------------------- | --------------------- | ----------------- |
-| DNS provider     | {DNS_IPAM_VENDOR}                                       | Enterprise DNS        | HLD               |
+| DNS provider     | {IPAM_PLATFORM}                                       | Enterprise DNS        | HLD               |
 | API record       | `api.<cluster>.<base_domain>` → API VIP        | A + PTR               | OCP install guide |
 | API-int record   | `api-int.<cluster>.<base_domain>` → API VIP    | A + PTR               | OCP install guide |
 | Ingress wildcard | `*.apps.<cluster>.<base_domain>` → Ingress VIP | Wildcard A            | OCP install guide |
@@ -735,10 +735,10 @@ Create DNS A/PTR records in {DNS_IPAM_VENDOR} for the IPs reserved in LLD-04 and
 
 ### Tier Variance
 
-| Parameter         | {TIER_PRIMARY}                 | {TIER_MIDDLE}             | {TIER_EDGE}    |
+| Parameter         | DC                 | {TIER_MIDDLE}             | {TIER_EDGE}    |
 | ----------------- | ------------------ | --------------- | --------- |
 | Node record count | 3 CP + 16+ workers | 3 CP + variable | 3 compact |
-| DNS provider      | {DNS_IPAM_VENDOR}           | {DNS_IPAM_VENDOR}        | {DNS_IPAM_VENDOR}  |
+| DNS provider      | {IPAM_PLATFORM}           | {IPAM_PLATFORM}        | {IPAM_PLATFORM}  |
 
 ### Implementation Procedure
 
@@ -746,7 +746,7 @@ Create DNS A/PTR records in {DNS_IPAM_VENDOR} for the IPs reserved in LLD-04 and
 
 - [ ] IP allocations completed (LLD-04)
 - [ ] Cluster name and base domain finalized
-- [ ] {DNS_IPAM_VENDOR} access
+- [ ] {IPAM_PLATFORM} access
 
 **Steps — L3: DNS Records (Network Team):**
 
@@ -780,7 +780,7 @@ Create DNS A/PTR records in {DNS_IPAM_VENDOR} for the IPs reserved in LLD-04 and
 
 **Rollback:**
 
-- DNS: delete records from {DNS_IPAM_VENDOR} (non-destructive)
+- DNS: delete records from {IPAM_PLATFORM} (non-destructive)
 
 ### Acceptance Criteria
 
@@ -804,7 +804,7 @@ Define the ACM tier classification label taxonomy, placement structure, and poli
 
 | ID      | Item                                                                 | Owner                | Status |
 | ------- | -------------------------------------------------------------------- | -------------------- | ------ |
-| CG-06-1 | Tier definitions approved in HLD (`Deployment Tier Model`)           | Architecture lead | Open   |
+| CG-06-1 | Tier definitions approved in HLD (`Deployment Tier Model`)           | Architecture | Open   |
 | CG-06-2 | Tier-specific PolicySet names finalized in GitOps repositories       | Platform     | Open   |
 
 ### Dependencies
@@ -816,10 +816,10 @@ Define the ACM tier classification label taxonomy, placement structure, and poli
 | Parameter                       | Value                                                        | Description                                      | Source |
 | ------------------------------- | ------------------------------------------------------------ | ------------------------------------------------ | ------ |
 | Tier label key                 | `tier`                                                       | Primary selector for ACM placement               | ADR 5  |
-| Tier label values              | `{TIER_PRIMARY_LOWER}`, `{TIER_MIDDLE_LOWER}`, `{TIER_EDGE_LOWER}`                                | Fleet-standard tier identifiers                  | LLD-06 |
+| Tier label values              | `datacenter`, `{TIER_MIDDLE_LOWER}`, `{TIER_EDGE_LOWER}`                                | Fleet-standard tier identifiers                  | LLD-06 |
 | Cluster class label key        | `cluster-class`                                              | Tier-specific baseline class                     | LLD-06 |
-| Cluster class values           | `{TIER_PRIMARY_LOWER}-standard`, `{TIER_MIDDLE_LOWER}-standard`, `{TIER_EDGE_LOWER}-compact`              | Used by overlays and policy targeting            | LLD-06 |
-| Storage profile label values   | `{BLOCK_STORAGE_VENDOR}-fc`, `odf-local`                      | Drives storage policy overlays                   | ADR 6  |
+| Cluster class values           | `dc-standard`, `{TIER_MIDDLE_LOWER}-standard`, `{TIER_EDGE_LOWER}-compact`              | Used by overlays and policy targeting            | LLD-06 |
+| Storage profile label values   | `{BLOCK_STORAGE_ARRAY}-fc`, `odf-local`                      | Drives storage policy overlays                   | ADR 6  |
 | Network profile label values   | `4nic-dedicated`, `2nic-compact`                             | Drives network policy overlays                   | ADR 6  |
 | Policy namespace               | `policies`                                                   | Namespace for Placement/Binding/PolicySet        | ACM    |
 | Placement naming               | `placement-<tier>`                                           | Standardized naming for cluster selection        | LLD-06 |
@@ -833,22 +833,22 @@ Define the ACM tier classification label taxonomy, placement structure, and poli
 apiVersion: cluster.open-cluster-management.io/v1
 kind: ManagedCluster
 metadata:
-  name: dc-{SITE_PRIMARY}-prod-01
+  name: {CLUSTER_NAME}
   labels:
-    tier: {TIER_PRIMARY_LOWER}
-    site: {SITE_PRIMARY}
+    tier: datacenter
+    site: {SITE_1}
     environment: production
-    cluster-class: {TIER_PRIMARY_LOWER}-standard
+    cluster-class: dc-standard
 ```
 
 ### Tier Mapping
 
-| Label Key         | {TIER_PRIMARY} Value         | {TIER_MIDDLE} Value                | {TIER_EDGE} Value             |
+| Label Key         | Datacenter Value         | {TIER_MIDDLE} Value                | {TIER_EDGE} Value             |
 | ----------------- | ------------------------ | ------------------------ | ------------------------ |
-| `tier`            | `{TIER_PRIMARY_LOWER}`             | `{TIER_MIDDLE_LOWER}`                    | `{TIER_EDGE_LOWER}`                 |
+| `tier`            | `datacenter`             | `{TIER_MIDDLE_LOWER}`                    | `{TIER_EDGE_LOWER}`                 |
 | `environment`     | `production` / `nonprod` | `production` / `nonprod` | `production` / `nonprod` |
-| `cluster-class`   | `{TIER_PRIMARY_LOWER}-standard`            | `{TIER_MIDDLE_LOWER}-standard`           | `{TIER_EDGE_LOWER}-compact`         |
-| `storage-profile` | `{BLOCK_STORAGE_VENDOR}-fc` | `{BLOCK_STORAGE_VENDOR}-fc` | `odf-local`            |
+| `cluster-class`   | `dc-standard`            | `{TIER_MIDDLE_LOWER}-standard`           | `{TIER_EDGE_LOWER}-compact`         |
+| `storage-profile` | `{BLOCK_STORAGE_ARRAY}-fc` | `{BLOCK_STORAGE_ARRAY}-fc` | `odf-local`            |
 | `network-profile` | `4nic-dedicated`         | `4nic-dedicated`         | `2nic-compact`           |
 
 ### Implementation Procedure
@@ -1024,7 +1024,7 @@ networking:
 
 ### Tier Variance
 
-| Parameter       | {TIER_PRIMARY}                   | {TIER_MIDDLE}                 | {TIER_EDGE}           |
+| Parameter       | DC                   | {TIER_MIDDLE}                 | {TIER_EDGE}           |
 | --------------- | -------------------- | ------------------- | ---------------- |
 | Pod subnet      | 192.168.0.0/17       | 192.168.0.0/17      | 192.168.0.0/17   |
 | Service subnet  | 192.168.128.0/18     | 192.168.128.0/18    | 192.168.128.0/18 |
@@ -1114,7 +1114,7 @@ No sample configuration for pre-install registry setup. Post-install registry sa
 
 ### Tier Variance
 
-| Parameter                | {TIER_PRIMARY}                   | {TIER_MIDDLE}                  | {TIER_EDGE}                                         |
+| Parameter                | DC                   | {TIER_MIDDLE}                  | {TIER_EDGE}                                         |
 | ------------------------ | -------------------- | -------------------- | ---------------------------------------------- |
 | Image source             | {REGISTRY_MIRROR} (direct) | {REGISTRY_MIRROR} (direct) | {REGISTRY_MIRROR} (direct) or local mirror (**TBD**) |
 | Bandwidth to {REGISTRY_MIRROR} | High (LAN)           | High (LAN)           | Limited (WAN)                                  |
@@ -1468,10 +1468,10 @@ sshKey: '<ssh_public_key>'
 
 ### Tier Variance
 
-| Parameter       | {TIER_PRIMARY}                           | {TIER_MIDDLE}                          | {TIER_EDGE}                               |
+| Parameter       | DC                           | {TIER_MIDDLE}                          | {TIER_EDGE}                               |
 | --------------- | ---------------------------- | ---------------------------- | ------------------------------------ |
 | Install method  | Path A or Path B             | Path A or Path B             | Path A or Path B                     |
-| ACM hub source  | {TIER_PRIMARY} hub                       | {TIER_PRIMARY}/{TIER_MIDDLE} hub (TBD)             | {TIER_EDGE} hub                           |
+| ACM hub source  | DC hub                       | DC/{TIER_MIDDLE} hub (TBD)             | {TIER_EDGE} hub                           |
 | Node role model | 3 CP (schedulable) + workers | 3 CP (schedulable) + workers | 3 compact (CP + worker + ODF)        |
 | ISO delivery    | BMC virtual media            | BMC virtual media            | BMC virtual media                    |
 
@@ -1684,7 +1684,7 @@ oc get clusterimageset openshift-v4.21.0 &>/dev/null && echo "PASS: ClusterImage
 
 ### Tier Variance
 
-| Parameter              | {TIER_PRIMARY}                        | {TIER_MIDDLE}                       | {TIER_EDGE}             |
+| Parameter              | DC                        | {TIER_MIDDLE}                       | {TIER_EDGE}             |
 | ---------------------- | ------------------------- | ------------------------- | ------------------ |
 | FC SAN check           | Required                  | Required                  | N/A                |
 | BMC type               | Cisco UCS M8 / {HW_MGMT_PLATFORM} | Cisco UCS M8 / {HW_MGMT_PLATFORM} | {HW_VENDOR} Unified Edge |
@@ -1758,7 +1758,7 @@ Apply all Day-1 post-install platform configurations that were planned in LLD-01
 | Parameter           | Value                                            | Description                              | Source                |
 | ------------------- | ------------------------------------------------ | ---------------------------------------- | --------------------- |
 | Ingress secret name | `custom-ingress-cert`                            | In namespace `openshift-ingress`         | OCP cert config guide |
-| NTP servers         | Internal NTP (site-specific)                     | {TIER_PRIMARY}/{TIER_MIDDLE}: SRE-managed; {TIER_EDGE}: TBD         | HLD / ADR 48          |
+| NTP servers         | Internal NTP (site-specific)                     | DC/{TIER_MIDDLE}: SRE-managed; {TIER_EDGE}: TBD         | HLD / ADR 48          |
 | Chrony delivery     | MachineConfig via ArgoCD                         | ACM inform policy monitors compliance    | ADR 48                |
 | Guest VM time       | No hypervisor sync                               | Windows: AD; Linux: direct NTP           | ADR 48                |
 | PSI kernel arg      | `psi=1` via MachineConfig `99-worker-kernel-psi` | For descheduler profile                  | ADR 40                |
@@ -1872,9 +1872,9 @@ spec:
 
 ### Tier Variance
 
-| Parameter      | {TIER_PRIMARY}                            | {TIER_MIDDLE}              | {TIER_EDGE}                       |
+| Parameter      | DC                            | {TIER_MIDDLE}              | {TIER_EDGE}                       |
 | -------------- | ----------------------------- | ---------------- | ---------------------------- |
-| NTP servers    | {TIER_PRIMARY} internal NTP (SRE-managed) | {TIER_MIDDLE} internal NTP | {TIER_EDGE} network NTP (**TBD**) |
+| NTP servers    | DC internal NTP (SRE-managed) | {TIER_MIDDLE} internal NTP | {TIER_EDGE} network NTP (**TBD**) |
 | maxUnavailable | 2-4                           | 1-2              | 1                            |
 | IPMI hardening | Required                      | Required         | Required                     |
 
@@ -2159,20 +2159,27 @@ oc get configs.imageregistry.operator.openshift.io cluster -o jsonpath='{.spec.m
 | `{AUTHOR}` | Document author | J. Smith |
 | `{REVIEWER_LIST}` | Comma-separated reviewer names | A. Jones, B. Lee |
 | `{APPROVER}` | Approval authority | C. Director |
-| `2026-06-04` | Document date | 2026-05-19 |
+| `{DATE}` | Document date | 2026-05-19 |
 | `{ADR_REGISTER}` | Path to ADR register file | ADR_acme.md |
 | `{HW_VENDOR}` | Hardware vendor | Cisco |
 | `{HW_MGMT_PLATFORM}` | Hardware management platform | Intersight |
 | `{HW_MONITORING_VENDOR}` | Hardware monitoring tool | Virtana |
-| `{BLOCK_STORAGE_VENDOR}` | Block storage array model | FlashSystem |
+| `{BLOCK_STORAGE_ARRAY}` | Block storage array model | (vendor block storage) |
 | `{SIEM_PLATFORM}` | SIEM / log aggregation platform | Splunk |
-| `{NOC_PLATFORM}` | Event management / AIOps platform | Moogsoft |
-| `{BACKUP_VENDOR}` | Backup solution vendor | e.g. Veeam, Commvault |
+| `{EVENT_MGMT_PLATFORM}` | Event management / AIOps platform | Moogsoft |
+| `{BACKUP_VENDOR}` | Backup solution vendor | Rubrik |
 | `{SECRET_MGMT_VENDOR}` | Secret / vault management vendor | CyberArk |
-| `{DNS_IPAM_VENDOR}` | IP address management system | Infoblox |
-| `{APM_VENDOR}` | Application performance monitoring | Dynatrace |
-| `{SCANNING_VENDOR}` | Vulnerability / compliance scanner | Tenable |
+| `{IPAM_PLATFORM}` | IP address management system | Infoblox |
+| `{APM_PLATFORM}` | Application performance monitoring | Dynatrace |
+| `{SCAN_VENDOR}` | Vulnerability / compliance scanner | Tenable |
 | `{REGISTRY_MIRROR}` | Container image registry mirror | Artifactory |
 | `{CVD_URL}` | Hardware vendor CVD documentation URL | https://... |
-| `{SITE_LIST}` | Comma-separated site names | Site-Alpha, Site-Beta, Site-Gamma |
-| `{SITE_PRIMARY}` / `{SITE_SECONDARY}` / `{SITE_LAB}` | Individual site names | Site-Alpha / Site-Beta / Site-Gamma |
+| `{TIER_PRIMARY}` | Primary / datacenter tier name | Datacenter |
+| `{TIER_MIDDLE}` | Regional / mid-tier name | Regional |
+| `{TIER_EDGE}` | Edge / remote-site tier name | Edge |
+| `{TIER_MIDDLE_LOWER}` | Mid-tier label (lowercase) | regional |
+| `{TIER_EDGE_LOWER}` | Edge-tier label (lowercase) | edge |
+| `{TIER_EDGE_COUNT}` | Approximate edge-site or edge-cluster count | ~N |
+| `{OBJECT_STORAGE}` | S3-compatible object storage | (S3-compatible object store) |
+| `{SITE_LIST}` | Comma-separated site names | `{SITE_1}, {SITE_2}, {SITE_3}` |
+| `{SITE_1}` / `{SITE_2}` / `{SITE_3}` | Individual site names | `{SITE_1}` / `{SITE_2}` / `{SITE_3}` |

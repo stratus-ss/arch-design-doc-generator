@@ -29,7 +29,7 @@
 
 This LLD provides implementation specifications for every Phase 2 (Platform Build) decision documented in the {CLIENT} HLD. Each section maps 1:1 to an HLD decision and contains configuration parameters, implementation procedures, layer context (L1–L5), and testable acceptance criteria. Phase 2 assumes Gate 1 (cluster running per Phase 1 LLD).
 
-> **NTP:** Chrony / NTP configuration is handled in Phase 1 (LLD-18: Network Configuration — NTP subsection). Phase 2 inherits the validated time source; no additional NTP work is required unless drift is observed during platform build.
+> **NTP:** Chrony / NTP planning is handled in Phase 1 LLD-05, and post-install chrony configuration is handled in Phase 1 LLD-13. Phase 2 inherits the validated time source; no additional NTP work is required unless drift is observed during platform build.
 
 ---
 
@@ -37,7 +37,7 @@ This LLD provides implementation specifications for every Phase 2 (Platform Buil
 
 | Layer  | Scope                  | Typical LLD coverage                                                                                                                      |
 | ------ | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| **L1** | Storage Infrastructure | {BLOCK_STORAGE_VENDOR} FC SAN paths, ODF/local NVMe, ICOS/object endpoints                                                                           |
+| **L1** | Storage Infrastructure | {BLOCK_STORAGE_ARRAY} FC SAN paths, ODF/local NVMe, {OBJECT_STORAGE}/object endpoints                                                                           |
 | **L2** | Network Configuration  | NMState policies, NADs, physical vNIC segregation, VLAN plumbing, MTU tuning, NAD validation, vCenter provider                             |
 | **L3** | Identity & Security    | OAuth/LDAP, RBAC, manual secrets, etcd encryption + backup, CIS remediation                                                               |
 | **L4** | VM Runtime & Operators | OCP Virt operator, live migration network, schedulable masters, eviction, hot-plug, descheduler, node labels, GitOps operator, MTV operator, migration smoke test |
@@ -45,11 +45,11 @@ This LLD provides implementation specifications for every Phase 2 (Platform Buil
 
 ```mermaid
 flowchart TB
-    L1["<b>Layer 1: Storage</b><br/>LLD-15–16 backends, object targets"]
-    L2["<b>Layer 2: Network</b><br/>LLD-17–20 segregation, NADs, tuning<br/>LLD-42 vCenter, LLD-43 NAD validation"]
-    L3["<b>Layer 3: Identity & Security</b><br/>LLD-21–29 secrets, etcd, audit, IAM, RBAC<br/>LLD-39 etcd backup, LLD-44 CIS"]
-    L4["<b>Layer 4: VM Runtime & Operators</b><br/>LLD-30 labels, LLD-34 OCP Virt, LLD-35 migration network<br/>LLD-36–38 scheduling, hot-plug, descheduler<br/>LLD-40 GitOps, LLD-41 MTV, LLD-45 smoke test"]
-    L5["<b>Layer 5: Observability</b><br/>LLD-31–33 stack, logs, retention<br/>LLD-46 benchmarking"]
+    L1["<b>Layer 1: Storage</b><br/>LLD-14–15 backends, object targets"]
+    L2["<b>Layer 2: Network</b><br/>LLD-16–19 segregation, NADs, tuning<br/>LLD-41 vCenter, LLD-42 NAD validation"]
+    L3["<b>Layer 3: Identity & Security</b><br/>LLD-20–28 secrets, etcd, audit, IAM, RBAC<br/>LLD-38 etcd backup, LLD-43 CIS"]
+    L4["<b>Layer 4: VM Runtime & Operators</b><br/>LLD-29 labels, LLD-33 OCP Virt, LLD-34 migration network<br/>LLD-35–37 scheduling, hot-plug, descheduler<br/>LLD-39 GitOps, LLD-40 MTV, LLD-44 smoke test"]
+    L5["<b>Layer 5: Observability</b><br/>LLD-30–32 stack, logs, retention<br/>LLD-45 benchmarking"]
     L1 --> L2 --> L3 --> L4 --> L5
 ```
 
@@ -68,27 +68,27 @@ flowchart TB
     LABELS --> VMRT["VM Runtime Config\nOCP Virt Operator + Scheduling"]
     VMRT --> MIGNET["Live Migration Network\nNAD + HCO Migration Config"]
     MIGNET --> GITOPS["GitOps Operator\nArgoCD Install + RBAC"]
-    GITOPS --> OBS["Deploy Observability\nPrometheus + {SIEM_PLATFORM} + {NOC_PLATFORM}"]
+    GITOPS --> OBS["Deploy Observability\nPrometheus + {SIEM_PLATFORM} + {EVENT_MGMT_PLATFORM}"]
     OBS --> MTV["Migration Readiness\nMTV Operator + vCenter Provider"]
     MTV --> NADVAL["Validate NADs\nEnd-to-End Network Test"]
-    NADVAL --> CIS["CIS Benchmark\n{SCANNING_VENDOR} Scan + Remediation"]
+    NADVAL --> CIS["CIS Benchmark\n{SCAN_VENDOR} Scan + Remediation"]
     CIS --> SMOKE["Migration Smoke Test\nPilot VM + Benchmarking"]
     SMOKE --> GATE2(["Gate 2\nPlatform Configured"])
 ```
 
 ---
 
-## LLD-15: Storage Backend Selection
+## LLD-14: Storage Backend Selection
 
-Configure IBM {BLOCK_STORAGE_VENDOR} via FC SAN for {TIER_PRIMARY}/{TIER_MIDDLE} block storage and ODF on local NVMe for {TIER_EDGE} clusters, with default StorageClasses per tier. *(ADR 17, 6)*
+Configure {BLOCK_STORAGE_ARRAY} via FC SAN for DC/{TIER_MIDDLE} block storage and ODF on local NVMe for {TIER_EDGE} clusters, with default StorageClasses per tier. *(ADR 17, 6)*
 
 ### Prerequisites
 
 | ID      | Item                                                                 | Owner                  | Status |
 | ------- | -------------------------------------------------------------------- | ---------------------- | ------ |
-| CG-15-1 | Validate block storage driver against {BLOCK_STORAGE_VENDOR} hardware at the target {TIER_PRIMARY} and {TIER_MIDDLE} sites           | Storage / Platform     | Open   |
-| CG-15-2 | Confirm {TIER_EDGE} nodes meet the three-node minimum with local NVMe storage required for ODF deployment          | Storage / Architecture | Open   |
-| CG-15-3 | Agree on the default storage class for each deployment tier (block storage required for VMs)                  | Storage / Virt         | Open   |
+| CG-14-1 | Validate block storage driver against {BLOCK_STORAGE_ARRAY} hardware at the target DC and {TIER_MIDDLE} sites           | Storage / Platform     | Open   |
+| CG-14-2 | Confirm {TIER_EDGE} nodes meet the three-node minimum with local NVMe storage required for ODF deployment          | Storage / Architecture | Open   |
+| CG-14-3 | Agree on the default storage class for each deployment tier (block storage required for VMs)                  | Storage / Virt         | Open   |
 
 ### Dependencies
 
@@ -98,7 +98,7 @@ Configure IBM {BLOCK_STORAGE_VENDOR} via FC SAN for {TIER_PRIMARY}/{TIER_MIDDLE}
 
 ### Sample Configuration
 
-**IBM Block CSI Operator Subscription ({TIER_PRIMARY}/{TIER_MIDDLE}):**
+**IBM Block CSI Operator Subscription (DC/{TIER_MIDDLE}):**
 
 ```yaml
 apiVersion: operators.coreos.com/v1alpha1
@@ -131,7 +131,7 @@ spec:
     tag: "<TBD version>"
 ```
 
-**Array Secret (one per {BLOCK_STORAGE_VENDOR} backend):**
+**Array Secret (one per {BLOCK_STORAGE_ARRAY} backend):**
 
 ```yaml
 apiVersion: v1
@@ -141,12 +141,12 @@ metadata:
   namespace: openshift-operators
 type: Opaque
 stringData:
-  management_address: "<{BLOCK_STORAGE_VENDOR} management IP — TBD>"
+  management_address: "<{BLOCK_STORAGE_ARRAY} management IP — TBD>"
   username: "<provided by storage team>"
   password: "<provided by storage team>"
 ```
 
-**StorageClass — IBM Block ({TIER_PRIMARY}/{TIER_MIDDLE}):**
+**StorageClass — IBM Block (DC/{TIER_MIDDLE}):**
 
 ```yaml
 kind: StorageClass
@@ -234,9 +234,9 @@ spec:
 
 ### Tier Variance
 
-| Parameter            | {TIER_PRIMARY}                             | {TIER_MIDDLE}                            | {TIER_EDGE}                                                 |
+| Parameter            | DC                             | {TIER_MIDDLE}                            | {TIER_EDGE}                                                 |
 | -------------------- | ------------------------------ | ------------------------------ | ------------------------------------------------------ |
-| Block CSI            | IBM block → {BLOCK_STORAGE_VENDOR}        | IBM block → {BLOCK_STORAGE_VENDOR}        | ODF `ocs-storagecluster-ceph-rbd` (**TBD** exact name) |
+| Block CSI            | IBM block → {BLOCK_STORAGE_ARRAY}        | IBM block → {BLOCK_STORAGE_ARRAY}        | ODF `ocs-storagecluster-ceph-rbd` (**TBD** exact name) |
 | FC SAN path          | Required                       | Required                       | N/A                                                    |
 | Local NVMe for ODF   | N/A (**TBD** if future use)    | N/A (**TBD**)                  | Required (min 3 nodes)                                 |
 | Default StorageClass | `ibm-block-gold-vsc` (**TBD**) | `ibm-block-gold-vsc` (**TBD**) | `ocs-storagecluster-ceph-rbd` (**TBD**)                |
@@ -246,13 +246,13 @@ spec:
 **Execution Readiness Checks:**
 
 - [ ] Gate 1 complete; nodes `Ready`
-- [ ] FC zoning complete ({TIER_PRIMARY}/{TIER_MIDDLE}) — see Phase 1 LLD
+- [ ] FC zoning complete (DC/{TIER_MIDDLE}) — see Phase 1 LLD
 - [ ] OLM reachable; catalogs configured
 - [ ] Pull secret permits required operator images
-- [ ] {BLOCK_STORAGE_VENDOR} management IP, pool name, and credentials available ({TIER_PRIMARY}/{TIER_MIDDLE})
+- [ ] {BLOCK_STORAGE_ARRAY} management IP, pool name, and credentials available (DC/{TIER_MIDDLE})
 - [ ] Local NVMe disks identified via `lsblk` on {TIER_EDGE} nodes
 
-**Steps — {TIER_PRIMARY}/{TIER_MIDDLE} (IBM Block CSI):**
+**Steps — DC/{TIER_MIDDLE} (IBM Block CSI):**
 
 1. **Install IBM Block CSI Operator** — apply the Subscription YAML above; approve the InstallPlan:
    
@@ -268,7 +268,7 @@ spec:
    oc apply -f ibm-block-csi-cr.yaml
    ```
 
-3. **Create array secret** with {BLOCK_STORAGE_VENDOR} credentials:
+3. **Create array secret** with {BLOCK_STORAGE_ARRAY} credentials:
    
    ```bash
    oc apply -f {BLOCK_STORAGE_LOWER}-array-secret.yaml
@@ -345,7 +345,7 @@ spec:
 **Verification:**
 
 ```bash
-oc get csv -n openshift-operators | grep ibm-block        # {TIER_PRIMARY}/{TIER_MIDDLE}
+oc get csv -n openshift-operators | grep ibm-block        # DC/{TIER_MIDDLE}
 oc get csv -n openshift-storage | grep odf                 # {TIER_EDGE}
 oc get storagecluster -n openshift-storage                 # {TIER_EDGE} — Phase: Ready
 oc get cephcluster -n openshift-storage                    # {TIER_EDGE} — health: HEALTH_OK
@@ -360,31 +360,31 @@ oc get storageclass -o wide
 
 | ID      | Criterion                       | Test                                                                                                 | Expected Result              |
 | ------- | ------------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------- |
-| AC-15-1 | Storage operator CSV healthy    | `oc get csv -n openshift-operators` ({TIER_PRIMARY}/{TIER_MIDDLE}) or `oc get csv -n openshift-storage` ({TIER_EDGE})           | `Succeeded`                  |
-| AC-15-2 | CSI driver pods running         | `oc get pods -A \| grep -E 'ibm-block\|csi'` ({TIER_PRIMARY}/{TIER_MIDDLE}) or `oc get pods -n openshift-storage` ({TIER_EDGE}) | All pods `Running`           |
-| AC-15-3 | StorageCluster healthy ({TIER_EDGE}) | `oc get storagecluster -n openshift-storage`                                                         | `Phase: Ready`               |
-| AC-15-4 | Default StorageClass annotated  | `oc get storageclass`                                                                                | One class marked `(default)` |
-| AC-15-5 | PVC bind success                | Create test PVC; `oc get pvc`                                                                        | `Bound`                      |
+| AC-14-1 | Storage operator CSV healthy    | `oc get csv -n openshift-operators` (DC/{TIER_MIDDLE}) or `oc get csv -n openshift-storage` ({TIER_EDGE})           | `Succeeded`                  |
+| AC-14-2 | CSI driver pods running         | `oc get pods -A \| grep -E 'ibm-block\|csi'` (DC/{TIER_MIDDLE}) or `oc get pods -n openshift-storage` ({TIER_EDGE}) | All pods `Running`           |
+| AC-14-3 | StorageCluster healthy ({TIER_EDGE}) | `oc get storagecluster -n openshift-storage`                                                         | `Phase: Ready`               |
+| AC-14-4 | Default StorageClass annotated  | `oc get storageclass`                                                                                | One class marked `(default)` |
+| AC-14-5 | PVC bind success                | Create test PVC; `oc get pvc`                                                                        | `Bound`                      |
 
 ---
 
-## LLD-16: Object Storage
+## LLD-15: Object Storage
 
-Deploy ICOS or ODF RGW endpoints for S3-compatible object storage used by Loki, Thanos, and backup workflows. *(ADR 17)*
+Deploy {OBJECT_STORAGE} or ODF RGW endpoints for S3-compatible object storage used by Loki, Thanos, and backup workflows. *(ADR 17)*
 
 ### Prerequisites
 
 | ID      | Item                                                                                     | Owner                   | Status |
 | ------- | ---------------------------------------------------------------------------------------- | ----------------------- | ------ |
-| CG-16-1 | Define and provision the ICOS object storage endpoint, credentials, and bucket layout per datacenter   | Storage / Observability | Open   |
-| CG-16-2 | Confirm whether {TIER_MIDDLE} sites access ICOS over WAN or use a local object storage path                     | Architecture / Storage  | Open   |
-| CG-16-3 | Confirm {TIER_EDGE} object storage gateway is reachable from monitoring and logging workloads               | Platform                | Open   |
+| CG-15-1 | Define and provision the {OBJECT_STORAGE} object storage endpoint, credentials, and bucket layout per datacenter   | Storage / Observability | Open   |
+| CG-15-2 | Confirm whether {TIER_MIDDLE} sites access {OBJECT_STORAGE} over WAN or use a local object storage path                     | Architecture / Storage  | Open   |
+| CG-15-3 | Confirm {TIER_EDGE} object storage gateway is reachable from monitoring and logging workloads               | Platform                | Open   |
 
 ### Dependencies
 
 | Blocked By | Reason                   |
 | ---------- | ------------------------ |
-| LLD-15     | Storage platform healthy |
+| LLD-14     | Storage platform healthy |
 
 ### Sample Configuration
 
@@ -400,7 +400,7 @@ oc get objectbucketclaim -n openshift-logging # **TBD** after ODF/MCO objs defin
 apiVersion: v1
 kind: Secret
 metadata:
-  name: icos-credentials
+  name: object-storage-credentials
   namespace: openshift-logging # **TBD**
 type: Opaque
 stringData:
@@ -410,28 +410,28 @@ stringData:
 
 ### Tier Variance
 
-| Parameter       | {TIER_PRIMARY}           | {TIER_MIDDLE}                    | {TIER_EDGE}                     |
+| Parameter       | DC           | {TIER_MIDDLE}                    | {TIER_EDGE}                     |
 | --------------- | ------------ | ---------------------- | -------------------------- |
-| Object endpoint | ICOS         | ICOS or WAN to {TIER_PRIMARY} ICOS | Local ODF RGW              |
+| Object endpoint | {OBJECT_STORAGE}         | {OBJECT_STORAGE} or WAN to DC {OBJECT_STORAGE} | Local ODF RGW              |
 | WAN dependency  | Typically no | Possibly yes           | WAN N/A for object (local) |
 
 ### Implementation Procedure
 
 **Execution Readiness Checks:**
 
-- [ ] LLD-15 storage platform healthy
-- [ ] Firewall paths to ICOS / RGW open and verified: `curl -sI https://<icos-fqdn>` from cluster node (**TBD** exact ports — typically HTTPS 443)
+- [ ] LLD-14 storage platform healthy
+- [ ] Firewall paths to {OBJECT_STORAGE} / RGW open and verified: `curl -sI https://<object-storage-fqdn>` from cluster node (**TBD** exact ports — typically HTTPS 443)
 
 **Steps:**
 
 1. **Provision buckets/prefixes** per observability/logging design — names **TBD** (immutable vs rotate **TBD**).
 2. **Create credentials Secret** manually from values provided by the infrastructure team.
-3. **Configure Loki/Thanos/ObjectStorage** CRs (**LLD-32**, **LLD-33**) to reference endpoints.
+3. **Configure Loki/Thanos/ObjectStorage** CRs (**LLD-31**, **LLD-32**) to reference endpoints.
 4. **Validate PUT/GET** from a debug pod:
 
 ```bash
 oc run awscli --rm -it --restart=Never --image=amazon/aws-cli -- \\
-  s3 ls s3://<bucket> --endpoint-url=https://<icos-fqdn>
+  s3 ls s3://<bucket> --endpoint-url=https://<object-storage-fqdn>
 ```
 
 **Rollback:**
@@ -442,13 +442,13 @@ oc run awscli --rm -it --restart=Never --image=amazon/aws-cli -- \\
 
 | ID      | Criterion                          | Test                                                               | Expected Result         |
 | ------- | ---------------------------------- | ------------------------------------------------------------------ | ----------------------- |
-| AC-16-1 | S3 endpoint reachable from cluster | CURL/HTTPS probe from bastion-aligned pod **TBD**                  | Success                 |
-| AC-16-2 | Credentials secret present         | `oc get secret icos-credentials -n openshift-logging` (**TBD** ns) | `TYPE`/`DATA` populated |
-| AC-16-3 | Writes succeed                     | Controlled test upload to bucket                                   | Success                 |
+| AC-15-1 | S3 endpoint reachable from cluster | CURL/HTTPS probe from bastion-aligned pod **TBD**                  | Success                 |
+| AC-15-2 | Credentials secret present         | `oc get secret object-storage-credentials -n openshift-logging` (**TBD** ns) | `TYPE`/`DATA` populated |
+| AC-15-3 | Writes succeed                     | Controlled test upload to bucket                                   | Success                 |
 
 ---
 
-## LLD-17: Network Segregation Strategy
+## LLD-16: Network Segregation Strategy
 
 Define physical vNIC-to-traffic-type mapping and VLAN segregation for management, VM data, live migration, and backup networks. *(ADR 11)*
 
@@ -456,9 +456,9 @@ Define physical vNIC-to-traffic-type mapping and VLAN segregation for management
 
 | ID      | Item                                                                                          | Owner            | Status |
 | ------- | --------------------------------------------------------------------------------------------- | ---------------- | ------ |
-| CG-17-1 | Finalize VLAN assignments to each network interface on nodes, including migration and {BACKUP_VENDOR} backup VLANs | Network / Virt   | Open   |
-| CG-17-2 | Confirm with {BACKUP_VENDOR} whether the backup network interface uses a trunk port or a single VLAN            | Network / Backup | Open   |
-| CG-17-3 | Validate Quality of Service traffic shaping on the shared 100G network pipe with the Network team               | Network          | Open   |
+| CG-16-1 | Finalize VLAN assignments to each network interface on nodes, including migration and {BACKUP_VENDOR} backup VLANs | Network / Virt   | Open   |
+| CG-16-2 | Confirm with {BACKUP_VENDOR} whether the backup network interface uses a trunk port or a single VLAN            | Network / Backup | Open   |
+| CG-16-3 | Validate Quality of Service traffic shaping on the shared 100G network pipe with the Network team               | Network          | Open   |
 
 ### Dependencies
 
@@ -490,7 +490,7 @@ vNIC3: Backup — MTU 9000
 
 ### Tier Variance
 
-| Parameter  | {TIER_PRIMARY}             | {TIER_MIDDLE}                             | {TIER_EDGE}            |
+| Parameter  | DC             | {TIER_MIDDLE}                             | {TIER_EDGE}            |
 | ---------- | -------------- | ------------------------------- | ----------------- |
 | vNIC count | 4 (FI-managed) | 4 baseline; disjoint L2 **TBD** | 2 (**TBD** final) |
 
@@ -520,13 +520,13 @@ oc debug node/<name> -- chroot /host ip -br link
 
 | ID      | Criterion                             | Test                                                            | Expected Result                                                  |
 | ------- | ------------------------------------- | --------------------------------------------------------------- | ---------------------------------------------------------------- |
-| AC-17-1 | Four NIC roles present {TIER_PRIMARY}/CFI-managed | BMC console / SOS report                                        | Interfaces enumerated match design                               |
-| AC-17-2 | Migration MTU end-to-end              | `ping -M do -s 8972 <peer>` (**TBD** source IP)                 | No fragmentation along path                                      |
-| AC-17-3 | No OCP-managed bonds on nodes         | `oc debug node/<name> -- chroot /host ip -br link \| grep bond` | Empty (no bond devices) unless documented {TIER_MIDDLE} disjoint exception |
+| AC-16-1 | Four NIC roles present DC/CFI-managed | BMC console / SOS report                                        | Interfaces enumerated match design                               |
+| AC-16-2 | Migration MTU end-to-end              | `ping -M do -s 8972 <peer>` (**TBD** source IP)                 | No fragmentation along path                                      |
+| AC-16-3 | No OCP-managed bonds on nodes         | `oc debug node/<name> -- chroot /host ip -br link \| grep bond` | Empty (no bond devices) unless documented {TIER_MIDDLE} disjoint exception |
 
 ---
 
-## LLD-18: NAD Scope & VLAN Strategy
+## LLD-17: NAD Scope & VLAN Strategy
 
 Create Network Attachment Definitions for each VM-facing VLAN to enable secondary network interfaces on virtualized workloads. *(ADR 9, 10)*
 
@@ -534,14 +534,14 @@ Create Network Attachment Definitions for each VM-facing VLAN to enable secondar
 
 | ID      | Item                                                      | Owner    | Status |
 | ------- | --------------------------------------------------------- | -------- | ------ |
-| CG-18-1 | Deliver the final, authoritative VLAN list for each site                                | Network  | Open   |
-| CG-18-2 | Agree on naming conventions and label standards for network attachment definitions      | Platform | Open   |
+| CG-17-1 | Deliver the final, authoritative VLAN list for each site                                | Network  | Open   |
+| CG-17-2 | Agree on naming conventions and label standards for network attachment definitions      | Platform | Open   |
 
 ### Dependencies
 
 | Blocked By | Reason                                |
 | ---------- | ------------------------------------- |
-| LLD-17     | Network segregation strategy approved |
+| LLD-16     | Network segregation strategy approved |
 
 ### Configuration Parameters
 
@@ -577,7 +577,7 @@ spec:
 
 ### Tier Variance
 
-| Parameter    | {TIER_PRIMARY}                           | {TIER_MIDDLE}              | {TIER_EDGE}                                  |
+| Parameter    | DC                           | {TIER_MIDDLE}              | {TIER_EDGE}                                  |
 | ------------ | ---------------------------- | ---------------- | --------------------------------------- |
 | VLAN catalog | Primary data center VLAN set | Possibly reduced | Shared /23 context — VLAN count **TBD** |
 
@@ -610,12 +610,12 @@ oc delete net-attach-def vlan-412 -n default # only if unused
 
 | ID      | Criterion                           | Test                   | Expected Result                  |
 | ------- | ----------------------------------- | ---------------------- | -------------------------------- |
-| AC-18-1 | NAD count matches VLAN manifest     | Scripted diff vs sheet | Exact match (**TBD** automation) |
-| AC-18-2 | NAD only in designated namespace(s) | `oc get nad -A`        | `default` (+ exceptions **TBD**) |
+| AC-17-1 | NAD count matches VLAN manifest     | Scripted diff vs sheet | Exact match (**TBD** automation) |
+| AC-17-2 | NAD only in designated namespace(s) | `oc get nad -A`        | `default` (+ exceptions **TBD**) |
 
 ---
 
-## LLD-19: MAC Spoof Filtering
+## LLD-18: MAC Spoof Filtering
 
 Configure MAC spoof check policy on OVS bridges to control whether VMs can use arbitrary MAC addresses on secondary networks. *(ADR 8, 25)*
 
@@ -623,14 +623,14 @@ Configure MAC spoof check policy on OVS bridges to control whether VMs can use a
 
 | ID      | Item                                                                                                          | Owner           | Status |
 | ------- | ------------------------------------------------------------------------------------------------------------- | --------------- | ------ |
-| CG-19-1 | Decide whether to enable MAC spoofing prevention (CIS OCP-V control 4.2) on Day 1 or log a formal security exception | Security / Virt | Open   |
-| CG-19-2 | Validate in sandbox that MAC spoofing prevention works correctly on all applicable network bridge configurations     | Platform        | Open   |
+| CG-18-1 | Decide whether to enable MAC spoofing prevention (CIS OCP-V control 4.2) on Day 1 or log a formal security exception | Security / Virt | Open   |
+| CG-18-2 | Validate in sandbox that MAC spoofing prevention works correctly on all applicable network bridge configurations     | Platform        | Open   |
 
 ### Dependencies
 
 | Blocked By | Reason       |
 | ---------- | ------------ |
-| LLD-18     | NADs created |
+| LLD-17     | NADs created |
 
 ### Configuration Parameters
 
@@ -661,7 +661,7 @@ spec:
 
 ### Tier Variance
 
-| Parameter        | {TIER_PRIMARY}                           | {TIER_MIDDLE}   | {TIER_EDGE} |
+| Parameter        | DC                           | {TIER_MIDDLE}   | {TIER_EDGE} |
 | ---------------- | ---------------------------- | ----- | ------ |
 | Enforcement wave | Pilot after CIS triage Pilot | Pilot | Pilot  |
 
@@ -691,12 +691,12 @@ oc get net-attach-def br402-macchk -n default -o jsonpath='{.spec.config}' | jq 
 
 | ID      | Criterion                                    | Test                                | Expected Result    |
 | ------- | -------------------------------------------- | ----------------------------------- | ------------------ |
-| AC-19-1 | When enabled, config includes mac spoof flag | `oc get net-attach-def <n> -o yaml` | `macspoofchk` true |
-| AC-19-2 | No VM attach regression for golden VM tests  | Manual console + ping               | Pass               |
+| AC-18-1 | When enabled, config includes mac spoof flag | `oc get net-attach-def <n> -o yaml` | `macspoofchk` true |
+| AC-18-2 | No VM attach regression for golden VM tests  | Manual console + ping               | Pass               |
 
 ---
 
-## LLD-20: Network Tuning
+## LLD-19: Network Tuning
 
 Validate end-to-end MTU across all VLANs and tune OVN-Kubernetes and migration bandwidth settings for optimal throughput. *(ADR 11, 40)*
 
@@ -704,14 +704,14 @@ Validate end-to-end MTU across all VLANs and tune OVN-Kubernetes and migration b
 
 | ID      | Item                                                          | Owner              | Status |
 | ------- | ------------------------------------------------------------- | ------------------ | ------ |
-| CG-20-1 | Validate MTU size end-to-end across all VLANs to confirm no packet fragmentation occurs          | Network / Platform | Open   |
-| CG-20-2 | Review and set VM live migration bandwidth limits in the virtualisation platform configuration    | Platform / Virt    | Open   |
+| CG-19-1 | Validate MTU size end-to-end across all VLANs to confirm no packet fragmentation occurs          | Network / Platform | Open   |
+| CG-19-2 | Review and set VM live migration bandwidth limits in the virtualisation platform configuration    | Platform / Virt    | Open   |
 
 ### Dependencies
 
 | Blocked By | Reason                                                          |
 | ---------- | --------------------------------------------------------------- |
-| LLD-17     | Network segregation strategy approved; NMState policies applied |
+| LLD-16     | Network segregation strategy approved; NMState policies applied |
 
 ### Configuration Parameters
 
@@ -721,7 +721,7 @@ Validate end-to-end MTU across all VLANs and tune OVN-Kubernetes and migration b
 | MTU (migration VLAN)      | 9000                       | Dedicated migration network MTU                                  | HLD Phase 2           |
 | MTU (storage VLAN)        | 9000                       | FC SAN not applicable; NFS/iSCSI if used                         | HLD                   |
 | OVN-K gateway mode        | `local` or `shared`        | **TBD** per cluster topology                                     | OCP networking docs   |
-| Migration bandwidth limit | `0` (unlimited) or **TBD** | HyperConverged `.spec.liveMigrationConfig.bandwidthPerMigration` | LLD-34                |
+| Migration bandwidth limit | `0` (unlimited) or **TBD** | HyperConverged `.spec.liveMigrationConfig.bandwidthPerMigration` | LLD-33                |
 
 ### Sample Configuration
 
@@ -753,7 +753,7 @@ ping -M do -s 8972 <remote-node-migration-ip>
 
 ### Tier Variance
 
-| Parameter     | {TIER_PRIMARY}         | {TIER_MIDDLE}        | {TIER_EDGE}                      |
+| Parameter     | DC         | {TIER_MIDDLE}        | {TIER_EDGE}                      |
 | ------------- | ---------- | ---------- | --------------------------- |
 | Jumbo frames  | Yes (9000) | Yes (9000) | **TBD** — switch capability |
 | OVN-K gateway | **TBD**    | **TBD**    | `local` (compact)           |
@@ -763,13 +763,13 @@ ping -M do -s 8972 <remote-node-migration-ip>
 **Execution Readiness Checks:**
 
 - [ ] Physical switch MTU confirmed by network team
-- [ ] NMState policies from LLD-17 applied
+- [ ] NMState policies from LLD-16 applied
 
 **Steps:**
 
 1. Validate end-to-end MTU on every VLAN with `ping -M do -s <mtu-28>`.
 2. Confirm OVN-K CNI MTU matches fabric (`oc get network.config cluster -o jsonpath='{.status.clusterNetworkMTU}'`).
-3. If migration bandwidth contention is observed, patch `bandwidthPerMigration` on the existing HCO CR (created in **LLD-34**, migration config set in **LLD-35**):
+3. If migration bandwidth contention is observed, patch `bandwidthPerMigration` on the existing HCO CR (created in **LLD-33**, migration config set in **LLD-34**):
 
 ```bash
 oc patch hyperconverged kubevirt-hyperconverged -n openshift-cnv --type merge -p '{
@@ -796,12 +796,12 @@ ping -M do -s 8972 <peer-node-ip>
 
 | ID      | Criterion               | Test                    | Expected Result  |
 | ------- | ----------------------- | ----------------------- | ---------------- |
-| AC-20-1 | Jumbo frames end-to-end | `ping -M do -s 8972`    | No fragmentation |
-| AC-20-2 | OVN-K MTU matches       | `network.config` status | Expected value   |
+| AC-19-1 | Jumbo frames end-to-end | `ping -M do -s 8972`    | No fragmentation |
+| AC-19-2 | OVN-K MTU matches       | `network.config` status | Expected value   |
 
 ---
 
-## LLD-21: etcd Encryption
+## LLD-20: etcd Encryption
 
 Enable encryption at rest for Secrets, ConfigMaps, and other sensitive resources stored in etcd using AES-CBC or AES-GCM. *(ADR 21)*
 
@@ -809,9 +809,9 @@ Enable encryption at rest for Secrets, ConfigMaps, and other sensitive resources
 
 | ID      | Item                                                                                        | Owner               | Status |
 | ------- | ------------------------------------------------------------------------------------------- | ------------------- | ------ |
-| CG-21-1 | Obtain InfoSec approval for the etcd encryption algorithm selection (AES-CBC vs AES-GCM)                              | Security            | Open   |
-| CG-21-2 | Document the encryption key storage and rotation procedure in a secure offline location (vault migration post-Phase 2) | Platform / Security | Open   |
-| CG-21-3 | Complete an etcd backup and restore drill that covers the encrypted cluster state                                      | Platform            | Open   |
+| CG-20-1 | Obtain InfoSec approval for the etcd encryption algorithm selection (AES-CBC vs AES-GCM)                              | Security            | Open   |
+| CG-20-2 | Document the encryption key storage and rotation procedure in a secure offline location (vault migration post-Phase 2) | Platform / Security | Open   |
+| CG-20-3 | Complete an etcd backup and restore drill that covers the encrypted cluster state                                      | Platform            | Open   |
 
 ### Dependencies
 
@@ -852,7 +852,7 @@ oc get etcd -o jsonpath='{.items[0].status.conditions}' | jq
 
 ### Tier Variance
 
-| Parameter   | {TIER_PRIMARY}      | {TIER_MIDDLE}     | {TIER_EDGE}  |
+| Parameter   | DC      | {TIER_MIDDLE}     | {TIER_EDGE}  |
 | ----------- | ------- | ------- | ------- |
 | Requirement | Encrypt | Encrypt | Encrypt |
 
@@ -884,12 +884,12 @@ oc get apiserver cluster -o jsonpath='{.spec.encryption.type}'
 
 | ID      | Criterion                | Test                                                             | Expected Result      |
 | ------- | ------------------------ | ---------------------------------------------------------------- | -------------------- |
-| AC-21-1 | etcd encryption type set | `oc get apiserver cluster -o jsonpath='{.spec.encryption.type}'` | `aesgcm` or approved |
-| AC-21-2 | etcd reports migrated    | Encryption operator status (**TBD** exact field)                 | Complete             |
+| AC-20-1 | etcd encryption type set | `oc get apiserver cluster -o jsonpath='{.spec.encryption.type}'` | `aesgcm` or approved |
+| AC-20-2 | etcd reports migrated    | Encryption operator status (**TBD** exact field)                 | Complete             |
 
 ---
 
-## LLD-22: Audit Logging Policy
+## LLD-21: Audit Logging Policy
 
 Configure the OCP audit log profile and forwarding rules to ensure API server events are captured and shipped to {SIEM_PLATFORM}. *(ADR 26)*
 
@@ -897,8 +897,8 @@ Configure the OCP audit log profile and forwarding rules to ensure API server ev
 
 | ID      | Item                                                                                    | Owner         | Status |
 | ------- | --------------------------------------------------------------------------------------- | ------------- | ------ |
-| CG-22-1 | Unpark and decide the API audit logging verbosity level (Default, WriteRequestBodies, or AllRequestBodies) | InfoSec       | Open   |
-| CG-22-2 | Integrate agreed audit log filters into the {SIEM_PLATFORM} log pipeline                                  | Observability | Open   |
+| CG-21-1 | Unpark and decide the API audit logging verbosity level (Default, WriteRequestBodies, or AllRequestBodies) | InfoSec       | Open   |
+| CG-21-2 | Integrate agreed audit log filters into the {SIEM_PLATFORM} log pipeline                                  | Observability | Open   |
 
 ### Dependencies
 
@@ -908,7 +908,7 @@ Configure the OCP audit log profile and forwarding rules to ensure API server ev
 
 ### Sample Configuration
 
-> **Note:** The `APIServer/cluster` resource is also modified by **LLD-21** (etcd encryption — `spec.encryption`). This step patches only `spec.audit.profile` on the same object.
+> **Note:** The `APIServer/cluster` resource is also modified by **LLD-20** (etcd encryption — `spec.encryption`). This step patches only `spec.audit.profile` on the same object.
 
 **When approved — patch `APIServer` audit profile:**
 
@@ -919,7 +919,7 @@ oc patch apiserver cluster --type=merge -p '{"spec":{"audit":{"profile":"WriteRe
 
 ### Tier Variance
 
-| Parameter | {TIER_PRIMARY}                            | {TIER_MIDDLE}  | {TIER_EDGE} |
+| Parameter | DC                            | {TIER_MIDDLE}  | {TIER_EDGE} |
 | --------- | ----------------------------- | ---- | ------ |
 | Profile   | **TBD** single fleet standard | Same | Same   |
 
@@ -949,12 +949,12 @@ oc get apiserver cluster -o jsonpath='{.spec.audit.profile}'
 
 | ID      | Criterion                                    | Test                  | Expected Result   |
 | ------- | -------------------------------------------- | --------------------- | ----------------- |
-| AC-22-1 | Documented profile                           | Runbook               | Lists chosen enum |
-| AC-22-2 | {SIEM_PLATFORM} sourcetype sees expected event volume | {SIEM_PLATFORM} search **TBD** | Baseline chart    |
+| AC-21-1 | Documented profile                           | Runbook               | Lists chosen enum |
+| AC-21-2 | {SIEM_PLATFORM} sourcetype sees expected event volume | {SIEM_PLATFORM} search **TBD** | Baseline chart    |
 
 ---
 
-## LLD-23: Secret Management Approach
+## LLD-22: Secret Management Approach
 
 Manage cluster secrets via manual `oc create secret` during Phase 2, with a documented inventory for future migration to an automated vault (ESO + {SECRET_MGMT_VENDOR}) post-Phase 2. *(ADR 20)*
 
@@ -964,9 +964,9 @@ Manage cluster secrets via manual `oc create secret` during Phase 2, with a docu
 
 | ID      | Item                                                                                             | Owner    | Status |
 | ------- | ------------------------------------------------------------------------------------------------ | -------- | ------ |
-| CG-23-1 | Complete the secrets inventory listing every manually managed secret, its namespace, and rotation schedule  | Platform | Open   |
-| CG-23-2 | Create all required secrets manually to unblock downstream LLD work                                        | Platform | Open   |
-| CG-23-3 | Confirm no plaintext secrets are committed to Git (automated scanning in place)                            | Platform | Open   |
+| CG-22-1 | Complete the secrets inventory listing every manually managed secret, its namespace, and rotation schedule  | Platform | Open   |
+| CG-22-2 | Create all required secrets manually to unblock downstream LLD work                                        | Platform | Open   |
+| CG-22-3 | Confirm no plaintext secrets are committed to Git (automated scanning in place)                            | Platform | Open   |
 
 ### Dependencies
 
@@ -990,22 +990,22 @@ oc create secret generic ldap-bind-secret \
 | --- | ------------------------------ | ---------- | ---------------------- | ------------------------------------------------------------------ | ------------------- | --------------- | -------------- | ------ |
 | 1   | `custom-ingress-cert`          | TLS Secret | `openshift-ingress`    | Ingress wildcard certificate + key                                 | Security / PKI      | Per cert expiry | Phase 1 LLD-13 | All    |
 | 2   | `api-server-cert`              | TLS Secret | `openshift-config`     | API server certificate + key                                       | Security / PKI      | Per cert expiry | Phase 1 LLD-13 | All    |
-| 3   | `{BLOCK_STORAGE_LOWER}-array-secret`     | Opaque     | `openshift-operators`  | {BLOCK_STORAGE_VENDOR} management address + credentials                       | Storage             | Per policy      | LLD-15         | {TIER_PRIMARY}/{TIER_MIDDLE} |
-| 4   | `icos-credentials`             | Opaque     | `openshift-logging`    | ICOS S3 access key + secret key                                    | Infrastructure      | Per policy      | LLD-16         | {TIER_PRIMARY}/{TIER_MIDDLE} |
-| 5   | `ldap-bind-secret`             | Opaque     | `openshift-config`     | LDAP bind DN password for OAuth                                    | IAM                 | 90 days         | LLD-24         | All    |
-| 6   | `ldap-ca-bundle`               | ConfigMap  | `openshift-config`     | LDAP server CA certificate bundle                                  | IAM / PKI           | Per cert expiry | LLD-24         | All    |
-| 7   | `ldap-sync-secret`             | Opaque     | `openshift-config`     | LDAP group sync bind password                                      | IAM                 | 90 days         | LLD-24         | All    |
-| 8   | `htpasswd-secret`              | Opaque     | `openshift-config`     | Breakglass user htpasswd file                                      | Security            | Per policy      | LLD-26         | All    |
-| 9   | `{SIEM_LOWER}-hec-token`             | Opaque     | `openshift-logging`    | {SIEM_PLATFORM} HEC ingest token                                            | {SIEM_PLATFORM}              | Per policy      | LLD-33         | All    |
-| 10  | `loki-object-storage`          | Opaque     | `openshift-logging`    | Loki S3 backend credentials (access key, secret, bucket, endpoint) | Infrastructure      | Per policy      | LLD-33         | All    |
-| 11  | `alertmanager-{EVENT_MGMT_LOWER}-config` | Opaque     | `openshift-monitoring` | AlertManager webhook URL + auth for {NOC_PLATFORM}                       | NOC / Observability | Per policy      | LLD-31         | All    |
-| 12  | `vcenter-credentials`          | Opaque     | `openshift-mtv`        | vCenter service account + password + thumbprint                    | VMware              | Per policy      | LLD-42         | All    |
+| 3   | `{BLOCK_STORAGE_LOWER}-array-secret`     | Opaque     | `openshift-operators`  | {BLOCK_STORAGE_ARRAY} management address + credentials                       | Storage             | Per policy      | LLD-14         | DC/{TIER_MIDDLE} |
+| 4   | `object-storage-credentials`             | Opaque     | `openshift-logging`    | {OBJECT_STORAGE} S3 access key + secret key                                    | Infrastructure      | Per policy      | LLD-15         | DC/{TIER_MIDDLE} |
+| 5   | `ldap-bind-secret`             | Opaque     | `openshift-config`     | LDAP bind DN password for OAuth                                    | IAM                 | 90 days         | LLD-23         | All    |
+| 6   | `ldap-ca-bundle`               | ConfigMap  | `openshift-config`     | LDAP server CA certificate bundle                                  | IAM / PKI           | Per cert expiry | LLD-23         | All    |
+| 7   | `ldap-sync-secret`             | Opaque     | `openshift-config`     | LDAP group sync bind password                                      | IAM                 | 90 days         | LLD-23         | All    |
+| 8   | `htpasswd-secret`              | Opaque     | `openshift-config`     | Breakglass user htpasswd file                                      | Security            | Per policy      | LLD-25         | All    |
+| 9   | `{SIEM_LOWER}-hec-token`             | Opaque     | `openshift-logging`    | {SIEM_PLATFORM} HEC ingest token                                            | {SIEM_PLATFORM}              | Per policy      | LLD-32         | All    |
+| 10  | `loki-object-storage`          | Opaque     | `openshift-logging`    | Loki S3 backend credentials (access key, secret, bucket, endpoint) | Infrastructure      | Per policy      | LLD-32         | All    |
+| 11  | `alertmanager-{EVENT_MGMT_LOWER}-config` | Opaque     | `openshift-monitoring` | AlertManager webhook URL + auth for {EVENT_MGMT_PLATFORM}                       | NOC / Observability | Per policy      | LLD-30         | All    |
+| 12  | `vcenter-credentials`          | Opaque     | `openshift-mtv`        | vCenter service account + password + thumbprint                    | VMware              | Per policy      | LLD-41         | All    |
 
 ### Tier Variance
 
-| Parameter    | {TIER_PRIMARY}               | {TIER_MIDDLE}              | {TIER_EDGE}                                                    |
+| Parameter    | DC               | {TIER_MIDDLE}              | {TIER_EDGE}                                                    |
 | ------------ | ---------------- | ---------------- | --------------------------------------------------------- |
-| Secret count | 12 (all entries) | 12 (all entries) | 10 (no #3 {BLOCK_STORAGE_VENDOR}, no #4 ICOS — uses ODF RGW locally) |
+| Secret count | 12 (all entries) | 12 (all entries) | 10 (no #3 {BLOCK_STORAGE_ARRAY}, no #4 {OBJECT_STORAGE} — uses ODF RGW locally) |
 
 ### Implementation Procedure
 
@@ -1016,7 +1016,7 @@ oc create secret generic ldap-bind-secret \
 
 **Steps:**
 
-1. **Populate secret catalog** with every secret required across LLD-15 through LLD-46.
+1. **Populate secret catalog** with every secret required across LLD-14 through LLD-45.
 2. **Create each secret** using `oc create secret` — one per catalog entry.
 3. **Verify all secrets exist** in their target namespaces.
 4. **Document rotation schedule** in deployment record for manual rotation until ESO is available.
@@ -1028,22 +1028,22 @@ oc create secret generic ldap-bind-secret \
 oc get secret custom-ingress-cert -n openshift-ingress
 oc get secret api-server-cert -n openshift-config
 
-# Storage (LLD-15, LLD-16)
-oc get secret {BLOCK_STORAGE_LOWER}-array-secret -n openshift-operators   # {TIER_PRIMARY}/{TIER_MIDDLE} only
-oc get secret icos-credentials -n openshift-logging              # {TIER_PRIMARY}/{TIER_MIDDLE} only
+# Storage (LLD-14, LLD-15)
+oc get secret {BLOCK_STORAGE_LOWER}-array-secret -n openshift-operators   # DC/{TIER_MIDDLE} only
+oc get secret object-storage-credentials -n openshift-logging              # DC/{TIER_MIDDLE} only
 
-# Identity (LLD-24, LLD-26)
+# Identity (LLD-23, LLD-25)
 oc get secret ldap-bind-secret -n openshift-config
 oc get configmap ldap-ca-bundle -n openshift-config
 oc get secret ldap-sync-secret -n openshift-config
 oc get secret htpasswd-secret -n openshift-config
 
-# Observability (LLD-31, LLD-33)
+# Observability (LLD-30, LLD-32)
 oc get secret {SIEM_LOWER}-hec-token -n openshift-logging
 oc get secret loki-object-storage -n openshift-logging
 oc get secret alertmanager-{EVENT_MGMT_LOWER}-config -n openshift-monitoring
 
-# Migration (LLD-42)
+# Migration (LLD-41)
 oc get secret vcenter-credentials -n openshift-mtv
 ```
 
@@ -1055,13 +1055,13 @@ oc get secret vcenter-credentials -n openshift-mtv
 
 | ID      | Criterion                     | Test                                          | Expected Result          |
 | ------- | ----------------------------- | --------------------------------------------- | ------------------------ |
-| AC-23-1 | All cataloged secrets present | `oc get secret <name> -n <ns>` for each entry | Exists with correct keys |
-| AC-23-2 | No plaintext secrets in Git   | Repo scanner                                  | Clean                    |
-| AC-23-3 | Secret catalog documented     | Deployment record artifact                    | All entries populated    |
+| AC-22-1 | All cataloged secrets present | `oc get secret <name> -n <ns>` for each entry | Exists with correct keys |
+| AC-22-2 | No plaintext secrets in Git   | Repo scanner                                  | Clean                    |
+| AC-22-3 | Secret catalog documented     | Deployment record artifact                    | All entries populated    |
 
 ---
 
-## LLD-24: Identity & Access Model
+## LLD-23: Identity & Access Model
 
 Integrate OAuth with {CLIENT} LDAP for cluster authentication, mapping enterprise groups to OCP roles for interactive login. *(ADR 28)*
 
@@ -1069,15 +1069,15 @@ Integrate OAuth with {CLIENT} LDAP for cluster authentication, mapping enterpris
 
 | ID      | Item                                                                          | Owner          | Status |
 | ------- | ----------------------------------------------------------------------------- | -------------- | ------ |
-| CG-24-1 | Receive LDAP connection details, bind credentials, TLS requirements, and group schema from IAM team          | IAM / Security | Open   |
-| CG-24-2 | Review and approve the LDAP identity provider and group sync configuration manifests                         | Platform       | Open   |
-| CG-24-3 | Define and document the privileged access model for Phase 2 (manual credential management is acceptable now) | Security       | Open   |
+| CG-23-1 | Receive LDAP connection details, bind credentials, TLS requirements, and group schema from IAM team          | IAM / Security | Open   |
+| CG-23-2 | Review and approve the LDAP identity provider and group sync configuration manifests                         | Platform       | Open   |
+| CG-23-3 | Define and document the privileged access model for Phase 2 (manual credential management is acceptable now) | Security       | Open   |
 
 ### Dependencies
 
 | Blocked By | Reason                              |
 | ---------- | ----------------------------------- |
-| LLD-23     | Secret management approach deployed |
+| LLD-22     | Secret management approach deployed |
 
 ### Sample Configuration
 
@@ -1132,7 +1132,7 @@ groupUIDNameMapping:
 
 ### Tier Variance
 
-| Parameter | {TIER_PRIMARY}                    | {TIER_MIDDLE}           | {TIER_EDGE}                   |
+| Parameter | DC                    | {TIER_MIDDLE}           | {TIER_EDGE}                   |
 | --------- | --------------------- | ------------- | ------------------------ |
 | LDAP view | Possibly same forests | Possibly same | {TIER_EDGE} LDAP path **TBD** |
 
@@ -1169,12 +1169,12 @@ oc patch oauth cluster --type json -p '[{"op":"remove","path":"/spec/identityPro
 
 | ID      | Criterion          | Test                                 | Expected Result       |
 | ------- | ------------------ | ------------------------------------ | --------------------- |
-| AC-24-1 | LDAP login success | Attempt console login test account   | Successful            |
-| AC-24-2 | Groups visible     | `oc get identity` / `groups` objects | Mapped groups present |
+| AC-23-1 | LDAP login success | Attempt console login test account   | Successful            |
+| AC-23-2 | Groups visible     | `oc get identity` / `groups` objects | Mapped groups present |
 
 ---
 
-## LLD-25: RBAC Assignments
+## LLD-24: RBAC Assignments
 
 Define ClusterRoleBindings and RoleBindings that map LDAP groups to platform-admin, VM-admin, and viewer roles. *(ADR 28)*
 
@@ -1182,15 +1182,15 @@ Define ClusterRoleBindings and RoleBindings that map LDAP groups to platform-adm
 
 | ID      | Item                                                    | Owner                    | Status |
 | ------- | ------------------------------------------------------- | ------------------------ | ------ |
-| CG-25-1 | Deliver the access requirements enumeration from the business team                                         | Business / Virt          | Open   |
-| CG-25-2 | Draft minimum-privilege role definitions for {BACKUP_VENDOR} operators, OS teams, and application owners  | Security                 | Open   |
-| CG-25-3 | Lock the namespace design sufficiently to allow role bindings to be written (depends on LLD-28)            | **TBD** — depends LLD-28 | Open   |
+| CG-24-1 | Deliver the access requirements enumeration from the business team                                         | Business / Virt          | Open   |
+| CG-24-2 | Draft minimum-privilege role definitions for {BACKUP_VENDOR} operators, OS teams, and application owners  | Security                 | Open   |
+| CG-24-3 | Lock the namespace design sufficiently to allow role bindings to be written (depends on LLD-27)            | **TBD** — depends LLD-27 | Open   |
 
 ### Dependencies
 
 | Blocked By | Reason                       |
 | ---------- | ---------------------------- |
-| LLD-24     | Identity provider integrated |
+| LLD-23     | Identity provider integrated |
 
 ### Sample Configuration
 
@@ -1215,7 +1215,7 @@ rules:
 
 ### Tier Variance
 
-| Parameter        | {TIER_PRIMARY}                   | {TIER_MIDDLE}    | {TIER_EDGE}  |
+| Parameter        | DC                   | {TIER_MIDDLE}    | {TIER_EDGE}  |
 | ---------------- | -------------------- | ------ | ------- |
 | Role cardinality | Larger staff surface | Medium | Reduced |
 
@@ -1245,12 +1245,12 @@ oc auth can-i create virtualmachines -n <ns> --as-group=<group>
 
 | ID      | Criterion                                    | Test                  | Expected Result     |
 | ------- | -------------------------------------------- | --------------------- | ------------------- |
-| AC-25-1 | Least privilege spot checks                  | `can-i` matrix sample | Expected deny/allow |
-| AC-25-2 | {BACKUP_VENDOR} SA / user perms functional for backup | {BACKUP_VENDOR} job dry-run    | Success             |
+| AC-24-1 | Least privilege spot checks                  | `can-i` matrix sample | Expected deny/allow |
+| AC-24-2 | {BACKUP_VENDOR} SA / user perms functional for backup | {BACKUP_VENDOR} job dry-run    | Success             |
 
 ---
 
-## LLD-26: Breakglass Account
+## LLD-25: Breakglass Account
 
 Create a local HTPasswd breakglass user with cluster-admin privileges for IdP outage scenarios, with credentials stored securely offline. *(ADR 22)*
 
@@ -1258,9 +1258,9 @@ Create a local HTPasswd breakglass user with cluster-admin privileges for IdP ou
 
 | ID      | Item                                                                                         | Owner    | Status |
 | ------- | -------------------------------------------------------------------------------------------- | -------- | ------ |
-| CG-26-1 | Generate breakglass credentials and store them securely offline (vault migration planned post-Phase 2) | Security | Open   |
-| CG-26-2 | Apply the breakglass identity provider configuration to the cluster                                   | Platform | Open   |
-| CG-26-3 | Schedule recurring breakglass access exercise to confirm credentials remain valid                     | Security | Open   |
+| CG-25-1 | Generate breakglass credentials and store them securely offline (vault migration planned post-Phase 2) | Security | Open   |
+| CG-25-2 | Apply the breakglass identity provider configuration to the cluster                                   | Platform | Open   |
+| CG-25-3 | Schedule recurring breakglass access exercise to confirm credentials remain valid                     | Security | Open   |
 
 ### Dependencies
 
@@ -1270,7 +1270,7 @@ Create a local HTPasswd breakglass user with cluster-admin privileges for IdP ou
 
 ### Sample Configuration
 
-> **Note:** If **LLD-24** (LDAP identity provider) has already been applied, this step appends the htpasswd breakglass provider to the existing `identityProviders` array — do not overwrite the LDAP provider. If LLD-24 has not yet been applied, this creates the initial `identityProviders` array.
+> **Note:** If **LLD-23** (LDAP identity provider) has already been applied, this step appends the htpasswd breakglass provider to the existing `identityProviders` array — do not overwrite the LDAP provider. If LLD-23 has not yet been applied, this creates the initial `identityProviders` array.
 
 **Create secret:**
 
@@ -1279,7 +1279,7 @@ htpasswd -B -b /tmp/htpasswd breakout '<password>'
 oc create secret generic htpasswd-secret -n openshift-config --from-file=htpasswd=/tmp/htpasswd
 ```
 
-**Append htpasswd provider to existing OAuth (preserves LLD-24 LDAP provider):**
+**Append htpasswd provider to existing OAuth (preserves LLD-23 LDAP provider):**
 
 ```bash
 oc patch oauth cluster --type json -p '[{
@@ -1300,7 +1300,7 @@ oc patch oauth cluster --type json -p '[{
 
 ### Tier Variance
 
-| Parameter | {TIER_PRIMARY}   | {TIER_MIDDLE}  | {TIER_EDGE} |
+| Parameter | DC   | {TIER_MIDDLE}  | {TIER_EDGE} |
 | --------- | ---- | ---- | ------ |
 | Policy    | Same | Same | Same   |
 
@@ -1332,12 +1332,12 @@ oc login https://api.<cluster>.<domain>:6443 -u breakout
 
 | ID      | Criterion                    | Test                   | Expected Result |
 | ------- | ---------------------------- | ---------------------- | --------------- |
-| AC-26-1 | LDAP outage simulation login | Controlled test window | Successful      |
-| AC-26-2 | Secret not in Git            | Repo scan              | Clean           |
+| AC-25-1 | LDAP outage simulation login | Controlled test window | Successful      |
+| AC-25-2 | Secret not in Git            | Repo scan              | Clean           |
 
 ---
 
-## LLD-27: Self-Provisioner Policy
+## LLD-26: Self-Provisioner Policy
 
 Remove the default self-provisioner ClusterRoleBinding to prevent authenticated users from creating namespaces without approval. *(ADR 30)*
 
@@ -1345,8 +1345,8 @@ Remove the default self-provisioner ClusterRoleBinding to prevent authenticated 
 
 | ID      | Item                                                                 | Owner    | Status |
 | ------- | -------------------------------------------------------------------- | -------- | ------ |
-| CG-27-1 | Remove or disable the default permission that allows any user to create namespaces without approval | Platform | Open   |
-| CG-27-2 | Document the ServiceNow or launchpad request process teams must follow to provision a new namespace | Virt     | Open   |
+| CG-26-1 | Remove or disable the default permission that allows any user to create namespaces without approval | Platform | Open   |
+| CG-26-2 | Document the ServiceNow or launchpad request process teams must follow to provision a new namespace | Virt     | Open   |
 
 ### Dependencies
 
@@ -1369,7 +1369,7 @@ oc adm policy remove-cluster-role-from-group self-provisioners system:authentica
 
 ### Tier Variance
 
-| Parameter | {TIER_PRIMARY}       | {TIER_MIDDLE}      | {TIER_EDGE}   |
+| Parameter | DC       | {TIER_MIDDLE}      | {TIER_EDGE}   |
 | --------- | -------- | -------- | -------- |
 | Policy    | Disabled | Disabled | Disabled |
 
@@ -1399,12 +1399,12 @@ oc auth can-i create projectrequests --as testuser
 
 | ID      | Criterion                         | Test                              | Expected Result |
 | ------- | --------------------------------- | --------------------------------- | --------------- |
-| AC-27-1 | Group lacks self-provision        | `can-i`                           | `no`            |
-| AC-27-2 | Admin can still create namespaces | `oc new-project` as elevated user | Success         |
+| AC-26-1 | Group lacks self-provision        | `can-i`                           | `no`            |
+| AC-26-2 | Admin can still create namespaces | `oc new-project` as elevated user | Success         |
 
 ---
 
-## LLD-28: Namespace Strategy for VMs
+## LLD-27: Namespace Strategy for VMs
 
 Define the namespace naming convention, quota policy, and network isolation model for VM workloads across application teams. *(ADR 27, 29)*
 
@@ -1412,8 +1412,8 @@ Define the namespace naming convention, quota policy, and network isolation mode
 
 | ID      | Item                                                      | Owner             | Status |
 | ------- | --------------------------------------------------------- | ----------------- | ------ |
-| CG-28-1 | Conduct internal workshop to finalise whether OS and application workloads share namespaces or are separated  | Virt / App owners | Open   |
-| CG-28-2 | Draft MTV network and storage mapping rules aligned to the target namespace layout per migration wave         | Migration         | Open   |
+| CG-27-1 | Conduct internal workshop to finalise whether OS and application workloads share namespaces or are separated  | Virt / App owners | Open   |
+| CG-27-2 | Draft MTV network and storage mapping rules aligned to the target namespace layout per migration wave         | Migration         | Open   |
 
 ### Dependencies
 
@@ -1438,7 +1438,7 @@ metadata:
 
 ### Tier Variance
 
-| Parameter | {TIER_PRIMARY}     | {TIER_MIDDLE}    | {TIER_EDGE}                      |
+| Parameter | DC     | {TIER_MIDDLE}    | {TIER_EDGE}                      |
 | --------- | ------ | ------ | --------------------------- |
 | Count     | Higher | Medium | Low (single shared **TBD**) |
 
@@ -1446,13 +1446,13 @@ metadata:
 
 **Execution Readiness Checks:**
 
-- [ ] LLD-28 workshop complete or interim naming standard published
+- [ ] LLD-27 workshop complete or interim naming standard published
 - [ ] Privileged project-creation RBAC in place
 
 **Steps:**
 
 1. Maintain canonical namespace registry (**TBD** CMDB linkage).
-2. Create projects only via privileged team per **LLD-27**.
+2. Create projects only via privileged team per **LLD-26**.
 3. Apply network/storage defaults via labels + `ResourceQuota` **not required** (**ADR 31** exclusion).
 
 **Verification:**
@@ -1469,12 +1469,12 @@ oc get projects -l {CLIENT_DOMAIN}/workload=vm
 
 | ID      | Criterion                           | Test                  | Expected Result |
 | ------- | ----------------------------------- | --------------------- | --------------- |
-| AC-28-1 | Namespace pattern documented        | Governance doc        | Accepted        |
-| AC-28-2 | MTV plan references allowed NS only | Plan review checklist | Compliance      |
+| AC-27-1 | Namespace pattern documented        | Governance doc        | Accepted        |
+| AC-27-2 | MTV plan references allowed NS only | Plan review checklist | Compliance      |
 
 ---
 
-## LLD-29: VM Console Access Control
+## LLD-28: VM Console Access Control
 
 Restrict VNC/serial console access to VMs using RBAC so that only authorized operators can interact with guest consoles. *(ADR 32)*
 
@@ -1482,20 +1482,20 @@ Restrict VNC/serial console access to VMs using RBAC so that only authorized ope
 
 | ID      | Item                                                                 | Owner           | Status |
 | ------- | -------------------------------------------------------------------- | --------------- | ------ |
-| CG-29-1 | Evaluate in sandbox which VM console access method (SPICE or virtctl) to use and what roles are required | Virt / Security | Open   |
-| CG-29-2 | Deliver a formal access matrix defining which team can access which VMs and via which method             | Security        | Open   |
-| CG-29-3 | Deliver custom VM console role definitions through Git (not applied manually)                            | Platform        | Open   |
+| CG-28-1 | Evaluate in sandbox which VM console access method (SPICE or virtctl) to use and what roles are required | Virt / Security | Open   |
+| CG-28-2 | Deliver a formal access matrix defining which team can access which VMs and via which method             | Security        | Open   |
+| CG-28-3 | Deliver custom VM console role definitions through Git (not applied manually)                            | Platform        | Open   |
 
 ### Dependencies
 
 | Blocked By | Reason                       |
 | ---------- | ---------------------------- |
-| LLD-24     | Identity provider integrated |
-| LLD-28     | Namespace strategy defined   |
+| LLD-23     | Identity provider integrated |
+| LLD-27     | Namespace strategy defined   |
 
 ### Sample Configuration
 
-See **LLD-25** sample `ClusterRole` stub — extend per persona. Example binding:
+See **LLD-24** sample `ClusterRole` stub — extend per persona. Example binding:
 
 ```yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -1516,7 +1516,7 @@ subjects:
 
 ### Tier Variance
 
-| Parameter | {TIER_PRIMARY}   | {TIER_MIDDLE}  | {TIER_EDGE}                               |
+| Parameter | DC   | {TIER_MIDDLE}  | {TIER_EDGE}                               |
 | --------- | ---- | ---- | ------------------------------------ |
 | Matrix    | Full | Full | Reduced staffing — same policy class |
 
@@ -1524,7 +1524,7 @@ subjects:
 
 **Execution Readiness Checks:**
 
-- [ ] Namespace layout agreed enough to bind roles (**LLD-28**)
+- [ ] Namespace layout agreed enough to bind roles (**LLD-27**)
 
 **Steps:**
 
@@ -1547,12 +1547,12 @@ virtctl console sample-vm -n linux-vms-prod   # expect deny for app persona
 
 | ID      | Criterion                          | Test                            | Expected Result |
 | ------- | ---------------------------------- | ------------------------------- | --------------- |
-| AC-29-1 | App persona cannot open VM console | Attempt via console + `virtctl` | Denied          |
-| AC-29-2 | OS persona can if policy allows    | Controlled user                 | Success         |
+| AC-28-1 | App persona cannot open VM console | Attempt via console + `virtctl` | Denied          |
+| AC-28-2 | OS persona can if policy allows    | Controlled user                 | Success         |
 
 ---
 
-## LLD-30: Node Labeling Strategy
+## LLD-29: Node Labeling Strategy
 
 Apply rack-awareness, role, and workload labels to all nodes for topology-aware scheduling and descheduler integration. *(ADR 37, 40)*
 
@@ -1560,8 +1560,8 @@ Apply rack-awareness, role, and workload labels to all nodes for topology-aware 
 
 | ID      | Item                                        | Owner                   | Status |
 | ------- | ------------------------------------------- | ----------------------- | ------ |
-| CG-30-1 | Agree on the node label naming convention (domain prefix and key names) to be used fleet-wide | Platform / Architecture | Open   |
-| CG-30-2 | Receive rack and availability zone inventory from the datacenter team                         | {TIER_PRIMARY} Ops                  | Open   |
+| CG-29-1 | Agree on the node label naming convention (domain prefix and key names) to be used fleet-wide | Platform / Architecture | Open   |
+| CG-29-2 | Receive rack and availability zone inventory from the datacenter team                         | DC Ops                  | Open   |
 
 ### Dependencies
 
@@ -1592,7 +1592,7 @@ oc label node cp-2 {CLIENT_DOMAIN}/rack=rackC
 
 ### Tier Variance
 
-| Parameter   | {TIER_PRIMARY}                    | {TIER_MIDDLE}                   | {TIER_EDGE}                            |
+| Parameter   | DC                    | {TIER_MIDDLE}                   | {TIER_EDGE}                            |
 | ----------- | --------------------- | --------------------- | --------------------------------- |
 | Rack labels | Required (multi-rack) | Required (multi-rack) | Single rack — label still applied |
 | Zone labels | If multi-zone         | If multi-zone         | N/A                               |
@@ -1601,7 +1601,7 @@ oc label node cp-2 {CLIENT_DOMAIN}/rack=rackC
 
 **Execution Readiness Checks:**
 
-- [ ] Node-to-rack mapping from {TIER_PRIMARY} ops
+- [ ] Node-to-rack mapping from DC ops
 - [ ] Label taxonomy approved
 
 **Steps:**
@@ -1624,33 +1624,33 @@ oc get nodes -L {CLIENT_DOMAIN}/rack,{CLIENT_DOMAIN}/role,{CLIENT_DOMAIN}/worklo
 
 | ID      | Criterion         | Test                                | Expected Result     |
 | ------- | ----------------- | ----------------------------------- | ------------------- |
-| AC-30-1 | All nodes labeled | `oc get nodes -L {CLIENT_DOMAIN}/rack` | No blank entries    |
-| AC-30-2 | Labels in GitOps  | Git repo audit                      | Labels reproducible |
+| AC-29-1 | All nodes labeled | `oc get nodes -L {CLIENT_DOMAIN}/rack` | No blank entries    |
+| AC-29-2 | Labels in GitOps  | Git repo audit                      | Labels reproducible |
 
 ---
 
-## LLD-31: Observability Stack Architecture
+## LLD-30: Observability Stack Architecture
 
-Configure Prometheus metrics collection, AlertManager routing to {NOC_PLATFORM}, and user workload monitoring for the per-cluster monitoring stack. *(ADR 43)*
+Configure Prometheus metrics collection, AlertManager routing to {EVENT_MGMT_PLATFORM}, and user workload monitoring for the per-cluster monitoring stack. *(ADR 43)*
 
 ### Prerequisites
 
 | ID      | Item                                                                                 | Owner               | Status |
 | ------- | ------------------------------------------------------------------------------------ | ------------------- | ------ |
-| CG-31-1 | Configure ACM multicluster observability to forward aggregated metrics to the ICOS object storage backend | Observability       | Open   |
-| CG-31-2 | Configure and test alert routing from AlertManager to {NOC_PLATFORM}                              | NOC / Observability | Open   |
-| CG-31-3 | Make virtualisation dashboards available in Grafana/Perses and execute the dashboard migration plan      | Virt                | Open   |
-| CG-31-4 | Import the {BACKUP_VENDOR} backup traffic dashboard after {BACKUP_VENDOR} deployment is complete         | Observability       | Open   |
+| CG-30-1 | Configure ACM multicluster observability to forward aggregated metrics to the {OBJECT_STORAGE} object storage backend | Observability       | Open   |
+| CG-30-2 | Configure and test alert routing from AlertManager to {EVENT_MGMT_PLATFORM}                              | NOC / Observability | Open   |
+| CG-30-3 | Make virtualisation dashboards available in Grafana/Perses and execute the dashboard migration plan      | Virt                | Open   |
+| CG-30-4 | Import the {BACKUP_VENDOR} backup traffic dashboard after {BACKUP_VENDOR} deployment is complete         | Observability       | Open   |
 
 ### Dependencies
 
 | Blocked By | Reason                    |
 | ---------- | ------------------------- |
-| LLD-16     | Object storage configured |
+| LLD-15     | Object storage configured |
 
 ### Sample Configuration
 
-**Excerpt — `AlertmanagerConfig` secret patch (illustrative {NOC_PLATFORM} webhook):**
+**Excerpt — `AlertmanagerConfig` secret patch (illustrative {EVENT_MGMT_PLATFORM} webhook):**
 
 ```yaml
 receivers:
@@ -1664,7 +1664,7 @@ Apply via user-workload monitoring secret `alertmanager-user-workload` pattern *
 
 ### Tier Variance
 
-| Parameter   | {TIER_PRIMARY}   | {TIER_MIDDLE}  | {TIER_EDGE}                                                                                   |
+| Parameter   | DC   | {TIER_MIDDLE}  | {TIER_EDGE}                                                                                   |
 | ----------- | ---- | ---- | ---------------------------------------------------------------------------------------- |
 | Stack depth | Full | Full | Metrics emphasis / reduced logging depth per cross-cutting matrix (**TBD** {TIER_EDGE} final) |
 
@@ -1673,12 +1673,12 @@ Apply via user-workload monitoring secret `alertmanager-user-workload` pattern *
 **Execution Readiness Checks:**
 
 - [ ] Hub-side ACM observability prerequisites met (if using central Thanos) — **TBD** per hub runbook
-- [ ] ICOS buckets/credentials for Thanos (**LLD-16**)
-- [ ] {NOC_PLATFORM} webhook URL and auth **TBD**
+- [ ] {OBJECT_STORAGE} buckets/credentials for Thanos (**LLD-15**)
+- [ ] {EVENT_MGMT_PLATFORM} webhook URL and auth **TBD**
 
 **Steps:**
 
-1. **Apply the authoritative `cluster-monitoring-config` ConfigMap** (includes user workload monitoring, retention, and PVC settings — this is the single source of truth; LLD-32 references this ConfigMap):
+1. **Apply the authoritative `cluster-monitoring-config` ConfigMap** (includes user workload monitoring, retention, and PVC settings — this is the single source of truth; LLD-31 references this ConfigMap):
 
    ```yaml
    apiVersion: v1
@@ -1746,17 +1746,17 @@ oc get prometheus k8s -n openshift-monitoring -o jsonpath='{.spec.retention}'
 
 | ID      | Criterion                        | Test                                                                        | Expected Result               |
 | ------- | -------------------------------- | --------------------------------------------------------------------------- | ----------------------------- |
-| AC-31-1 | Targets up                       | Prometheus UI `/targets`                                                    | Critical targets `UP`         |
-| AC-31-2 | Test alert fires {NOC_PLATFORM}        | Amtool / test alert                                                         | Ticket **TBD**                |
-| AC-31-3 | User workload monitoring running | `oc get pods -n openshift-user-workload-monitoring`                         | All pods `Running` / `Ready`  |
-| AC-31-4 | {BACKUP_VENDOR} backup dashboard present  | Grafana/Perses dashboard list                                               | Backup traffic panels visible |
-| AC-31-5 | Prometheus retention ≥ 30d       | `oc get prometheus k8s -n openshift-monitoring -o jsonpath='{.spec.retention}'` | ≥30d                          |
-| AC-31-6 | Prometheus PVC bound             | `oc get pvc -n openshift-monitoring -l app.kubernetes.io/name=prometheus`   | `Bound`                       |
-| AC-31-7 | AlertManager PVC bound           | `oc get pvc -n openshift-monitoring -l app.kubernetes.io/name=alertmanager` | `Bound`                       |
+| AC-30-1 | Targets up                       | Prometheus UI `/targets`                                                    | Critical targets `UP`         |
+| AC-30-2 | Test alert fires {EVENT_MGMT_PLATFORM}        | Amtool / test alert                                                         | Ticket **TBD**                |
+| AC-30-3 | User workload monitoring running | `oc get pods -n openshift-user-workload-monitoring`                         | All pods `Running` / `Ready`  |
+| AC-30-4 | {BACKUP_VENDOR} backup dashboard present  | Grafana/Perses dashboard list                                               | Backup traffic panels visible |
+| AC-30-5 | Prometheus retention ≥ 30d       | `oc get prometheus k8s -n openshift-monitoring -o jsonpath='{.spec.retention}'` | ≥30d                          |
+| AC-30-6 | Prometheus PVC bound             | `oc get pvc -n openshift-monitoring -l app.kubernetes.io/name=prometheus`   | `Bound`                       |
+| AC-30-7 | AlertManager PVC bound           | `oc get pvc -n openshift-monitoring -l app.kubernetes.io/name=alertmanager` | `Bound`                       |
 
 ---
 
-## LLD-32: Metric Retention
+## LLD-31: Metric Retention
 
 Configure Prometheus local retention period and PVC sizing to meet the minimum 30-day metric retention policy. *(ADR 42)*
 
@@ -1764,40 +1764,40 @@ Configure Prometheus local retention period and PVC sizing to meet the minimum 3
 
 | ID      | Item                                                                                                                                                            | Owner                   | Status |
 | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- | ------ |
-| CG-32-1 | Provision persistent storage for per-cluster Prometheus sized for 30 days of retention (fleet standard; earlier 7-day figure is superseded) | Observability           | Open   |
-| CG-32-2 | Configure a lifecycle retention policy on the ICOS Thanos object storage bucket                                                             | Observability / Storage | Open   |
-| CG-32-3 | Confirm the 30-day local retention standard is agreed and documented as the fleet baseline                                                  | Architecture            | Open   |
+| CG-31-1 | Provision persistent storage for per-cluster Prometheus sized for 30 days of retention (fleet standard; earlier 7-day figure is superseded) | Observability           | Open   |
+| CG-31-2 | Configure a lifecycle retention policy on the {OBJECT_STORAGE} Thanos object storage bucket                                                             | Observability / Storage | Open   |
+| CG-31-3 | Confirm the 30-day local retention standard is agreed and documented as the fleet baseline                                                  | Architecture            | Open   |
 
 ### Dependencies
 
 | Blocked By | Reason                       |
 | ---------- | ---------------------------- |
-| LLD-31     | Observability stack deployed |
+| LLD-30     | Observability stack deployed |
 
 ### Configuration Parameters
 
 | Parameter             | Value                                | Description                                                                 | Source                                    |
 | --------------------- | ------------------------------------ | --------------------------------------------------------------------------- | ----------------------------------------- |
-| Local Prometheus      | **Minimum 30 days**                  | Architecture lead direction (2026-04-29)                                                | ADR 42                                    |
+| Local Prometheus      | **Minimum 30 days**                  | Architecture decision (ADR 42)                                                | ADR 42                                    |
 
 ### Sample Configuration
 
-> **Note:** The `cluster-monitoring-config` ConfigMap is the authoritative source and is applied in **LLD-31** (Observability Stack Architecture). The retention and PVC settings documented here are included in that ConfigMap. Do not apply a separate ConfigMap — it would overwrite the LLD-31 settings.
+> **Note:** The `cluster-monitoring-config` ConfigMap is the authoritative source and is applied in **LLD-30** (Observability Stack Architecture). The retention and PVC settings documented here are included in that ConfigMap. Do not apply a separate ConfigMap — it would overwrite the LLD-30 settings.
 
-**Relevant keys in the LLD-31 ConfigMap (for reference):**
+**Relevant keys in the LLD-30 ConfigMap (for reference):**
 
 ```yaml
-# Applied in LLD-31 — do not duplicate
+# Applied in LLD-30 — do not duplicate
 prometheusK8s:
-  retention: 30d                          # LLD-32 retention requirement
-  volumeClaimTemplate:                    # LLD-32 PVC requirement
+  retention: 30d                          # LLD-31 retention requirement
+  volumeClaimTemplate:                    # LLD-31 PVC requirement
     spec:
       storageClassName: "<TBD fast class>"
       resources:
         requests:
           storage: 500Gi
 alertmanagerMain:
-  volumeClaimTemplate:                    # LLD-32 PVC requirement
+  volumeClaimTemplate:                    # LLD-31 PVC requirement
     spec:
       storageClassName: "<TBD fast class>"
       resources:
@@ -1809,7 +1809,7 @@ User-workload monitoring may require parallel `user-workload-monitoring-config` 
 
 ### Tier Variance
 
-| Parameter  | {TIER_PRIMARY}    | {TIER_MIDDLE}    | {TIER_EDGE}                              |
+| Parameter  | DC    | {TIER_MIDDLE}    | {TIER_EDGE}                              |
 | ---------- | ----- | ------ | ----------------------------------- |
 | PVC sizing | Large | Medium | Smaller — still meet minimum policy |
 
@@ -1817,14 +1817,14 @@ User-workload monitoring may require parallel `user-workload-monitoring-config` 
 
 **Execution Readiness Checks:**
 
-- [ ] LLD-31 `cluster-monitoring-config` ConfigMap applied (includes retention + PVC keys)
+- [ ] LLD-30 `cluster-monitoring-config` ConfigMap applied (includes retention + PVC keys)
 - [ ] ADR 42 minimum local retention (30 days) confirmed vs any legacy 7‑day narrative — reconcile in gate review
 - [ ] Storage class for Prometheus PVCs sized and approved
 
 **Steps:**
 
 1. Calculate storage: `ingestion_rate * 30d * replication_overhead` **TBD** formula with Observability.
-2. Verify retention and PVC values are correct in the ConfigMap applied by LLD-31.
+2. Verify retention and PVC values are correct in the ConfigMap applied by LLD-30.
 3. Validate Thanos sidecar / receive path for ACM stack **TBD** (hub responsibility).
 
 **Verification:**
@@ -1836,19 +1836,19 @@ oc get pvc -n openshift-monitoring
 
 **Rollback:**
 
-- Reduce retention if disk pressure — patch the `cluster-monitoring-config` ConfigMap (owned by LLD-31) and requires ticket.
+- Reduce retention if disk pressure — patch the `cluster-monitoring-config` ConfigMap (owned by LLD-30) and requires ticket.
 
 ### Acceptance Criteria
 
 | ID      | Criterion              | Test                                                                        | Expected Result |
 | ------- | ---------------------- | --------------------------------------------------------------------------- | --------------- |
-| AC-32-1 | Retention ≥ policy     | Prom UI `Status->TSDB` or config                                            | ≥30d            |
-| AC-32-2 | Prometheus PVC bound   | `oc get pvc -n openshift-monitoring -l app.kubernetes.io/name=prometheus`   | `Bound`         |
-| AC-32-3 | AlertManager PVC bound | `oc get pvc -n openshift-monitoring -l app.kubernetes.io/name=alertmanager` | `Bound`         |
+| AC-31-1 | Retention ≥ policy     | Prom UI `Status->TSDB` or config                                            | ≥30d            |
+| AC-31-2 | Prometheus PVC bound   | `oc get pvc -n openshift-monitoring -l app.kubernetes.io/name=prometheus`   | `Bound`         |
+| AC-31-3 | AlertManager PVC bound | `oc get pvc -n openshift-monitoring -l app.kubernetes.io/name=alertmanager` | `Bound`         |
 
 ---
 
-## LLD-33: Logging Strategy
+## LLD-32: Logging Strategy
 
 Deploy Vector via ClusterLogForwarder to ship container and audit logs to {SIEM_PLATFORM}, with Loki for short-term local log retention. *(ADR 41)*
 
@@ -1856,15 +1856,15 @@ Deploy Vector via ClusterLogForwarder to ship container and audit logs to {SIEM_
 
 | ID      | Item                                                                      | Owner         | Status |
 | ------- | ------------------------------------------------------------------------- | ------------- | ------ |
-| CG-33-1 | Configure log forwarding via Vector to ship cluster logs to the {SIEM_PLATFORM} HEC endpoint               | Observability   | Open   |
-| CG-33-2 | Configure the Loki log stack with 3-day local retention backed by ICOS object storage                      | Observability   | Open   |
-| CG-33-3 | Obtain {SIEM_PLATFORM} HEC tokens from the {SIEM_PLATFORM} team (required before log forwarding can start) | {SIEM_PLATFORM} | Open   |
+| CG-32-1 | Configure log forwarding via Vector to ship cluster logs to the {SIEM_PLATFORM} HEC endpoint               | Observability   | Open   |
+| CG-32-2 | Configure the Loki log stack with 3-day local retention backed by {OBJECT_STORAGE} object storage                      | Observability   | Open   |
+| CG-32-3 | Obtain {SIEM_PLATFORM} HEC tokens from the {SIEM_PLATFORM} team (required before log forwarding can start) | {SIEM_PLATFORM} | Open   |
 
 ### Dependencies
 
 | Blocked By | Reason                    |
 | ---------- | ------------------------- |
-| LLD-16     | Object storage configured |
+| LLD-15     | Object storage configured |
 
 ### Sample Configuration
 
@@ -1901,9 +1901,9 @@ Exact `ClusterLogForwarder` API version + fields must match installed logging op
 
 ### Tier Variance
 
-| Parameter    | {TIER_PRIMARY}   | {TIER_MIDDLE}              | {TIER_EDGE}     |
+| Parameter    | DC   | {TIER_MIDDLE}              | {TIER_EDGE}     |
 | ------------ | ---- | ---------------- | ---------- |
-| Loki backend | ICOS | ICOS or WAN path | ODF-backed |
+| Loki backend | {OBJECT_STORAGE} | {OBJECT_STORAGE} or WAN path | ODF-backed |
 
 ### Implementation Procedure
 
@@ -1912,7 +1912,7 @@ Exact `ClusterLogForwarder` API version + fields must match installed logging op
 - [ ] Cluster logging operator + Loki operator/subscriptions approved version pinned (ACM policy **TBD**)
 - [ ] {SIEM_PLATFORM} HEC token + index naming from {SIEM_PLATFORM} team
 - [ ] {SIEM_PLATFORM} HEC endpoint reachable from cluster: `oc run splunktest --rm -it --restart=Never --image=curlimages/curl -- curl -sI https://<{SIEM_LOWER}-hec-fqdn>:8088`
-- [ ] Object storage credentials for Loki (**LLD-16**)
+- [ ] Object storage credentials for Loki (**LLD-15**)
 
 **Steps:**
 
@@ -1971,7 +1971,7 @@ Exact `ClusterLogForwarder` API version + fields must match installed logging op
    oc get csv -n openshift-logging | grep cluster-logging
    ```
 
-5. **Create object storage credentials secret** for Loki (ICOS or ODF RGW):
+5. **Create object storage credentials secret** for Loki ({OBJECT_STORAGE} or ODF RGW):
    
    ```bash
    oc create secret generic loki-object-storage \
@@ -2009,7 +2009,7 @@ Exact `ClusterLogForwarder` API version + fields must match installed logging op
    oc get lokistack -n openshift-logging -w
    ```
 
-7. **Create output secrets** (`HEC token`, ICOS credentials).
+7. **Create output secrets** (`HEC token`, {OBJECT_STORAGE} credentials).
 
 8. **Apply ClusterLogForwarder YAML** via Argo (sample in configuration section above).
 
@@ -2035,15 +2035,15 @@ Search {SIEM_PLATFORM}: `index=<TBD> host=<cluster>`
 
 | ID      | Criterion                | Test                                       | Expected Result        |
 | ------- | ------------------------ | ------------------------------------------ | ---------------------- |
-| AC-33-1 | Events reach {SIEM_PLATFORM}      | Sample search window                       | Hits increase          |
-| AC-33-2 | Loki query works         | LogQL via console                          | Streams visible        |
-| AC-33-3 | Logging operator healthy | `oc get csv -n openshift-logging`          | `Succeeded`            |
-| AC-33-4 | Loki operator healthy    | `oc get csv -n openshift-operators-redhat` | `Succeeded`            |
-| AC-33-5 | LokiStack ready          | `oc get lokistack -n openshift-logging`    | Condition `Ready=True` |
+| AC-32-1 | Events reach {SIEM_PLATFORM}      | Sample search window                       | Hits increase          |
+| AC-32-2 | Loki query works         | LogQL via console                          | Streams visible        |
+| AC-32-3 | Logging operator healthy | `oc get csv -n openshift-logging`          | `Succeeded`            |
+| AC-32-4 | Loki operator healthy    | `oc get csv -n openshift-operators-redhat` | `Succeeded`            |
+| AC-32-5 | LokiStack ready          | `oc get lokistack -n openshift-logging`    | Condition `Ready=True` |
 
 ---
 
-## LLD-34: OpenShift Virtualization Operator
+## LLD-33: OpenShift Virtualization Operator
 
 Install the OCP Virtualization operator, create the HyperConverged CR, and review feature gates. Post-install configuration of the HCO CR is handled by dedicated LLDs. *(ADR 38, 40)*
 
@@ -2051,14 +2051,14 @@ Install the OCP Virtualization operator, create the HyperConverged CR, and revie
 
 | ID      | Item                                                      | Owner                   | Status |
 | ------- | --------------------------------------------------------- | ----------------------- | ------ |
-| CG-34-1 | Pin the OpenShift Virtualization operator to the validated release version via ACM policy             | Platform / Red Hat      | Open   |
-| CG-34-2 | Review and approve the list of feature gates to enable in the HyperConverged operator configuration   | Platform / Architecture | Open   |
+| CG-33-1 | Pin the OpenShift Virtualization operator to the validated release version via ACM policy             | Platform / Red Hat      | Open   |
+| CG-33-2 | Review and approve the list of feature gates to enable in the HyperConverged operator configuration   | Platform / Architecture | Open   |
 
 ### Dependencies
 
 | Blocked By | Reason                |
 | ---------- | --------------------- |
-| LLD-15     | Storage backend ready |
+| LLD-14     | Storage backend ready |
 
 ### Configuration Parameters
 
@@ -2073,16 +2073,16 @@ Install the OCP Virtualization operator, create the HyperConverged CR, and revie
 > 
 > | Setting                                                            | Owner LLD      | What it configures                                          |
 > | ------------------------------------------------------------------ | -------------- | ----------------------------------------------------------- |
-> | `liveMigrationConfig` (network, bandwidth, parallelism, timeouts)  | LLD-35         | Live migration network and tuning                           |
-> | `vmRolloutStrategy`, `liveUpdateConfiguration` (`maxHotplugRatio`) | LLD-37         | CPU/memory hot-plug                                         |
-> | Eviction strategy (`LiveMigrate`)                                  | —              | OCP-V 4.21 default; no config needed (confirmed in AC-34-4) |
+> | `liveMigrationConfig` (network, bandwidth, parallelism, timeouts)  | LLD-34         | Live migration network and tuning                           |
+> | `vmRolloutStrategy`, `liveUpdateConfiguration` (`maxHotplugRatio`) | LLD-36         | CPU/memory hot-plug                                         |
+> | Eviction strategy (`LiveMigrate`)                                  | —              | OCP-V 4.21 default; no config needed (confirmed in AC-33-4) |
 
 ### Implementation Procedure
 
 **Execution Readiness Checks:**
 
 - [ ] OperatorHub accessible ({REGISTRY_MIRROR} mirror)
-- [ ] Storage backend ready (LLD-15)
+- [ ] Storage backend ready (LLD-14)
 
 **Steps:**
 
@@ -2174,14 +2174,14 @@ oc get pods -n openshift-cnv --no-headers | grep -v Running | grep -v Completed
 
 | ID      | Criterion                                  | Test                                                                                                                     | Expected Result                  |
 | ------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ | -------------------------------- |
-| AC-34-1 | Operator CSV Succeeded                     | `oc get csv -n openshift-cnv`                                                                                            | Phase `Succeeded`                |
-| AC-34-2 | HyperConverged Available                   | `.status.conditions`                                                                                                     | `Available=True`                 |
-| AC-34-3 | All CNV pods running                       | `oc get pods -n openshift-cnv`                                                                                           | No CrashLoop / Pending           |
-| AC-34-4 | Eviction strategy is LiveMigrate (default) | `oc get kubevirt kubevirt-kubevirt-hyperconverged -n openshift-cnv -o jsonpath='{.spec.configuration.evictionStrategy}'` | `LiveMigrate` or empty (default) |
+| AC-33-1 | Operator CSV Succeeded                     | `oc get csv -n openshift-cnv`                                                                                            | Phase `Succeeded`                |
+| AC-33-2 | HyperConverged Available                   | `.status.conditions`                                                                                                     | `Available=True`                 |
+| AC-33-3 | All CNV pods running                       | `oc get pods -n openshift-cnv`                                                                                           | No CrashLoop / Pending           |
+| AC-33-4 | Eviction strategy is LiveMigrate (default) | `oc get kubevirt kubevirt-kubevirt-hyperconverged -n openshift-cnv -o jsonpath='{.spec.configuration.evictionStrategy}'` | `LiveMigrate` or empty (default) |
 
 ---
 
-## LLD-35: Live Migration Network
+## LLD-34: Live Migration Network
 
 Configure a dedicated VLAN and NAD for VM live migration traffic with HyperConverged CR settings for bandwidth and concurrency limits. *(ADR 11, 37)*
 
@@ -2189,16 +2189,16 @@ Configure a dedicated VLAN and NAD for VM live migration traffic with HyperConve
 
 | ID      | Item                                                                                 | Owner           | Status |
 | ------- | ------------------------------------------------------------------------------------ | --------------- | ------ |
-| CG-35-1 | Configure the VM live migration network to use a dedicated network interface separate from general workload traffic | Virt / Platform | Open   |
-| CG-35-2 | Validate network Quality of Service holds up under concurrent VM live migrations (lab soak test required)          | Network / Virt  | Open   |
+| CG-34-1 | Configure the VM live migration network to use a dedicated network interface separate from general workload traffic | Virt / Platform | Open   |
+| CG-34-2 | Validate network Quality of Service holds up under concurrent VM live migrations (lab soak test required)          | Network / Virt  | Open   |
 
 ### Dependencies
 
 | Blocked By | Reason                              |
 | ---------- | ----------------------------------- |
-| LLD-18     | NADs created                        |
-| LLD-19     | MAC spoof filtering configured      |
-| LLD-34     | HyperConverged CR created and ready |
+| LLD-17     | NADs created                        |
+| LLD-18     | MAC spoof filtering configured      |
+| LLD-33     | HyperConverged CR created and ready |
 
 ### Configuration Parameters
 
@@ -2209,7 +2209,7 @@ Configure a dedicated VLAN and NAD for VM live migration traffic with HyperConve
 
 ### Sample Configuration
 
-> **Note:** The `HyperConverged` CR is created in **LLD-34**. This step patches `liveMigrationConfig` on the existing CR.
+> **Note:** The `HyperConverged` CR is created in **LLD-33**. This step patches `liveMigrationConfig` on the existing CR.
 
 **Patch HCO CR to set migration network and concurrency:**
 
@@ -2226,13 +2226,13 @@ oc patch hyperconverged kubevirt-hyperconverged -n openshift-cnv --type merge -p
 }'
 ```
 
-> **TBD:** Tune values after lab soak. Bandwidth limit (`bandwidthPerMigration`) is set in LLD-20.
+> **TBD:** Tune values after lab soak. Bandwidth limit (`bandwidthPerMigration`) is set in LLD-19.
 
 Corresponding NAD / NNCP bindings **TBD** after VLAN ID assigned.
 
 ### Tier Variance
 
-| Parameter                         | {TIER_PRIMARY}  | {TIER_MIDDLE}            | {TIER_EDGE}                                      |
+| Parameter                         | DC  | {TIER_MIDDLE}            | {TIER_EDGE}                                      |
 | --------------------------------- | --- | -------------- | ------------------------------------------- |
 | Dedicated mig NIC                 | Yes | Yes (baseline) | **No dedicated — shared path per ADR 11.3** |
 | parallelMigrationsPerCluster      | 5   | 5              | 2                                            |
@@ -2242,7 +2242,7 @@ Corresponding NAD / NNCP bindings **TBD** after VLAN ID assigned.
 
 **Execution Readiness Checks:**
 
-- [ ] HyperConverged CR created and healthy (LLD-34)
+- [ ] HyperConverged CR created and healthy (LLD-33)
 - [ ] Migration VLAN L3/L2 path tested MTU
 - [ ] Multus secondary IPAM if needed **TBD**
 
@@ -2269,12 +2269,12 @@ oc get vmi -A -w
 
 | ID      | Criterion                          | Test                        | Expected Result   |
 | ------- | ---------------------------------- | --------------------------- | ----------------- |
-| AC-35-1 | Migration completes                | `virtctl migrate` / console | `Succeeded`       |
-| AC-35-2 | Traffic observed on migration VLAN | SPAN / sFlow **TBD**        | Evidence captured |
+| AC-34-1 | Migration completes                | `virtctl migrate` / console | `Succeeded`       |
+| AC-34-2 | Traffic observed on migration VLAN | SPAN / sFlow **TBD**        | Evidence captured |
 
 ---
 
-## LLD-36: Control Plane Node Placement
+## LLD-35: Control Plane Node Placement
 
 Configure schedulable control-plane nodes with appropriate taints and tolerations per ADR 37 to allow VM workloads on masters. *(ADR 33, 34)*
 
@@ -2282,15 +2282,15 @@ Configure schedulable control-plane nodes with appropriate taints and toleration
 
 | ID      | Item                                                             | Owner        | Status |
 | ------- | ---------------------------------------------------------------- | ------------ | ------ |
-| CG-36-1 | Deliver rack placement diagrams for the first production sites showing physical node distribution across racks | Infra / Virt | Open   |
-| CG-36-2 | Reconcile the control plane schedulability setting and node taint/label plan with the capacity sizing          | Platform     | Open   |
+| CG-35-1 | Deliver rack placement diagrams for the first production sites showing physical node distribution across racks | Infra / Virt | Open   |
+| CG-35-2 | Reconcile the control plane schedulability setting and node taint/label plan with the capacity sizing          | Platform     | Open   |
 
 ### Dependencies
 
 | Blocked By | Reason                      |
 | ---------- | --------------------------- |
-| LLD-34     | OCP Virt operator installed |
-| LLD-30     | Node labels applied         |
+| LLD-33     | OCP Virt operator installed |
+| LLD-29     | Node labels applied         |
 
 ### Sample Configuration
 
@@ -2314,7 +2314,7 @@ oc label node cp-1 {CLIENT_DOMAIN}/rack=rackB
 
 ### Tier Variance
 
-| Parameter   | {TIER_PRIMARY}       | {TIER_MIDDLE}         | {TIER_EDGE} |
+| Parameter   | DC       | {TIER_MIDDLE}         | {TIER_EDGE} |
 | ----------- | -------- | ----------- | ------ |
 | Rack spread | Maximize | Best effort | None   |
 
@@ -2346,12 +2346,12 @@ oc describe node cp-0 | grep -i -E 'SchedulingDisabled|Taints'
 
 | ID      | Criterion                      | Test                                       | Expected Result                 |
 | ------- | ------------------------------ | ------------------------------------------ | ------------------------------- |
-| AC-36-1 | Masters host infra pods        | Pod distribution **TBD** script            | Ingress/monitoring pods allowed |
-| AC-36-2 | CP nodes rack labels populated | `oc get nodes -L rack` (**TBD** label key) | Meets rack diversity target     |
+| AC-35-1 | Masters host infra pods        | Pod distribution **TBD** script            | Ingress/monitoring pods allowed |
+| AC-35-2 | CP nodes rack labels populated | `oc get nodes -L rack` (**TBD** label key) | Meets rack diversity target     |
 
 ---
 
-## LLD-37: VM Hot-Plug Configuration
+## LLD-36: VM Hot-Plug Configuration
 
 Verify and configure the cluster-level settings that enable CPU and memory hot-plug, set maximum hot-plug ratios/limits, and validate that running VMs can scale resources without rebooting. *(ADR 35)*
 
@@ -2359,18 +2359,18 @@ Verify and configure the cluster-level settings that enable CPU and memory hot-p
 
 | ID      | Item                                                                 | Owner                 | Status |
 | ------- | -------------------------------------------------------------------- | --------------------- | ------ |
-| CG-37-1 | Confirm the VM rollout strategy is set to Live Update in the HyperConverged configuration (allows spec changes without VM restart) | Virt                  | Open   |
-| CG-37-2 | Agree and apply the maximum CPU/memory hot-plug ratio for VMs                                                                     | Virt / Capacity       | Open   |
-| CG-37-3 | Document which guest OS versions support CPU and memory hot-plug, including required driver and kernel versions                   | Virt                  | Open   |
-| CG-37-4 | Validate CPU and memory hot-plug works correctly for both Linux and Windows VMs in sandbox                                        | Virt                  | Open   |
-| CG-37-5 | Document the approval process for VM changes that exceed the hot-plug ratio and require a full VM restart                         | Virt / App Governance | Open   |
+| CG-36-1 | Confirm the VM rollout strategy is set to Live Update in the HyperConverged configuration (allows spec changes without VM restart) | Virt                  | Open   |
+| CG-36-2 | Agree and apply the maximum CPU/memory hot-plug ratio for VMs                                                                     | Virt / Capacity       | Open   |
+| CG-36-3 | Document which guest OS versions support CPU and memory hot-plug, including required driver and kernel versions                   | Virt                  | Open   |
+| CG-36-4 | Validate CPU and memory hot-plug works correctly for both Linux and Windows VMs in sandbox                                        | Virt                  | Open   |
+| CG-36-5 | Document the approval process for VM changes that exceed the hot-plug ratio and require a full VM restart                         | Virt / App Governance | Open   |
 
 ### Dependencies
 
 | Blocked By | Reason                                                          |
 | ---------- | --------------------------------------------------------------- |
-| LLD-34     | OCP Virt operator installed and HyperConverged CR exists        |
-| LLD-35     | Live migration network configured (hot-plug triggers migration) |
+| LLD-33     | OCP Virt operator installed and HyperConverged CR exists        |
+| LLD-34     | Live migration network configured (hot-plug triggers migration) |
 
 ### Configuration Parameters
 
@@ -2384,7 +2384,7 @@ Verify and configure the cluster-level settings that enable CPU and memory hot-p
 
 ### Sample Configuration
 
-> **Note:** The `HyperConverged` CR is created in **LLD-34**. This step patches `liveUpdateConfiguration` on the existing CR.
+> **Note:** The `HyperConverged` CR is created in **LLD-33**. This step patches `liveUpdateConfiguration` on the existing CR.
 
 **Step 1 — Verify defaults and patch cluster-level hot-plug ratio:**
 
@@ -2430,7 +2430,7 @@ spec:
 
 ### Tier Variance
 
-| Parameter       | {TIER_PRIMARY}  | {TIER_MIDDLE} | {TIER_EDGE}                                      |
+| Parameter       | DC  | {TIER_MIDDLE} | {TIER_EDGE}                                      |
 | --------------- | --- | --- | ------------------------------------------- |
 | maxHotplugRatio | 4   | 4   | 4 (same policy; capacity headroom reviewed) |
 | maxCpuSockets   | —   | —   | — (use ratio unless exception required)     |
@@ -2440,8 +2440,8 @@ spec:
 
 **Execution Readiness Checks:**
 
-- [ ] OpenShift Virtualization operator installed and HyperConverged CR healthy (LLD-34)
-- [ ] Live migration network configured and tested (LLD-20)
+- [ ] OpenShift Virtualization operator installed and HyperConverged CR healthy (LLD-33)
+- [ ] Live migration network configured and tested (LLD-19)
 - [ ] Golden Linux VM image with kernel ≥ 5.16 available
 - [ ] Golden Windows VM image with virtio-win ≥ 100.95.104.26200 available (if Windows hot-plug required)
 
@@ -2488,24 +2488,24 @@ oc get vmi test-hotplug -n <ns> \
 
 **Rollback:**
 
-- To disable hot-plug cluster-wide, patch `maxHotplugRatio: 1` on the existing HCO CR (LLD-34) — this prevents any hot-plug headroom from being reserved.
+- To disable hot-plug cluster-wide, patch `maxHotplugRatio: 1` on the existing HCO CR (LLD-33) — this prevents any hot-plug headroom from being reserved.
 - Per-VM: set `maxSockets` equal to `sockets` to disable CPU hot-plug for that VM.
 
 ### Acceptance Criteria
 
 | ID      | Criterion                                        | Test                                                                                    | Expected Result                                       |
 | ------- | ------------------------------------------------ | --------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| AC-37-1 | vmRolloutStrategy is LiveUpdate                  | `oc get hyperconverged … -o jsonpath='{.spec.configuration.vmRolloutStrategy}'`         | `LiveUpdate` or empty (default)                       |
-| AC-37-2 | workloadUpdateMethods includes LiveMigrate       | `oc get kv … -o jsonpath='{.spec.workloadUpdateStrategy.workloadUpdateMethods}'`        | `["LiveMigrate"]`                                     |
-| AC-37-3 | maxHotplugRatio set to agreed value              | `oc get hyperconverged … -o jsonpath='{.spec.liveUpdateConfiguration.maxHotplugRatio}'` | `4` (or agreed value)                                 |
-| AC-37-4 | CPU hot-plug works within ratio                  | Patch running VM sockets from 2→4; confirm in-guest                                     | New sockets visible without reboot                    |
-| AC-37-5 | Memory hot-plug works within ratio               | Patch running VM memory from 2Gi→4Gi; confirm in-guest                                  | New memory visible without reboot                     |
-| AC-37-6 | Beyond-ratio change requires reboot (not silent) | Patch sockets beyond 4× initial; check VMI condition                                    | `RestartRequired` condition appears                   |
-| AC-37-7 | Guest OS compatibility matrix documented         | Review document                                                                         | Linux kernel ≥ 5.16, Windows virtio-win version noted |
+| AC-36-1 | vmRolloutStrategy is LiveUpdate                  | `oc get hyperconverged … -o jsonpath='{.spec.configuration.vmRolloutStrategy}'`         | `LiveUpdate` or empty (default)                       |
+| AC-36-2 | workloadUpdateMethods includes LiveMigrate       | `oc get kv … -o jsonpath='{.spec.workloadUpdateStrategy.workloadUpdateMethods}'`        | `["LiveMigrate"]`                                     |
+| AC-36-3 | maxHotplugRatio set to agreed value              | `oc get hyperconverged … -o jsonpath='{.spec.liveUpdateConfiguration.maxHotplugRatio}'` | `4` (or agreed value)                                 |
+| AC-36-4 | CPU hot-plug works within ratio                  | Patch running VM sockets from 2→4; confirm in-guest                                     | New sockets visible without reboot                    |
+| AC-36-5 | Memory hot-plug works within ratio               | Patch running VM memory from 2Gi→4Gi; confirm in-guest                                  | New memory visible without reboot                     |
+| AC-36-6 | Beyond-ratio change requires reboot (not silent) | Patch sockets beyond 4× initial; check VMI condition                                    | `RestartRequired` condition appears                   |
+| AC-36-7 | Guest OS compatibility matrix documented         | Review document                                                                         | Linux kernel ≥ 5.16, Windows virtio-win version noted |
 
 ---
 
-## LLD-38: Descheduler and VM Rebalancing
+## LLD-37: Descheduler and VM Rebalancing
 
 Deploy and configure the descheduler with a topology-aware profile to rebalance VM workloads and prevent noisy-neighbor hotspots. *(ADR 40)*
 
@@ -2513,15 +2513,15 @@ Deploy and configure the descheduler with a topology-aware profile to rebalance 
 
 | ID      | Item                                                                                               | Owner       | Status |
 | ------- | -------------------------------------------------------------------------------------------------- | ----------- | ------ |
-| CG-38-1 | Select the descheduler balancing profile (workload-preservation vs active migration pressure relief) after sandbox validation | Virt        | Open   |
-| CG-38-2 | Apply the Pressure Stall Information kernel setting on worker nodes if the enhanced descheduler profile is selected          | Platform    | Open   |
-| CG-38-3 | Define disruption budgets for production VM workloads before enabling the descheduler to prevent uncontrolled evictions      | Apps / Virt | Open   |
+| CG-37-1 | Select the descheduler balancing profile (workload-preservation vs active migration pressure relief) after sandbox validation | Virt        | Open   |
+| CG-37-2 | Apply the Pressure Stall Information kernel setting on worker nodes if the enhanced descheduler profile is selected          | Platform    | Open   |
+| CG-37-3 | Define disruption budgets for production VM workloads before enabling the descheduler to prevent uncontrolled evictions      | Apps / Virt | Open   |
 
 ### Dependencies
 
 | Blocked By | Reason                      |
 | ---------- | --------------------------- |
-| LLD-34     | OCP Virt operator installed |
+| LLD-33     | OCP Virt operator installed |
 
 ### Sample Configuration
 
@@ -2555,7 +2555,7 @@ spec:
 
 ### Tier Variance
 
-| Parameter              | {TIER_PRIMARY}            | {TIER_MIDDLE}    | {TIER_EDGE}                 |
+| Parameter              | DC            | {TIER_MIDDLE}    | {TIER_EDGE}                 |
 | ---------------------- | ------------- | ------ | ---------------------- |
 | Profile aggressiveness | Likely higher | Medium | Conservative / **TBD** |
 
@@ -2589,12 +2589,12 @@ oc logs -n openshift-kube-descheduler-operator deploy/kube-descheduler-operator-
 
 | ID      | Criterion                        | Test                           | Expected Result          |
 | ------- | -------------------------------- | ------------------------------ | ------------------------ |
-| AC-38-1 | Operator healthy                 | CSV / subscription `Succeeded` | True                     |
-| AC-38-2 | No destabilizing migration storm | Dashboard review               | Within threshold **TBD** |
+| AC-37-1 | Operator healthy                 | CSV / subscription `Succeeded` | True                     |
+| AC-37-2 | No destabilizing migration storm | Dashboard review               | Within threshold **TBD** |
 
 ---
 
-## LLD-39: etcd Backup Configuration
+## LLD-38: etcd Backup Configuration
 
 Deploy a CronJob-based etcd backup schedule with defined retention policy and validate restore capability through a lab drill. *(ADR 35)*
 
@@ -2602,15 +2602,15 @@ Deploy a CronJob-based etcd backup schedule with defined retention policy and va
 
 | ID      | Item                                                                                     | Owner          | Status |
 | ------- | ---------------------------------------------------------------------------------------- | -------------- | ------ |
-| CG-39-1 | Agree the etcd backup schedule and retention with the SRE team                                                      | Platform / SRE | Open   |
-| CG-39-2 | Complete at least one etcd restore drill in the lab environment                                                     | Platform       | Open   |
-| CG-39-3 | Store the etcd encryption key archive separately from backup snapshots (required for restore to succeed after loss) | Security / SRE | Open   |
+| CG-38-1 | Agree the etcd backup schedule and retention with the SRE team                                                      | Platform / SRE | Open   |
+| CG-38-2 | Complete at least one etcd restore drill in the lab environment                                                     | Platform       | Open   |
+| CG-38-3 | Store the etcd encryption key archive separately from backup snapshots (required for restore to succeed after loss) | Security / SRE | Open   |
 
 ### Dependencies
 
 | Blocked By | Reason                  |
 | ---------- | ----------------------- |
-| LLD-21     | etcd encryption enabled |
+| LLD-20     | etcd encryption enabled |
 
 ### Configuration Parameters
 
@@ -2627,7 +2627,7 @@ Deploy a CronJob-based etcd backup schedule with defined retention policy and va
 > | File | Contents |
 > | --- | --- |
 > | `snapshot_<datetimestamp>.db` | etcd data snapshot |
-> | `static_kuberesources_<datetimestamp>.tar.gz` | Static pod resources **plus encryption keys** (when etcd encryption is enabled via LLD-21) |
+> | `static_kuberesources_<datetimestamp>.tar.gz` | Static pod resources **plus encryption keys** (when etcd encryption is enabled via LLD-20) |
 >
 > Per Red Hat: *"For security reasons, store this file separately from the etcd snapshot. However, this file is required to restore a previous state of etcd from the respective etcd snapshot."* ([OCP 4.21 — About etcd encryption](https://docs.openshift.com/container-platform/4.21/security/encrypting-etcd.html))
 >
@@ -2683,7 +2683,7 @@ spec:
 
 ### Tier Variance
 
-| Parameter | {TIER_PRIMARY}          | {TIER_MIDDLE}         | {TIER_EDGE}      |
+| Parameter | DC          | {TIER_MIDDLE}         | {TIER_EDGE}      |
 | --------- | ----------- | ----------- | ----------- |
 | Schedule  | Daily 02:00 | Daily 02:00 | Daily 02:00 |
 | Retention | 7           | 7           | 5           |
@@ -2692,7 +2692,7 @@ spec:
 
 **Execution Readiness Checks:**
 
-- [ ] etcd encryption enabled (LLD-21)
+- [ ] etcd encryption enabled (LLD-20)
 - [ ] Backup target path accessible on control-plane nodes
 - [ ] Separate secure storage location identified for encryption key archives (vault, offline media, or isolated storage)
 
@@ -2723,15 +2723,15 @@ oc debug node/<control-plane-node> -- chroot /host \
 
 | ID      | Criterion                        | Test                                                        | Expected Result                             |
 | ------- | -------------------------------- | ----------------------------------------------------------- | ------------------------------------------- |
-| AC-39-1 | CronJob scheduled                | `oc get cronjob -n openshift-etcd`                          | Schedule present                            |
-| AC-39-2 | Backup artifacts exist           | Debug pod `ls /home/core/etcd-backups/`                     | Non-zero `.db` + `.tar.gz` files            |
-| AC-39-3 | Encryption keys in tarball       | `tar tzf static_kuberesources_*.tar.gz \| grep encryption`  | Encryption key files listed                 |
-| AC-39-4 | Key archive stored separately    | Confirm key tarball exists in designated secure location     | File present and integrity-verified         |
-| AC-39-5 | Restore drill passed             | Lab restore using snapshot + paired key archive              | Cluster recoverable with encrypted secrets  |
+| AC-38-1 | CronJob scheduled                | `oc get cronjob -n openshift-etcd`                          | Schedule present                            |
+| AC-38-2 | Backup artifacts exist           | Debug pod `ls /home/core/etcd-backups/`                     | Non-zero `.db` + `.tar.gz` files            |
+| AC-38-3 | Encryption keys in tarball       | `tar tzf static_kuberesources_*.tar.gz \| grep encryption`  | Encryption key files listed                 |
+| AC-38-4 | Key archive stored separately    | Confirm key tarball exists in designated secure location     | File present and integrity-verified         |
+| AC-38-5 | Restore drill passed             | Lab restore using snapshot + paired key archive              | Cluster recoverable with encrypted secrets  |
 
 ---
 
-## LLD-40: OpenShift GitOps Operator
+## LLD-39: OpenShift GitOps Operator
 
 Install the OpenShift GitOps operator and configure the per-cluster ArgoCD instance with RBAC scoped to platform namespaces. *(ADR 49)*
 
@@ -2739,14 +2739,14 @@ Install the OpenShift GitOps operator and configure the per-cluster ArgoCD insta
 
 | ID      | Item                                    | Owner               | Status |
 | ------- | --------------------------------------- | ------------------- | ------ |
-| CG-40-1 | Pin the OpenShift GitOps operator to the approved version via subscription policy             | Platform            | Open   |
-| CG-40-2 | Confirm ArgoCD access controls are scoped to platform namespaces and not granted cluster-wide | Platform / Security | Open   |
+| CG-39-1 | Pin the OpenShift GitOps operator to the approved version via subscription policy             | Platform            | Open   |
+| CG-39-2 | Confirm ArgoCD access controls are scoped to platform namespaces and not granted cluster-wide | Platform / Security | Open   |
 
 ### Dependencies
 
 | Blocked By | Reason                 |
 | ---------- | ---------------------- |
-| LLD-24     | LDAP integration ready |
+| LLD-23     | LDAP integration ready |
 
 ### Configuration Parameters
 
@@ -2774,7 +2774,7 @@ spec:
 
 ### Tier Variance
 
-| Parameter       | {TIER_PRIMARY}                       | {TIER_MIDDLE}              | {TIER_EDGE}           |
+| Parameter       | DC                       | {TIER_MIDDLE}              | {TIER_EDGE}           |
 | --------------- | ------------------------ | ---------------- | ---------------- |
 | ArgoCD instance | Full (hub + spoke agent) | Spoke agent only | Spoke agent only |
 
@@ -2783,7 +2783,7 @@ spec:
 **Execution Readiness Checks:**
 
 - [ ] OperatorHub accessible
-- [ ] LDAP integration ready (LLD-24)
+- [ ] LDAP integration ready (LLD-23)
 
 **Steps:**
 
@@ -2809,13 +2809,13 @@ oc get pods -n openshift-gitops
 
 | ID      | Criterion               | Test               | Expected Result      |
 | ------- | ----------------------- | ------------------ | -------------------- |
-| AC-40-1 | Operator CSV Succeeded  | `oc get csv`       | Succeeded            |
-| AC-40-2 | ArgoCD instance healthy | `oc get argocd`    | Available            |
-| AC-40-3 | RBAC restricted         | Argo UI login test | Only platform-admins |
+| AC-39-1 | Operator CSV Succeeded  | `oc get csv`       | Succeeded            |
+| AC-39-2 | ArgoCD instance healthy | `oc get argocd`    | Available            |
+| AC-39-3 | RBAC restricted         | Argo UI login test | Only platform-admins |
 
 ---
 
-## LLD-41: MTV Operator Installation
+## LLD-40: MTV Operator Installation
 
 Install the Migration Toolkit for Virtualization operator, build the VDDK image, and deploy the ForkliftController CR as the prerequisite for Phase 4 migrations. *(ADR 50, 51)*
 
@@ -2823,16 +2823,16 @@ Install the Migration Toolkit for Virtualization operator, build the VDDK image,
 
 | ID      | Item                                               | Owner                | Status |
 | ------- | -------------------------------------------------- | -------------------- | ------ |
-| CG-41-1 | Confirm the Migration Toolkit for Virtualization operator version is compatible with the target OCP version | Platform / Migration | Open   |
-| CG-41-2 | Build the VMware VDDK container image and publish it to {REGISTRY_MIRROR}                                  | Migration / Platform | Open   |
-| CG-41-3 | Confirm clusters can successfully pull the VDDK image from {REGISTRY_MIRROR}                               | Migration            | Open   |
-| CG-41-4 | Obtain legal/security confirmation that use of the VMware VDDK library is license-compliant                | Legal / Security     | Open   |
+| CG-40-1 | Confirm the Migration Toolkit for Virtualization operator version is compatible with the target OCP version | Platform / Migration | Open   |
+| CG-40-2 | Build the VMware VDDK container image and publish it to {REGISTRY_MIRROR}                                  | Migration / Platform | Open   |
+| CG-40-3 | Confirm clusters can successfully pull the VDDK image from {REGISTRY_MIRROR}                               | Migration            | Open   |
+| CG-40-4 | Obtain legal/security confirmation that use of the VMware VDDK library is license-compliant                | Legal / Security     | Open   |
 
 ### Dependencies
 
 | Blocked By | Reason                    |
 | ---------- | ------------------------- |
-| LLD-34     | OCP Virt operator running |
+| LLD-33     | OCP Virt operator running |
 
 ### Configuration Parameters
 
@@ -2946,11 +2946,11 @@ The following procedure is derived from the official Red Hat documentation: [MTV
 
 > **License note:** Per VMware EULA, the VDDK image must be stored in a **private** registry. Do not push to any public or externally accessible registry.
 
-The VDDK image path is specified per-provider in the Provider CR (`spec.settings.vddkInitImage`) when configuring the vCenter source in **LLD-42**.
+The VDDK image path is specified per-provider in the Provider CR (`spec.settings.vddkInitImage`) when configuring the vCenter source in **LLD-41**.
 
 ### Tier Variance
 
-| Parameter     | {TIER_PRIMARY}  | {TIER_MIDDLE} | {TIER_EDGE}                          |
+| Parameter     | DC  | {TIER_MIDDLE} | {TIER_EDGE}                          |
 | ------------- | --- | --- | ------------------------------- |
 | MTV installed | Yes | Yes | Only if migrating VMs to {TIER_EDGE} |
 
@@ -2960,7 +2960,7 @@ The VDDK image path is specified per-provider in the Provider CR (`spec.settings
 
 - [ ] `openshift-mtv` namespace created
 - [ ] VDDK image built and pushed to {REGISTRY_MIRROR} (see VDDK Image Build Procedure above)
-- [ ] OCP Virt operator running (LLD-34)
+- [ ] OCP Virt operator running (LLD-33)
 
 **Steps:**
 
@@ -2985,16 +2985,16 @@ oc get pods -n openshift-mtv --no-headers | wc -l
 
 | ID      | Criterion                    | Test                                                                  | Expected Result                          |
 | ------- | ---------------------------- | --------------------------------------------------------------------- | ---------------------------------------- |
-| AC-41-1 | MTV CSV Succeeded            | `oc get csv -n openshift-mtv`                                         | Succeeded                                |
-| AC-41-2 | ForkliftController ready     | `oc get forkliftcontroller`                                           | `Ready`                                  |
-| AC-41-3 | All MTV pods running         | `oc get pods -n openshift-mtv`                                        | No failures                              |
-| AC-41-4 | VDDK image in registry       | `podman pull {REGISTRY_MIRROR}/openshift-mtv/vddk:v8`                 | Pull succeeds                            |
-| AC-41-5 | VDDK image pullable from OCP | `oc run` pull test from cluster node                                  | Pod starts and completes                 |
-| AC-41-6 | VDDK contains SDK libs       | `podman run --rm <vddk-image> ls /vmware-vix-disklib-distrib/lib64/`  | `libvixDiskLib.so` and symlinks present  |
+| AC-40-1 | MTV CSV Succeeded            | `oc get csv -n openshift-mtv`                                         | Succeeded                                |
+| AC-40-2 | ForkliftController ready     | `oc get forkliftcontroller`                                           | `Ready`                                  |
+| AC-40-3 | All MTV pods running         | `oc get pods -n openshift-mtv`                                        | No failures                              |
+| AC-40-4 | VDDK image in registry       | `podman pull {REGISTRY_MIRROR}/openshift-mtv/vddk:v8`                 | Pull succeeds                            |
+| AC-40-5 | VDDK image pullable from OCP | `oc run` pull test from cluster node                                  | Pod starts and completes                 |
+| AC-40-6 | VDDK contains SDK libs       | `podman run --rm <vddk-image> ls /vmware-vix-disklib-distrib/lib64/`  | `libvixDiskLib.so` and symlinks present  |
 
 ---
 
-## LLD-42: vCenter Provider Configuration
+## LLD-41: vCenter Provider Configuration
 
 Create the MTV Provider CR to connect OCP to vCenter, validate credentials, and confirm VM inventory is populated for migration planning. *(ADR 50)*
 
@@ -3002,14 +3002,14 @@ Create the MTV Provider CR to connect OCP to vCenter, validate credentials, and 
 
 | ID      | Item                                                                   | Owner                | Status |
 | ------- | ---------------------------------------------------------------------- | -------------------- | ------ |
-| CG-42-1 | Create a dedicated vCenter service account with the minimum permissions required for VM migration       | VMware / Security    | Open   |
-| CG-42-2 | Confirm the MTV vCenter provider connection shows Ready status in the migration tool                   | Migration / Platform | Open   |
+| CG-41-1 | Create a dedicated vCenter service account with the minimum permissions required for VM migration       | VMware / Security    | Open   |
+| CG-41-2 | Confirm the MTV vCenter provider connection shows Ready status in the migration tool                   | Migration / Platform | Open   |
 
 ### Dependencies
 
 | Blocked By | Reason                 |
 | ---------- | ---------------------- |
-| LLD-41     | MTV operator installed |
+| LLD-40     | MTV operator installed |
 
 ### Configuration Parameters
 
@@ -3019,7 +3019,7 @@ Create the MTV Provider CR to connect OCP to vCenter, validate credentials, and 
 | vCenter credentials | Stored in Kubernetes Secret                      | Username + password    | Provided by VMware team |
 | Provider type       | `vsphere`                                        | MTV source provider    | MTV docs                |
 | TLS verification    | `true` (use CA bundle)                           | Trust vCenter cert     | Security policy         |
-| VDDK image ref      | `{REGISTRY_MIRROR_FQDN}/mtv/vddk:v8` (**TBD**) | VDDK init container    | LLD-41                  |
+| VDDK image ref      | `{REGISTRY_MIRROR_FQDN}/mtv/vddk:v8` (**TBD**) | VDDK init container    | LLD-40                  |
 
 ### Sample Configuration
 
@@ -3060,7 +3060,7 @@ spec:
 
 **Execution Readiness Checks:**
 
-- [ ] MTV operator running (LLD-41)
+- [ ] MTV operator running (LLD-40)
 - [ ] Network path from OCP nodes to vCenter (firewall rules — Phase 1)
 - [ ] vCenter service account provisioned
 
@@ -3086,13 +3086,13 @@ oc get provider vcenter-source -n openshift-mtv -o jsonpath='{.status.phase}'
 
 | ID      | Criterion              | Test              | Expected Result                         |
 | ------- | ---------------------- | ----------------- | --------------------------------------- |
-| AC-42-1 | Provider Ready         | `oc get provider` | `Ready`                                 |
-| AC-42-2 | VM inventory populated | MTV UI or API     | Count matches source                    |
-| AC-42-3 | Credentials rotatable  | ESO sync test     | Secret updated without Provider restart |
+| AC-41-1 | Provider Ready         | `oc get provider` | `Ready`                                 |
+| AC-41-2 | VM inventory populated | MTV UI or API     | Count matches source                    |
+| AC-41-3 | Credentials rotatable  | ESO sync test     | Secret updated without Provider restart |
 
 ---
 
-## LLD-43: Migration NAD Validation
+## LLD-42: Migration NAD Validation
 
 Test end-to-end L2 reachability and throughput on all migration-relevant NADs before executing any VM migrations. *(ADR 11)*
 
@@ -3100,19 +3100,19 @@ Test end-to-end L2 reachability and throughput on all migration-relevant NADs be
 
 | ID      | Item                                          | Owner              | Status |
 | ------- | --------------------------------------------- | ------------------ | ------ |
-| CG-43-1 | Test all network attachment definitions that will be used during migration and confirm connectivity end-to-end | Platform / Network | Open   |
+| CG-42-1 | Test all network attachment definitions that will be used during migration and confirm connectivity end-to-end | Platform / Network | Open   |
 
 ### Dependencies
 
 | Blocked By | Reason       |
 | ---------- | ------------ |
-| LLD-18     | NADs created |
+| LLD-17     | NADs created |
 
 ### Implementation Procedure
 
 **Execution Readiness Checks:**
 
-- [ ] NADs created (LLD-18)
+- [ ] NADs created (LLD-17)
 - [ ] Migration VLAN trunked to all nodes
 
 **Steps:**
@@ -3143,13 +3143,13 @@ iperf3 -c <peer-pod-migration-ip> -t 10
 
 | ID      | Criterion                     | Test              | Expected Result      |
 | ------- | ----------------------------- | ----------------- | -------------------- |
-| AC-43-1 | Migration NAD L2 reachable    | Ping across nodes | 0% loss              |
-| AC-43-2 | Throughput meets baseline     | `iperf3`          | ≥ 8 Gbps on 10G link |
-| AC-43-3 | All production NADs validated | Validation matrix | 100% coverage        |
+| AC-42-1 | Migration NAD L2 reachable    | Ping across nodes | 0% loss              |
+| AC-42-2 | Throughput meets baseline     | `iperf3`          | ≥ 8 Gbps on 10G link |
+| AC-42-3 | All production NADs validated | Validation matrix | 100% coverage        |
 
 ---
 
-## LLD-44: CIS Benchmark Compliance
+## LLD-43: CIS Benchmark Compliance
 
 Run the CIS OCP and OCP-V benchmark scans, triage findings, and remediate high-severity items to meet {CLIENT} security compliance requirements. Scans execute after all Phase 2 configuration is complete to capture the full security posture. *(ADR 25)*
 
@@ -3157,18 +3157,18 @@ Run the CIS OCP and OCP-V benchmark scans, triage findings, and remediate high-s
 
 | ID      | Item                                       | Owner                    | Status |
 | ------- | ------------------------------------------ | ------------------------ | ------ |
-| CG-44-1 | Onboard the first ACM hub and at least one spoke cluster into {SCANNING_VENDOR} for vulnerability scanning                | Security / Observability | Open   |
-| CG-44-2 | Execute CIS benchmark scans for OpenShift and OpenShift Virtualization after initial platform configuration            | Security                 | Open   |
-| CG-44-3 | Finalise the RACI defining who is responsible for remediating high, medium, and low severity security findings         | InfoSec                  | Open   |
+| CG-43-1 | Onboard the first ACM hub and at least one spoke cluster into {SCAN_VENDOR} for vulnerability scanning                | Security / Observability | Open   |
+| CG-43-2 | Execute CIS benchmark scans for OpenShift and OpenShift Virtualization after initial platform configuration            | Security                 | Open   |
+| CG-43-3 | Finalise the RACI defining who is responsible for remediating high, medium, and low severity security findings         | InfoSec                  | Open   |
 
 ### Dependencies
 
 | Blocked By | Reason                         |
 | ---------- | ------------------------------ |
-| LLD-21     | etcd encryption enabled        |
-| LLD-34     | OCP Virt operator installed    |
-| LLD-31     | Observability stack configured |
-| LLD-43     | Network validation complete    |
+| LLD-20     | etcd encryption enabled        |
+| LLD-33     | OCP Virt operator installed    |
+| LLD-30     | Observability stack configured |
+| LLD-42     | Network validation complete    |
 
 > **Rationale:** CIS scans must run after all platform components are configured to produce an accurate baseline. Running earlier would require rescanning after each subsequent configuration change.
 
@@ -3188,12 +3188,12 @@ spec:
     ignition:
       version: 3.4.0
     storage:
-      files: [] # Populate per {SCANNING_VENDOR} output — **TBD**
+      files: [] # Populate per {SCAN_VENDOR} output — **TBD**
 ```
 
 ### Tier Variance
 
-| Parameter | {TIER_PRIMARY}           | {TIER_MIDDLE}      | {TIER_EDGE}                       |
+| Parameter | DC           | {TIER_MIDDLE}      | {TIER_EDGE}                       |
 | --------- | ------------ | -------- | ---------------------------- |
 | Cadence   | Stricter SLA | Moderate | Aligned fleet policy **TBD** |
 
@@ -3201,19 +3201,19 @@ spec:
 
 **Execution Readiness Checks:**
 
-- [ ] All Phase 2 LLDs (LLD-15 through LLD-46) applied and validated
-- [ ] {SCANNING_VENDOR} connector + credentials for OpenShift scanning
+- [ ] All Phase 2 LLDs (LLD-14 through LLD-45) applied and validated
+- [ ] {SCAN_VENDOR} connector + credentials for OpenShift scanning
 - [ ] Sandbox scan playbook executed once (method of work **TBD**)
 
-**Steps — {SCANNING_VENDOR}:**
+**Steps — {SCAN_VENDOR}:**
 
 1. Confirm all platform components configured (storage, networking, identity, operators, observability, migration readiness).
-2. Import {SCANNING_VENDOR} scan template for OCP 4.x + VIRT profile **TBD SKU**.
+2. Import {SCAN_VENDOR} scan template for OCP 4.x + VIRT profile **TBD SKU**.
 3. Execute initial scan against fully configured cluster.
 4. Remediate highs first; exceptions via risk acceptance tracker **TBD**.
 5. Rescan to confirm remediation; iterate until sign-off.
 
-**Steps — Compliance Operator (optional — continuous in-cluster CIS baseline between {SCANNING_VENDOR} scans):**
+**Steps — Compliance Operator (optional — continuous in-cluster CIS baseline between {SCAN_VENDOR} scans):**
 
 6. **Install the Compliance Operator:**
    
@@ -3275,7 +3275,7 @@ spec:
    oc get compliancecheckresult -n openshift-compliance --no-headers | head -20
    ```
 
-> **Decision gate:** If the Compliance Operator is not required ({SCANNING_VENDOR} alone is sufficient), document the exclusion rationale in the gate review and skip steps 6-9.
+> **Decision gate:** If the Compliance Operator is not required ({SCAN_VENDOR} alone is sufficient), document the exclusion rationale in the gate review and skip steps 6-9.
 
 **Verification:**
 
@@ -3293,13 +3293,13 @@ oc get compliancescan -n openshift-compliance 2>/dev/null
 
 | ID      | Criterion                                        | Test                                            | Expected Result |
 | ------- | ------------------------------------------------ | ----------------------------------------------- | --------------- |
-| AC-44-1 | No open high findings without waiver             | Latest {SCANNING_VENDOR} CSV                              | Accepted        |
-| AC-44-2 | VIRT-specific delta register maintained          | Ticketing artifact                              | Exists          |
-| AC-44-3 | Compliance Operator scan completed (if deployed) | `oc get compliancescan -n openshift-compliance` | `DONE` phase    |
+| AC-43-1 | No open high findings without waiver             | Latest {SCAN_VENDOR} CSV                              | Accepted        |
+| AC-43-2 | VIRT-specific delta register maintained          | Ticketing artifact                              | Exists          |
+| AC-43-3 | Compliance Operator scan completed (if deployed) | `oc get compliancescan -n openshift-compliance` | `DONE` phase    |
 
 ---
 
-## LLD-45: Migration Smoke Test
+## LLD-44: Migration Smoke Test
 
 Migrate a pilot VM from VMware to OCP-V using MTV to validate the end-to-end migration path, storage mapping, and network mapping. *(ADR 50)*
 
@@ -3307,16 +3307,16 @@ Migrate a pilot VM from VMware to OCP-V using MTV to validate the end-to-end mig
 
 | ID      | Item                                                           | Owner                | Status |
 | ------- | -------------------------------------------------------------- | -------------------- | ------ |
-| CG-45-1 | Successfully migrate a pilot VM using cold migration (VM powered off during transfer)                                           | Migration / Platform | Open   |
-| CG-45-2 | Successfully migrate a pilot VM using warm migration (VM remains running during transfer), if warm migration will be used       | Migration / Platform | Open   |
+| CG-44-1 | Successfully migrate a pilot VM using cold migration (VM powered off during transfer)                                           | Migration / Platform | Open   |
+| CG-44-2 | Successfully migrate a pilot VM using warm migration (VM remains running during transfer), if warm migration will be used       | Migration / Platform | Open   |
 
 ### Dependencies
 
 | Blocked By | Reason                      |
 | ---------- | --------------------------- |
-| LLD-42     | vCenter provider configured |
-| LLD-43     | NADs validated              |
-| LLD-15     | Storage classes available   |
+| LLD-41     | vCenter provider configured |
+| LLD-42     | NADs validated              |
+| LLD-14     | Storage classes available   |
 
 ### Configuration Parameters
 
@@ -3328,9 +3328,9 @@ Migrate a pilot VM from VMware to OCP-V using MTV to validate the end-to-end mig
 
 **Execution Readiness Checks:**
 
-- [ ] Provider Ready (LLD-42)
-- [ ] NADs validated (LLD-43)
-- [ ] Storage classes available (LLD-15)
+- [ ] Provider Ready (LLD-41)
+- [ ] NADs validated (LLD-42)
+- [ ] Storage classes available (LLD-14)
 - [ ] Test VM identified and snapshot-free
 
 **Steps:**
@@ -3359,13 +3359,13 @@ virtctl console <vm-name> -n mtv-smoke-test
 
 | ID      | Criterion              | Test                     | Expected Result     |
 | ------- | ---------------------- | ------------------------ | ------------------- |
-| AC-45-1 | Migration completes    | `oc get migration`       | `Succeeded`         |
-| AC-45-2 | VM boots and reachable | `virtctl console` / ping | Responsive          |
-| AC-45-3 | Disk data intact       | App/file check inside VM | Data matches source |
+| AC-44-1 | Migration completes    | `oc get migration`       | `Succeeded`         |
+| AC-44-2 | VM boots and reachable | `virtctl console` / ping | Responsive          |
+| AC-44-3 | Disk data intact       | App/file check inside VM | Data matches source |
 
 ---
 
-## LLD-46: Migration Benchmarking
+## LLD-45: Migration Benchmarking
 
 Measure migration throughput at varying concurrency levels to establish baseline performance and determine the recommended parallel migration limit per wave. *(ADR 50)*
 
@@ -3373,20 +3373,20 @@ Measure migration throughput at varying concurrency levels to establish baseline
 
 | ID      | Item                          | Owner                | Status |
 | ------- | ----------------------------- | -------------------- | ------ |
-| CG-46-1 | Measure and record baseline VM migration throughput under production network conditions            | Migration / Platform | Open   |
-| CG-46-2 | Establish the maximum number of concurrent VM migrations the environment can safely support        | Migration / Platform | Open   |
+| CG-45-1 | Measure and record baseline VM migration throughput under production network conditions            | Migration / Platform | Open   |
+| CG-45-2 | Establish the maximum number of concurrent VM migrations the environment can safely support        | Migration / Platform | Open   |
 
 ### Dependencies
 
 | Blocked By | Reason            |
 | ---------- | ----------------- |
-| LLD-45     | Smoke test passed |
+| LLD-44     | Smoke test passed |
 
 ### Implementation Procedure
 
 **Execution Readiness Checks:**
 
-- [ ] Smoke test passed (LLD-45)
+- [ ] Smoke test passed (LLD-44)
 - [ ] Multiple test VMs available
 
 **Steps:**
@@ -3414,10 +3414,10 @@ oc adm top nodes   # during migration
 
 | ID      | Criterion                      | Test                | Expected Result                             |
 | ------- | ------------------------------ | ------------------- | ------------------------------------------- |
-| AC-46-1 | Throughput baseline documented | Benchmarking report | GB/hr per VM size                           |
-| AC-46-2 | Concurrency limit set          | Report              | Max parallel without degradation            |
-| AC-46-3 | Warm migration delta measured  | CBT precopy logs    | Incremental size documented                 |
-| AC-46-4 | Fits maintenance window        | Calculation         | Wave fits window at recommended concurrency |
+| AC-45-1 | Throughput baseline documented | Benchmarking report | GB/hr per VM size                           |
+| AC-45-2 | Concurrency limit set          | Report              | Max parallel without degradation            |
+| AC-45-3 | Warm migration delta measured  | CBT precopy logs    | Incremental size documented                 |
+| AC-45-4 | Fits maintenance window        | Calculation         | Wave fits window at recommended concurrency |
 
 ---
 
@@ -3426,29 +3426,29 @@ oc adm top nodes   # during migration
 
 | Layer | HLD Gate Criterion                                                                                                                   | LLD Acceptance Tests                                                                                                                                                                | Status |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| L1    | Storage backends healthy — IBM block CSI connected to {BLOCK_STORAGE_VENDOR} at {TIER_PRIMARY}/{TIER_MIDDLE}; ODF healthy at {TIER_EDGE} sites; default StorageClasses created | AC-15-1–AC-15-3                                                                                                                                                                     | [ ]    |
-| L2    | NMState policies applied, all bonds active                                                                                           | AC-04-2, AC-17-2 — *Note: ADR 11 specifies no OCP-managed bonding; interpret as “NMState desired state applied; logical interfaces up per design / fabric redundancy outside OCP.”* | [ ]    |
-| L3    | OAuth login working with LDAP groups                                                                                                 | AC-24-1, AC-24-2                                                                                                                                                                    | [ ]    |
-| L3    | All cataloged secrets present in target namespaces                                                                                   | AC-23-1                                                                                                                                                                             | [ ]    |
-| L3    | etcd encryption enabled; TLS certs deployed                                                                                          | AC-21-1; Phase 1 AC-01-5/6 (TLS)                                                                                                                                                    | [ ]    |
-| L3    | {SCANNING_VENDOR} CIS scan completed; high-severity items remediated                                                                           | AC-44-1                                                                                                                                                                             | [ ]    |
-| L4    | VM eviction strategy `LiveMigrate` confirmed (default); hot-plug defaults configured (4x CPU, 2x memory)                             | AC-34-4, AC-37-1                                                                                                                                                                    | [ ]    |
-| L4    | Schedulable masters confirmed; infra workloads co-located; no memory overcommit enforced                                             | AC-36-1; confirm no cluster-wide memory overcommit for VM workloads per ADR 38 (**TBD**: explicit `HyperConverged` / operator field or fleet policy check)                          | [ ]    |
-| L5    | Prometheus scraping, AlertManager → {NOC_PLATFORM} routing confirmed                                                                       | AC-31-1, AC-31-2                                                                                                                                                                    | [ ]    |
-| L5    | Vector → {SIEM_PLATFORM} log forwarding active; Loki 3-day local retention verified                                                           | AC-32-1, AC-32-2                                                                                                                                                                    | [ ]    |
-| L4/L5 | Descheduler profile selected and deployed (ADR 40)                                                                                   | AC-38-1                                                                                                                                                                             | [ ]    |
-| L3    | CIS OCP-V benchmark scan completed alongside OCP CIS scan; Phase 2-relevant gaps triaged                                             | AC-44-2                                                                                                                                                                             | [ ]    |
-| L4    | OCP Virt operator installed; HyperConverged CR Available                                                                             | AC-34-1, AC-34-2                                                                                                                                                                    | [ ]    |
-| L4    | Live migration network configured; migration completes on dedicated VLAN                                                             | AC-35-1, AC-35-2                                                                                                                                                                    | [ ]    |
-| L3    | etcd backup CronJob running; restore drill passed                                                                                    | AC-39-1, AC-39-3                                                                                                                                                                    | [ ]    |
-| L4    | Node labels applied (rack, role, workload)                                                                                           | AC-30-1                                                                                                                                                                             | [ ]    |
-| L2    | MTU validated end-to-end; no fragmentation on migration VLAN                                                                         | AC-20-1                                                                                                                                                                             | [ ]    |
-| L4/L5 | GitOps operator installed; ArgoCD instance healthy                                                                                   | AC-40-1, AC-40-2                                                                                                                                                                    | [ ]    |
-| L4    | MTV operator installed; ForkliftController Ready                                                                                     | AC-41-1, AC-41-2                                                                                                                                                                    | [ ]    |
-| L2    | vCenter provider connected and Ready; VM inventory populated                                                                         | AC-42-1, AC-42-2                                                                                                                                                                    | [ ]    |
-| L2    | Migration NADs validated end-to-end (L2 + throughput)                                                                                | AC-43-1, AC-43-2                                                                                                                                                                    | [ ]    |
-| L4    | Pilot VM migration smoke test passed (cold + warm if applicable)                                                                     | AC-45-1, AC-45-2                                                                                                                                                                    | [ ]    |
-| L4/L5 | Migration benchmarking complete; concurrency limit established                                                                       | AC-46-1, AC-46-2                                                                                                                                                                    | [ ]    |
+| L1    | Storage backends healthy — IBM block CSI connected to {BLOCK_STORAGE_ARRAY} at DC/{TIER_MIDDLE}; ODF healthy at {TIER_EDGE} sites; default StorageClasses created | AC-14-1–AC-14-3                                                                                                                                                                     | [ ]    |
+| L2    | NMState policies applied, all bonds active                                                                                           | AC-04-2, AC-16-2 — *Note: ADR 11 specifies no OCP-managed bonding; interpret as “NMState desired state applied; logical interfaces up per design / fabric redundancy outside OCP.”* | [ ]    |
+| L3    | OAuth login working with LDAP groups                                                                                                 | AC-23-1, AC-23-2                                                                                                                                                                    | [ ]    |
+| L3    | All cataloged secrets present in target namespaces                                                                                   | AC-22-1                                                                                                                                                                             | [ ]    |
+| L3    | etcd encryption enabled; TLS certs deployed                                                                                          | AC-20-1; Phase 1 AC-01-5/6 (TLS)                                                                                                                                                    | [ ]    |
+| L3    | {SCAN_VENDOR} CIS scan completed; high-severity items remediated                                                                           | AC-43-1                                                                                                                                                                             | [ ]    |
+| L4    | VM eviction strategy `LiveMigrate` confirmed (default); hot-plug defaults configured (4x CPU, 2x memory)                             | AC-33-4, AC-36-1                                                                                                                                                                    | [ ]    |
+| L4    | Schedulable masters confirmed; infra workloads co-located; no memory overcommit enforced                                             | AC-35-1; confirm no cluster-wide memory overcommit for VM workloads per ADR 38 (**TBD**: explicit `HyperConverged` / operator field or fleet policy check)                          | [ ]    |
+| L5    | Prometheus scraping, AlertManager → {EVENT_MGMT_PLATFORM} routing confirmed                                                                       | AC-30-1, AC-30-2                                                                                                                                                                    | [ ]    |
+| L5    | Vector → {SIEM_PLATFORM} log forwarding active; Loki 3-day local retention verified                                                           | AC-31-1, AC-31-2                                                                                                                                                                    | [ ]    |
+| L4/L5 | Descheduler profile selected and deployed (ADR 40)                                                                                   | AC-37-1                                                                                                                                                                             | [ ]    |
+| L3    | CIS OCP-V benchmark scan completed alongside OCP CIS scan; Phase 2-relevant gaps triaged                                             | AC-43-2                                                                                                                                                                             | [ ]    |
+| L4    | OCP Virt operator installed; HyperConverged CR Available                                                                             | AC-33-1, AC-33-2                                                                                                                                                                    | [ ]    |
+| L4    | Live migration network configured; migration completes on dedicated VLAN                                                             | AC-34-1, AC-34-2                                                                                                                                                                    | [ ]    |
+| L3    | etcd backup CronJob running; restore drill passed                                                                                    | AC-38-1, AC-38-3                                                                                                                                                                    | [ ]    |
+| L4    | Node labels applied (rack, role, workload)                                                                                           | AC-29-1                                                                                                                                                                             | [ ]    |
+| L2    | MTU validated end-to-end; no fragmentation on migration VLAN                                                                         | AC-19-1                                                                                                                                                                             | [ ]    |
+| L4/L5 | GitOps operator installed; ArgoCD instance healthy                                                                                   | AC-39-1, AC-39-2                                                                                                                                                                    | [ ]    |
+| L4    | MTV operator installed; ForkliftController Ready                                                                                     | AC-40-1, AC-40-2                                                                                                                                                                    | [ ]    |
+| L2    | vCenter provider connected and Ready; VM inventory populated                                                                         | AC-41-1, AC-41-2                                                                                                                                                                    | [ ]    |
+| L2    | Migration NADs validated end-to-end (L2 + throughput)                                                                                | AC-42-1, AC-42-2                                                                                                                                                                    | [ ]    |
+| L4    | Pilot VM migration smoke test passed (cold + warm if applicable)                                                                     | AC-44-1, AC-44-2                                                                                                                                                                    | [ ]    |
+| L4/L5 | Migration benchmarking complete; concurrency limit established                                                                       | AC-45-1, AC-45-2                                                                                                                                                                    | [ ]    |
 
 **Gate 2 PASSED when all rows show [x].**
 
@@ -3469,17 +3469,24 @@ oc adm top nodes   # during migration
 | `{HW_VENDOR}` | Hardware vendor | Cisco |
 | `{HW_MGMT_PLATFORM}` | Hardware management platform | Intersight |
 | `{HW_MONITORING_VENDOR}` | Hardware monitoring tool | Virtana |
-| `{BLOCK_STORAGE_VENDOR}` | Block storage array model | FlashSystem |
-| `{BLOCK_STORAGE_LOWER}` | Block storage name lowercase (for K8s resource names) | flashsystem |
+| `{BLOCK_STORAGE_ARRAY}` | Block storage array model | (vendor block storage) |
+| `{BLOCK_STORAGE_LOWER}` | Block storage name lowercase (for K8s resource names) | blockarray |
 | `{SIEM_PLATFORM}` | SIEM / log aggregation platform | Splunk |
 | `{SIEM_LOWER}` | SIEM platform name lowercase (for K8s resource names) | splunk |
-| `{NOC_PLATFORM}` | Event management / AIOps platform | Moogsoft |
+| `{EVENT_MGMT_PLATFORM}` | Event management / AIOps platform | Moogsoft |
 | `{EVENT_MGMT_LOWER}` | Event management platform lowercase (for K8s resource names) | moogsoft |
-| `{BACKUP_VENDOR}` | Backup solution vendor | e.g. Veeam, Commvault |
+| `{BACKUP_VENDOR}` | Backup solution vendor | Rubrik |
 | `{SECRET_MGMT_VENDOR}` | Secret / vault management vendor | CyberArk |
-| `{DNS_IPAM_VENDOR}` | IP address management system | Infoblox |
-| `{SCANNING_VENDOR}` | Vulnerability / compliance scanner | Tenable |
+| `{IPAM_PLATFORM}` | IP address management system | Infoblox |
+| `{SCAN_VENDOR}` | Vulnerability / compliance scanner | Tenable |
 | `{REGISTRY_MIRROR}` | Container image registry mirror | Artifactory |
 | `{REGISTRY_MIRROR_FQDN}` | Registry mirror FQDN | artifactory.acme.example.com |
-| `{SITE_LIST}` | Comma-separated site names | Site Gamma, Site Alpha, Site Beta |
-| `{SITE_PRIMARY}` / `{SITE_SECONDARY}` / `{SITE_LAB}` | Individual site names | Site Gamma / Site Alpha / Site Beta |
+| `{TIER_PRIMARY}` | Primary / datacenter tier name | Datacenter |
+| `{TIER_MIDDLE}` | Regional / mid-tier name | Regional |
+| `{TIER_EDGE}` | Edge / remote-site tier name | Edge |
+| `{TIER_MIDDLE_LOWER}` | Mid-tier label (lowercase) | regional |
+| `{TIER_EDGE_LOWER}` | Edge-tier label (lowercase) | edge |
+| `{TIER_EDGE_COUNT}` | Approximate edge-site or edge-cluster count | ~N |
+| `{OBJECT_STORAGE}` | S3-compatible object storage | (S3-compatible object store) |
+| `{SITE_LIST}` | Comma-separated site names | `{SITE_1}, {SITE_2}, {SITE_3}` |
+| `{SITE_1}` / `{SITE_2}` / `{SITE_3}` | Individual site names | `{SITE_1}` / `{SITE_2}` / `{SITE_3}` |
