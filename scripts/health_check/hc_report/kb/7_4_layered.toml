@@ -2,17 +2,7 @@
 check_id = "7.4.tsr.4_8_1_1_2_related_subscriptions"
 title = "TSR CNV related subscriptions"
 description = "OpenShift Virtualization depends on related operator subscriptions in the virt namespace and in sibling namespaces (for example workload-availability). Missing or degraded subscriptions block CNV features and upgrades."
-# why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: OpenShift Virtualization depends on related operator subscriptions in the virt
-# namespace and in sibling namespaces (for example workload-availability).
-# The rec remediates THAT story by starting at `oc get csv,subscription -A` — the live
-# object/command for this check, not a neighboring TSR item.
-# Impact `non-disruptive`: Approving InstallPlans or reconciling CNV subscriptions rolls
-# operator-managed pods but does not reboot cluster nodes.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
-recommendation = "1. List CSVs and subscriptions in `openshift-cnv` and related operator namespaces named in the evidence.\n   `oc get csv,subscription -A`\n2. Confirm HyperConverged conditions are healthy.\n3. Resolve failed InstallPlans before upgrading.\n"
+recommendation = "1. Required: subscription kubevirt-hyperconverged in openshift-cnv (package kubevirt-hyperconverged). PASS = STATE AtLatestKnown and INSTALLED equals CURRENT. Missing namespace = INFO n/a-cnv:\n   `oc get subscription -n openshift-cnv -o custom-columns=NAME:.metadata.name,PACKAGE:.spec.name,CHANNEL:.spec.channel,STATE:.status.state,INSTALLED:.status.installedCSV,CURRENT:.status.currentCSV 2>&1 | awk '/not found/{print \"INFO n/a-cnv\"; n=1; next} NR==1{print \"RESULT\",$0; next} {r=\"FAIL\"; if($1==\"kubevirt-hyperconverged\" && $4==\"AtLatestKnown\" && $5==$6) r=\"PASS\"; print r,$0} END{if(!n && NR==1) print \"FAIL missing-kubevirt-hyperconverged\"}'`\n2. Required: CSV kubevirt-hyperconverged-operator.* PHASE=Succeeded:\n   `oc get csv -n openshift-cnv 2>&1 | awk '/not found/{print \"INFO n/a-cnv\"; n=1; next} NR==1{print \"RESULT\",$0; next} $1 ~ /^kubevirt-hyperconverged-operator/ {r=($NF==\"Succeeded\"?\"PASS\":\"FAIL\"); print r,$0; found=1} END{if(!n && !found) print \"FAIL missing-kubevirt-hyperconverged-operator\"}'`\n3. Optional related (INFO if the namespace is missing or empty; if present, score the same AtLatestKnown / Succeeded rules). Expected packages: node-healthcheck-operator, self-node-remediation, fence-agents-remediation, node-maintenance-operator; kubernetes-nmstate-operator; sriov-network-operator:\n   `oc get subscription,csv -n openshift-workload-availability 2>&1 | awk '/No resources found|not found|have a resource type/{print \"INFO n/a-workload-availability\"; n=1; next} {print} END{if(!n && NR==0) print \"INFO n/a-workload-availability\"}' && \\\n   oc get subscription,csv -n openshift-nmstate 2>&1 | awk '/No resources found|not found|have a resource type/{print \"INFO n/a-nmstate\"; n=1; next} {print} END{if(!n && NR==0) print \"INFO n/a-nmstate\"}' && \\\n   oc get subscription,csv -n openshift-sriov-network-operator 2>&1 | awk '/No resources found|not found|have a resource type/{print \"INFO n/a-sriov\"; n=1; next} {print} END{if(!n && NR==0) print \"INFO n/a-sriov\"}'`\n4. If a required row is FAIL, print InstallPlans that are not Complete:\n   `oc get installplan -n openshift-cnv -o custom-columns=NAME:.metadata.name,CSV:.spec.clusterServiceVersionNames,APPROVED:.spec.approved,PHASE:.status.phase | awk 'NR==1{print; next} $4!=\"Complete\"{print; n++} END{if(n+0==0) print \"PASS no-stuck-installplans\"}'`\n5. HyperConverged Available/Degraded is 7.4.cnv.state. Version/lifecycle is 4.8.1.1.1.\n6. https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/virtualization/index#virt-subscribing-cli_installing-virt\n"
 priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "openshift-cnv operator namespace"
@@ -30,10 +20,7 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.4.tsr.4_8_1_3_4_node_disk"
 title = "4.8.1.3.4 Default virtualization StorageClass"
 description = "This TSR worksheet item is about whether a default StorageClass for virtualization workloads exists (annotation storageclass.kubevirt.io/is-default-virt-class), not about node root-disk fullness or kubelet DiskPressure. A cluster-wide default StorageClass is a different setting."
-# why-rec
-# CORRECTED. `-o yaml` dumps every StorageClass. Rec prints provisioner and virt-default
-# annotation as columns. Keep the annotate command for the virt default class.
-recommendation = "1. List StorageClass provisioner and virt-default annotation:\n   `oc get storageclass -o custom-columns=NAME:.metadata.name,PROVISIONER:.provisioner,VIRTDEFAULT:.metadata.annotations.storageclass\\.kubevirt\\.io/is-default-virt-class`\n2. Mark the class that should back VM disks:\n   `oc annotate storageclass <name> storageclass.kubevirt.io/is-default-virt-class=true`\n3. If the provisioner supports snapshots, associate a VolumeSnapshotClass with that default class.\n"
+recommendation = "1. List StorageClass provisioner and virt-default annotation:\n   `oc get storageclass -o custom-columns=NAME:.metadata.name,PROVISIONER:.provisioner,VIRTDEFAULT:.metadata.annotations.storageclass\\.kubevirt\\.io/is-default-virt-class`\n2. Mark the class that should back VM disks:\n   `oc annotate storageclass <name> storageclass.kubevirt.io/is-default-virt-class=true`\n3. Print VolumeSnapshotClass DRIVER. Empty / no CRD = INFO n/a-volumesnapshotclass. Association is DRIVER equals the virt-default PROVISIONER from step 1:\n   `oc get volumesnapshotclass 2>&1 | awk '/No resources found|have a resource type/{print \"INFO n/a-volumesnapshotclass\"; n=1; next} {print} END{if(!n && NR==0) print \"INFO n/a-volumesnapshotclass\"}'`\n"
 priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "StorageClass annotations for VM disks"
@@ -51,17 +38,7 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.4.cnv.live_migratable"
 title = "VM live-migratable status (engine)"
 description = "This engine check reads VirtualMachineInstance LiveMigratable conditions and VirtualMachine evictionStrategy. It is not TSR worksheet 4.8.2.1.1.3 (migration network)."
-# why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: This engine check reads VirtualMachineInstance LiveMigratable conditions and
-# VirtualMachine evictionStrategy.
-# The rec remediates THAT story by starting at `oc get vmi -A` — the live object/command for this
-# check, not a neighboring TSR item.
-# Impact `workload-shift`: Making a VM live-migratable may require storage, networking, or
-# eviction-policy changes and can require a VM reboot.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
-recommendation = "1. Inspect non-migratable VMIs:\n   `oc get vmi -A` / `omc get vmi -A`\n   `oc describe vmi <name> -n <ns>`\n2. Typical causes: RWO disks, GPU/passthrough, evictionStrategy None, node selector/affinity, host-model CPU, PodDisruptionBudget on virt-launcher, insufficient spare memory for drain.\n3. Confirm a dedicated live-migration network if large VMs saturate the primary NIC (TSR 4.8.2.1.1.3).\n"
+recommendation = "1. Print each VMI LiveMigratable status, reason, and message. Empty = INFO n/a-vmi. False = WARNING (reason/message is the cause). True = PASS:\n   `oc get vmi -A -o json | jq -r '[\"RESULT\",\"NS\",\"NAME\",\"PHASE\",\"LIVEMIG\",\"REASON\",\"MESSAGE\"], (if (.items|length)==0 then [\"INFO\",\"-\",\"-\",\"-\",\"-\",\"-\",\"n/a-vmi\"] else .items[] | ([.status.conditions[]? | select(.type==\"LiveMigratable\")][0] // {}) as $c | [(if $c.status==\"True\" then \"PASS\" elif $c.status==\"False\" then \"WARNING\" else \"INFO\" end), .metadata.namespace, .metadata.name, (.status.phase // \"-\"), ($c.status // \"-\"), ($c.reason // \"-\"), ($c.message // \"-\")] end) | @tsv' | column -t -s $'\\t'`\n2. Print each VM evictionStrategy. LiveMigrate = PASS. <none> / None / LiveMigrateIfPossible = INFO (engine lists those). Dedicated migration network is 4.8.2.1.1.3:\n   `oc get vm -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,EVICTION:.spec.template.spec.evictionStrategy | awk 'NR==1{print \"RESULT\",$0; next} {e=$3; r=\"INFO\"; if(e==\"LiveMigrate\") r=\"PASS\"; print r,$0} END{if(NR==1) print \"INFO n/a-vm\"}'`\n"
 impact = "workload-shift"
 impact_scope = "affected VMs"
 impact_detail = "Making a VM live-migratable may require storage, networking, or eviction-policy changes and can require a VM reboot."
@@ -69,12 +46,8 @@ impact_detail = "Making a VM live-migratable may require storage, networking, or
 [[checks]]
 check_id = "7.4.tsr.4_8_1_5_1_1_cnv_operators_node_placement"
 title = "TSR CNV operators node placement"
-description = "CNV infrastructure components (virt-handler, virt-launcher) must run on nodes\nwith the appropriate hardware capabilities. Incorrect node placement leads to\nVM scheduling failures and live migration issues.\n"
-# why-rec
-# CORRECTED. `oc debug node -- cat /proc/cpuinfo` reads the debug container. Need `chroot /host`.
-# virt-handler DaemonSet and node.kubevirt.io/schedulable are the CNV placement objects. Debug
-# not executed.
-recommendation = "1. Verify the `virt-handler` DaemonSet is running on all compute or worker nodes.\n   `oc get ds virt-handler -n openshift-cnv`\n2. Check node selectors and tolerations on the HyperConverged CR.\n3. Confirm that nodes intended for VMs have the `node.kubevirt.io/schedulable` label.\n4. Confirm hardware virtualization is enabled on target nodes.\n   `oc debug node/<name> -- chroot /host grep -E 'vmx|svm' /proc/cpuinfo`\n"
+description = "This check is where virt-handler and VM pods may run. HyperConverged spec.infra and spec.workloads nodePlacement pin them (empty = default). On the virt-handler DaemonSet, READY must equal DESIRED and NODE SELECTOR must match that pin. Nodes that should run VMs need kubevirt.io/schedulable=true and a vmx or svm CPU-feature label. virt-launcher is a per-VM pod, not a cluster DaemonSet."
+recommendation = "1. PASS/FAIL virt-handler when READY equals DESIRED. Missing DS = INFO n/a-cnv:\n   `oc get ds virt-handler -n openshift-cnv 2>&1 | awk '/not found/{print \"INFO n/a-cnv\"; next} NR==1{next} {print ($4==$2?\"PASS\":\"FAIL\"), \"READY=\"$4, \"DESIRED=\"$2, $1}'`\n2. Print HyperConverged infra and workloads nodeSelector. <none> = default (all nodes matching virt-handler). A map dump is a pin; virt-handler should land on that same selector:\n   `oc get hyperconverged kubevirt-hyperconverged -n openshift-cnv -o custom-columns=NAME:.metadata.name,INFRA_SEL:.spec.infra.nodePlacement.nodeSelector,WORKLOADS_SEL:.spec.workloads.nodePlacement.nodeSelector`\n3. Print kubevirt.io/schedulable and hardware-virt CPU-feature labels (vmx=Intel, svm=AMD). PASS = SCHEDULABLE=true and SVM or VMX is true:\n   `oc get nodes -L kubevirt.io/schedulable -L cpu-feature.node.kubevirt.io/svm -L cpu-feature.node.kubevirt.io/vmx | awk 'NR==1{print \"RESULT\",$0; next} {r=\"FAIL\"; if($6==\"true\" && ($7==\"true\" || $8==\"true\")) r=\"PASS\"; print r,$0}'`\n"
 priority_hint = ""
 impact = "workload-shift"
 impact_scope = "CNV infrastructure pods and VM-capable worker nodes"
@@ -92,16 +65,6 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.4.tsr.4_8_1_5_1_5_vm_run_strategy_and_availability"
 title = "TSR VM run strategy and availability"
 description = "VM RunStrategy controls how VMs behave during node failures and maintenance.\n`Always` ensures automatic restart on healthy nodes; `Manual` requires operator\nintervention. Production VMs should use `Always` with live migration enabled.\n"
-# why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: VM RunStrategy controls how VMs behave during node failures and maintenance.
-# The rec remediates THAT story by starting at `oc get vm -A -o
-# custom-columns=NS:.metadata.namespace,NAME:.metadata.name,STRATEGY:.spec.runStrategy` — the
-# live object/command for this check, not a neighboring TSR item.
-# Impact `non-disruptive`: Updating runStrategy or eviction policy changes future failover and
-# maintenance behavior immediately, but it does not reboot nodes or stop running VMs by itself.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
 recommendation = "1. Review VM run strategies.\n   `oc get vm -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,STRATEGY:.spec.runStrategy`\n2. For production VMs using `Manual` or `RerunOnFailure`, evaluate whether `Always` with eviction strategy `LiveMigrate` is more appropriate for uptime SLAs.\n"
 priority_hint = ""
 impact = "non-disruptive"
@@ -119,11 +82,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.4.tsr.4_8_2_1_1_3_live_migration_network_readiness"
 title = "TSR live migration network readiness"
-description = "This check evaluates live-migration readiness. Failures include VMs that cannot live-migrate (PDB, disk, or node-selector constraints) and missing dedicated migration network capacity. The evidence lists the class; truncated VM-reason tables are chapter 7."
-# why-rec
-# CORRECTED. Dumping KubeVirt YAML is the wrong object for the dedicated migration
-# network. Rec prints HyperConverged liveMigrationConfig.network only.
-recommendation = "1. Read which constraint class the evidence reports (not migratable vs network).\n2. For VMs that cannot live-migrate, inspect PDB, volumes, and node selectors.\n3. Print the dedicated live-migration network on HyperConverged:\n   `oc get hyperconverged -n openshift-cnv -o jsonpath='{range .items[*]}{.metadata.name} network={.spec.liveMigrationConfig.network}{\"\\n\"}{end}'`\n"
+description = "This check is HyperConverged spec.liveMigrationConfig.network: the NAD in openshift-cnv used for live-migration traffic. Empty = default pod network. A named network must exist as a NAD. VM LiveMigratable (PDB, disk, node selector) is 7.4.cnv.live_migratable. Capacity headroom is 4.8.2.1.1.6."
+recommendation = "1. Print HyperConverged live-migration NAD. <none> = INFO (default pod network). Missing HCO = INFO n/a-cnv, stop:\n   `oc get hyperconverged kubevirt-hyperconverged -n openshift-cnv -o custom-columns=NAME:.metadata.name,NETWORK:.spec.liveMigrationConfig.network 2>&1 | awk '/not found/{print \"INFO n/a-cnv\"; next} NR==1{next} {n=$2; if(n==\"<none>\"||n==\"\") print \"INFO NETWORK=<none>\", $1; else print \"NETWORK=\"n, $1}'`\n2. Print NADs in openshift-cnv. If step 1 named a network, PASS when that NAME is here; missing NAD = FAIL:\n   `oc get net-attach-def -n openshift-cnv`\n"
 priority_hint = ""
 impact = "workload-shift"
 impact_scope = "live-migration traffic path and virt-handler pods"
@@ -141,16 +101,6 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.4.tsr.4_8_2_2_1_2_network_configuration"
 title = "TSR network configuration"
 description = "This check verifies that the node network configuration required for virtual machine connectivity is properly set up. It looks for NodeNetworkConfigurationPolicy (NNCP) and NodeNetworkConnectionEnactment (NNCE) resources. Missing or failed network policies mean VMs may not be able to connect to external networks or other VMs."
-# why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: This check verifies that the node network configuration required for virtual
-# machine connectivity is properly set up.
-# The rec remediates THAT story by starting at `oc get nncp` — the live object/command for this
-# check, not a neighboring TSR item.
-# Impact `maintenance-window`: Bridge, SR-IOV, or other host-network changes can interrupt node
-# and VM connectivity while the node networking is reconfigured.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
 recommendation = "1. Check if node network policies exist and are applied:\n   `oc get nncp` and `oc get nnce`\n2. If NNCPs are missing and VMs need bridge or VLAN networking, create the\n   appropriate NodeNetworkConfigurationPolicy for your topology.\n3. If NNCPs exist but show errors, inspect the enactment status:\n   `oc get nnce -o wide`\n4. Verify VM network attachments are correctly defined:\n   `oc get net-attach-def -A`\n"
 priority_hint = ""
 impact = "maintenance-window"
@@ -171,17 +121,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.4.tsr.4_8_3_1_1_storage_profiles"
 title = "TSR storage profiles"
-description = "StorageProfiles set default volume and access modes per StorageClass for CDI. A common finding is host-assisted clone (copy) because CSI clone or snapshot is not configured for that provisioner."
-# why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: StorageProfiles set default volume and access modes per StorageClass for CDI.
-# The rec remediates THAT story by starting at `oc get storageprofile` — the live object/command
-# for this check, not a neighboring TSR item.
-# Impact `non-disruptive`: StorageProfile changes affect future imports, clones, and PVC
-# defaults; existing volumes and running VMs continue unchanged.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
-recommendation = "1. Review storage profiles.\n   `oc get storageprofile`\n2. If clone strategy is host-assisted copy, prefer CSI clone or snapshot when the provisioner supports it.\n3. Update `claimPropertySets` to match backend capability.\n   `oc edit storageprofile <name>`\n"
+description = "This check is CDI StorageProfile defaults per StorageClass: cloneStrategy (copy, csi-clone, or snapshot) and claimPropertySets (accessModes, volumeMode). copy is host-assisted clone. Empty spec means CDI inferred the status values. VolumeSnapshotClass DRIVER vs provisioner is 4.8.1.3.4."
+recommendation = "1. Print StorageProfile provisioner, effective clone strategy, spec override, and snapshotClass. copy = WARNING (host-assisted). snapshot or csi-clone = PASS. Empty / no CRD = INFO n/a-storageprofile, stop:\n   `oc get storageprofile -o custom-columns=NAME:.metadata.name,PROVISIONER:.status.provisioner,CLONE:.status.cloneStrategy,SPEC_CLONE:.spec.cloneStrategy,SNAPCLASS:.spec.snapshotClass 2>&1 | awk '/have a resource type|No resources found/{print \"INFO n/a-storageprofile\"; n=1; next} NR==1{print \"RESULT\",$0; next} {c=$3; r=\"INFO\"; if(c==\"copy\") r=\"WARNING\"; else if(c==\"csi-clone\"||c==\"snapshot\") r=\"PASS\"; print r,$0} END{if(!n && NR==0) print \"INFO n/a-storageprofile\"}'`\n2. Print claimPropertySets accessModes and volumeMode (named fields, not a map dump):\n   `oc get storageprofile -o json | jq -r '[\"NAME\",\"ACCESS\",\"VOLMODE\"], (.items[] as $sp | ($sp.status.claimPropertySets // [{}])[] as $claim | [$sp.metadata.name, (($claim.accessModes // []) | join(\",\") | if .==\"\" then \"-\" else . end), ($claim.volumeMode // \"-\")]) | @tsv' | column -t -s $'\\t'`\n"
 priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "new DataVolumes and VM disk defaults"
@@ -199,15 +140,6 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.4.tsr.4_8_3_2_1_nmstate_operator"
 title = "TSR NMState operator"
 description = "This check evaluates the NMState operator used for NodeNetworkConfigurationPolicy. Failures include operator missing, CSV not current, or failed enactments."
-# why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: This check evaluates the NMState operator used for NodeNetworkConfigurationPolicy.
-# The rec remediates THAT story by starting at `oc get csv -n openshift-nmstate` — the live
-# object/command for this check, not a neighboring TSR item.
-# Impact `maintenance-window`: Applying or correcting NNCPs can briefly disrupt host networking;
-# use controlled rollout settings such as maxUnavailable and validate rollback behavior.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
 recommendation = "1. Check whether the NMState operator is installed and current.\n   `oc get csv -n openshift-nmstate`\n2. If the operator is present but stale, consider updating it.\n3. Inspect NNCP/NNCE conditions for failed enactments.\n   `oc get nncp,nnce`\n"
 priority_hint = ""
 impact = "maintenance-window"
@@ -226,15 +158,6 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.4.tsr.4_8_3_2_2_sr_iov_operator"
 title = "TSR SR-IOV operator"
 description = "This check evaluates the SR-IOV Network Operator. A typical warning is that the operator namespace or CSV is not found — SR-IOV is absent, not merely misconfigured."
-# why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: This check evaluates the SR-IOV Network Operator.
-# The rec remediates THAT story by starting at `oc get csv,ns | grep -i sriov` — the live
-# object/command for this check, not a neighboring TSR item.
-# Impact `maintenance-window`: Updating SR-IOV policies reprovisions virtual functions on the NIC
-# and can interrupt workloads attached to those interfaces until reconciliation completes.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
 recommendation = "1. Check for the operator namespace and CSV.\n   `oc get csv,ns | grep -i sriov`\n2. If the operator is not installed and SR-IOV is not in the design, document it as not applicable.\n3. If SR-IOV is required, install the operator and match `SriovNetworkNodePolicy` to hardware.\n"
 priority_hint = ""
 impact = "maintenance-window"
@@ -252,11 +175,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.4.tsr.4_8_3_2_3_linux_bridge_network"
 title = "TSR Linux bridge network"
-description = "Linux bridge networks provide layer-2 connectivity for VMs. They require\nNMState-managed bridge interfaces on worker nodes and corresponding\nNetworkAttachmentDefinitions.\n"
-# why-rec
-# CORRECTED. `-o yaml` dumps the whole NNCE. Rec prints conditions and interface names
-# only.
-recommendation = "1. Print NNCE conditions and interface names:\n   `oc get nnce <node>.<policy> -o jsonpath='{range .status.conditions[*]}{.type}={.status}{\"\\n\"}{end}{range .status.interfaceStatus[*]}iface={.name}{\"\\n\"}{end}'`\n2. Confirm the bridge exists on target nodes.\n3. Check NetworkAttachmentDefinition bridge names:\n   `oc get net-attach-def -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,CONFIG:.spec.config`\n"
+description = "This check is Linux-bridge VM networks: NAD type cnv-bridge (or bridge) with a BRIDGE name and optional VLAN. Host bridge enactment is NNCE. macvlan and the OVN overlay NAD are not this object. Extra-network inventory is 3.17.3."
+recommendation = "1. Print NNCE. Missing CRD / empty = INFO n/a-nnce (host bridges not enacted here):\n   `oc get nnce 2>&1 | awk '/have a resource type|No resources found/{print \"INFO n/a-nnce\"; n=1; next} {print} END{if(!n && NR==0) print \"INFO n/a-nnce\"}'`\n2. Print NAD TYPE, BRIDGE, and VLAN. jq only unwraps spec.config (JSON string). cnv-bridge or bridge = PASS. Other types = INFO. Empty = INFO n/a-nad:\n   `oc get net-attach-def -A -o json | jq -r '.items[] | (.spec.config|fromjson) as $c | [.metadata.namespace, .metadata.name, $c.type, ($c.bridge // \"-\"), ($c.vlan // \"-\")] | @tsv' | awk 'BEGIN{print \"RESULT\",\"NS\",\"NAME\",\"TYPE\",\"BRIDGE\",\"VLAN\"} {r=\"INFO\"; if($3==\"cnv-bridge\"||$3==\"bridge\") r=\"PASS\"; print r,$0} END{if(NR==0) print \"INFO n/a-nad\"}' | column -t`\n"
 priority_hint = ""
 impact = "maintenance-window"
 impact_scope = "targeted worker nodes and bridge-attached VM interfaces"
@@ -274,16 +194,6 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.4.tsr.4_8_4_2_windows_bsod_risk_posture"
 title = "TSR Windows BSOD risk posture"
 description = "Windows VMIs should expose a hypervisor watchdog or equivalent liveness so a guest hang or BSOD can be detected and recovered. Missing watchdog or liveness configuration leaves failed Windows guests undetected."
-# why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: Windows VMIs should expose a hypervisor watchdog or equivalent liveness so a guest
-# hang or BSOD can be detected and recovered.
-# The rec remediates THAT story by starting at `oc get vmi -A` — the live object/command for this
-# check, not a neighboring TSR item.
-# Impact `workload-shift`: Enabling a watchdog or changing restart policy can restart individual
-# Windows VMs; it does not reboot hypervisor nodes.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
 recommendation = "1. List Windows VMIs.\n   `oc get vmi -A`\n2. Check watchdog and guest-agent configuration on those VMIs.\n3. Enable a supported watchdog or liveness probe on Windows VM templates.\n4. Confirm the VMI restart policy matches the desired recovery behavior.\n"
 priority_hint = ""
 impact = "workload-shift"
@@ -302,9 +212,6 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.4.tsr.4_8_4_3_windows_hyper_v_enlightenments"
 title = "TSR Windows Hyper-V enlightenments"
 description = "Hyper-V enlightenments improve Windows guest timekeeping, spinlocks, and I/O on KVM. Windows VMIs without those features run, but with higher overhead and weaker guest integration."
-# why-rec
-# CORRECTED. `oc get vmi -A -o yaml` dumps every VMI. Rec prints Hyper-V feature flags as
-# a column.
 recommendation = "1. Print Windows VMI Hyper-V feature flags:\n   `oc get vmi -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,HYPERV:.spec.domain.features.hyperv`\n2. Enable the supported Hyper-V enlightenments on Windows VM templates.\n3. Roll the change by restarting or live-migrating affected VMIs.\n"
 priority_hint = ""
 impact = "workload-shift"
@@ -323,17 +230,6 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.4.tsr.4_8_4_5_host_kernel_bsod_indicators"
 title = "TSR host kernel crash indicators"
 description = "Kernel panics or BSOD-equivalent events on nodes indicate hardware failures,\ndriver issues, or critical kernel bugs. Affected nodes are unreliable and may\ncause VM disruption without warning.\n"
-# why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: Kernel panics or BSOD-equivalent events on nodes indicate hardware failures,
-# driver issues, or critical kernel bugs.
-# The rec remediates THAT story by starting at `oc adm node-logs <node> --path=journal | grep -iE
-# 'panic|oops|BUG:'` — the live object/command for this check, not a neighboring TSR item.
-# Impact `maintenance-window`: Kernel or hardware remediation commonly requires cordon, drain,
-# reboot, or replacement of the node, forcing VM migration or downtime if migration is
-# unavailable.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
 recommendation = "1. Check node journals for kernel panics.\n   `oc adm node-logs <node> --path=journal | grep -iE 'panic|oops|BUG:'`\n2. Review node readiness events for unexpected reboots.\n   `oc get events -A --field-selector reason=NodeNotReady`\n3. Investigate hardware health using IPMI, iDRAC, or iLO.\n4. Update kernel and firmware, and consider cordoning affected nodes until root cause is identified.\n"
 priority_hint = ""
 impact = "maintenance-window"
@@ -351,31 +247,25 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.4.tsr.4_8_4_6_nfs_client_mount_posture"
 title = "TSR NFS client mount posture"
-description = "This check reviews NFS client mount options on nodes. Typical findings are default options or missing `nconnect`, which limits parallel NFS I/O for VM disks."
-# why-rec
-# CORRECTED. `oc debug -- mount` is the debug container. Rec uses `chroot /host mount`.
-# nconnect/hard are StorageClass mount options when the NFS server supports them.
-recommendation = "1. Inspect NFS mounts on workers.\n   `oc debug node/<name> -- chroot /host mount | grep nfs`\n2. If options are default or `nconnect` is missing, set `nconnect` (and `hard`) in the StorageClass mount options when the NFS server supports it.\n3. Remount is a planned change for NFS-backed workloads.\n"
+description = "This check reviews NFS client mount options on nodes. Typical findings are default options or missing nconnect, which limits parallel NFS I/O for VM disks."
+recommendation = "1. Print live NFS mounts on a node (host mount namespace). OPTIONS without nconnect = WARNING. nconnect present = PASS. Empty = INFO n/a-nfs:\n   `oc debug node/<name> --quiet -- nsenter -t 1 -m -- findmnt -t nfs,nfs4 -o SOURCE,TARGET,OPTIONS | awk 'NR==1{print \"RESULT\",$0; next} {r=\"WARNING\"; if($0 ~ /nconnect/) r=\"PASS\"; print r,$0} END{if(NR<=1) print \"INFO n/a-nfs\"}'`\n"
 priority_hint = ""
 impact = "maintenance-window"
 impact_scope = "nodes and workloads using NFS-backed VM storage"
 impact_detail = "Correcting NFS mount posture can require remounting or restarting NFS-backed workloads and is safest during a planned window."
 
 [checks.links]
-default = "https://access.redhat.com/solutions/4216421"
-"4.18" = "https://access.redhat.com/solutions/4216421"
-"4.19" = "https://access.redhat.com/solutions/4216421"
-"4.20" = "https://access.redhat.com/solutions/4216421"
-"4.21" = "https://access.redhat.com/solutions/4216421"
-"4.22" = "https://access.redhat.com/solutions/4216421"
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/storage/index#storage-persistent-storage-pv-pvmountoptions_understanding-persistent-storage"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/storage/index#storage-persistent-storage-pv-pvmountoptions_understanding-persistent-storage"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/storage/index#storage-persistent-storage-pv-pvmountoptions_understanding-persistent-storage"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/storage/index#storage-persistent-storage-pv-pvmountoptions_understanding-persistent-storage"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/storage/index#storage-persistent-storage-pv-pvmountoptions_understanding-persistent-storage"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/storage/index#storage-persistent-storage-pv-pvmountoptions_understanding-persistent-storage"
 
 [[checks]]
 check_id = "7.4.tsr.4_8_4_7_nfs_client_sysctl_posture"
 title = "TSR NFS client sysctl posture"
 description = "NFS performance and reliability on OCP nodes depend on proper kernel parameters\n(sunrpc.tcp_max_slot_table_entries, nfs.max_session_slots). Default values may\nbe insufficient for high-IOPS VM workloads.\n"
-# why-rec
-# CORRECTED. Same chroot rule for sysctl. 128 slot-table entries is a starting value, not a
-# vendor mandate. Apply via MachineConfig or Tuned, not a one-shot debug.
 recommendation = "1. Check current sysctl values on nodes.\n   `oc debug node/<name> -- chroot /host sysctl sunrpc.tcp_max_slot_table_entries`\n2. Apply tuning via a `MachineConfig` or the Node Tuning Operator (`Tuned` profile) to set appropriate values for the NFS workload characteristics.\n3. Set a starting value such as `sunrpc.tcp_max_slot_table_entries=128` unless the NFS server vendor documents a different slot-table size.\n"
 priority_hint = ""
 impact = "maintenance-window"
@@ -394,16 +284,6 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.4.tsr.4_8_5_1_1_quota_and_resources"
 title = "TSR CNV quota and resources"
 description = "ResourceQuotas and LimitRanges in namespaces running VMs must account for\nvirt-launcher pod overhead. Insufficient quotas prevent VM starts and live\nmigrations.\n"
-# why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: ResourceQuotas and LimitRanges in namespaces running VMs must account for
-# virt-launcher pod overhead.
-# The rec remediates THAT story by starting at `oc get resourcequota -n <ns>` — the live
-# object/command for this check, not a neighboring TSR item.
-# Impact `non-disruptive`: Quota changes take effect immediately for new VM starts or migrations,
-# but they do not restart nodes or stop already running VMs.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
 recommendation = "1. Review quotas in VM namespaces.\n   `oc get resourcequota -n <ns>`\n2. Confirm quotas account for `virt-launcher` pod requests, typically 1 CPU per vCPU plus overhead memory.\n3. For live migration, ensure quotas allow at least 2x the resources of the largest VM to accommodate the migration target pod.\n"
 priority_hint = ""
 impact = "non-disruptive"
@@ -422,10 +302,6 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.4.tsr.4_8_5_2_1_active_alerts"
 title = "TSR CNV active alerts"
 description = "This check reports firing OpenShift Virtualization alerts such as VMCannotBeEvicted. Those alerts usually mean a VM cannot live-migrate because of a PodDisruptionBudget, node selector, or similar constraint. Related checks that may also report VMCannotBeEvicted: 7.4.tsr.4_8_5_2_3_cnv_vmi_readiness_prometheus (VMI readiness metrics) and 7.6.tsr.6_3_1_active_alerts (cluster-wide Alertmanager). Those are separate TSR questions, not duplicates of this check."
-# why-rec
-# CORRECTED. Alertmanager `oc get --raw` is BadRequest on this 4.21 lab. Rec jq-filters
-# Prometheus `/api/v1/alerts` to kubevirt/VMCannot names ({state, alertname, severity}).
-# Do not dump the raw feed. VMCannotBeEvicted remediates via VMI/PDB.
 recommendation = "1. Print kubevirt / VMCannot alerts only (`state`, `alertname`, `severity`):\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -s http://localhost:9090/api/v1/alerts | jq '.data.alerts[] | select(.labels.alertname | test(\"KubeVirt|kubevirt|VMCannot\"; \"i\")) | {state, alertname: .labels.alertname, severity: .labels.severity}'`\n   Empty output means none of those alerts are firing.\n2. For `VMCannotBeEvicted`, inspect the VMI and its PDB:\n   `oc get pdb -A`\n3. Make the VM live-migratable or adjust the PDB so node drains can proceed.\n"
 priority_hint = ""
 impact = "non-disruptive"
@@ -443,17 +319,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.4.tsr.4_8_5_2_3_cnv_vmi_readiness_prometheus"
 title = "TSR CNV VMI readiness metrics"
-description = "VMI readiness metrics show whether virtual machines reach Running. The same VMCannotBeEvicted alert class also appears on TSR 4.8.5.2.1 (CNV active alerts) and day-2 6.3.1; this check is the Prometheus readiness view, not a duplicate finding to drop."
-# why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: VMI readiness metrics show whether virtual machines reach Running.
-# The rec remediates THAT story by starting at `the numbered procedure` — the live object/command
-# for this check, not a neighboring TSR item.
-# Impact `non-disruptive`: Investigating VMI readiness does not reboot nodes; fixing eviction or
-# provisioning issues can migrate or restart individual VMs.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
-recommendation = "1. Query VMI phase and eviction alerts in Prometheus.\n2. If VMCannotBeEvicted is firing, inspect the VMI and PDB — see also check `7.4.tsr.4_8_5_2_1_active_alerts`.\n3. Investigate VMIs stuck in Scheduling or Pending and their DataVolumes.\n"
+description = "This check is Prometheus VMI phase: kubevirt_vmi_phase_count by phase, and kubevirt_vmi_info per VMI. It is not an inventory of running VMs. The finding is COUNT>0 in Pending, Scheduling, Failed, or Unknown. Empty series = no VMI. VMCannotBeEvicted alerts are 4.8.5.2.1. LiveMigratable is 7.4.cnv.live_migratable."
+recommendation = "1. Print kubevirt_vmi_phase_count. Pending / Scheduling / Failed / Unknown with COUNT>0 = WARNING. Running (and other phases) = INFO. Empty = INFO n/a-vmi:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -sG http://localhost:9090/api/v1/query --data-urlencode 'query=kubevirt_vmi_phase_count' | jq -r '.data.result[] | [.metric.phase, .value[1]] | @tsv' | awk '{r=\"INFO\"; if($1 ~ /Pending|Scheduling|Failed|Unknown/ && $2+0>0) r=\"WARNING\"; print r, \"PHASE=\"$1, \"COUNT=\"$2} END{if(NR==0) print \"INFO n/a-vmi\"}'`\n2. Print each VMI phase from kubevirt_vmi_info. Same WARNING phases. Empty = INFO n/a-vmi:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -sG http://localhost:9090/api/v1/query --data-urlencode 'query=kubevirt_vmi_info' | jq -r '.data.result[] | [.metric.namespace, .metric.name, .metric.phase] | @tsv' | awk '{r=\"INFO\"; if($3 ~ /Pending|Scheduling|Failed|Unknown/) r=\"WARNING\"; print r, \"NS=\"$1, \"NAME=\"$2, \"PHASE=\"$3} END{if(NR==0) print \"INFO n/a-vmi\"}'`\n"
 priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "virtual machines that are not ready"
@@ -471,15 +338,6 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.4.tsr.4_8_5_3_1_oadp_operator"
 title = "TSR OADP operator"
 description = "This check evaluates OADP / backup operator posture. Evidence may show a healthy OLM CSV in `openshift-adp`, or no CSV, OperatorGroup, or Subscription because the stack was installed outside OLM (Helm or manual)."
-# why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: This check evaluates OADP / backup operator posture.
-# The rec remediates THAT story by starting at `oc get csv,subscription,operatorgroup -A | grep
-# -i -E 'oadp|velero|adp'` — the live object/command for this check, not a neighboring TSR item.
-# Impact `non-disruptive`: Deploying or correcting OADP rolls backup components and adds backup
-# I/O, but it does not reboot nodes or stop running VMs.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
 recommendation = "1. Look for an OLM CSV first.\n   `oc get csv,subscription,operatorgroup -A | grep -i -E 'oadp|velero|adp'`\n2. If no CSV exists, treat this as a non-OLM install: find the namespace that actually runs backup pods and CRs.\n3. Where DataProtectionApplication and BackupStorageLocation exist, confirm they are Available.\n4. ADP may be installed outside `openshift-adp`.\n"
 priority_hint = ""
 impact = "non-disruptive"
@@ -501,10 +359,7 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.4.tsr.4_8_5_3_5_cdi_image_upload_posture"
 title = "TSR CDI image upload posture"
 description = "CDI (Containerized Data Importer) manages VM disk image imports and uploads.\nIssues with CDI configuration prevent DataVolume provisioning, blocking new VM\ncreation and disk cloning operations.\n"
-# why-rec
-# CORRECTED. Dumping CDI YAML is noise. Rec prints CDI conditions only, then uploadproxy
-# pods.
-recommendation = "1. Print CDI conditions:\n   `oc get cdi -n openshift-cnv -o jsonpath='{range .items[*]}{.metadata.name}{\"\\n\"}{range .status.conditions[*]}{.type}={.status}{\"\\n\"}{end}{end}'`\n2. Review upload proxy health:\n   `oc get pods -n openshift-cnv -l app=cdi-uploadproxy`\n3. Verify the uploadproxy route is accessible and TLS certificates are valid.\n"
+recommendation = "1. PASS/FAIL CDI Available=True Progressing=False Degraded=False. Missing = INFO n/a-cdi:\n   `oc get cdi -n openshift-cnv -o jsonpath='{range .items[*]}{range .status.conditions[*]}{.type}={.status}{\"\\n\"}{end}{end}' 2>&1 | awk -F= '/not found|No resources found|have a resource type/{print \"INFO n/a-cdi\"; n=1; next} $1==\"Available\"{a=$2} $1==\"Progressing\"{p=$2} $1==\"Degraded\"{d=$2} END{if(n) exit; if(a==\"\"&&p==\"\"&&d==\"\") print \"INFO n/a-cdi\"; else print (a==\"True\" && p==\"False\" && d==\"False\"?\"PASS\":\"FAIL\"), \"Available=\"a, \"Progressing=\"p, \"Degraded=\"d}'`\n2. Review upload proxy health:\n   `oc get pods -n openshift-cnv -l app=cdi-uploadproxy`\n3. Verify the uploadproxy route is accessible and TLS certificates are valid.\n"
 priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "CDI importer and upload components"
@@ -521,18 +376,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.4.tsr.4_1_2_logging_storage_type"
 title = "TSR logging storage type"
-description = "This check verifies that cluster logging has a configured LokiStack (or equivalent log store) with durable storage. An installed Loki or Cluster Logging operator without an instance still means logs are not persisted."
-# why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: This check verifies that cluster logging has a configured LokiStack (or equivalent
-# log store) with durable storage.
-# The rec remediates THAT story by starting at `oc get csv -n openshift-logging` — the live
-# object/command for this check, not a neighboring TSR item.
-# Impact `workload-shift`: Creating or changing a LokiStack rolls logging pods and can briefly
-# interrupt log collection until the store is ready.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
-recommendation = "1. Confirm the logging and Loki operators are installed.\n   `oc get csv -n openshift-logging`\n2. If no LokiStack exists, create one with a supported storage class.\n   `oc get lokistack -A`\n3. Configure the LokiStack before treating missing Loki pods as a separate root cause.\n"
+description = "This check is LokiStack log-store type: spec.storage.secret.type and spec.storageClassName. An operator CSV without a LokiStack still means logs are not persisted. CSV install is 4.1.1. Size is 4.1.3. Pods are 4.1.4. Loki conditions are 4.1.5.2."
+recommendation = "1. Print LokiStack store type and storageClassName. Missing CRD / empty = INFO n/a-lokistack. A row with STORE or STORAGECLASS set = PASS. Both <none> = WARNING:\n   `oc get lokistack -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,STORE:.spec.storage.secret.type,STORAGECLASS:.spec.storageClassName 2>&1 | awk '/have a resource type|No resources found/{print \"INFO n/a-lokistack\"; n=1; next} NR==1{print \"RESULT\",$0; next} {r=\"PASS\"; if($3==\"<none>\" && $4==\"<none>\") r=\"WARNING\"; print r,$0} END{if(!n && NR==0) print \"INFO n/a-lokistack\"}'`\n"
 priority_hint = ""
 impact = "workload-shift"
 impact_scope = "openshift-logging collector and log-store pods"
@@ -555,15 +400,6 @@ default = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.
 check_id = "7.4.tsr.4_1_4_logging_pod_status"
 title = "TSR logging pod status"
 description = "This check confirms expected logging and Loki pods are running. Missing compactor, distributor, gateway, index-gateway, ingester, querier, or query-frontend pods usually mean logging is not configured yet, not that those images failed independently."
-# why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: This check confirms expected logging and Loki pods are running.
-# The rec remediates THAT story by starting at `oc get lokistack -A` — the live object/command
-# for this check, not a neighboring TSR item.
-# Impact `workload-shift`: Bringing the logging stack up starts new pods; it does not reboot
-# nodes.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
 recommendation = "1. Check whether a LokiStack is configured.\n   `oc get lokistack -A`\n2. If none exists, configure logging storage first (see logging storage type).\n3. After a LokiStack exists, re-check pod status.\n   `oc get pods -n openshift-logging`\n"
 priority_hint = ""
 impact = "workload-shift"
@@ -587,15 +423,6 @@ default = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.
 check_id = "7.4.tsr.4_1_5_2_loki_health"
 title = "TSR Loki health"
 description = "Loki health cannot be verified until a LokiStack instance exists. A FAIL for no instance configuration is a configuration gap, not a degraded running store."
-# why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: Loki health cannot be verified until a LokiStack instance exists.
-# The rec remediates THAT story by starting at `oc get lokistack -A` — the live object/command
-# for this check, not a neighboring TSR item.
-# Impact `workload-shift`: Configuring LokiStack deploys store components and can briefly
-# interrupt log query until they become ready.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
 recommendation = "1. Check for a LokiStack.\n   `oc get lokistack -A`\n2. Configure logging and LokiStack storage before treating Loki health as a runtime failure.\n3. After an instance exists, re-run health by inspecting LokiStack conditions.\n"
 priority_hint = ""
 impact = "workload-shift"
@@ -619,9 +446,6 @@ default = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.
 check_id = "7.4.tsr.4_1_6_cluster_log_forwarders"
 title = "TSR cluster log forwarders"
 description = "Multiple ClusterLogForwarder objects require the Vector collector. Fluentd does not support multi-forwarder. This check fails when more than one forwarder is configured without Vector."
-# why-rec
-# CORRECTED. `clusterlogging -A -o yaml` dumps pipelines and secrets. Rec prints collector
-# type only. Keep Vector as the target collector.
 recommendation = "1. List forwarders:\n   `oc get clusterlogforwarder -A`\n2. Switch the collector to Vector, or consolidate to a single forwarder if Vector cannot be used.\n3. Print collector type only:\n   `oc get clusterlogging -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,TYPE:.spec.collection.type`\n"
 priority_hint = ""
 impact = "workload-shift"
@@ -643,9 +467,6 @@ default = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.
 check_id = "7.4.tsr.4_1_8_logging_security_context_constraints"
 title = "TSR logging security context constraints"
 description = "This check compares logging-related Security Context Constraints with the platform defaults, including the SCC used by node-exporter. An edited default SCC can weaken isolation or break logging/monitoring pods."
-# why-rec
-# CORRECTED. Dumping node-exporter pod YAML is noise. Rec prints the SCC annotation as a
-# column.
 recommendation = "1. Identify the SCC used by node-exporter pods:\n   `oc get pod -n openshift-monitoring -l app.kubernetes.io/name=node-exporter -o custom-columns=NAME:.metadata.name,SCC:.metadata.annotations.openshift\\.io/scc`\n2. Compare that SCC to the default for the component:\n   `oc get scc -o custom-columns=NAME:.metadata.name,PRIV:.allowPrivilegedContainer`\n3. If the change is undocumented, restore the default SCC.\n4. If the change is required, document the exception and the pods that depend on it.\n"
 priority_hint = ""
 impact = "workload-shift"
@@ -663,18 +484,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.4.tsr.4_8_1_1_1_identification_and_state"
 title = "TSR CNV identification and state"
-description = "This check records OpenShift Virtualization identity: installed version, support lifecycle (full vs maintenance), and whether the virt operator is current. It is not a running-VM failure."
-# why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: This check records OpenShift Virtualization identity: installed version, support
-# lifecycle (full vs maintenance), and whether the virt operator is current.
-# The rec remediates THAT story by starting at `oc get csv -n openshift-cnv` — the live
-# object/command for this check, not a neighboring TSR item.
-# Impact `non-disruptive`: Recording support state is informational; updating the virt operator
-# rolls operator pods.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
-recommendation = "1. Check CSV and HyperConverged status.\n   `oc get csv -n openshift-cnv`\n   `oc get hyperconverged -n openshift-cnv`\n2. If the version is in maintenance support, plan a move to a fully supported stream.\n3. If the operator is behind the available channel, plan an operator update.\n"
+description = "This check is OpenShift Virtualization identity and HyperConverged state: kubevirt-hyperconverged-operator CSV VERSION, and Available/Progressing/Degraded. Compare VERSION to the operator life-cycle policy (doc link). AtLatestKnown / channel currency is 4.8.1.1.2. It is not a running-VM failure."
+recommendation = "1. Print kubevirt-hyperconverged-operator CSV VERSION and PHASE. Succeeded = PASS. Missing = INFO n/a-cnv:\n   `oc get csv -n openshift-cnv -o custom-columns=NAME:.metadata.name,VERSION:.spec.version,PHASE:.status.phase 2>&1 | awk '/not found/{print \"INFO n/a-cnv\"; n=1; next} NR==1{next} $1 ~ /^kubevirt-hyperconverged-operator/ {print ($3==\"Succeeded\"?\"PASS\":\"FAIL\"), \"NAME=\"$1, \"VERSION=\"$2, \"PHASE=\"$3; found=1} END{if(!n && !found) print \"INFO n/a-cnv\"}'`\n2. PASS/FAIL HyperConverged Available=True Progressing=False Degraded=False. Missing = INFO n/a-cnv:\n   `oc get hyperconverged kubevirt-hyperconverged -n openshift-cnv -o jsonpath='{range .status.conditions[*]}{.type}={.status}{\"\\n\"}{end}' 2>&1 | awk -F= '/not found|have a resource type/{print \"INFO n/a-cnv\"; n=1; next} $1==\"Available\"{a=$2} $1==\"Progressing\"{p=$2} $1==\"Degraded\"{d=$2} END{if(n) exit; if(a==\"\"&&p==\"\"&&d==\"\") print \"INFO n/a-cnv\"; else print (a==\"True\" && p==\"False\" && d==\"False\"?\"PASS\":\"FAIL\"), \"Available=\"a, \"Progressing=\"p, \"Degraded=\"d}'`\n"
 priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "openshift-cnv operator"
@@ -692,8 +503,6 @@ default = "https://access.redhat.com/support/policy/updates/openshift_operators"
 check_id = "7.4.tsr.4_12_1_1_1_mtv_installation_and_state"
 title = "TSR MTV installation and state"
 description = "ForkliftController and related MTV operands must report Ready. A not-Ready controller means migrations cannot be reconciled even if the CSV is installed."
-# why-rec
-# CORRECTED. Dumping ForkliftController YAML is noise. Rec prints conditions only.
 recommendation = "1. Print ForkliftController conditions:\n   `oc get forkliftcontroller -A -o jsonpath='{range .items[*]}{.metadata.namespace}/{.metadata.name}{\"\\n\"}{range .status.conditions[*]}{.type}={.status}{\"\\n\"}{end}{end}'`\n2. Inspect MTV operand pods:\n   `oc get pods -n openshift-mtv`\n3. Resolve degraded conditions before starting new migrations.\n"
 priority_hint = ""
 impact = "non-disruptive"
@@ -711,18 +520,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.4.tsr.4_12_1_1_2_operator_subscription_posture"
 title = "TSR MTV operator subscription posture"
-description = "The mtv-operator subscription must not sit in UpgradePending / InstallPlan unapproved. A pending upgrade leaves MTV on a stale CSV."
-# why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: The mtv-operator subscription must not sit in UpgradePending / InstallPlan
-# unapproved.
-# The rec remediates THAT story by starting at `oc get subscription,installplan -n openshift-mtv`
-# — the live object/command for this check, not a neighboring TSR item.
-# Impact `non-disruptive`: Approving an InstallPlan rolls the MTV operator; it does not reboot
-# nodes.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
-recommendation = "1. Check the mtv-operator subscription and InstallPlan.\n   `oc get subscription,installplan -n openshift-mtv`\n2. Approve a pending InstallPlan if the upgrade is intended, or pin the channel if it is not.\n3. Wait for CSV phase Succeeded.\n"
+description = "This check is the mtv-operator subscription in openshift-mtv: STATE must be AtLatestKnown with INSTALLED equal to CURRENT, CSV PHASE Succeeded, and no unapproved or incomplete InstallPlan. UpgradePending leaves MTV on a stale CSV. ForkliftController is 4.12.1.1.1. CSV version/lifecycle is 4.12.1.2."
+recommendation = "1. Print mtv-operator subscription. PASS = STATE AtLatestKnown and INSTALLED equals CURRENT. Missing namespace / empty = INFO n/a-mtv-subscription:\n   `oc get subscription -n openshift-mtv -o custom-columns=NAME:.metadata.name,PACKAGE:.spec.name,CHANNEL:.spec.channel,STATE:.status.state,INSTALLED:.status.installedCSV,CURRENT:.status.currentCSV 2>&1 | awk '/not found|No resources found/{print \"INFO n/a-mtv-subscription\"; n=1; next} NR==1{next} {r=\"FAIL\"; if($4==\"AtLatestKnown\" && $5==$6) r=\"PASS\"; print r, \"NAME=\"$1, \"PACKAGE=\"$2, \"CHANNEL=\"$3, \"STATE=\"$4, \"INSTALLED=\"$5, \"CURRENT=\"$6} END{if(n) exit; if(NR<=1) print \"INFO n/a-mtv-subscription\"}'`\n2. Print MTV CSV PHASE. Succeeded = PASS. Empty = INFO n/a-mtv-csv:\n   `oc get csv -n openshift-mtv -o custom-columns=NAME:.metadata.name,PHASE:.status.phase 2>&1 | awk '/not found|No resources found/{print \"INFO n/a-mtv-csv\"; n=1; next} NR==1{next} $1 ~ /^mtv-operator/ {print ($2==\"Succeeded\"?\"PASS\":\"FAIL\"), \"NAME=\"$1, \"PHASE=\"$2; found=1} END{if(n) exit; if(!found) print \"INFO n/a-mtv-csv\"}'`\n3. Print InstallPlans that are not Complete or not approved. Empty complete set = PASS no-stuck-installplans. Missing ns = INFO n/a-mtv-installplan:\n   `oc get installplan -n openshift-mtv -o custom-columns=NAME:.metadata.name,CSV:.spec.clusterServiceVersionNames,APPROVED:.spec.approved,PHASE:.status.phase 2>&1 | awk '/not found|No resources found/{print \"INFO n/a-mtv-installplan\"; n=1; next} NR==1{next} {r=\"PASS\"; if($4!=\"Complete\" || tolower($3)!=\"true\") r=\"FAIL\"; print r, \"NAME=\"$1, \"APPROVED=\"$3, \"PHASE=\"$4} END{if(n) exit; if(NR<=1) print \"INFO n/a-mtv-installplan\"}'`\n"
 priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "openshift-mtv OLM resources"
@@ -739,17 +538,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.4.tsr.4_12_1_2_mtv_supported_configuration"
 title = "TSR MTV supported configuration"
-description = "Migration Toolkit for Virtualization must be on a supported z-stream. A FAIL for an expired maintenance window means the installed MTV version is past Red Hat support for that release."
-# why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: Migration Toolkit for Virtualization must be on a supported z-stream.
-# The rec remediates THAT story by starting at `oc get csv -n openshift-mtv` — the live
-# object/command for this check, not a neighboring TSR item.
-# Impact `non-disruptive`: Upgrading MTV rolls operator pods; running VMs are not stopped by the
-# operator upgrade itself.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
-recommendation = "1. Check the installed MTV CSV version.\n   `oc get csv -n openshift-mtv`\n2. Upgrade MTV to a currently supported version per the OpenShift Operators life-cycle policy.\n3. Re-check ForkliftController after the CSV reaches Succeeded.\n"
+description = "This check is the mtv-operator CSV VERSION against the OpenShift Operators life-cycle policy (doc link). An expired maintenance window is a FAIL on that z-stream. Subscription/InstallPlan is 4.12.1.1.2. ForkliftController is 4.12.1.1.1."
+recommendation = "1. Print mtv-operator CSV VERSION. Missing namespace / empty = INFO n/a-mtv-version. Compare VERSION to the operator life-cycle policy:\n   `oc get csv -n openshift-mtv -o custom-columns=NAME:.metadata.name,VERSION:.spec.version,PHASE:.status.phase 2>&1 | awk '/not found|No resources found/{print \"INFO n/a-mtv-version\"; n=1; next} NR==1{next} $1 ~ /^mtv-operator/ {print \"INFO\", \"NAME=\"$1, \"VERSION=\"$2, \"PHASE=\"$3; found=1} END{if(n) exit; if(!found) print \"INFO n/a-mtv-version\"}'`\n"
 priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "openshift-mtv operator and ForkliftController"
@@ -769,17 +559,17 @@ default = "https://access.redhat.com/support/policy/updates/openshift_operators"
 [[checks]]
 check_id = "7.4.tsr.4_8_1_5_3_2_storage_checkup"
 title = "TSR CNV storage checkup"
-description = "The virtualization storage checkup reports whether VM storage can provision. Typical warnings are pending or lost PVCs, not a generic operator-CSV failure."
-# why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: The virtualization storage checkup reports whether VM storage can provision.
-# The rec remediates THAT story by starting at `oc get pvc -A` — the live object/command for this
-# check, not a neighboring TSR item.
-# Impact `non-disruptive`: Remediation affects new disk provisioning; it does not reboot nodes.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
-recommendation = "1. Read checkup status and list Pending or Lost PVCs.\n   `oc get pvc -A`\n2. Inspect StorageClass, provisioner events, and quota for those PVCs.\n3. Fix binding and re-run the checkup.\n"
+description = "This check is the kiagnose kubevirt-storage checkup ConfigMap: SUCCEEDED and PVCBBOUND. Missing ConfigMap = INFO n/a-storage-checkup (never run). Cluster PVC inventory, virt-default StorageClass, and StorageProfile are other TSR items."
+recommendation = "1. Print kubevirt-storage checkup SUCCEEDED, PVCBBOUND, and FAILURE. true = PASS. false = FAIL. Missing = INFO n/a-storage-checkup:\n   `oc get cm -A -l kiagnose/checkup-type=kubevirt-storage -o json | jq -r '.items[] | [.metadata.namespace, .metadata.name, (.data[\"status.succeeded\"] // \"-\"), (.data[\"status.result.pvcBound\"] // \"-\"), (if (.data[\"status.failureReason\"] // \"\") == \"\" then \"-\" else .data[\"status.failureReason\"] end)] | @tsv' | awk -F'\\t' '{r=\"INFO\"; if($3==\"true\") r=\"PASS\"; else if($3==\"false\") r=\"FAIL\"; print r, \"NS=\"$1, \"NAME=\"$2, \"SUCCEEDED=\"$3, \"PVCBBOUND=\"$4, \"FAILURE=\"$5} END{if(NR==0) print \"INFO n/a-storage-checkup\"}'`\n"
 priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "PVCs created by the storage checkup"
-impact_detail = "Remediation affects new disk provisioning; it does not reboot nodes."
+impact_detail = "Reading checkup results does not reboot nodes; re-running the checkup creates short-lived test VMs and PVCs."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/virtualization/index#virt-checking-storage-configuration_virt-storage-checkups"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/virtualization/index#virt-checking-storage-configuration_virt-running-cluster-checkups"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/virtualization/index#virt-checking-storage-configuration_virt-running-cluster-checkups"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/virtualization/index#virt-checking-storage-configuration_virt-running-cluster-checkups"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/virtualization/index#virt-checking-storage-configuration_virt-storage-checkups"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index#virt-checking-storage-configuration_virt-storage-checkups"

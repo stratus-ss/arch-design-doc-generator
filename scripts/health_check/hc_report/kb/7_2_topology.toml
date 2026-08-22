@@ -3,13 +3,6 @@ check_id = "7.2.node.*.sysreserved"
 pattern = true
 title = "Node systemReserved memory"
 description = "Nodes with large amounts of RAM (64 GiB or more) need a proportionally larger\nsystemReserved memory allocation in KubeletConfig. Without it, the kubelet and\ncontainer runtime compete with workloads for memory and can themselves be\nOOM-killed under pressure, taking the node out of service.\n"
-# why-rec
-# CORRECTED. Empty `oc get kubeletconfig` (`No resources found`) is the default — OCP does not
-# ship a KubeletConfig CR. Rec states that first; live reservation is configz
-# `.kubeletconfig.systemReserved` (lab: cpu 500m / memory 1Gi, the documented defaults), not a
-# full JSON dump. Create a CR only to pin a larger value (`autoSizingReserved: false`). 1–2 GiB
-# for >=64 GiB is operational sizing. Doc link is in the rec because findings do not print
-# [checks.links]. Applying a CR rolls the MCP (impact rolling-restart).
 recommendation = "1. List KubeletConfig CRs:\n   `oc get kubeletconfig`\n   `No resources found` (empty list) is the default. OpenShift does not ship a KubeletConfig. It does **not** mean systemReserved is unset. On 4.21+, the kubelet auto-sizes systemReserved unless a CR sets `spec.autoSizingReserved: false`.\n2. Print the **applied** reservation only:\n   `oc get --raw /api/v1/nodes/<node>/proxy/configz | jq '{systemReserved: .kubeletconfig.systemReserved}'`\n   Documented defaults are `cpu=500m` and `memory=1Gi`. Compare `memory` to node RAM.\n3. Create or update a KubeletConfig **only** if you need to pin a larger reservation. Match `machineConfigPoolSelector` to the pool, set `spec.autoSizingReserved: false`, and set `spec.kubeletConfig.systemReserved.memory`. This is a KubeletConfig CR, not a hand-written MachineConfig. Applying it rolls the MCP.\n4. Size reserved memory for the node RAM. `1-2 GiB` for >=64 GiB is operational guidance, not a vendor-mandated value; scale higher for larger nodes.\n5. Procedure: https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/nodes/index#nodes-nodes-resources-configuring-setting_nodes-nodes-resources-configuring\n"
 priority_hint = ""
 impact = "rolling-restart"
@@ -30,16 +23,6 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.2.etcd.members"
 title = "etcd member health"
 description = "etcd requires a quorum of (n/2)+1 members to operate. A 3-member etcd cluster\ntolerates the loss of 1 member. Degraded etcd members must be investigated\nimmediately because data loss or control plane instability can follow.\n"
-# why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: etcd requires a quorum of (n/2)+1 members to operate.
-# The rec remediates THAT story by starting at `oc get pods -n openshift-etcd -o wide` — the live
-# object/command for this check, not a neighboring TSR item.
-# Impact `maintenance-window`: Member recovery can require backup, replacement, or restore work
-# on control-plane nodes and may reduce API availability while the cluster is stabilized.
-# etcdctl endpoint health/status via `oc -n openshift-etcd exec -c etcd` was verified on this lab.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
 recommendation = "1. Check member placement:\n   `oc get pods -n openshift-etcd -o wide`\n2. Verify cluster health:\n   `oc -n openshift-etcd exec -c etcd etcd-<member> -- etcdctl endpoint health --cluster -w table`\n3. Recover a degraded etcd member immediately to prevent quorum loss.\n4. Take an etcd backup before any recovery operation and follow the documented etcd recovery procedure.\n"
 priority_hint = ""
 impact = "maintenance-window"
@@ -58,11 +41,6 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.2.etcd.quorum"
 title = "etcd quorum"
 description = "Quorum loss in etcd is a critical failure mode requiring manual recovery.\nAlways maintain an odd number of etcd members, typically 3 or 5. Never scale\netcd to 2 or 4 members.\n"
-# why-rec
-# CORRECTED. `{range .status.conditions[*]}` dumps every etcd operator controller (~30 rows).
-# Rec jq-filters to EtcdMembersAvailable (reason EtcdQuorate) and EtcdMembersProgressing.
-# Lab: Available=True reason=EtcdQuorate, Progressing=False. Member list stays for odd 3/5.
-# Member health tables stay on 7.2.etcd.members. Do not dump yaml/json of the CR.
 recommendation = "1. Print quorum conditions only (`type`, `status`, `reason`):\n   `oc get etcd cluster -o json | jq -c '.status.conditions[] | select(.type==\"EtcdMembersAvailable\" or .type==\"EtcdMembersProgressing\") | {type,status,reason}'`\n2. Read:\n   - `EtcdMembersAvailable` `True` with `reason=EtcdQuorate`: quorum is held (PASS).\n   - `EtcdMembersAvailable` `False`: quorum is not available.\n   - `EtcdMembersProgressing` `True`: membership change in flight (engine WARNING). `False` is expected when stable.\n3. Confirm the member set is odd (3 or 5):\n   `oc -n openshift-etcd exec -c etcd etcd-<member> -- etcdctl member list -w table`\n   Member set must be 3 or 5. Endpoint health tables are `7.2.etcd.members`.\n4. If Available is False, follow documented disaster recovery to restore a majority.\n5. Clustering: https://etcd.io/docs/latest/op-guide/clustering/\n   Restore: https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/backup_and_restore/index#dr-restoring-cluster-state\n"
 priority_hint = ""
 impact = "maintenance-window"
@@ -81,17 +59,6 @@ default = "https://etcd.io/docs/latest/op-guide/clustering/"
 check_id = "7.2.topo.master_az"
 title = "Control plane availability zone distribution"
 description = "Control plane nodes should be distributed across separate failure domains\n(availability zones, racks, or hosts) to survive zone-level failures. All\ncontrol plane nodes in the same AZ creates a single point of failure for etcd\nquorum and API availability.\n"
-# why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: Control plane nodes should be distributed across separate failure domains
-# (availability zones, racks, or hosts) to survive zone-level failures.
-# The rec remediates THAT story by starting at `oc get nodes -l node-role.kubernetes.io/master -o
-# custom-columns=NAME:.metadata.name,ZONE:.metadata.labels.topology\.kubernetes\.io/zone` — the
-# live object/command for this check, not a neighboring TSR item.
-# Impact `maintenance-window`: Redistributing control-plane nodes across failure domains
-# typically replaces or migrates masters sequentially and should be performed in a planned window.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
 recommendation = "1. Verify control plane node placement:\n   `oc get nodes -l node-role.kubernetes.io/master -o custom-columns=NAME:.metadata.name,ZONE:.metadata.labels.topology\\.kubernetes\\.io/zone`\n2. If all masters are in one zone, plan a control plane migration.\n3. Add zone labels and anti-affinity rules as needed to redistribute control-plane nodes across available failure domains.\n"
 priority_hint = ""
 impact = "maintenance-window"
@@ -110,15 +77,6 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.2.tsr.2_1_consistency"
 title = "2.1. Consistency"
 description = "Section overview for cluster consistency checks. Validates that all nodes in\nthe cluster run the same OCP and OS releases, preventing version skew that can\ncause unpredictable behaviour during upgrades or day-2 operations.\n"
-# why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: Section overview for cluster consistency checks.
-# The rec remediates THAT story by starting at `oc get nodes -o wide` — the live object/command
-# for this check, not a neighboring TSR item.
-# This is a section overview. Detailed remediation lives on the numbered sub-checks.
-# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
 recommendation = "1. Review sub-checks 2.1.1 and 2.1.2 for detailed findings.\n2. List node versions:\n   `oc get nodes -o wide`\n3. Review MachineConfigPool sync status:\n   `oc get machineconfigpool`\n"
 priority_hint = ""
 impact = "none"
@@ -137,9 +95,6 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.2.tsr.2_1_1_consistent_ocp_release"
 title = "2.1.1. Consistent OCP Release"
 description = "All nodes should report the same OpenShift release version. Version skew across\nnodes indicates an incomplete or stalled upgrade and can cause workload\nscheduling failures, operator degradation, and API incompatibilities.\n"
-# why-rec
-# CORRECTED. Discovery (`oc get nodes` kubelet column, `oc get mcp`) is none. Unpausing an MCP
-# applies a pending rollout and reboots nodes, so impact is rolling-restart.
 recommendation = "1. Compare node kubelet versions:\n   `oc get nodes -o custom-columns=NAME:.metadata.name,VERSION:.status.nodeInfo.kubeletVersion`\n2. If versions differ, check MachineConfigPool rollout status and investigate any paused or degraded pools:\n   `oc get machineconfigpool`\n3. Resume stalled upgrades when appropriate:\n   `oc patch machineconfigpool/<pool> --type merge -p '{\"spec\":{\"paused\":false}}'`\n"
 priority_hint = ""
 impact = "rolling-restart"
@@ -158,15 +113,6 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.2.tsr.2_1_2_consistent_os_release"
 title = "2.1.2. Consistent OS Release"
 description = "All nodes should run the same RHCOS (or RHEL) version. OS-level skew can\nintroduce kernel, cgroup, or container-runtime inconsistencies that affect\nworkload stability and complicate troubleshooting.\n"
-# why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: All nodes should run the same RHCOS (or RHEL) version.
-# The rec remediates THAT story by starting at `oc get nodes -o
-# custom-columns=NAME:.metadata.name,OS:.status.nodeInfo.osImage,KERNEL:.status.nodeInfo.kernelVer
-# sion` — the live object/command for this check, not a neighboring TSR item.
-# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
 recommendation = "1. Check OS versions:\n   `oc get nodes -o custom-columns=NAME:.metadata.name,OS:.status.nodeInfo.osImage,KERNEL:.status.nodeInfo.kernelVersion`\n2. If OS versions diverge, verify MachineConfig rollout state:\n   `oc get machineconfigpool -o wide`\n3. Check for degraded or paused pools that are blocking the OS update.\n"
 priority_hint = ""
 impact = "none"
@@ -185,10 +131,6 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.2.tsr.2_2_high_availability"
 title = "2.2. High Availability"
 description = "Section overview for high availability checks. Evaluates control plane\nresiliency including master node count, failure-domain distribution, and load\nbalancer redundancy to ensure the cluster can survive component failures.\n"
-# why-rec
-# CORRECTED. Parent 2.2 routes. Unquoted custom-columns `[?(@.type=="Ready")]` is a bash
-# syntax error (`(` starts a subshell). Ready is the default STATUS column. Zone labels are
-# 2.2.2; etcd conditions are 7.2.etcd.quorum — do not dump ~30 controller rows here.
 recommendation = "1. This is the 2.2 overview. Use the children:\n   - 2.2.1 master count\n   - 2.2.2 zone labels\n   - 2.2.3 HAProxy / ingress HA\n2. Glance at control-plane Ready. `STATUS` is Ready/NotReady:\n   `oc get nodes -l node-role.kubernetes.io/master`\n3. Quorum is `7.2.etcd.quorum` (EtcdMembersAvailable / EtcdMembersProgressing only).\n"
 priority_hint = ""
 impact = "none"
@@ -207,15 +149,6 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.2.tsr.2_2_1_number_of_master_nodes"
 title = "2.2.1. Number of Master Nodes"
 description = "A production OpenShift cluster requires 3 control plane nodes to maintain etcd\nquorum and tolerate a single node failure. Bare-metal clusters may use up to 5\ncontrol plane nodes. Fewer than 3 masters risks quorum loss.\n"
-# why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: A production OpenShift cluster requires 3 control plane nodes to maintain etcd
-# quorum and tolerate a single node failure.
-# The rec remediates THAT story by starting at `oc get nodes -l node-role.kubernetes.io/master
-# --no-headers | wc -l` — the live object/command for this check, not a neighboring TSR item.
-# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
 recommendation = "1. Count master nodes:\n   `oc get nodes -l node-role.kubernetes.io/master --no-headers | wc -l`\n2. If the count is not 3, review the cluster installation topology.\n3. For single-node or compact clusters, ensure the deployment model is intentional and documented.\n4. Verify etcd health:\n   `oc get pods -n openshift-etcd -o wide`\n"
 priority_hint = ""
 impact = "none"
@@ -234,9 +167,6 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.2.tsr.2_2_2_master_av_zone_labels"
 title = "2.2.2. Master AV Zone Labels"
 description = "Control plane nodes should carry topology.kubernetes.io/zone labels and be\ndistributed across at least 2 (ideally 3) distinct availability zones. Missing\nor identical zone labels indicate a single-zone control plane vulnerable to\nzone-level outages.\n"
-# why-rec
-# CORRECTED. `oc label` is non-disruptive. Moving control-plane machines across zones is a
-# separate maintenance-window. Lab has no topology zone labels.
 recommendation = "1. Check zone labels on master nodes:\n   `oc get nodes -l node-role.kubernetes.io/master -o custom-columns=NAME:.metadata.name,ZONE:.metadata.labels.topology\\.kubernetes\\.io/zone`\n2. If labels are missing and the topology is known, apply them:\n   `oc label node <node> topology.kubernetes.io/zone=<zone>`\n3. If all masters share one zone, plan redistribution across failure domains. Labeling alone does not move nodes.\n"
 priority_hint = ""
 impact = "non-disruptive"
@@ -255,11 +185,6 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.2.tsr.2_2_3_haproxy_ha"
 title = "2.2.3. HAProxy HA"
 description = "The API and ingress load balancers (commonly HAProxy) must be highly available.\nA single load balancer is a single point of failure for all cluster traffic.\nHA is typically achieved via keepalived/VRRP or external load balancer\nredundancy.\n"
-# why-rec
-# CORRECTED. Bare `{.status.availableReplicas}` has no header and no newline, so a value looks
-# empty; jsonpath on the list (no `default`) is always empty because `.status` is not on the
-# list object. Rec uses custom-columns SPEC/AVAILABLE. Lab: both 2. `<none>` means status has
-# not reported. kni-infra keepalived is API/Ingress VIP, not this replica count.
 recommendation = "1. Print spec vs available replicas with column names:\n   `oc get ingresscontroller default -n openshift-ingress-operator -o custom-columns=NAME:.metadata.name,SPEC:.spec.replicas,AVAILABLE:.status.availableReplicas`\n2. Read: both columns >= 2 is HA (PASS). `1` is SingleReplica. `<none>` in AVAILABLE means the operator has not reported status. Empty jsonpath is a missed field path, not replica count 0.\n3. Router pods:\n   `oc get pods -n openshift-ingress`\n4. Bare-metal IPI API/Ingress VIP HA is keepalived+haproxy in `openshift-kni-infra` (not this CR). vSphere IPI: `openshift-vsphere-infra`. External LB: confirm that pair instead.\n   `oc get pods -n openshift-kni-infra`\n"
 priority_hint = ""
 impact = "none"
@@ -278,15 +203,6 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.2.tsr.2_3_scalability"
 title = "2.3. Scalability"
 description = "Section overview for scalability checks. Assesses whether the cluster's node\ncount, pod density, and routing configuration are within tested limits and\nscaled appropriately for the workload.\n"
-# why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: Section overview for scalability checks.
-# The rec remediates THAT story by starting at `oc get nodes --no-headers | wc -l` — the live
-# object/command for this check, not a neighboring TSR item.
-# This is a section overview. Detailed remediation lives on the numbered sub-checks.
-# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
 recommendation = "1. Review sub-checks 2.3.1 through 2.3.3 for detailed findings.\n2. Get a cluster size summary:\n   `oc get nodes --no-headers | wc -l`\n3. Get the total pod count:\n   `oc get pods -A --no-headers | wc -l`\n"
 priority_hint = ""
 impact = "none"
@@ -305,15 +221,6 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.2.tsr.2_3_1_sdn_number_of_nodes"
 title = "2.3.1. SDN Number of Nodes"
 description = "The software-defined network plugin has tested scalability limits on the number\nof nodes it can manage. Exceeding these limits can cause increased API server\nload, flow table exhaustion, and network programming delays.\n"
-# why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: The software-defined network plugin has tested scalability limits on the number of
-# nodes it can manage.
-# The rec remediates THAT story by starting at `oc get nodes --no-headers | wc -l` — the live
-# object/command for this check, not a neighboring TSR item.
-# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
 recommendation = "1. Count cluster nodes:\n   `oc get nodes --no-headers | wc -l`\n2. Identify the active network plugin:\n   `oc get network.config cluster -o jsonpath='{.spec.networkType}'`\n3. Compare the node count against Red Hat's published limits for the active SDN plugin.\n4. Treat 2,000 nodes as the tested OVN-Kubernetes cluster maximum, and note that OpenShift SDN was removed in OCP 4.17 and does not apply to current releases.\n"
 priority_hint = ""
 impact = "none"
@@ -332,10 +239,6 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.2.tsr.2_3_2_sdn_number_of_pods"
 title = "2.3.2. SDN Number of Pods"
 description = "Each node has a maximum pod capacity (default 250) and the cluster has overall\npod density limits tied to the SDN plugin. Exceeding pod limits causes\nscheduling failures and degrades network performance due to iptables/OVS flow\ntable pressure.\n"
-# why-rec
-# CORRECTED. `-o wide` + awk $8 is not NODE. RESTARTS like `1 (2d18h ago)` splits fields so AGE
-# (2d18h, 151d) lands in $8. Rec uses `.spec.nodeName`. `<none>`/blank is unschedulable, not a
-# node. Empty kubeletconfig list is default maxPods 250.
 recommendation = "1. Print allocatable pods per node:\n   `oc get nodes -o custom-columns=NAME:.metadata.name,PODS:.status.allocatable.pods`\n2. Count pods bound to each node:\n   `oc get pods -A --no-headers -o custom-columns=NODE:.spec.nodeName | awk '$1 != \"\" && $1 != \"<none>\"' | sort | uniq -c | sort -rn`\n   Blank/`<none>` is Pending/unschedulable. Compare each count to that node's PODS column (default 250).\n3. Print `maxPods` from KubeletConfig. `No resources found` means the kubelet default (250):\n   `oc get kubeletconfig -o custom-columns=NAME:.metadata.name,MAXPODS:.spec.kubeletConfig.maxPods`\n"
 priority_hint = ""
 impact = "none"
@@ -354,10 +257,6 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.2.tsr.2_3_3_routing_scaling"
 title = "2.3.3. Routing Scaling"
 description = "Ingress router capacity must scale with the number of Routes and traffic\nvolume. Undersized router deployments cause connection queuing, increased\nlatency, and dropped connections under load.\n"
-# why-rec
-# CORRECTED. `jq '{replicas, status}'` still dumps IngressController status. Rec prints spec
-# replicas and availableReplicas as columns. Scaling replicas is non-disruptive for existing
-# connections.
 recommendation = "1. Print router replica counts:\n   `oc get ingresscontroller default -n openshift-ingress-operator -o custom-columns=NAME:.metadata.name,SPEC:.spec.replicas,AVAILABLE:.status.availableReplicas`\n2. Review router pod placement:\n   `oc get pods -n openshift-ingress -o wide`\n3. Count total routes:\n   `oc get routes -A --no-headers | wc -l`\n4. Scale routers if needed:\n   `oc patch ingresscontroller default -n openshift-ingress-operator --type merge -p '{\"spec\":{\"replicas\":<N>}}'`\n"
 priority_hint = ""
 impact = "non-disruptive"
