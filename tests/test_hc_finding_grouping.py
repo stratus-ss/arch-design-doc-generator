@@ -136,3 +136,98 @@ def test_validating_webhook_fail_still_creates_finding() -> None:
     findings = derive_findings(checks)
     assert len(findings) == 1
     assert findings[0].check_id == check_id
+
+
+def test_day2_default_sc_is_hidden_from_findings() -> None:
+    engine_id = "7.3.storage.default_sc"
+    day2_id = "7.6.storage.default_sc"
+    checks = [
+        _check_result(engine_id, "[FAIL] - reason: no default StorageClass"),
+        _check_result(day2_id, "[FAIL] - reason: no default StorageClass"),
+    ]
+    findings = derive_findings(checks)
+    assert len(findings) == 1
+    assert findings[0].check_id == engine_id
+    assert day2_id not in findings[0].member_check_ids
+
+
+def test_day2_pvcs_is_hidden_from_findings() -> None:
+    engine_id = "7.3.storage.pvcs"
+    day2_id = "7.6.storage.pvcs"
+    checks = [
+        _check_result(engine_id, "[FAIL] - reason: PVC not Bound"),
+        _check_result(day2_id, "[FAIL] - reason: PVC not Bound"),
+    ]
+    findings = derive_findings(checks)
+    assert len(findings) == 1
+    assert findings[0].check_id == engine_id
+    assert day2_id not in findings[0].member_check_ids
+
+
+def test_operator_approval_groups_and_hides_day2() -> None:
+    engine_id = "7.1.subs.approval"
+    tsr_id = "7.3.tsr.3_2_3_operators_plan_approval"
+    day2_id = "7.6.op_approval"
+    checks = [
+        _check_result(engine_id, "[FAIL] - reason: Automatic approval"),
+        _check_result(tsr_id, "[FAIL] - reason: Automatic approval"),
+        _check_result(day2_id, "[FAIL] - reason: Automatic approval"),
+    ]
+    findings = derive_findings(checks)
+    assert len(findings) == 1
+    finding = findings[0]
+    assert engine_id in finding.member_check_ids
+    assert tsr_id in finding.member_check_ids
+    assert day2_id not in finding.member_check_ids
+    assert finding.title == "Operator subscription installPlanApproval"
+
+
+def test_dns_operator_and_tsr_5_12_group() -> None:
+    engine_id = "7.3.dns.operator"
+    tsr_id = "7.5.tsr.5_12_dns_health"
+    checks = [
+        _check_result(engine_id, "[FAIL] - reason: DNS Operator Degraded"),
+        _check_result(tsr_id, "[FAIL] - reason: CoreDNS latency"),
+    ]
+    findings = derive_findings(checks)
+    assert len(findings) == 1
+    finding = findings[0]
+    assert engine_id in finding.member_check_ids
+    assert tsr_id in finding.member_check_ids
+    assert finding.title == "DNS Operator / CoreDNS health"
+
+
+def test_registry_tsr_and_ccx_group_keeps_ccx_member() -> None:
+    tsr_id = "7.5.tsr.5_4_registry_health"
+    ccx_id = "7.7.ccx_internal.image_registry_pods"
+    checks = [
+        _check_result(tsr_id, "[FAIL] - reason: registry pods unhealthy"),
+        _check_result(ccx_id, "[FAIL] - reason: registry pods unhealthy", source="ccx"),
+    ]
+    findings = derive_findings(checks)
+    assert len(findings) == 1
+    finding = findings[0]
+    assert tsr_id in finding.member_check_ids
+    assert ccx_id in finding.member_check_ids
+
+
+def test_apiserver_audit_and_tsr_7_1_2_group() -> None:
+    engine_id = "7.6.apiserver.audit"
+    tsr_id = "7.7.tsr.7_1_2_auditing"
+    checks = [
+        _check_result(engine_id, "[FAIL] - reason: Default audit profile"),
+        _check_result(tsr_id, "[FAIL] - reason: Default audit profile"),
+    ]
+    findings = derive_findings(checks)
+    assert len(findings) == 1
+    finding = findings[0]
+    assert engine_id in finding.member_check_ids
+    assert tsr_id in finding.member_check_ids
+
+
+def test_denied_csr_row_still_creates_finding() -> None:
+    check_id = "7.7.csr"
+    checks = [_check_result(check_id, "[FAIL] - reason: CSR Denied")]
+    findings = derive_findings(checks)
+    assert len(findings) == 1
+    assert findings[0].check_id == check_id

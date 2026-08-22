@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 try:
@@ -11,6 +11,17 @@ except ModuleNotFoundError:
     import tomli as tomllib  # Python 3.10 fallback
 
 NEEDS_REVIEW_MARKER = "[NEEDS REVIEW]"
+INHERITED_CONTENT_FIELDS = (
+    "recommendation",
+    "description",
+    "impact",
+    "impact_scope",
+    "impact_detail",
+    "links",
+    "recommendation_supported_versions",
+    "priority_hint",
+    "summary_patterns",
+)
 _DEFAULT_LINK_KEY = "default"
 _DEFAULT_KB_DIR = Path(__file__).resolve().parent / "kb"
 _VERSION_PATTERN = re.compile(r"^(\d+\.\d+)")
@@ -41,6 +52,7 @@ class KBEntry:
     finding_on_info: bool = False
     links: dict[str, str] = field(default_factory=dict)
     is_pattern: bool = False
+    content_from: str = ""
 
 
 @dataclass
@@ -235,6 +247,7 @@ def _make_entry(raw_entry: object, source_path: Path) -> KBEntry:
         ),
         links=_normalize_links(raw_entry.get("links", {})),
         is_pattern=bool(raw_entry.get("pattern", False)),
+        content_from=str(raw_entry.get("content_from", "")).strip(),
     )
 
 
@@ -274,6 +287,80 @@ def _resolve_default_doc_link(default_link: str, resolved_version: str) -> str:
     return default_link.replace("/latest/", f"/{resolved_version}/", 1)
 
 
+def _field_is_populated(value: object) -> bool:
+    if isinstance(value, str):
+        return bool(value.strip())
+    if isinstance(value, dict):
+        return bool(value)
+    if isinstance(value, tuple):
+        return bool(value)
+    return bool(value)
+
+
+def _alias_sets_inherited_content(entry: KBEntry) -> bool:
+    for field_name in INHERITED_CONTENT_FIELDS:
+        if _field_is_populated(getattr(entry, field_name)):
+            return True
+    return False
+
+
+def _require_exact_canonical_target(
+    entry: KBEntry, entries: dict[str, KBEntry]
+) -> KBEntry:
+    if entry.content_from == entry.check_id:
+        raise ValueError(f"KB content_from self-reference: {entry.check_id}")
+    target_entry = entries.get(entry.content_from)
+    if target_entry is None:
+        raise ValueError(
+            f"KB content_from target not found: {entry.check_id} -> {entry.content_from}"
+        )
+    if target_entry.content_from:
+        raise ValueError(
+            f"KB content_from chain forbidden: {entry.check_id} -> {entry.content_from}"
+        )
+    return target_entry
+
+
+def _canonical_target_for_alias(
+    entry: KBEntry, entries: dict[str, KBEntry]
+) -> KBEntry:
+    if entry.is_pattern:
+        raise ValueError(
+            f"KB content_from not allowed on pattern entries: {entry.check_id}"
+        )
+    if _alias_sets_inherited_content(entry):
+        raise ValueError(
+            f"KB content_from alias sets inherited fields: {entry.check_id}"
+        )
+    return _require_exact_canonical_target(entry, entries)
+
+
+def _copy_inherited_content(alias_entry: KBEntry, target_entry: KBEntry) -> KBEntry:
+    return replace(
+        alias_entry,
+        recommendation=target_entry.recommendation,
+        description=target_entry.description,
+        impact=target_entry.impact,
+        impact_scope=target_entry.impact_scope,
+        impact_detail=target_entry.impact_detail,
+        links=target_entry.links,
+        recommendation_supported_versions=target_entry.recommendation_supported_versions,
+        priority_hint=target_entry.priority_hint,
+        summary_patterns=target_entry.summary_patterns,
+    )
+
+
+def _resolve_content_from(entries: dict[str, KBEntry]) -> dict[str, KBEntry]:
+    resolved: dict[str, KBEntry] = {}
+    for check_id, entry in entries.items():
+        if not entry.content_from:
+            resolved[check_id] = entry
+            continue
+        target_entry = _canonical_target_for_alias(entry, entries)
+        resolved[check_id] = _copy_inherited_content(entry, target_entry)
+    return resolved
+
+
 def load_kb(kb_dir: Path | None = None) -> KnowledgeBase:
     global _KB_CACHE, _KB_CACHE_DIR
 
@@ -288,12 +375,17 @@ def load_kb(kb_dir: Path | None = None) -> KnowledgeBase:
         for raw_entry in data.get("checks", []):
             entry = _make_entry(raw_entry, path)
             if entry.is_pattern:
+                if entry.content_from:
+                    raise ValueError(
+                        f"KB content_from not allowed on pattern entries: {entry.check_id}"
+                    )
                 pattern_entries.append((_compile_check_id_pattern(entry.check_id), entry))
                 continue
             if entry.check_id in entries:
                 raise ValueError(f"Duplicate KB entry for {entry.check_id} in {path}")
             entries[entry.check_id] = entry
 
+    entries = _resolve_content_from(entries)
     knowledge_base = KnowledgeBase(
         entries=entries,
         active_versions=load_active_versions(base_dir),

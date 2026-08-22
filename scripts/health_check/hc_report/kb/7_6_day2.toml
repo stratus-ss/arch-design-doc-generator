@@ -136,6 +136,8 @@ priority_hint = ""
 impact = "rolling-restart"
 impact_scope = "API server audit pipeline"
 impact_detail = "Audit-profile changes roll API server configuration and can briefly reset API connections while control-plane pods reconcile."
+finding_group = "apiserver-audit"
+finding_group_title = "API server audit profile"
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/security_and_compliance/index#configuring-audit-policy_audit-log-policy-config"
@@ -202,23 +204,10 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.6.op_approval"
 title = "Operator approval policy"
-description = "Manual installPlanApproval prevents unplanned operator upgrades. Review and\napprove install plans during scheduled maintenance windows instead of allowing\nautomatic upgrades into production.\n"
+content_from = "7.1.subs.approval"
+include_in_findings = false
 # why-rec
-# CORRECTED. Same as 7.1.subs.approval: list installPlanApproval first; Manual is a preference
-# except where docs require it. Do not jump to patch.
-recommendation = "1. List subscription approval strategies:\n   `oc get subscription -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,APPROVAL:.spec.installPlanApproval,STATE:.status.state`\n2. For production clusters, prefer `Manual` so operators do not upgrade without review:\n   `oc patch subscription <name> -n <ns> --type=merge -p '{\"spec\":{\"installPlanApproval\":\"Manual\"}}'`\n3. Automatic approval is supported. Treat a change to Manual as an operational preference except where docs require Manual (for example cloud STS or workload-identity installs).\n4. Review pending InstallPlans and approve them only during planned windows:\n   `oc get installplan -A`\n"
-priority_hint = ""
-impact = "non-disruptive"
-impact_scope = "operator subscription behavior"
-impact_detail = "Changing approval policy updates future operator-upgrade behavior immediately without rebooting nodes or evicting workloads."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/operators/index#olm-installplan_olm-understanding-olm"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/operators/index#olm-installplan_olm-understanding-olm"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/operators/index#olm-installplan_olm-understanding-olm"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/operators/index#olm-installplan_olm-understanding-olm"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/operators/index#olm-installplan_olm-understanding-olm"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/operators/index#olm-installplan_olm-understanding-olm"
+# Alias of 7.1.subs.approval (C-01). Hidden in Chapter 6; same evaluator twin.
 
 [[checks]]
 check_id = "7.6.deploymentconfigs"
@@ -440,42 +429,18 @@ default = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat
 [[checks]]
 check_id = "7.6.storage.default_sc"
 title = "Default storage class"
-description = "A default StorageClass is required for dynamic PVC provisioning. Without one,\nPVCs without an explicit `storageClassName` remain Pending. Only one\nStorageClass should be marked as default.\n"
+content_from = "7.3.storage.default_sc"
+include_in_findings = false
 # why-rec
-# CORRECTED. Same as 7.3.storage.default_sc. Rec started at patch. Print DEFAULT first.
-recommendation = "1. Print which StorageClass is default:\n   `oc get storageclass -o custom-columns=NAME:.metadata.name,PROVISIONER:.provisioner,DEFAULT:.metadata.annotations.storageclass\\.kubernetes\\.io/is-default-class`\n2. Read `DEFAULT`:\n   - exactly one `true`: this check is done.\n   - all `<none>`: annotate the class that should back unbound PVCs:\n     `oc patch storageclass <name> -p '{\"metadata\":{\"annotations\":{\"storageclass.kubernetes.io/is-default-class\":\"true\"}}}'`\n   - more than one `true`: leave one, set the others to `false`:\n     `oc patch storageclass <name> -p '{\"metadata\":{\"annotations\":{\"storageclass.kubernetes.io/is-default-class\":\"false\"}}}'`\n3. https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/storage/index#change-default-storage-class_dynamic-provisioning\n"
-priority_hint = ""
-impact = "non-disruptive"
-impact_scope = "new PVC provisioning behavior"
-impact_detail = "Changing the default StorageClass affects only future PVCs that omit storageClassName; existing volumes and nodes are untouched."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/storage/index#change-default-storage-class_dynamic-provisioning"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/storage/index#change-default-storage-class_dynamic-provisioning"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/storage/index#change-default-storage-class_dynamic-provisioning"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/storage/index#change-default-storage-class_dynamic-provisioning"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/storage/index#change-default-storage-class_dynamic-provisioning"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/storage/index#change-default-storage-class_dynamic-provisioning"
+# Alias of 7.3.storage.default_sc (C-02). Inherited fields omitted (DR-2).
 
 [[checks]]
 check_id = "7.6.storage.pvcs"
 title = "Persistent volume claims"
-description = "Unbound PVCs indicate that requested storage could not be provisioned, often\nbecause the StorageClass is missing, capacity is unavailable, or the requested\naccess mode does not match the backend.\n"
+content_from = "7.3.storage.pvcs"
+include_in_findings = false
 # why-rec
-# CORRECTED. Same as 7.3.storage.pvcs. Rec assumed the unbound PVC was already known.
-recommendation = "1. List PVCs that are not Bound:\n   `oc get pvc -A --no-headers -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,PHASE:.status.phase,SC:.spec.storageClassName | awk '$3 != \"Bound\"'`\n   Empty output: all Bound. This check is done.\n2. For each remaining row, read Events:\n   `oc describe pvc <name> -n <ns>`\n   Typical Events: StorageClass not found, no PVs, access mode mismatch, insufficient capacity. A missing default class is `7.3.storage.default_sc`.\n3. Provisioner logs are in the CSI/driver namespace for that SC's provisioner.\n4. https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/storage/index#storage-persistent-storage-pvc_understanding-persistent-storage\n"
-priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/storage/index#storage-persistent-storage-pvc_understanding-persistent-storage"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/storage/index#storage-persistent-storage-pvc_understanding-persistent-storage"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/storage/index#storage-persistent-storage-pvc_understanding-persistent-storage"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/storage/index#storage-persistent-storage-pvc_understanding-persistent-storage"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/storage/index#storage-persistent-storage-pvc_understanding-persistent-storage"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/storage/index#storage-persistent-storage-pvc_understanding-persistent-storage"
+# Alias of 7.3.storage.pvcs (C-03). Inherited fields omitted (DR-2).
 
 [[checks]]
 check_id = "7.6.tsr.6_1_capacity_management"
