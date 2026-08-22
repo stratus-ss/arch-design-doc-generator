@@ -3,15 +3,13 @@ check_id = "7.6.csr_pending"
 title = "Pending CSRs"
 description = "Pending CSRs typically indicate new nodes waiting for certificate approval. In\nmanual approval mode they block node join; in auto-approve mode they often\nindicate a bootstrap or node-health issue.\n"
 # why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: Pending CSRs typically indicate new nodes waiting for certificate approval.
-# The rec remediates THAT story by starting at `oc get csr` — the live object/command for this
-# check, not a neighboring TSR item.
-# Impact `non-disruptive`: Approving trusted CSRs allows nodes to finish joining the cluster
-# without rebooting existing nodes or evicting workloads.
+# CORRECTED. Stock CONDITION is Approved, Denied, or Pending. Pending or Denied = FAIL.
+# Approved = PASS. Empty list (`No resources found`) = PASS none-pending: CSRs are GC'd
+# after approval, that is not a missing type. Missing CRD = INFO n/a-csr. Rec scores
+# CONDITION; it does not run a live approve. Lab: compact BareMetal, empty CSR list.
 # Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
 # text is the right response.
-recommendation = "1. List pending CSRs and inspect the requester and node identity before approval:\n   `oc get csr`\n2. Approve only trusted node CSRs:\n   `oc adm certificate approve <csr>`\n3. If CSRs remain pending repeatedly, investigate bootstrap, machine-api, or\n   kubelet health on the affected node.\n"
+recommendation = "1. Score each CSR CONDITION. Pending or Denied = FAIL. Approved = PASS. Empty list = PASS none-pending. Missing type = INFO n/a-csr:\n   `oc get csr --no-headers 2>&1 | awk '/have a resource type/{print \"INFO n/a-csr\"; n=1; next} /No resources found/{print \"PASS none-pending\"; n=1; next} {r=\"PASS\"; if($NF==\"Pending\" || $NF==\"Denied\") r=\"FAIL\"; print r, \"NAME=\"$1, \"REQUESTOR=\"$4, \"CONDITION=\"$NF} END{if(!n && NR==0) print \"PASS none-pending\"}'`\n2. On FAIL Pending, inspect REQUESTOR then approve only trusted node CSRs:\n   `oc adm certificate approve <csr>`\n"
 priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "pending node joins and certificate approval"
@@ -78,10 +76,12 @@ check_id = "7.6.upgrade.history"
 title = "Upgrade history"
 description = "Regular upgrade cadence is important for security patching and supportability.\nLong delays between z-stream or minor upgrades increase lifecycle and security\nrisk.\n"
 # why-rec
-# CORRECTED. `oc get clusterversion -o yaml` is a List. Rec uses named `version` and
-# status.history. Addressing stale history usually means scheduling an upgrade
-# (maintenance-window).
-recommendation = "1. Review completed upgrade history on the named ClusterVersion object:\n   `oc get clusterversion version -o jsonpath='{.status.history}'`\n2. Use the OCP Upgrade Graph to plan the next supported update path.\n3. If the cluster is multiple releases behind, test the target path in\n   non-production and schedule a maintenance window before applying the update.\n"
+# CORRECTED. `{.status.history}` dumps the JSON array. Stock `oc get clusterversion` has
+# no history columns. Rec prints STATE VERSION COMPLETED only (cadence). Completed =
+# PASS. Any other STATE = FAIL. Lab: compact BareMetal, all history rows Completed.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
+recommendation = "1. Print STATE VERSION COMPLETED from ClusterVersion history. Completed = PASS. Any other STATE = FAIL:\n   `oc get clusterversion version -o jsonpath='{range .status.history[*]}{.state}{\"\\t\"}{.version}{\"\\t\"}{.completionTime}{\"\\n\"}{end}' | awk '{print ($1==\"Completed\"?\"PASS\":\"FAIL\"), \"STATE=\"$1, \"VERSION=\"$2, \"COMPLETED=\"$3}'`\n2. Use the OCP Upgrade Graph to plan the next supported update path.\n3. If the cluster is multiple releases behind, test the target path in non-production and schedule a maintenance window before applying the update.\n"
 priority_hint = ""
 impact = "maintenance-window"
 impact_scope = "cluster-wide"
@@ -100,17 +100,13 @@ check_id = "7.6.apiserver.tls"
 title = "API server TLS profile"
 description = "The TLS security profile controls which cipher suites and TLS versions are\naccepted by the API server and other components. `Old` should not be used in\nproduction unless compatibility requirements are explicitly documented.\n"
 # why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: The TLS security profile controls which cipher suites and TLS versions are
-# accepted by the API server and other components.
-# The rec remediates THAT story by starting at `oc get apiserver cluster -o
-# jsonpath='{.spec.tlsSecurityProfile}'` — the live object/command for this check, not a
-# neighboring TSR item.
-# Impact `rolling-restart`: TLS profile changes propagate across multiple control-plane
-# components and trigger an operator-managed rollout that can briefly reset API connections.
+# CORRECTED. Unset tlsSecurityProfile is the OpenShift default (Intermediate) = PASS.
+# jsonpath on the object prints nothing and looks like a failed command. Rec prints
+# TYPE=; <none>/empty = default-Intermediate. Old = FAIL. Custom = INFO. Intermediate
+# or Modern = PASS. Lab: compact BareMetal, spec has no tlsSecurityProfile.
 # Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
 # text is the right response.
-recommendation = "1. Check the current profile:\n   `oc get apiserver cluster -o jsonpath='{.spec.tlsSecurityProfile}'`\n2. If the APIServer is using `Old` or an unsupported custom profile, patch\n   `spec.tlsSecurityProfile` on `apiserver/cluster` back to `Intermediate` or a\n   validated custom profile:\n   `oc patch apiserver cluster --type=merge -p '{\"spec\":{\"tlsSecurityProfile\":{\"type\":\"Intermediate\"}}}'`\n3. Confirm external clients and integrations support the target cipher set\n   before rollout.\n"
+recommendation = "1. Print TYPE. Empty or <none> is the default Intermediate = PASS. Intermediate or Modern = PASS. Old = FAIL. Custom = INFO:\n   `oc get apiserver cluster -o custom-columns=TYPE:.spec.tlsSecurityProfile.type --no-headers | awk '{t=$1; r=\"PASS\"; if(t==\"Old\") r=\"FAIL\"; if(t==\"Custom\") r=\"INFO\"; if(t==\"<none>\"||t==\"\") t=\"default-Intermediate\"; print r, \"TYPE=\"t}'`\n2. If TYPE is Old, set Intermediate (rolls API servers):\n   `oc patch apiserver cluster --type=merge -p '{\"spec\":{\"tlsSecurityProfile\":{\"type\":\"Intermediate\"}}}'`\n3. Confirm external clients support the target cipher set before that rollout.\n"
 priority_hint = ""
 impact = "rolling-restart"
 impact_scope = "API server and related control-plane components"
@@ -236,15 +232,13 @@ check_id = "7.6.tsr.6_1_1_1_quota_resources_project_assignment"
 title = "TSR quota resources project assignment"
 description = "This check identifies projects with no ResourceQuota or LimitRange. Without quotas, a namespace can consume unbounded CPU, memory, and storage. This is a project-admission finding, not a statement about VM template defaults."
 # why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: This check identifies projects with no ResourceQuota or LimitRange.
-# The rec remediates THAT story by starting at `oc get template project-request -n
-# openshift-config` — the live object/command for this check, not a neighboring TSR item.
-# Impact `non-disruptive`: ResourceQuota changes affect future creates and scale-outs but do not
-# restart nodes or terminate running workloads.
+# CORRECTED. Coverage is stock ResourceQuota and LimitRange lists plus comm: user
+# namespaces that appear in neither list are FAIL. Empty FAIL list = PASS
+# none-uncovered. Skip openshift-* kube-* default and openshift. Lab: 1 FAIL user
+# NS; no LimitRanges; project-request NotFound. Create stays --dry-run=client.
 # Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
 # text is the right response.
-recommendation = "1. List projects without ResourceQuota or LimitRange from the evidence.\n2. Apply quotas appropriate to each production namespace.\n3. Optionally set a project template so new namespaces get default quotas.\n   `oc get template project-request -n openshift-config`\n"
+recommendation = "1. List ResourceQuota (first column is the namespace):\n   `oc get resourcequota -A`\n2. List LimitRange:\n   `oc get limitrange -A`\n3. User projects that appear in neither list are FAIL. Skip openshift-* kube-* default and openshift. Empty = PASS none-uncovered:\n   `comm -23 <(oc get ns --no-headers -o custom-columns=NS:.metadata.name | awk '$1 !~ /^(openshift-|kube-)/ && $1 != \"openshift\" && $1 != \"default\"' | sort) <({ oc get resourcequota -A --no-headers; oc get limitrange -A --no-headers; } 2>/dev/null | awk 'NF{print $1}' | sort -u) | awk '{print \"FAIL NS=\"$1} END{if(NR==0) print \"PASS none-uncovered\"}'`\n4. On FAIL, create a ResourceQuota sized to that project (drop --dry-run=client to apply):\n   `oc create quota compute --hard=requests.cpu=8,requests.memory=16Gi,pods=25 -n <ns> --dry-run=client -o name`\n5. Print the project-request template. Missing = INFO n/a-project-request:\n   `oc get template project-request -n openshift-config 2>&1 | awk '/NotFound|No resources found/{print \"INFO n/a-project-request\"; n=1; next} {print} END{if(!n && NR==0) print \"INFO n/a-project-request\"}'`\n"
 priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "namespace admission and capacity guardrails"
@@ -266,16 +260,14 @@ check_id = "7.6.tsr.6_1_5_5_node_garbage_collection"
 title = "TSR node garbage collection"
 description = "This check verifies that each node is properly cleaning up unused container images. When images accumulate beyond the garbage collection threshold (default: 85% disk usage), the kubelet should automatically remove unused images. A failure here means images are consuming excessive disk space and the automatic cleanup is not keeping pace."
 # why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: This check verifies that each node is properly cleaning up unused container images.
-# The rec remediates THAT story by starting at `oc debug node/<node> -- chroot /host crictl
-# images | tail -1` — the live object/command for this check, not a neighboring TSR item.
-# Impact `rolling-restart`: Changing kubelet garbage-collection settings through KubeletConfig or
-# MachineConfig drains and reboots affected nodes one at a time.
-# `oc debug` was not executed this pass (starts a node pod). Treat those steps as command-form.
+# CORRECTED. `crictl images | tail -1` is image list size, not disk fill, and is not the
+# 85% GC trigger. Rec prints applied HIGH from configz (empty KubeletConfig = 85) and
+# imageFs USED% = (capacity-available)/capacity from stats/summary. Overlay usedBytes
+# is not the metric. USED% >= HIGH = FAIL. Lab: 3 nodes, all USED below HIGH. Did not
+# run oc debug.
 # Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
 # text is the right response.
-recommendation = "1. Check current image disk usage on affected nodes:\n   `oc debug node/<node> -- chroot /host crictl images | tail -1`\n2. Verify garbage collection is running:\n   `oc adm node-logs <node> -u kubelet | grep -i garbage`\n3. If GC is not triggering, review the kubelet thresholds via KubeletConfig:\n   - imageGCHighThresholdPercent (default 85) — GC starts above this\n   - imageGCLowThresholdPercent (default 80) — GC stops below this\n4. If thresholds are appropriate but images still accumulate, manually prune\n   unused images or increase node disk capacity.\n"
+recommendation = "1. Print image filesystem fill against the applied GC high threshold. USED% is (capacity-available)/capacity of imageFs, not crictl image count. USED% >= HIGH = FAIL. HIGH comes from configz (no KubeletConfig CR uses 85):\n   `oc get nodes --no-headers -o custom-columns=NAME:.metadata.name | while read -r node; do high=$(oc get --raw /api/v1/nodes/${node}/proxy/configz | jq -r '.kubeletconfig.imageGCHighThresholdPercent // 85'); oc get --raw /api/v1/nodes/${node}/proxy/stats/summary | jq -r --arg node \"$node\" --arg high \"$high\" '(.node.runtime.imageFs // .node.fs) as $fs | [$node, $high, $fs.capacityBytes, $fs.availableBytes] | @tsv'; done | awk '{used=int(($3-$4)*100/$3); r=\"PASS\"; if(used>=$2+0) r=\"FAIL\"; print r, \"NODE=\"$1, \"USED=\"used\"%\", \"HIGH=\"$2}'`\n"
 priority_hint = ""
 impact = "rolling-restart"
 impact_scope = "nodes in the targeted MachineConfigPool"
@@ -345,86 +337,30 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.6.tsr.6_1_5_1_pod_pruning"
 title = "TSR pod pruning"
-description = "Completed and failed pods that accumulate beyond GC limits consume etcd storage\nand slow API list operations. Proper pruning keeps the cluster responsive and\nprevents etcd size growth.\n"
+content_from = "7.5.pruning.pods"
 # why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: Completed and failed pods that accumulate beyond GC limits consume etcd storage
-# and slow API list operations.
-# The rec remediates THAT story by starting at `oc get pods -A
-# --field-selector=status.phase=Succeeded` — the live object/command for this check, not a
-# neighboring TSR item.
-# Impact `rolling-restart`: If pod-GC thresholds are changed through KubeletConfig, affected
-# nodes drain and reboot; build-history settings themselves apply live.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
-recommendation = "1. Review completed pods:\n   `oc get pods -A --field-selector=status.phase=Succeeded`\n2. Configure terminated pod GC threshold in the KubeletConfig CR (default: 12500\n   terminated pods).\n3. For build pods, configure pruning in BuildConfig\n   `successfulBuildsHistoryLimit` and `failedBuildsHistoryLimit`.\n4. Clean up stale completed pod entries.\n"
-priority_hint = ""
-impact = "rolling-restart"
-impact_scope = "nodes in the targeted MachineConfigPool"
-impact_detail = "If pod-GC thresholds are changed through KubeletConfig, affected nodes drain and reboot; build-history settings themselves apply live."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/building_applications/index#pruning-objects"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/building_applications/index#pruning-objects"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/building_applications/index#pruning-objects"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/building_applications/index#pruning-objects"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/building_applications/index#pruning-objects"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/building_applications/index#pruning-objects"
+# Alias of 7.5.pruning.pods. Same Succeeded/Failed pod counts in etcd; cluster prune is
+# KubeControllerManager terminated-pod-gc-threshold, not KubeletConfig. Grouped in
+# Chapter 6; do not hide TSR. Job TTL is 7.5.pruning.jobs. Build history is
+# 7.6.tsr.6_1_5_2_build_pruning.
 
 [[checks]]
 check_id = "7.6.tsr.6_1_5_4_job_pruning"
 title = "TSR job pruning"
-description = "Completed Jobs without TTL settings persist indefinitely in etcd, increasing\ndatabase size and slowing list operations. CronJobs that spawn many runs are\nparticularly impactful.\n"
+content_from = "7.5.pruning.jobs"
 # why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: Completed Jobs without TTL settings persist indefinitely in etcd, increasing
-# database size and slowing list operations.
-# The rec remediates THAT story by starting at `oc get jobs -A
-# --field-selector=status.successful=1` — the live object/command for this check, not a
-# neighboring TSR item.
-# Impact `non-disruptive`: Job TTL and history-limit settings affect future cleanup behavior
-# without restarting nodes or interrupting running workloads.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
-recommendation = "1. Review accumulated jobs:\n   `oc get jobs -A --field-selector=status.successful=1`\n2. Add `spec.ttlSecondsAfterFinished` to Job templates (recommended: 86400 for\n   daily cleanup).\n3. For CronJobs, set `successfulJobsHistoryLimit` and\n   `failedJobsHistoryLimit`.\n4. Delete stale completed job entries.\n"
-priority_hint = ""
-impact = "non-disruptive"
-impact_scope = "completed job retention"
-impact_detail = "Job TTL and history-limit settings affect future cleanup behavior without restarting nodes or interrupting running workloads."
-
-[checks.links]
-default = "https://kubernetes.io/docs/concepts/workloads/controllers/ttlafterfinished/"
-"4.18" = "https://kubernetes.io/docs/concepts/workloads/controllers/ttlafterfinished/"
-"4.19" = "https://kubernetes.io/docs/concepts/workloads/controllers/ttlafterfinished/"
-"4.20" = "https://kubernetes.io/docs/concepts/workloads/controllers/ttlafterfinished/"
-"4.21" = "https://kubernetes.io/docs/concepts/workloads/controllers/ttlafterfinished/"
-"4.22" = "https://kubernetes.io/docs/concepts/workloads/controllers/ttlafterfinished/"
+# Alias of 7.5.pruning.jobs. Same completed-Job TTL and CronJob history-limit story.
+# Grouped in Chapter 6; do not hide TSR. Succeeded/Failed pod GC is 7.5.pruning.pods.
 
 [[checks]]
 check_id = "7.6.tsr.6_3_1_active_alerts"
 title = "TSR active alerts"
-description = "This check lists firing day-2 alerts. Recurring classes include VMCannotBeEvicted, PodDisruptionBudgetAtLimit, and TargetDown. Other alerts may also appear; triage from the evidence."
+content_from = "7.5.tsr.5_11_health_related_alerts"
 # why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: This check lists firing day-2 alerts.
-# The rec remediates THAT story by starting at `the numbered procedure` — the live object/command
-# for this check, not a neighboring TSR item.
-# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
-recommendation = "1. Read the alert names in the evidence.\n2. For VMCannotBeEvicted or PodDisruptionBudgetAtLimit, inspect the VMI and PDB (overlaps CNV checks 4.8.5.2.1 / 4.8.5.2.3).\n3. For TargetDown, inspect the ServiceMonitor and the target pod.\n4. Silence only documented acceptable alerts.\n"
-priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/latest/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
-"4.18" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.18/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
-"4.19" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.19/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
-"4.20" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.20/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
-"4.21" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.21/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
-"4.22" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.22/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
+# Alias of 7.5.tsr.5_11_health_related_alerts. Same Prometheus firing table
+# (state / alertname / severity). Grouped in Chapter 6; do not hide TSR.
+# CNV-only alerts are 7.4.tsr.4_8_5_2_1_active_alerts. Severity splits are
+# 7.5.alerts.critical and 7.5.alerts.warning. Receivers are 7.6.tsr.6_3_2.
 
 [[checks]]
 check_id = "7.6.storage.default_sc"
@@ -536,66 +472,33 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.6.tsr.6_1_3_node_load"
 title = "6.1.3. Node Load"
-description = "Parent section assessing current and expected node resource consumption.\nOverloaded nodes experience scheduling delays, OOMKills, and potential\nworkload eviction during load spikes.\n"
+content_from = "7.6.tsr.6_1_3_1_current_node_load"
 # why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: Parent section assessing current and expected node resource consumption.
-# The rec remediates THAT story by starting at `oc adm top nodes` — the live object/command for
-# this check, not a neighboring TSR item.
-# This is a section overview. Detailed remediation lives on the numbered sub-checks.
-# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
-recommendation = "1. Review node utilization and identify nodes consistently above 80% CPU or\n   memory:\n   `oc adm top nodes`\n2. Evaluate requested vs allocatable resources:\n   `oc describe nodes | grep -A5 Allocated`\n3. Scale worker count or right-size workload requests to improve bin-packing.\n"
-priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/nodes/index#nodes-nodes-viewing-memory_nodes-nodes-viewing"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/nodes/index#nodes-nodes-viewing-memory_nodes-nodes-viewing"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/nodes/index#nodes-nodes-viewing-memory_nodes-nodes-viewing"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/nodes/index#nodes-nodes-viewing-memory_nodes-nodes-viewing"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/nodes/index#nodes-nodes-viewing-memory_nodes-nodes-viewing"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/nodes/index#nodes-nodes-viewing-memory_nodes-nodes-viewing"
+# Alias of 7.6.tsr.6_1_3_1_current_node_load. Same oc adm top usage story (80% hotspot).
+# Grouped in Chapter 6; do not hide TSR. Request vs allocatable is
+# 7.6.tsr.6_1_3_2_node_expected_resource_consumption (alias of 7.5.tsr.5_11_3).
 
 [[checks]]
 check_id = "7.6.tsr.6_1_3_2_node_expected_resource_consumption"
 title = "6.1.3.2. Node Expected Resource Consumption"
-description = "Compares aggregate resource requests against node allocatable capacity to\npredict headroom. Nodes where requests exceed allocatable capacity will reject\nnew pods even if actual usage is currently low.\n"
+content_from = "7.5.tsr.5_11_3_overcommit_alerts"
 # why-rec
-# ENGINEERING JUDGMENT. Allocated vs allocatable from `oc describe nodes` is the right data. >90%
-# request ratio is operational, not vendor.
-recommendation = "1. Check allocatable vs requested per node:\n   `oc describe nodes | grep -A10 'Allocated resources'`\n2. Identify nodes with >90% request-to-allocatable ratio.\n3. Scale the cluster or redistribute workloads using pod anti-affinity or\n   topology spread constraints to maintain adequate scheduling headroom.\n"
-priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/nodes/index#nodes-nodes-viewing-memory_nodes-nodes-viewing"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/nodes/index#nodes-nodes-viewing-memory_nodes-nodes-viewing"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/nodes/index#nodes-nodes-viewing-memory_nodes-nodes-viewing"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/nodes/index#nodes-nodes-viewing-memory_nodes-nodes-viewing"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/nodes/index#nodes-nodes-viewing-memory_nodes-nodes-viewing"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/nodes/index#nodes-nodes-viewing-memory_nodes-nodes-viewing"
+# Alias of 7.5.tsr.5_11_3_overcommit_alerts. Same request vs allocatable story.
+# oc adm top is usage and stays on 7.6.tsr.6_1_3_1_current_node_load. Grouped in
+# Chapter 6; do not hide TSR.
 
 [[checks]]
 check_id = "7.6.tsr.6_1_4_persistent_volume_usage"
 title = "6.1.4. Persistent Volume Usage"
 description = "Monitors PersistentVolume capacity utilization and identifies volumes at risk\nof exhaustion. Full PVs cause application write failures, pod crashes, and\npotential data loss.\n"
 # why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: Monitors PersistentVolume capacity utilization and identifies volumes at risk of
-# exhaustion.
-# The rec remediates THAT story by starting at `oc get pv -o
-# custom-columns=NAME:.metadata.name,CAPACITY:.spec.capacity.storage,STATUS:.status.phase,CLAIM:.s
-# pec.claimRef.name` — the live object/command for this check, not a neighboring TSR item.
-# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
+# CORRECTED. `oc get pv` CAPACITY is provisioned size, not fill. Rec scores
+# kubelet_volume_stats used/capacity. USED>90 = FAIL. USED>75 = WARNING. Else
+# PASS. Empty = INFO n/a-pvc-util. FillingUp alert empty = INFO n/a-fillingup-alert.
+# Lab: 2 PVCs, USED below 75. Did not patch PVCs. Expansion patch is 7.8.pvc.util.critical.
 # Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
 # text is the right response.
-recommendation = "1. List PV usage:\n   `oc get pv -o custom-columns=NAME:.metadata.name,CAPACITY:.spec.capacity.storage,STATUS:.status.phase,CLAIM:.spec.claimRef.name`\n2. Check for near-full volumes by reviewing kubelet volume stats or alerting on\n   `KubePersistentVolumeFillingUp`.\n3. Expand PVCs where the StorageClass supports volume expansion.\n"
+recommendation = "1. Print PVC USED% from kubelet volume stats. >90 = FAIL. >75 = WARNING. Else PASS. Empty = INFO n/a-pvc-util:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -sG http://localhost:9090/api/v1/query --data-urlencode 'query=kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes * 100' | jq -r '.data.result[] | [.metric.namespace, .metric.persistentvolumeclaim, .value[1]] | @tsv' | awk -F'\\t' '{pct=$3+0; r=\"PASS\"; if(pct>90) r=\"FAIL\"; else if(pct>75) r=\"WARNING\"; print r, \"NS=\"$1, \"PVC=\"$2, \"USED=\"int(pct)\"%\"} END{if(NR==0) print \"INFO n/a-pvc-util\"}'`\n2. Print firing KubePersistentVolumeFillingUp. Any row = FAIL. Empty = INFO n/a-fillingup-alert:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -s http://localhost:9090/api/v1/alerts | jq -r '.data.alerts[] | select(.labels.alertname==\"KubePersistentVolumeFillingUp\") | [.state, .labels.namespace, .labels.persistentvolumeclaim, .labels.severity] | @tsv' | awk -F'\\t' '{print \"FAIL\", \"STATE=\"$1, \"NS=\"$2, \"PVC=\"$3, \"SEVERITY=\"$4} END{if(NR==0) print \"INFO n/a-fillingup-alert\"}'`\n3. Print StorageClass EXPAND. FAIL or WARNING PVCs with EXPAND=true can grow; EXPAND=false needs a larger volume:\n   `oc get sc -o custom-columns=NAME:.metadata.name,EXPAND:.allowVolumeExpansion --no-headers | awk '{print \"NAME=\"$1, \"EXPAND=\"$2}'`\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -612,32 +515,12 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.6.tsr.6_1_5_pruning"
 title = "6.1.5. Pruning"
-description = "Parent section covering object pruning strategies for pods, builds, network\npolicies, and namespaces. Without regular pruning, stale objects accumulate\nin etcd, increasing database size and slowing API operations.\n"
+content_from = "7.5.pruning.pods"
 # why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: Parent section covering object pruning strategies for pods, builds, network
-# policies, and namespaces.
-# The rec remediates THAT story by starting at `oc get pods -A
-# --field-selector=status.phase=Succeeded` — the live object/command for this check, not a
-# neighboring TSR item.
-# This is a section overview. Detailed remediation lives on the numbered sub-checks.
-# Impact `non-disruptive`: Pruning settings affect cleanup of completed objects without rebooting
-# nodes or interrupting running workloads.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
-recommendation = "1. Review completed pods:\n   `oc get pods -A --field-selector=status.phase=Succeeded`\n2. Review build accumulation:\n   `oc get builds -A`\n3. Review namespaces:\n   `oc get ns`\n4. Configure automated pruning via `ttlSecondsAfterFinished` on Jobs, build\n   history limits on BuildConfigs, and image pruner CronJobs.\n"
-priority_hint = ""
-impact = "non-disruptive"
-impact_scope = "completed object retention"
-impact_detail = "Pruning settings affect cleanup of completed objects without rebooting nodes or interrupting running workloads."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/building_applications/index#pruning-objects"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/building_applications/index#pruning-objects"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/building_applications/index#pruning-objects"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/building_applications/index#pruning-objects"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/building_applications/index#pruning-objects"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/building_applications/index#pruning-objects"
+# Alias of 7.5.pruning.pods. Parent rec copied Succeeded pods plus build/job/namespace
+# children. Same etcd pod-GC story as 7.6.tsr.6_1_5_1_pod_pruning; cannot chain
+# through that alias. Grouped in Chapter 6; do not hide TSR. Builds are
+# 7.6.tsr.6_1_5_2. Jobs are 7.5.pruning.jobs. Image GC is 7.6.tsr.6_1_5_5.
 
 [[checks]]
 check_id = "7.6.tsr.6_1_5_2_build_pruning"
@@ -672,15 +555,13 @@ check_id = "7.6.tsr.6_1_5_3_network_policy_pruning"
 title = "6.1.5.3. Network Policy Pruning"
 description = "Identifies orphaned or redundant NetworkPolicies that no longer match any pods.\nStale policies add OVN/iptables processing overhead and complicate security\nauditing without providing effective segmentation.\n"
 # why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: Identifies orphaned or redundant NetworkPolicies that no longer match any pods.
-# The rec remediates THAT story by starting at `oc get networkpolicy -A` — the live
-# object/command for this check, not a neighboring TSR item.
-# Impact `non-disruptive`: Removing unused NetworkPolicies updates OVN/iptables rules without
-# disrupting existing pod connectivity.
+# CORRECTED. Rec lists user-namespace NetworkPolicies only. Skip openshift-* kube-*
+# default and openshift (operator default-deny is not tenant prune). Empty =
+# INFO n/a-user-netpol. POD-SELECTOR <none> is all pods in the namespace, not
+# orphaned. Lab: 0 user policies. Did not delete policies.
 # Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
 # text is the right response.
-recommendation = "1. List NetworkPolicies and validate their pod selectors:\n   `oc get networkpolicy -A`\n2. For each policy, verify matching pods exist:\n   `oc get pods -n <ns> -l <selector>`\n3. Remove policies whose selectors no longer match any running workloads.\n"
+recommendation = "1. List user-namespace NetworkPolicies. Skip openshift-* kube-* default and openshift. POD-SELECTOR <none> is all pods in the namespace (usually default-deny), not orphaned. Empty = INFO n/a-user-netpol:\n   `oc get networkpolicy -A | awk 'NR==1{hdr=$0; next} $1 ~ /^(openshift-|kube-)/ || $1==\"openshift\" || $1==\"default\" {next} {if(!c) print hdr; print; c++} END{if(!c) print \"INFO n/a-user-netpol\"}'`\n2. For a remaining row with a label POD-SELECTOR, count matching pods. MATCH=0 = FAIL:\n   `oc get pods -n <ns> -l '<POD-SELECTOR>' --no-headers | awk 'END{c=NR; r=(c==0?\"FAIL\":\"PASS\"); print r, \"MATCH=\"c}'`\n"
 priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "network policy rule tables"
@@ -697,31 +578,10 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.6.tsr.6_1_5_6_pruning_namespaces"
 title = "6.1.5.6. Pruning Namespaces"
-description = "Identifies inactive or abandoned namespaces that consume API resources and\nincrease management overhead. Namespace sprawl complicates RBAC auditing and\nresource accounting.\n"
+content_from = "7.6.namespaces"
 # why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: Identifies inactive or abandoned namespaces that consume API resources and
-# increase management overhead.
-# The rec remediates THAT story by starting at `oc get ns --no-headers | while read ns _; do
-# count=$(oc get pods -n "$ns" --no-headers 2>/dev/null | wc -l); echo "$ns: $count pods"; done`
-# — the live object/command for this check, not a neighboring TSR item.
-# Impact `non-disruptive`: Deleting a namespace permanently removes all resources within it;
-# other namespaces are unaffected.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
-recommendation = "1. Audit namespace activity by checking workload counts:\n   `oc get ns --no-headers | while read ns _; do count=$(oc get pods -n \"$ns\" --no-headers 2>/dev/null | wc -l); echo \"$ns: $count pods\"; done`\n2. Delete namespaces confirmed unused.\n3. Archive any manifests that must be preserved before deletion.\n"
-priority_hint = ""
-impact = "non-disruptive"
-impact_scope = "targeted unused namespaces"
-impact_detail = "Deleting a namespace permanently removes all resources within it; other namespaces are unaffected."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/building_applications/index#deleting-a-project-using-the-CLI_projects"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/building_applications/index#deleting-a-project-using-the-CLI_projects"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/building_applications/index#deleting-a-project-using-the-CLI_projects"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/building_applications/index#deleting-a-project-using-the-CLI_projects"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/building_applications/index#deleting-a-project-using-the-CLI_projects"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/building_applications/index#deleting-a-project-using-the-CLI_projects"
+# Alias of 7.6.namespaces. Same unused-project / namespace-sprawl story. Grouped in
+# Chapter 6; do not hide TSR.
 
 [[checks]]
 check_id = "7.6.tsr.6_1_6_infra_node_workloads"
@@ -795,44 +655,51 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.6.tsr.6_2_2_update_impacting_workloads"
 title = "6.2.2. Update Impacting Workloads"
-description = "Assesses which workloads may be impacted by pending cluster updates, including\npods without PDBs, single-replica deployments, and workloads using deprecated\nAPIs that may break after upgrade.\n"
+description = "This check is user-namespace Deployments with REPLICAS=1. Those pods go down when a node drains during an upgrade. Skip openshift-* kube-* default and openshift. PDB ALLOWED=0 is 7.5.tsr.5_9. Removed APIs are 7.3.deprecated_apis."
 # why-rec
-# CORRECTED. Rec lists replicas==1 Deployments and APIs with removedInRelease as columns,
-# not JSON dumps.
-recommendation = "1. Identify single-replica deployments:\n   `oc get deploy -A --no-headers -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,REPLICAS:.spec.replicas | awk '$3==\"1\" {print}'`\n2. Identify workloads missing PDBs:\n   `oc get pdb -A`\n3. Identify deprecated API usage:\n   `oc get apirequestcounts -o custom-columns=NAME:.metadata.name,REMOVED:.status.removedInRelease --no-headers | awk '$2!=\"\" && $2!=\"<none>\" {print}'`\n"
+# CORRECTED. Rec was a mash of 7.5.tsr.5_9 (PDB) and 7.3.deprecated_apis. Rec prints
+# user-namespace REPLICAS=1 only. Empty = PASS none-single-replica. Lab: 0 user
+# single-replica Deployments.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
+recommendation = "User-namespace Deployments with REPLICAS=1 lose their only pod when that node drains in an upgrade. Platform operators are skipped. PDB drain blockers are 7.5.tsr.5_9_pod_disruption_budget. Removed APIs are 7.3.deprecated_apis.\n\n1. Print user-namespace Deployments with REPLICAS=1. Skip openshift-* kube-* default and openshift. Any row = WARNING. Empty = PASS none-single-replica:\n   `oc get deploy -A --no-headers -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,REPLICAS:.spec.replicas | awk '$1 ~ /^(openshift-|kube-)/ || $1==\"openshift\" || $1==\"default\" {next} $3==\"1\"{print \"WARNING\", \"NS=\"$1, \"NAME=\"$2, \"REPLICAS=\"$3; c++} END{if(!c) print \"PASS none-single-replica\"}'`\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
 impact_detail = ""
 
 [checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/updating_clusters/index#update-preparing-evaluate-apirequestcount_updating-cluster-prepare"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/updating_clusters/index#update-preparing-evaluate-apirequestcount_updating-cluster-prepare"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/updating_clusters/index#update-preparing-evaluate-apirequestcount_updating-cluster-prepare"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/updating_clusters/index#update-preparing-evaluate-apirequestcount_updating-cluster-prepare"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/updating_clusters/index#update-preparing-evaluate-apirequestcount_updating-cluster-prepare"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/updating_clusters/index#update-preparing-evaluate-apirequestcount_updating-cluster-prepare"
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/updating_clusters/index#understanding-openshift-updates"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/updating_clusters/index#understanding-openshift-updates"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/updating_clusters/index#understanding-openshift-updates"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/updating_clusters/index#understanding-openshift-updates"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/updating_clusters/index#understanding-openshift-updates"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/updating_clusters/index#understanding-openshift-updates"
 
 [[checks]]
 check_id = "7.6.tsr.6_2_3_images_patch_management"
 title = "6.2.3. Images Patch Management"
-description = "Evaluates container image freshness and identifies workloads running images\nwith known vulnerabilities or from unsupported base image versions. Stale\nimages accumulate unpatched CVEs.\n"
+description = "This check is image.config registrySources: allowedRegistries, blockedRegistries, and insecureRegistries. Empty all three is the connected-cluster default. Any insecure registry is WARNING. CVE scanning is 7.7.tsr.7_1_5_vulnerability_scanning."
 # why-rec
-# CORRECTED. Rec prints container image names via jsonpath, not a full pod JSON dump piped
-# to jq.
-recommendation = "1. List unique container images:\n   `oc get pods -A -o jsonpath='{range .items[*]}{range .spec.containers[*]}{.image}{\"\\n\"}{end}{end}' | sort -u`\n2. Check for images from deprecated registries.\n3. Integrate image scanning to identify vulnerable base layers.\n"
+# CORRECTED. Unique image dump cannot show CVEs. Rec prints three lists, not one
+# jq join. Empty ALLOWED = INFO none-allowed. Empty BLOCKED = INFO none-blocked.
+# Any INSECURE = WARNING. Empty INSECURE = PASS none-insecure. Lab: empty spec.
+# Did not patch image.config.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
+recommendation = "This check is image.config allowedRegistries, blockedRegistries, and insecureRegistries. oc cannot list CVEs. Scanning is 7.7.tsr.7_1_5_vulnerability_scanning.\n\n1. Print ALLOWED. Empty = INFO none-allowed:\n   `oc get image.config cluster -o json | jq -r '(.spec.registrySources.allowedRegistries | if type==\"array\" then . else [] end)[]' | awk 'NF{print \"INFO\", \"ALLOWED=\"$0; c++} END{if(!c) print \"INFO none-allowed\"}'`\n2. Print BLOCKED. Empty = INFO none-blocked:\n   `oc get image.config cluster -o json | jq -r '(.spec.registrySources.blockedRegistries | if type==\"array\" then . else [] end)[]' | awk 'NF{print \"INFO\", \"BLOCKED=\"$0; c++} END{if(!c) print \"INFO none-blocked\"}'`\n3. Print INSECURE. Any row = WARNING. Empty = PASS none-insecure:\n   `oc get image.config cluster -o json | jq -r '(.spec.registrySources.insecureRegistries | if type==\"array\" then . else [] end)[]' | awk 'NF{print \"WARNING\", \"INSECURE=\"$0; c++} END{if(!c) print \"PASS none-insecure\"}'`\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
 impact_detail = ""
 
 [checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/images/index#images-update-global-pull-secret_using-image-pull-secrets"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/images/index#images-update-global-pull-secret_using-image-pull-secrets"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/images/index#images-update-global-pull-secret_using-image-pull-secrets"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/images/index#images-update-global-pull-secret_using-image-pull-secrets"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/images/index#images-update-global-pull-secret_using-image-pull-secrets"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/images/index#images-update-global-pull-secret_using-image-pull-secrets"
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/images/index#images-configuration-registry-mirror-images-configuration"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/images/index#images-configuration-registry-mirror-images-configuration"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/images/index#images-configuration-registry-mirror-images-configuration"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/images/index#images-configuration-registry-mirror-images-configuration"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/images/index#images-configuration-registry-mirror-images-configuration"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/images/index#images-configuration-registry-mirror-images-configuration"
 
 [[checks]]
 check_id = "7.6.tsr.6_3_alert_management"
@@ -899,58 +766,22 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.6.tsr.6_4_certificate_management"
 title = "6.4. Certificate Management"
-description = "Parent section covering certificate lifecycle including pending CSRs, custom\ncertificate expiration, and rotation status. Expired certificates cause TLS\nfailures, API unavailability, and operator degradation.\n"
+content_from = "7.6.csr_pending"
 # why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: Parent section covering certificate lifecycle including pending CSRs, custom
-# certificate expiration, and rotation status.
-# The rec remediates THAT story by starting at `oc get csr` — the live object/command for this
-# check, not a neighboring TSR item.
-# This is a section overview. Detailed remediation lives on the numbered sub-checks.
-# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
-recommendation = "1. Review pending certificate requests:\n   `oc get csr`\n2. If cert-manager is installed, review certificate resources:\n   `oc get certificates -A`\n3. Check API server and ingress certificate expiry.\n4. Remember that OCP auto-rotates internal certificates, but custom\n   certificates require manual renewal planning.\n"
-priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/security_and_compliance/index#security-platform-certificates_security-platform"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/security_and_compliance/index#security-platform-certificates_security-platform"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/security_and_compliance/index#security-platform-certificates_security-platform"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/security_and_compliance/index#security-platform-certificates_security-platform"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/security_and_compliance/index#security-platform-certificates_security-platform"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/security_and_compliance/index#security-platform-certificates_security-platform"
+# Alias of 7.6.csr_pending. Parent rec copied CSR plus cert-manager plus custom
+# expiry. Same CONDITION scoring as 7.6.csr_pending; cannot chain through
+# 7.6.tsr.6_4_1. Grouped in Chapter 6; do not hide TSR. Custom certificates are
+# 7.6.tsr.6_4_2. cert-manager is 7.7.ccx_internal.certificates_expiring_soon.
 
 [[checks]]
 check_id = "7.6.tsr.6_4_1_pending_certificate_requests"
 title = "6.4.1. Pending Certificate Requests"
-description = "Identifies CSRs stuck in pending state, which may indicate new nodes unable\nto join, certificate rotation failures, or machine-api issues requiring\nmanual intervention.\n"
+content_from = "7.6.csr_pending"
 # why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: Identifies CSRs stuck in pending state, which may indicate new nodes unable to
-# join, certificate rotation failures, or machine-api issues requiring manual intervention.
-# The rec remediates THAT story by starting at `oc get csr | grep Pending` — the live
-# object/command for this check, not a neighboring TSR item.
-# Impact `non-disruptive`: Approving trusted CSRs allows nodes to finish joining without
-# rebooting existing nodes or evicting workloads.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
-recommendation = "1. List pending CSRs and inspect requester identity before approval:\n   `oc get csr | grep Pending`\n2. Approve trusted node CSRs:\n   `oc adm certificate approve <csr>`\n3. Investigate repeated pending CSRs as potential indicators of node bootstrap\n   or kubelet health issues.\n"
-priority_hint = ""
-impact = "non-disruptive"
-impact_scope = "pending node joins and certificate approval"
-impact_detail = "Approving trusted CSRs allows nodes to finish joining without rebooting existing nodes or evicting workloads."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-approve-csrs_installing-platform-agnostic"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-approve-csrs_installing-platform-agnostic"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-approve-csrs_installing-platform-agnostic"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-approve-csrs_installing-platform-agnostic"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-approve-csrs_installing-platform-agnostic"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-approve-csrs_installing-platform-agnostic"
+# Alias of 7.6.csr_pending. Same CSR CONDITION scoring (Pending or Denied = FAIL).
+# The old rec grepped Pending and missed Denied plus empty-list PASS none-pending.
+# Grouped in Chapter 6; do not hide TSR. Cannot chain through
+# 7.6.tsr.6_4_certificate_management. Custom certificates are 7.6.tsr.6_4_2.
 
 [[checks]]
 check_id = "7.6.tsr.6_4_2_custom_certificates"
@@ -984,17 +815,15 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.6.tsr.6_5_node_ssh_accessed"
 title = "6.5. Node SSH Accessed"
-description = "Detects evidence of SSH access to cluster nodes, which may indicate manual\nchanges outside of MachineConfig management. Direct node modifications create\nconfiguration drift and are overwritten on next MCO render.\n"
+description = "This check is sshd Accepted publickey or session opened in node journals. Any row is WARNING. Empty is PASS none-ssh. MachineConfig drift is 7.5.tsr.5_2_machine_config."
 # why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: Detects evidence of SSH access to cluster nodes, which may indicate manual changes
-# outside of MachineConfig management.
-# The rec remediates THAT story by starting at `oc adm node-logs <node> -u sshd --since=-30d` —
-# the live object/command for this check, not a neighboring TSR item.
-# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
+# CORRECTED. Rec used a single <node> placeholder and dumped all sshd. Rec greps
+# Accepted publickey or session opened on all nodes. Any row = WARNING. Empty =
+# PASS none-ssh. Missing node list or node-logs deny = INFO n/a-node-logs.
+# MachineConfig drift is 7.5.tsr.5_2. Lab: WARNING rows. Did not print logs here.
 # Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
 # text is the right response.
-recommendation = "1. Check for SSH session evidence across all nodes:\n   `oc adm node-logs <node> -u sshd --since=-30d`\n2. Codify any manual changes made via SSH in MachineConfig so they survive node\n   reboots and scaling events.\n3. Restrict SSH access via firewall rules or remove SSH keys from node\n   configuration.\n"
+recommendation = "This check is sshd Accepted publickey or session opened. A log dump of all sshd is not the finding. MachineConfig drift is 7.5.tsr.5_2_machine_config.\n\n1. Print Accepted publickey or session opened on all nodes. Any row = WARNING. Empty = PASS none-ssh. Missing nodes or node-logs deny = INFO n/a-node-logs:\n   `oc adm node-logs $(oc get nodes -o jsonpath='{.items[*].metadata.name}') -u sshd -g 'Accepted publickey|session opened' --since=-30d 2>&1 | awk '/at least one node name|Forbidden/{print \"INFO n/a-node-logs\"; n=1; next} n{next} NF{print \"WARNING\", $0; c++} END{if(!n && !c) print \"PASS none-ssh\"}'`\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -1011,30 +840,13 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.6.tsr.6_6_upgrade_management"
 title = "6.6. Upgrade Management"
-description = "Parent section covering upgrade planning including MachineConfigPool\nconfiguration for controlled rollout. Proper upgrade management minimizes\nworkload disruption during cluster updates.\n"
+content_from = "7.6.tsr.6_6_1_machine_config_pool_max_unavailable"
 # why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: Parent section covering upgrade planning including MachineConfigPool configuration
-# for controlled rollout.
-# The rec remediates THAT story by starting at `oc get clusterversion` — the live object/command
-# for this check, not a neighboring TSR item.
-# This is a section overview. Detailed remediation lives on the numbered sub-checks.
-# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
-recommendation = "1. Review upgrade readiness:\n   `oc get clusterversion`\n2. Review MachineConfigPool status:\n   `oc get mcp`\n3. Ensure MachineConfigPool maxUnavailable is set appropriately for the upgrade\n   window.\n4. Verify PDBs protect critical workloads during node drains.\n"
-priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/updating_clusters/index#understanding-openshift-updates"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/updating_clusters/index#understanding-openshift-updates"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/updating_clusters/index#understanding-openshift-updates"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/updating_clusters/index#understanding-openshift-updates"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/updating_clusters/index#understanding-openshift-updates"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/updating_clusters/index#understanding-openshift-updates"
+# Alias of 7.6.tsr.6_6_1_machine_config_pool_max_unavailable. Parent rec copied
+# clusterversion plus MCP status plus PDB. Same maxUnavailable story as 6.6.1.
+# Grouped in Chapter 6; do not hide TSR. Upgrade history is 7.6.upgrade.history.
+# MCP health is 7.5.tsr.5_7_machine_config_pool. PDB drain blockers are
+# 7.5.tsr.5_9_pod_disruption_budget.
 
 [[checks]]
 check_id = "7.6.tsr.6_6_1_machine_config_pool_max_unavailable"
