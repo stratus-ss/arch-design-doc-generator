@@ -214,7 +214,7 @@ Key flow details:
 - Template: `templates/Health_Check/Template_HC_Report.md`.
 - Outputs: markdown report and `*_audit_*.json` under `output/Health_Check_Report/`.
 - `make hc-build-catalog TSR_HTML=<path>` rebuilds `scripts/health_check/hc_report/catalogs/tsr_ccx_crosswalk.json` on the host.
-- `make hc-investigate FINDING_ARGS='--results-dir … --finding-id …'` re-runs load/evaluate/findings and prints the matching raw JSON evidence (container).
-- `make hc-skip-summary` and `make hc-command-ref` run on the host.
+- `make hc-investigate RESULTS_DIR=… FINDING_ID=…` re-runs load/evaluate/findings and prints the matching raw JSON evidence (container). `CHECK_ID=` / `QUERY=` also work.
+- `make hc-skip-summary LEDGER=…` and `make hc-command-ref` run on the host.
 
 `make hc-html` converts report markdown via pandoc and `scripts/shared/rendering/html_collapsible.py` (collapsible `<details>` sections, Chapter 6↔7 cross-links). Output: `output/Health_Check_Report/HTML/`. `make hc-pdf` runs pandoc, `scripts/shared/rendering/pdf_preprocess.py`, and weasyprint. Output: `output/Health_Check_Report/PDFs/`. Both require existing report markdown and exit non-zero without it.

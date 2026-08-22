@@ -39,10 +39,10 @@ _CHECK_NOTES: dict[str, tuple[str, str]] = {
         "[System reserved resources](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic)",
     ),
     "node.sysreserved": (
-        "For nodes with 64 GiB+ RAM, Red Hat recommends setting systemReserved memory to at least "
-        "1–2 GiB via KubeletConfig. Insufficient systemReserved can cause the kubelet itself to be "
-        "OOM-killed during memory pressure events.",
-        "[KubeletConfig](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/nodes/index#nodes-nodes-resources-configuring-setting_nodes-nodes-resources-configuring)",
+        "No KubeletConfig CR is the default (`oc get kubeletconfig` empty). Judge the applied "
+        "kubelet `systemReserved` from configz, not the empty list. 1–2 GiB for 64 GiB+ nodes is "
+        "operational guidance if you pin a CR; insufficient reservation can OOM-kill the kubelet.",
+        "[Allocating resources for nodes](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/nodes/index#nodes-nodes-resources-configuring-setting_nodes-nodes-resources-configuring)",
     ),
     "node.disk": (
         "The recommended minimum disk size is 120 GiB for the primary partition. "
@@ -85,22 +85,20 @@ _CHECK_NOTES: dict[str, tuple[str, str]] = {
         "[Network migration](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/updating_clusters/index#sdn-support-removal)",
     ),
     "registry.state": (
-        "The internal image registry is required for builds and ImageStream-based deployments. "
-        "If set to 'Removed', registry-dependent workloads will fail. "
-        "On clusters without RWX storage, 'Managed' state requires an `emptyDir` or object-storage backend.",
+        "Removed means no Operator-managed registry. Managed means the Operator reconciles it. "
+        "Unmanaged Operator state with user-provided storage is valid. "
+        "spec.storage.managementState=Unmanaged is user-provided backend, a different field.",
         "[Image registry](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/registry/index#registry-operator-configuration-resource-overview_configuring-registry-operator)",
     ),
     "storage.default_sc": (
-        "A default StorageClass is required for dynamic PVC provisioning. Without one, PVCs without an "
-        "explicit storageClassName will remain in Pending state. Only one StorageClass should be marked "
-        "as default.",
-        "[Storage configuration](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/storage/index#storage-class-annotations_dynamic-provisioning)",
+        "Print DEFAULT (`storageclass.kubernetes.io/is-default-class`) first. Exactly one `true` "
+        "is enough. Patch true only when none is set; if several are true, set extras to false.",
+        "[Change the default StorageClass](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/storage/index#change-default-storage-class_dynamic-provisioning)",
     ),
     "storage.pvcs": (
-        "Unbound PVCs indicate that the requested storage could not be provisioned — often due to "
-        "missing StorageClass, insufficient capacity, or access mode mismatch. "
-        "Run `oc describe pvc <name>` to investigate.",
-        "[Understanding persistent storage](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/storage/index#storage-persistent-storage-pvc_understanding-persistent-storage)",
+        "List PVCs whose PHASE is not Bound, then describe those names. Empty list means all Bound. "
+        "A missing default StorageClass is 7.3.storage.default_sc.",
+        "[PersistentVolumeClaim](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/storage/index#storage-persistent-storage-pvc_understanding-persistent-storage)",
     ),
     "dns.operator": (
         "The DNS Operator manages CoreDNS and is critical for service discovery. "
@@ -110,9 +108,9 @@ _CHECK_NOTES: dict[str, tuple[str, str]] = {
     ),
     "crds": (
         "High CRD count (>500) can impact API server start time and list/watch performance. "
-        "Audit CRDs for orphaned resources from uninstalled operators. "
-        "Remove unused CRDs with `oc delete crd <name>` after ensuring no CR instances exist.",
-        "[Custom Resources](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/operators/index#crd-managing-resources-from-crds)",
+        "That threshold is an internal heuristic. Orphaned CRDs from uninstalled operators "
+        "are TSR 3.3.",
+        "[Cluster maximums](https://docs.openshift.com/container-platform/latest/scalability_and_performance/planning-your-environment-according-to-object-maximums.html)",
     ),
     "deprecated_apis": (
         "Clusters cannot upgrade past the version where the deprecated API is removed if active usage exists. "

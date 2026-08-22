@@ -11,7 +11,7 @@ mkdir -p output/tsr_html
 cp ~/Downloads/<tsr_filename>.html output/tsr_html/
 ```
 
-The report generator matches files in `output/tsr_html/` to clusters by UUID or cluster name found inside the HTML content, so no renaming is required.
+The report generator matches each file's **Cluster ID** header to the cluster's `spec.clusterID` (filename and exact Cluster Name are not required). Cluster Name is a fallback, including OpenShift's infrastructureName suffix (`prod-ocp-01` vs `prod-ocp-01-abc12`).
 
 **Alternatives to auto-discovery:**
 

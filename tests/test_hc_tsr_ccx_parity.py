@@ -16,6 +16,10 @@ from pathlib import Path
 # Mutant: Return first name match before id matches
 # Contract: public
 
+# Bug: Collect infrastructureName prod-ocp-01-abc12 misses TSR whose Cluster Name is prod-ocp-01
+# Mutant: Require collect cluster_name as a substring of the HTML instead of Cluster ID header equality
+# Contract: public
+
 # Bug: Missing TSR HTML scores catalog FAIL
 # Mutant: Default status "FAIL" when tsr_runtime_path is None
 # Contract: public
@@ -167,10 +171,18 @@ def test_discover_tsr_html_prefers_cluster_id(tmp_path: Path, project_root: Path
     from hc_report.parity import discover_tsr_html
 
     cluster_id = "00000000-0000-0000-0000-000000000001"
-    (tmp_path / "by-name.html").write_text("cluster fixture-cluster only", encoding="utf-8")
-    (tmp_path / "by-id.html").write_text(cluster_id, encoding="utf-8")
+    (tmp_path / "by-name.html").write_text(
+        "<p><strong>Cluster Name:</strong> fixture-cluster</p>\n"
+        "<p><strong>Cluster ID:</strong> 00000000-0000-0000-0000-000000000099</p>\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "by-id.html").write_text(
+        "<p><strong>Cluster Name:</strong> other-name</p>\n"
+        f"<p><strong>Cluster ID:</strong> {cluster_id}</p>\n",
+        encoding="utf-8",
+    )
     discovered = discover_tsr_html(
-        tmp_path, cluster_id=cluster_id, cluster_name="fixture-cluster"
+        tmp_path, cluster_id=cluster_id, cluster_name="fixture-cluster-abc12"
     )
     assert discovered == tmp_path / "by-id.html"
 

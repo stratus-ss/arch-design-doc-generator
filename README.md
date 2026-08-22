@@ -90,8 +90,8 @@ A second engagement type (`PROJECT=HC`) collects OpenShift cluster JSON and gene
 | `make hc-html` | Container | Collapsible HTML from report markdown under `output/Health_Check_Report/` |
 | `make hc-pdf` | Container | Branded PDF from report markdown under `output/Health_Check_Report/` |
 | `make hc-build-catalog TSR_HTML=<path>` | Host | Rebuild `tsr_ccx_crosswalk.json` from a TSR HTML export |
-| `make hc-investigate FINDING_ARGS='--results-dir … --finding-id …'` | Container | Trace a finding or check back to raw evidence |
-| `make hc-skip-summary` | Host | Summarize skipped collection commands from `skipped_commands.jsonl` |
+| `make hc-investigate RESULTS_DIR=… FINDING_ID=…` | Container | Trace a finding or check back to raw evidence (`CHECK_ID=` / `QUERY=` also work) |
+| `make hc-skip-summary LEDGER=…` | Host | Summarize skipped collection commands from `skipped_commands.jsonl` (`RESULTS_DIR=` also works) |
 | `make hc-command-ref` | Host | Write `docs/HC_Command_Reference.md` from collect scripts |
 | `make hc-link-review` | Container | Suggest KB doc URLs and HTTP-check pages with `curl_cffi` |
 | `make hc-link-apply` | Host | Write accepted `REPLACE` URLs from `kb_link_review.csv` into KB `[checks.links]` |

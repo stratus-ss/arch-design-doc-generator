@@ -4,6 +4,7 @@
 # Gracefully skips products that are not installed (writes _hc_error envelope).
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
 source "${SCRIPT_DIR}/lib/common.sh"
 CATEGORY="06_layered"
 hc_init "$CATEGORY"
@@ -12,6 +13,8 @@ hc_init "$CATEGORY"
 hc_capture_json "$CATEGORY" "cnv_hyperconverged"     get hyperconverged -n openshift-cnv
 hc_capture_json "$CATEGORY" "cnv_kubevirt"           get kubevirt -n openshift-cnv
 hc_capture_json "$CATEGORY" "cnv_pods"               get pods -n openshift-cnv
+hc_capture_json "$CATEGORY" "cnv_vm"                 get vm -A
+hc_capture_json "$CATEGORY" "cnv_vmi"                get vmi -A
 
 # ACM / Advanced Cluster Management
 hc_capture_json "$CATEGORY" "acm_multiclusterhub"    get multiclusterhub -n open-cluster-management

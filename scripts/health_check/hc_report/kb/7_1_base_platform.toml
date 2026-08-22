@@ -3,7 +3,12 @@ check_id = "7.1.sub.*"
 pattern = true
 title = "Operator subscription health"
 description = "A Subscription tracks the desired channel and installed/current CSV for an\ninstalled operator. Non-AtLatestKnown states, pending upgrades, or failed CSVs\nindicate the operator lifecycle needs attention before it drifts further from\nthe intended state.\n"
-recommendation = "1. Check subscription status and review `status.state` and `status.conditions`:\n   `oc get subscription <name> -n <ns> -o yaml`\n2. For a pending upgrade, confirm the InstallPlan is approved:\n   `oc get installplan -n <ns>`\n3. For manual approval subscriptions, review release notes and approve the InstallPlan if required:\n   `oc patch installplan <name> -n <ns> --type=merge -p '{\"spec\":{\"approved\":true}}'`\n4. For a failed CSV, inspect the underlying error:\n   `oc describe csv <csv-name> -n <ns>`\n"
+# why-rec
+# CORRECTED. `-o yaml` dumps the whole Subscription. Rec now prints CHANNEL/STATE/INSTALLED/
+# CURRENT and PASS/FAIL when STATE is AtLatestKnown and INSTALLED equals CURRENT — the fields
+# the engine actually evaluates. Conditions are jsonpath-only. Approving an InstallPlan can roll
+# the operator; listing fields does not.
+recommendation = "1. Print the Subscription fields this check evaluates:\n   `oc get subscription <name> -n <ns> -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,CHANNEL:.spec.channel,STATE:.status.state,INSTALLED:.status.installedCSV,CURRENT:.status.currentCSV`\n2. PASS/FAIL that row (`AtLatestKnown` and INSTALLED equals CURRENT):\n   `oc get subscription <name> -n <ns> --no-headers -o custom-columns=STATE:.status.state,INSTALLED:.status.installedCSV,CURRENT:.status.currentCSV | awk '{print ($1==\"AtLatestKnown\" && $2==$3?\"PASS\":\"FAIL\"), $0}'`\n3. Print conditions only:\n   `oc get subscription <name> -n <ns> -o jsonpath='{range .status.conditions[*]}{.type}={.status} reason={.reason}{\"\\n\"}{end}'`\n4. If FAIL, check InstallPlan approval:\n   `oc get installplan -n <ns> -o custom-columns=NAME:.metadata.name,CSV:.spec.clusterServiceVersionNames,APPROVED:.spec.approved,PHASE:.status.phase`\n5. For manual approval, review release notes then approve:\n   `oc patch installplan <name> -n <ns> --type=merge -p '{\"spec\":{\"approved\":true}}'`\n6. For a failed CSV, inspect that CSV only:\n   `oc describe csv <csv-name> -n <ns>`\n"
 priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "affected operator namespace"
@@ -20,8 +25,13 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.1.identity.channel"
 title = "Identity update channel"
-description = "The update channel determines which OCP releases are offered as updates.\nFor production clusters `stable-X.Y` is recommended. `fast` receives\nupdates 2-4 weeks earlier but with less soak time. `eus` channels allow\nskipping minor versions on supported paths.\n"
-recommendation = "1. Confirm the current release exists in the target `stable-X.Y` or `eus-X.Y` channel before switching.\n2. Patch `ClusterVersion` to the supported update stream:\n   `oc patch clusterversion version --type=merge -p '{\"spec\":{\"channel\":\"stable-<minor>\"}}'`\n3. Re-check `availableUpdates` and `conditionalUpdates`.\n"
+description = "The update channel selects which OCP releases the Cluster Version Operator offers.\n`fast` and `stable` are both fully supported; the only documented difference is\npromotion delay (typically a week or two for z-stream, often 45-90 days for a\nnew minor). `eus` channels allow skipping minor versions on supported EUS paths.\n`candidate` is unsupported early access.\n"
+# why-rec
+# CORRECTED. The check is the ClusterVersion update channel, not 'fast is less supported'. Docs:
+# fast and stable are both fully supported; delay is ~1–2 weeks z-stream and 45–90 days for a new
+# minor. Rec starts at `oc adm upgrade` then patches the named object `version` (a List jsonpath
+# on `oc get clusterversion` is empty). Channel change does not roll nodes.
+recommendation = "1. List the current channel and available channels:\n   `oc adm upgrade`\n2. Confirm the running release exists in the target `stable-X.Y` or `eus-X.Y` channel before switching.\n3. Patch the named `ClusterVersion` object (`version`) if a channel change is required:\n   `oc patch clusterversion version --type=merge -p '{\"spec\":{\"channel\":\"stable-<minor>\"}}'`\n4. Re-check `availableUpdates` and `conditionalUpdates`.\n"
 priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "cluster update service"
@@ -38,8 +48,13 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.1.identity.updates"
 title = "Identity available updates"
-description = "Red Hat recommends keeping OCP within 2 minor versions of the latest release\non the selected channel. Delaying updates increases exposure to security\nvulnerabilities and reduces supportability.\n"
-recommendation = "1. Review the current release and available updates:\n   `oc get clusterversion -o yaml`\n   `oc adm upgrade`\n2. Plan the upgrade using the OCP Upgrade Graph at https://access.redhat.com/labs/ocpupgradegraph/.\n3. After validating the supported path in non-production, apply the chosen release:\n   `oc adm upgrade --to=<target-version>`\n4. Monitor ClusterVersion conditions until the rollout completes.\n"
+description = "The Cluster Version Operator publishes recommended update targets in\n`status.availableUpdates`. Presence of recommended updates is a lifecycle\nhygiene signal, not a vendor-defined health failure. Plan a supported path\nand apply it when the maintenance window allows.\n"
+# why-rec
+# CORRECTED. The engine warns when `availableUpdates` is non-empty (engineering judgment), not a
+# vendor 'stay within 2 minors' rule. Rec prints version, channel, and available update versions
+# from named `clusterversion version` — do not dump `-o yaml`. Applying an update is a
+# maintenance-window; listing updates is not.
+recommendation = "1. Print version, channel, and recommended updates:\n   `oc get clusterversion version -o jsonpath='{.status.desired.version}{\" \"}{.spec.channel}{\"\\n\"}{range .status.availableUpdates[*]}available={.version}{\"\\n\"}{end}'`\n   `oc adm upgrade`\n2. Plan the upgrade using the OCP Upgrade Graph at https://access.redhat.com/labs/ocpupgradegraph/.\n3. After validating the supported path in non-production, apply the chosen release:\n   `oc adm upgrade --to=<target-version>`\n4. Monitor ClusterVersion conditions until the rollout completes:\n   `oc get clusterversion version -o jsonpath='{range .status.conditions[*]}{.type}={.status}{\"\\n\"}{end}'`\n"
 priority_hint = ""
 impact = "maintenance-window"
 impact_scope = "cluster-wide"
@@ -57,6 +72,18 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.infra.topology"
 title = "Infrastructure topology"
 description = "Highly Available topology requires at least 3 control plane nodes and ensures\nloss of any single node does not cause an outage. SingleReplica topology is\nsupported only for edge or test-style deployments.\n"
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: Highly Available topology requires at least 3 control plane nodes and ensures loss
+# of any single node does not cause an outage.
+# The rec remediates THAT story by starting at `oc get infrastructure cluster -o
+# jsonpath='{.status.controlPlaneTopology}{"\t"}{.status.infrastructureTopology}{"\n"}'` — the
+# live object/command for this check, not a neighboring TSR item.
+# Impact `maintenance-window`: Moving from non-HA to HA usually requires control-plane or
+# infrastructure machine changes, not a simple in-place toggle, and should be planned as a
+# migration.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Check the current topology:\n   `oc get infrastructure cluster -o jsonpath='{.status.controlPlaneTopology}{\"\\t\"}{.status.infrastructureTopology}{\"\\n\"}'`\n2. Confirm control plane sizing:\n   `oc get nodes -l node-role.kubernetes.io/master --no-headers`\n3. Keep production clusters on `HighlyAvailable` control plane and infrastructure topology unless this is a supported SNO or edge deployment.\n4. If the topology is undersized for the intended use case, plan a supported control-plane migration or rebuild rather than trying to toggle topology values in place.\n"
 priority_hint = ""
 impact = "maintenance-window"
@@ -75,7 +102,11 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.subs.approval"
 title = "Subscription approval policy"
 description = "Automatic installPlanApproval causes operators to upgrade automatically when\nnew versions are available in the channel. This can introduce breaking changes\nwithout notice. Use Manual approval and review release notes before upgrades.\n"
-recommendation = "1. Review any `Automatic` subscriptions and change them to `Manual`:\n   `oc patch subscription <name> -n <ns> --type=merge -p '{\"spec\":{\"installPlanApproval\":\"Manual\"}}'`\n2. Use `Manual` approval in production to prevent disruptive automatic operator upgrades.\n"
+# why-rec
+# CORRECTED. Automatic and Manual are both valid `installPlanApproval` values. Rec now lists
+# subscriptions first, then prefers Manual for production as an operational choice, except where
+# docs require Manual (STS / workload identity). Changing approval does not reboot nodes.
+recommendation = "1. List subscription approval strategies:\n   `oc get subscription -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,APPROVAL:.spec.installPlanApproval,STATE:.status.state`\n2. For production clusters, prefer `Manual` so operators do not upgrade without review:\n   `oc patch subscription <name> -n <ns> --type=merge -p '{\"spec\":{\"installPlanApproval\":\"Manual\"}}'`\n3. Automatic approval is supported. Treat a change to Manual as an operational preference except where docs require Manual (for example cloud STS or workload-identity installs).\n"
 priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "affected operator namespace"
@@ -92,8 +123,13 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.1.sys.firewall"
 title = "Firewall configuration"
-description = "OpenShift requires specific network ports open between nodes and to external\nservices. Missing firewall rules cause intermittent cluster instability, failed\nnode joins, broken Prometheus federation, or unreachable API endpoints.\n"
-recommendation = "1. Review the cluster network type:\n   `oc get network.config cluster -o jsonpath='{.spec.networkType}'`\n2. Validate node-to-node and API reachability from a debug shell:\n   `oc debug node/<name> -- chroot /host curl -k https://<api-vip>:6443/readyz`\n3. Review the required ports documented in the OCP installation prerequisites and validate that all host firewalls, security groups, and network ACLs allow the required traffic.\n4. Check for common gaps including etcd peer ports (2380), Kubernetes API (6443), NodePort range (30000-32767), and Geneve overlay (UDP 6081).\n"
+description = "This engine check is titled Firewalls (TSR 1.5.5) but it evaluates the cluster Proxy\nobject. It WARNs when `httpProxy` or `httpsProxy` is set, because a proxy implies extra\nallow-list, noProxy, and firewall work. It does not probe host iptables or security-group ports.\n"
+# why-rec
+# CORRECTED — wrong story. The evaluator warns when a cluster-wide Proxy is configured, not when
+# host firewall ports fail. Rec must start at `oc get proxy cluster`, then noProxy/trustedCA.
+# `networkType` only names the CNI (OVNKubernetes is expected on 4.17+). Overlay port is Geneve
+# UDP 6081 for OVN; the port list is prose in the rec, not command output.
+recommendation = "1. This check warns when a cluster-wide proxy is configured. Review it first:\n   `oc get proxy cluster -o jsonpath='{.spec.httpProxy}{\"\\t\"}{.spec.httpsProxy}{\"\\t\"}{.spec.noProxy}{\"\\n\"}'`\n2. If a proxy is set, confirm firewalls, security groups, proxy allow-lists, and `noProxy` permit the required OCP endpoints (API, registry, update graph).\n3. Identify the CNI. This prints the plugin name only (for example `OVNKubernetes`), not a port list:\n   `oc get network.config cluster -o jsonpath='{.spec.networkType}'`\n4. Use that name to pick the overlay port, then confirm it is allowed between nodes:\n   - OVNKubernetes: Geneve UDP 6081\n   - OpenShiftSDN (removed in 4.17): VXLAN UDP 4789\n   Common to all: API 6443, etcd peer 2380, kubelet 10250, NodePort 30000-32767.\n"
 priority_hint = ""
 impact = "maintenance-window"
 impact_scope = "affected nodes and external network controls"
@@ -111,7 +147,11 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.sys.auth"
 title = "Authentication configuration"
 description = "Cluster authentication determines how users and service accounts authenticate.\nThe default kubeadmin user should be removed after external identity providers\nare configured and validated.\n"
-recommendation = "1. Configure an external identity provider (LDAP, OIDC, or SAML) and validate login before removing kubeadmin.\n2. Review OAuth configuration:\n   `oc get oauth cluster -o yaml`\n3. Ensure break-glass emergency access procedures are documented for scenarios where the identity provider is unavailable.\n"
+# why-rec
+# CORRECTED. HTPasswd is a supported IdP. The HTPasswd-only warning is engineering judgment. Rec
+# must not imply only LDAP/OIDC/SAML. `oc get oauth cluster` is the evaluator object. Editing
+# OAuth rolls authentication pods, not nodes.
+recommendation = "1. Review configured identity providers:\n   `oc get oauth cluster -o jsonpath='{.spec.identityProviders[*].name}{\"\\t\"}{.spec.identityProviders[*].type}{\"\\n\"}'`\n2. HTPasswd is a supported IdP but is a weak sole production IdP. Configure LDAP, OIDC, or SAML and validate login before removing kubeadmin.\n3. Ensure break-glass emergency access is documented if the identity provider is unavailable.\n"
 priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "authentication components"
@@ -129,7 +169,13 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_5_2_3_dns_alerts"
 title = "TSR DNS alerts"
 description = "DNS-related alerts indicate resolution failures that can cascade into pod\nscheduling issues, service discovery failures, and operator degradation. DNS\nis a foundational cluster service — any degradation must be resolved promptly.\n"
-recommendation = "1. Review DNS operator health:\n   `oc get dns.operator/default -o yaml`\n2. Check CoreDNS pod logs in `openshift-dns` for errors.\n3. Validate that upstream resolvers are reachable and responding within timeout.\n4. Check for NetworkPolicy or firewall rules blocking UDP/TCP 53 between nodes.\n"
+# why-rec
+# CORRECTED. This TSR row is DNS *alerts*, not operator YAML / upstream / firewall.
+# Lab PrometheusRule `dns` in openshift-dns-operator defines CoreDNSPanicking,
+# CoreDNSHealthCheckSlow, CoreDNSErrorsHigh. Rec lists those names, then filters
+# Prometheus `/api/v1/alerts` (verified). Operator YAML is 1.5.2; upstream is
+# 1.5.2.1; firewall is 1.5.5. Thanos*DNS* alerts are the monitoring stack, not CoreDNS.
+recommendation = "1. List the CoreDNS alerting rules:\n   `oc get prometheusrule dns -n openshift-dns-operator -o jsonpath='{range .spec.groups[*].rules[?(@.alert)]}{.alert}{\"\\n\"}{end}'`\n   The DNS Operator ships `CoreDNSErrorsHigh`, `CoreDNSHealthCheckSlow`, and `CoreDNSPanicking`.\n2. See which of those are firing (query Prometheus):\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -s http://localhost:9090/api/v1/alerts | jq '.data.alerts[] | select(.labels.alertname | test(\"^CoreDNS\")) | {state, alertname: .labels.alertname, severity: .labels.severity}'`\n3. Use the firing name:\n   - `CoreDNSErrorsHigh`: SERVFAIL share >1% for 5m. Inspect logs for SERVFAIL:\n     `oc -n openshift-dns logs -l dns.operator.openshift.io/daemonset-dns --tail=100`\n   - `CoreDNSHealthCheckSlow`: health-check p95 >10s. Check DNS pod Ready/restarts:\n     `oc get pods -n openshift-dns`\n   - `CoreDNSPanicking`: panics in 10m. Same logs, then `oc describe pod <name> -n openshift-dns` for that instance.\n4. Upstream resolver tests and NetworkPolicy/firewall on port 53 belong to 1.5.2.1 and 1.5.5. Ignore Thanos*DNS* alerts; those are the monitoring stack looking up its own services.\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -147,6 +193,15 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.openshift_must_gather_collection"
 title = "OpenShift Must Gather Collection"
 description = "Must-gather captures cluster-wide diagnostic data including logs, resource\ndefinitions, and event histories. Verifying collection success ensures\ndownstream analysis has complete data to work with.\n"
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: Must-gather captures cluster-wide diagnostic data including logs, resource
+# definitions, and event histories.
+# The rec remediates THAT story by starting at `oc adm must-gather` — the live object/command for
+# this check, not a neighboring TSR item.
+# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Run must-gather:\n   `oc adm must-gather`\n2. Verify the output tarball was created successfully.\n3. Check the must-gather logs for collection errors or timeouts that may indicate incomplete data capture.\n"
 priority_hint = ""
 impact = "none"
@@ -165,7 +220,13 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.openshift_must_gather_data_capture_timestamps"
 title = "OpenShift Must Gather Data Capture Timestamps"
 description = "Timestamps within must-gather data indicate when diagnostic information was\ncollected. Stale or mismatched timestamps may indicate partial captures or\ntime-skew issues that reduce diagnostic accuracy.\n"
-recommendation = "1. Inspect must-gather output metadata for capture timestamps.\n2. Verify the collection window is recent and consistent across gathered resources.\n3. If timestamps are stale, re-run must-gather for fresh data:\n   `oc adm must-gather`\n"
+# why-rec
+# CORRECTED. This row is capture *time*, not "run must-gather". Capture time is the
+# RFC3339 file named `timestamp` beside `cluster-scoped-resources/` (not object
+# `metadata.creationTimestamp`). Live HC collect uses `manifest.json` / `*.meta.json`
+# `timestamp` fields. Re-run is a new collection (sibling 7.1.tsr.openshift_must_gather_collection)
+# and only works with live cluster access.
+recommendation = "1. Read the must-gather capture-start file. It is one RFC3339 UTC line named `timestamp` in the image directory that also contains `cluster-scoped-resources/` and `namespaces/`. It is not object `metadata.creationTimestamp`:\n   `cat <must-gather-image-dir>/timestamp`\n2. Compare every `timestamp` file in that tree (inspect subdirs write their own):\n   `find <must-gather-image-dir> -name timestamp -exec grep -H . {} \\;`\n   Minutes of spread is a long collection. Hours of spread, or a capture older than the incident, means the wrong window or clock skew (see 1.5.7).\n3. If this engagement used live `hc-collect` instead of a must-gather, use the collect timestamps:\n   `jq -r .timestamp <results-dir>/manifest.json`\n   `find <results-dir> -name '*.meta.json' -exec jq -r .timestamp {} \\; | sort | sed -n '1p;$p'`\n4. Re-run a gather only with live cluster access when the capture window misses the incident: `oc adm must-gather`. If you only have the tarball, record the window and stop.\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -182,26 +243,38 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.1.tsr.1_1_identification_and_state"
 title = "1.1. Identification and State"
-description = "Cluster identification and state provides the baseline for all health checks\nincluding cluster version, ID, update status, and overall operator health.\nThis section establishes whether the cluster is in a known-good state.\n"
-recommendation = "1. Review cluster identity and state:\n   `oc get clusterversion -o json`\n   `oc get clusteroperator -o json`\n2. Verify the cluster is reporting `Available` and not `Progressing` or `Degraded`.\n"
+description = "This check records cluster identity, version, and support lifecycle. Evidence may show full support or maintenance support; that is a lifecycle class, not a degraded ClusterOperator by itself."
+# why-rec
+# CORRECTED. This check is identity/version/lifecycle, not a 30-row ClusterOperator dump.
+# Combined `oc get clusterversion,clusteroperator` is too much to interpret. Rec now reads
+# named `clusterversion version` (version + channel) and `oc adm upgrade`. `oc get co` is
+# optional and only to separate Degraded operators from lifecycle class. Step 2 now links
+# https://access.redhat.com/support/policy/updates/openshift (KB links pointed at architecture
+# overview, which does not show support dates).
+recommendation = "1. Read version and channel from the named ClusterVersion object:\n   `oc get clusterversion version -o jsonpath='{.status.desired.version}{\" \"}{.spec.channel}{\"\\n\"}'`\n   `oc adm upgrade`\n2. Compare that version to the OpenShift Container Platform life cycle dates:\n   https://access.redhat.com/support/policy/updates/openshift\n   That page is what classifies the release as fully supported, maintenance, or EOL. `oc get co` does not.\n3. ClusterOperator Degraded/Progressing is a different problem. If you need it, list only the unhealthy rows:\n   `oc get co | grep -v 'True.*False.*False'`\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
 impact_detail = ""
 
 [checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#architecture-overview"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/architecture/index#architecture-overview"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/architecture/index#architecture-overview"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/architecture/index#architecture-overview"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/architecture/index#architecture-overview"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/architecture/index#architecture-overview"
+default = "https://access.redhat.com/support/policy/updates/openshift"
+"4.18" = "https://access.redhat.com/support/policy/updates/openshift"
+"4.19" = "https://access.redhat.com/support/policy/updates/openshift"
+"4.20" = "https://access.redhat.com/support/policy/updates/openshift"
+"4.21" = "https://access.redhat.com/support/policy/updates/openshift"
+"4.22" = "https://access.redhat.com/support/policy/updates/openshift"
 
 [[checks]]
 check_id = "7.1.tsr.1_2_subscriptions"
 title = "1.2. Subscriptions"
 description = "Operator subscriptions track installed operators, their channels, and update\npolicies. Unhealthy subscriptions lead to stale operator versions, failed\nCSVs, and degraded cluster capabilities.\n"
-recommendation = "1. List all subscriptions and review status fields:\n   `oc get subscription -A -o json`\n2. Check for failed InstallPlans:\n   `oc get installplan -A`\n3. Ensure all subscriptions are in `AtLatestKnown` state.\n"
+# why-rec
+# CORRECTED. `oc get subscription -A -o json` is a generic dump. The engine reads
+# status.state, installedCSV vs currentCSV, channel, and CSV phase. Rec now uses a
+# custom-columns table of those fields and says what "good" looks like (AtLatestKnown,
+# INSTALLED=CURRENT). JSON dump removed.
+recommendation = "1. List the fields this check actually evaluates:\n   `oc get subscription -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,CHANNEL:.spec.channel,STATE:.status.state,INSTALLED:.status.installedCSV,CURRENT:.status.currentCSV`\n2. Healthy rows are `STATE=AtLatestKnown` and `INSTALLED` equals `CURRENT`. If they differ, an upgrade is pending.\n3. Check InstallPlan phase and approval (this is how a pending upgrade gets stuck):\n   `oc get installplan -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,CSV:.spec.clusterServiceVersionNames,APPROVED:.spec.approved,PHASE:.status.phase`\n4. List CSV phase. `Failed` is a FAIL; inspect that CSV only:\n   `oc get csv -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,PHASE:.status.phase`\n   `oc describe csv <csv-name> -n <ns>`\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -219,7 +292,13 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_3_infrastructure_requirements"
 title = "1.3. Infrastructure Requirements"
 description = "Infrastructure requirements cover the installer method, platform/hypervisor\nconfiguration, and network restrictions. This parent section groups checks\nthat validate the cluster was deployed on a supported infrastructure stack.\n"
-recommendation = "1. Review infrastructure configuration:\n   `oc get infrastructure cluster -o json`\n2. Review install config:\n   `oc get configmap cluster-config-v1 -n kube-system -o json`\n3. See sub-checks for specific installer, platform, and network details.\n"
+# why-rec
+# CORRECTED. Parent 1.3 is platform + topology, not a JSON dump. Rec uses custom-columns
+# (platform, controlPlaneTopology, infrastructureTopology, platformStatus.type). Do not
+# dump `-o json`: platformStatus includes API/ingress IPs and machineNetworks. Do not dump
+# cluster-config-v1 (trust bundles, BMC). Installer / hypervisor / restricted-network
+# details are the 1.3.x sub-checks.
+recommendation = "1. List the Infrastructure fields this parent section needs. (`status.platformStatus` includes API/ingress IPs and machineNetworks):\n   `oc get infrastructure cluster -o custom-columns=PLATFORM:.status.platform,CP_TOPO:.status.controlPlaneTopology,INFRA_TOPO:.status.infrastructureTopology,TYPE:.status.platformStatus.type`\n2. Use the 1.3.x sub-checks for the rest: 1.3.1 installer (install-config keys only), 1.3.2 platform/hypervisor, 1.3.3 restricted network.\n3. `cluster-config-v1` can contain trust bundles and BMC addresses.\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -237,7 +316,10 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_3_1_installer"
 title = "1.3.1. Installer"
 description = "The installation method (IPI, UPI, assisted) determines the supported\nlifecycle operations and infrastructure management capabilities available.\nKnowing the installer type is critical for troubleshooting and upgrades.\n"
-recommendation = "1. Check the install config to determine the original installation method and any customizations applied during deployment:\n   `oc get configmap cluster-config-v1 -n kube-system -o jsonpath='{.data.install-config}'`\n"
+# why-rec
+# CORRECTED. Install-config ConfigMap can contain CAs and BMC URLs. Rec greps platform/networking
+# keys only and forbids pasting the full object into a report.
+recommendation = "1. Inspect install-config keys for install method and platform. The ConfigMap can contain trust bundles and BMC addresses:\n   `oc get configmap cluster-config-v1 -n kube-system -o jsonpath='{.data.install-config}' | grep -E '^(platform:|networking:|fips:)|baremetal:|vsphere:|aws:|^  none:'`\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -255,7 +337,12 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_3_2_platform_hypervisor"
 title = "1.3.2. Platform/Hypervisor"
 description = "Platform and hypervisor settings define how the cluster integrates with the\nunderlying infrastructure for machine management, storage provisioning, and\ncloud provider operations.\n"
-recommendation = "1. Review platform type:\n   `oc get infrastructure cluster -o jsonpath='{.status.platform}'`\n2. Review platform status:\n   `oc get infrastructure cluster -o jsonpath='{.status.platformStatus}'`\n3. See sub-checks for specific platform and hypervisor validations.\n"
+# why-rec
+# CORRECTED. 1.3.2 is the TSR parent (route), not a copy of 1.3.2.1 + 1.3.2.2.
+# Rec names PLATFORM vs TYPE and providerID prefix, then sends Machine/BMH/cloud-config
+# to 1.3.2.1 and hypervisor/DMI to 1.3.2.2 (N/A except vSphere/oVirt/OpenStack/kubevirt).
+# Topology columns belong on 1.3 / 7.1.infra.topology, not here.
+recommendation = "1. This row only classifies the platform. Compare `status.platform` to `status.platformStatus.type` (`platformStatus` includes IPs):\n   `oc get infrastructure cluster -o custom-columns=PLATFORM:.status.platform,TYPE:.status.platformStatus.type`\n2. Confirm node `spec.providerID` prefix matches PLATFORM (`baremetalhost://`, `vsphere://`, `aws://`, `gcp://`, `azure://`, or empty on some UPI):\n   `oc get nodes -o custom-columns=NAME:.metadata.name,PROVIDER:.spec.providerID`\n3. Machine API, BareMetalHost, and `cloud-provider-config` are 1.3.2.1.\n4. Hypervisor/DMI is 1.3.2.2, and only if PLATFORM is vSphere, oVirt, OpenStack, or kubevirt. BareMetal and public cloud: 1.3.2.2 is N/A.\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -273,7 +360,12 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_3_2_1_platform"
 title = "1.3.2.1. Platform"
 description = "The platform type (AWS, vSphere, BareMetal, None, etc.) determines which\ncloud-controller and machine-API integrations are active. Mismatches between\nthe declared platform and actual infrastructure cause provisioning failures.\n"
-recommendation = "1. Verify platform configuration:\n   `oc get infrastructure cluster -o json`\n2. Confirm `status.platform` matches the actual deployment target.\n3. For vSphere, validate cloud-provider configuration:\n   `oc get cm cloud-provider-config -n openshift-config -o yaml`\n"
+# why-rec
+# CORRECTED. `oc get infrastructure cluster -o json` dumps platformStatus IPs. Rec uses
+# PLATFORM vs TYPE columns, then providerID prefix as the "actual target" evidence.
+# vSphere cloud-provider-config is listed, not `-o yaml` (credentials). BMH YAML forbidden
+# (BMC). Hypervisor DMI stays on 1.3.2.2.
+recommendation = "1. Compare declared platform to `platformStatus.type`. They must match:\n   `oc get infrastructure cluster -o custom-columns=PLATFORM:.status.platform,TYPE:.status.platformStatus.type`\n2. Confirm the live target from node `spec.providerID` prefix (`baremetalhost://`, `vsphere://`, `aws://`, `gcp://`, `azure://`, or empty on some UPI). That prefix is the actual deployment, not a field on Infrastructure:\n   `oc get nodes -o custom-columns=NAME:.metadata.name,PROVIDER:.spec.providerID`\n3. Confirm the matching integration is present:\n   - IPI: `oc get clusteroperator machine-api` and `oc get machine.machine.openshift.io -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,PHASE:.status.phase`\n   - BareMetal: `oc get baremetalhost -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,STATE:.status.provisioning.state,ONLINE:.status.online` (BMC credentials live on the BMH object)\n   - vSphere: `oc get configmap cloud-provider-config -n openshift-config` (can contain credentials)\n   - `None` / UPI: missing Machine API is expected\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -291,7 +383,12 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_3_2_2_hypervisor_checks"
 title = "1.3.2.2. Hypervisor Checks"
 description = "For virtualized deployments, hypervisor compatibility and configuration\ndirectly impacts cluster stability. CPU features, nested virtualization\nsettings, and resource overcommit affect node performance.\n"
-recommendation = "1. Check node hardware details and inspect `status.nodeInfo.systemUUID` and `status.capacity`:\n   `oc get nodes -o json`\n2. For virtualized nodes, confirm the hypervisor type:\n   `oc debug node/<name> -- chroot /host cat /sys/class/dmi/id/product_name`\n"
+# why-rec
+# CORRECTED. Engine is N/A unless vsphere/ovirt/openstack/kubevirt. Rec gates on
+# PLATFORM first, then providerID + nodeInfo columns (not `-o json`). DMI via debug
+# only on those platforms (starts a node pod; not executed). Capacity is 1.4.
+# Nested virt/overcommit are hypervisor-manager settings, not Node fields.
+recommendation = "1. Gate first. This check is N/A unless `status.platform` is vSphere, oVirt, OpenStack, or kubevirt:\n   `oc get infrastructure cluster -o custom-columns=PLATFORM:.status.platform`\n   BareMetal, AWS, Azure, GCP, and `None`: hypervisor checks end here.\n2. On those virtual platforms, confirm `spec.providerID` prefix matches (`vsphere://`, `ovirt://`, `openstack://`, `kubevirt://`).. CPU/memory capacity is 1.4:\n   `oc get nodes -o custom-columns=NAME:.metadata.name,PROVIDER:.spec.providerID,ARCH:.status.nodeInfo.architecture,OS:.status.nodeInfo.osImage,UUID:.status.nodeInfo.systemUUID`\n3. Confirm DMI vendor/product matches that hypervisor. `oc debug` starts a node pod — only after step 1 is a virtual platform:\n   `oc debug node/<name> -- chroot /host cat /sys/class/dmi/id/sys_vendor /sys/class/dmi/id/product_name`\n   From a must-gather:\n   `tar -xzf <must-gather>/nodes/<node>/sysinfo.tgz sys/class/dmi/id/product_name --to-stdout`\n4. Nested virtualization and overcommit live in the hypervisor manager (vCenter, RHV, OpenStack). They are not Node fields.\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -309,7 +406,11 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_3_3_restricted_network"
 title = "1.3.3. Restricted Network"
 description = "Disconnected or restricted-network clusters require mirrored registries and\nspecial proxy/trust configurations. Incomplete mirror setup causes image pull\nfailures and operator degradation.\n"
-recommendation = "1. Check proxy configuration for restricted network indicators:\n   `oc get proxy cluster -o json`\n2. Check mirror resource configuration using the resource type that exists in the cluster:\n   `oc get imagecontentsourcepolicy -o json`\n   `oc get imagedigestmirrorset -o json`\n3. Verify mirror registry connectivity and certificate trust bundles.\n"
+# why-rec
+# CORRECTED. `-o json` on Proxy/ICSP/IDMS dumps endpoints, mirror lists, and can include trust
+# material. Rec prints proxy URLs/`noProxy` and IDMS/ITMS/ICSP source+mirrors columns only. Do
+# not dump `cluster-config-v1`. Investigation only (impact none).
+recommendation = "1. Print proxy endpoints only:\n   `oc get proxy cluster -o jsonpath='{.spec.httpProxy}{\"\\t\"}{.spec.httpsProxy}{\"\\t\"}{.spec.noProxy}{\"\\n\"}'`\n2. List mirror maps (IDMS/ITMS current; ICSP deprecated):\n   `oc get imagedigestmirrorset -o custom-columns=NAME:.metadata.name,SOURCE:.spec.imageDigestMirrors[*].source,MIRRORS:.spec.imageDigestMirrors[*].mirrors`\n   `oc get imagetagmirrorset -o custom-columns=NAME:.metadata.name,SOURCE:.spec.imageTagMirrors[*].source,MIRRORS:.spec.imageTagMirrors[*].mirrors`\n   `oc get imagecontentsourcepolicy -o custom-columns=NAME:.metadata.name,SOURCE:.spec.repositoryDigestMirrors[*].source,MIRRORS:.spec.repositoryDigestMirrors[*].mirrors`\n3. Confirm the mirror registry is reachable and the cluster trustedCA bundle covers it. `cluster-config-v1` can contain trust bundles.\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -327,7 +428,10 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_4_minimum_hardware_requirements"
 title = "1.4. Minimum Hardware Requirements"
 description = "OpenShift has documented minimum hardware requirements for control-plane and\nworker nodes. Running below minimums causes instability, etcd performance\ndegradation, and scheduling failures.\n"
-recommendation = "1. Review node resources, examining CPU, memory, and disk capacity fields:\n   `oc get nodes -o json`\n2. Compare the results against documented minimums for the cluster's version and topology.\n3. See sub-checks for per-role details.\n"
+# why-rec
+# CORRECTED. 1.4 is the TSR parent (route), not a node JSON dump. CPU/memory/disk
+# minimums live on 1.4.1.x and 1.4.2.x.
+recommendation = "1. This row only groups hardware checks.\n2. Control-plane CPU, memory, and disk are 1.4.1.2–1.4.1.4. Worker CPU, memory, and disk are 1.4.2.2–1.4.2.4.\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -345,7 +449,10 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_4_1_master_nodes"
 title = "1.4.1. Master Nodes"
 description = "Control-plane (master) nodes run etcd, API server, controller-manager, and\nscheduler. They require sufficient CPU, memory, and fast storage to maintain\ncluster responsiveness under load.\n"
-recommendation = "1. List master nodes:\n   `oc get nodes -l node-role.kubernetes.io/master -o wide`\n2. Review capacity and allocatable resources:\n   `oc describe node <master-name>`\n3. See sub-checks for specific CPU, memory, and disk validations.\n"
+# why-rec
+# CORRECTED. 1.4.1 is the parent (route). Do not `describe` or `-o wide`. CPU/memory/disk
+# minimums and commands live on 1.4.1.2–1.4.1.4.
+recommendation = "1. List control-plane nodes:\n   `oc get nodes -l node-role.kubernetes.io/master`\n2. CPU is 1.4.1.2, memory is 1.4.1.3, disk is 1.4.1.4. OS, schedulable, and kubelet are 1.4.1.1 / 1.4.1.5 / 1.4.1.6.\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -363,6 +470,16 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_4_1_1_operating_system_version"
 title = "1.4.1.1. Operating System Version"
 description = "Master nodes must run Red Hat Enterprise Linux CoreOS (RHCOS) at a version\ncompatible with the installed OCP release. Version mismatches indicate\nincomplete upgrades or manual OS tampering.\n"
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: Master nodes must run Red Hat Enterprise Linux CoreOS (RHCOS) at a version
+# compatible with the installed OCP release.
+# The rec remediates THAT story by starting at `oc get nodes -l node-role.kubernetes.io/master -o
+# jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.nodeInfo.osImage}{"\n"}{end}'` — the
+# live object/command for this check, not a neighboring TSR item.
+# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Check OS version on master nodes:\n   `oc get nodes -l node-role.kubernetes.io/master -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.status.nodeInfo.osImage}{\"\\n\"}{end}'`\n2. Verify all masters report the same RHCOS version matching the cluster release.\n"
 priority_hint = ""
 impact = "none"
@@ -381,7 +498,10 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_4_1_2_master_cpus"
 title = "1.4.1.2. Master CPUs"
 description = "Control-plane nodes require a minimum of 4 vCPUs (8+ recommended for\nproduction). Insufficient CPU causes API server latency, etcd leader\nelections, and degraded cluster responsiveness.\n"
-recommendation = "1. Check master CPU capacity:\n   `oc get nodes -l node-role.kubernetes.io/master -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.status.capacity.cpu}{\"\\n\"}{end}'`\n2. Ensure all masters meet the minimum 4 vCPU requirement, with 8+ for production.\n"
+# why-rec
+# CORRECTED. Engine warns when `status.capacity.cpu` < 4. Rec is a PASS/FAIL one-liner on that
+# field. 8+ in the description is a production preference, not the engine line.
+recommendation = "1. PASS/FAIL each control-plane node at **4** vCPU (`status.capacity.cpu`):\n   `oc get nodes -l node-role.kubernetes.io/master --no-headers -o custom-columns=NAME:.metadata.name,CPU:.status.capacity.cpu | awk '{print ($2+0>=4?\"PASS\":\"FAIL\"), $1, $2}'`\n2. FAIL here is the engine WARNING line. 8+ vCPU in the description is a production preference; it does not change this line.\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -399,7 +519,10 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_4_1_3_master_memory"
 title = "1.4.1.3. Master Memory"
 description = "Control-plane nodes require minimum 16 GiB RAM (32+ recommended for\nproduction). Insufficient memory causes OOM kills of critical components\nlike etcd and the API server.\n"
-recommendation = "1. Check master memory:\n   `oc get nodes -l node-role.kubernetes.io/master -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.status.capacity.memory}{\"\\n\"}{end}'`\n2. Ensure all masters have at least 16 GiB, with 32+ GiB for production workloads.\n"
+# why-rec
+# CORRECTED. Engine warns when `status.capacity.memory` < 16 GiB. Rec is a PASS/FAIL one-liner.
+# OCP reports this field in Ki; awk reads the leading number. 32+ is not the engine line.
+recommendation = "1. PASS/FAIL each control-plane node at **16 GiB**. `status.capacity.memory` is Ki (16 GiB = 16777216 Ki):\n   `oc get nodes -l node-role.kubernetes.io/master --no-headers -o custom-columns=NAME:.metadata.name,MEM:.status.capacity.memory | awk '{print ($2+0>=16777216?\"PASS\":\"FAIL\"), $1, $2}'`\n2. FAIL here is the engine WARNING line. 32+ GiB in the description is a production preference; it does not change this line.\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -417,7 +540,10 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_4_1_4_master_disk"
 title = "1.4.1.4. Master Disk"
 description = "Control-plane nodes require fast storage (SSD/NVMe recommended) with\nsufficient IOPS for etcd. Slow or full disks cause etcd latency warnings,\ncompaction failures, and potential data loss.\n"
-recommendation = "1. Check node disk pressure conditions:\n   `oc get nodes -l node-role.kubernetes.io/master -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.status.conditions[?(@.type==\"DiskPressure\")].status}{\"\\n\"}{end}'`\n2. Verify etcd disk usage and available space:\n   `oc debug node/<master> -- chroot /host df -h /var/lib/etcd`\n"
+# why-rec
+# CORRECTED. Engine warns when largest disk < 100 GiB (sysinfo if present, else
+# ephemeral-storage). Live one-liner is the API fallback (Ki). Not DiskPressure / df.
+recommendation = "1. PASS/FAIL each control-plane node at **100 GiB** using `status.capacity.ephemeral-storage` (Ki; 100 GiB = 104857600 Ki). This is the engine fallback, not physical disk:\n   `oc get nodes -l node-role.kubernetes.io/master --no-headers -o custom-columns=NAME:.metadata.name,EPHEMERAL:.status.capacity.ephemeral-storage | awk '{print ($2+0>=104857600?\"PASS\":\"FAIL\"), $1, $2}'`\n2. Collect `11_hardware` sysinfo (`lsblk`) is preferred when present; the engine uses the largest disk there.\n3. `DiskPressure` and `oc debug … df /var/lib/etcd` are not this check.\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -434,8 +560,11 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.1.tsr.1_4_1_5_master_schedulable"
 title = "1.4.1.5. Master Schedulable"
-description = "By default masters are schedulable in OCP 4.x, allowing workloads to run\non control-plane nodes. For large clusters or strict separation requirements,\nmastersSchedulable should be set to false.\n"
-recommendation = "1. Check scheduler configuration:\n   `oc get scheduler cluster -o jsonpath='{.spec.mastersSchedulable}'`\n2. If workload isolation is required, set `mastersSchedulable` to `false`:\n   `oc patch scheduler cluster --type=merge -p '{\"spec\":{\"mastersSchedulable\":false}}'`\n"
+description = "Control-plane schedulability is topology-specific. Compact 3-node and SNO\nclusters must keep masters schedulable. Dedicated-worker clusters often set\n`mastersSchedulable` to false so user pods stay off the control plane.\n"
+# why-rec
+# CORRECTED. `--show-labels | grep node-role` dumps every label. Rec uses the ROLES column
+# (`oc get nodes`). Compact/SNO must keep mastersSchedulable true. Lab is compact with true.
+recommendation = "1. Read `spec.mastersSchedulable`:\n   `oc get scheduler cluster -o jsonpath='{.spec.mastersSchedulable}{\"\\n\"}'`\n2. Read unique ROLES only:\n   `oc get nodes --no-headers | awk '{print $3}' | sort -u`\n   Compact/SNO: one line with `control-plane,master,worker`. Dedicated-worker: separate `control-plane,master` and `worker` lines.\n3. Compact/SNO: leave `mastersSchedulable` true.\n4. Dedicated-worker only, if the control plane must not take user pods:\n   `oc patch scheduler cluster --type=merge -p '{\"spec\":{\"mastersSchedulable\":false}}'`\n"
 priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "control-plane scheduling"
@@ -453,6 +582,16 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_4_1_6_master_kubernetes_version"
 title = "1.4.1.6. Master Kubernetes Version"
 description = "All control-plane nodes should report the same kubelet version matching the\ncluster's Kubernetes release. Version skew indicates incomplete upgrades or\nnode join failures.\n"
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: All control-plane nodes should report the same kubelet version matching the
+# cluster's Kubernetes release.
+# The rec remediates THAT story by starting at `oc get nodes -l node-role.kubernetes.io/master -o
+# jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.nodeInfo.kubeletVersion}{"\n"}{end}'`
+# — the live object/command for this check, not a neighboring TSR item.
+# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Check kubelet versions:\n   `oc get nodes -l node-role.kubernetes.io/master -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.status.nodeInfo.kubeletVersion}{\"\\n\"}{end}'`\n2. Confirm all masters report the same version.\n3. If mismatches are present, investigate Machine Config Operator status and pending node updates.\n"
 priority_hint = ""
 impact = "none"
@@ -471,7 +610,77 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_4_2_non_master_nodes"
 title = "1.4.2. Non-Master Nodes"
 description = "Worker and infrastructure nodes run application workloads and platform\nservices. They must meet minimum resource requirements for the workloads\nscheduled to them.\n"
-recommendation = "1. List worker nodes:\n   `oc get nodes -l node-role.kubernetes.io/worker -o wide`\n2. Review capacity and allocatable resources:\n   `oc describe node <worker-name>`\n3. See sub-checks for disk and architecture validations.\n"
+# why-rec
+# CORRECTED. 1.4.2 is the parent (route). Same shape as 1.4.1: no `-o wide`, no `describe`.
+# Compact: worker label is the same nodes as masters. CPU/memory/disk live on 1.4.2.2–1.4.2.4.
+recommendation = "1. List worker-role nodes:\n   `oc get nodes -l node-role.kubernetes.io/worker`\n   Compact: this is the same set as masters. Confirm with unique ROLES:\n   `oc get nodes --no-headers | awk '{print $3}' | sort -u`\n2. OS is 1.4.2.1, CPU is 1.4.2.2, memory is 1.4.2.3, disk is 1.4.2.4. Architecture is 1.4.2.5.\n"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+
+[[checks]]
+check_id = "7.1.tsr.1_4_2_1_operating_system_version"
+title = "1.4.2.1. Operating System Version"
+description = "Worker nodes may run RHCOS or RHEL 8.6+. Mixed images are supported when\nworkloads have matching images. Control-plane nodes must stay on RHCOS (1.4.1.1).\n"
+# why-rec
+# CORRECTED. Added to match 1.4.1.1. Rec is unique `osImage` (absorbable). Workers may be RHEL;
+# do not copy the master RHCOS-only line. Compact: worker label is the same nodes as 1.4.1.1.
+recommendation = "1. Unique worker `status.nodeInfo.osImage`:\n   `oc get nodes -l node-role.kubernetes.io/worker --no-headers -o custom-columns=OS:.status.nodeInfo.osImage | sort -u`\n2. RHCOS or RHEL 8.6+ are valid on workers. Control-plane RHCOS is 1.4.1.1.\n3. Compact: this is the same node set as 1.4.1.1.\n"
+
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#rhcos-about_architecture-rhcos"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/architecture/index#rhcos-about_architecture-rhcos"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/architecture/index#rhcos-about_architecture-rhcos"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/architecture/index#rhcos-about_architecture-rhcos"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/architecture/index#rhcos-about_architecture-rhcos"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/architecture/index#rhcos-about_architecture-rhcos"
+
+[[checks]]
+check_id = "7.1.tsr.1_4_2_2_node_cpus"
+title = "1.4.2.2. Node CPUs"
+description = "Worker nodes require a minimum of 2 vCPUs. Insufficient CPU causes scheduling\nfailures and noisy-neighbor latency for application pods.\n"
+# why-rec
+# CORRECTED. Added to match 1.4.1.2. Engine worker minimum is 2 vCPU (topology per-node;
+# 7.1 aggregate is masters-only). Rec is the same PASS/FAIL one-liner with the worker
+# selector and threshold 2.
+recommendation = "1. PASS/FAIL each worker-role node at **2** vCPU (`status.capacity.cpu`):\n   `oc get nodes -l node-role.kubernetes.io/worker --no-headers -o custom-columns=NAME:.metadata.name,CPU:.status.capacity.cpu | awk '{print ($2+0>=2?\"PASS\":\"FAIL\"), $1, $2}'`\n2. Compact: this is the same node set as 1.4.1.2 (that check uses 4 vCPU).\n"
+
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+
+[[checks]]
+check_id = "7.1.tsr.1_4_2_3_node_memory"
+title = "1.4.2.3. Node Memory"
+description = "Worker nodes require a minimum of 8 GiB RAM. Insufficient memory causes OOM\nkills of application pods and kubelet eviction.\n"
+# why-rec
+# CORRECTED. Added to match 1.4.1.3. Engine worker minimum is 8 GiB. Rec is the same
+# PASS/FAIL one-liner (Ki) with the worker selector and threshold 8388608 Ki.
+recommendation = "1. PASS/FAIL each worker-role node at **8 GiB**. `status.capacity.memory` is Ki (8 GiB = 8388608 Ki):\n   `oc get nodes -l node-role.kubernetes.io/worker --no-headers -o custom-columns=NAME:.metadata.name,MEM:.status.capacity.memory | awk '{print ($2+0>=8388608?\"PASS\":\"FAIL\"), $1, $2}'`\n2. Compact: this is the same node set as 1.4.1.3 (that check uses 16 GiB).\n"
+
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -489,25 +698,32 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_4_2_4_node_disk"
 title = "1.4.2.4. Node Disk"
 description = "Worker nodes require sufficient disk space for container images, ephemeral\nstorage, and logs. Disk pressure causes pod evictions and scheduling failures\nthat impact application availability.\n"
-recommendation = "1. Check disk pressure on workers:\n   `oc get nodes -l node-role.kubernetes.io/worker -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.status.conditions[?(@.type==\"DiskPressure\")].status}{\"\\n\"}{end}'`\n2. Check filesystem usage:\n   `oc debug node/<worker> -- chroot /host df -h`\n"
+# why-rec
+# CORRECTED. Same 100 GiB line as 1.4.1.4. Engine worker_disk is INFO when below 100 GiB
+# (not WARNING). Live one-liner is ephemeral-storage (Ki). Not DiskPressure / df.
+recommendation = "1. PASS/FAIL each worker-role node at **100 GiB** using `status.capacity.ephemeral-storage` (Ki; 100 GiB = 104857600 Ki). This is the engine fallback, not physical disk:\n   `oc get nodes -l node-role.kubernetes.io/worker --no-headers -o custom-columns=NAME:.metadata.name,EPHEMERAL:.status.capacity.ephemeral-storage | awk '{print ($2+0>=104857600?\"PASS\":\"FAIL\"), $1, $2}'`\n2. FAIL here is the engine INFO line (worker disk is not WARNING). Collect `11_hardware` sysinfo (`lsblk`) is preferred when present.\n3. `DiskPressure` and `oc debug … df` are not this check. Compact: this is the same node set as 1.4.1.4.\n"
+
 priority_hint = ""
 impact = "none"
 impact_scope = ""
 impact_detail = ""
 
 [checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/nodes/index#nodes-nodes-resources-configuring-about_nodes-nodes-resources-configuring"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/nodes/index#nodes-nodes-resources-configuring-about_nodes-nodes-resources-configuring"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/nodes/index#nodes-nodes-resources-configuring-about_nodes-nodes-resources-configuring"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/nodes/index#nodes-nodes-resources-configuring-about_nodes-nodes-resources-configuring"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/nodes/index#nodes-nodes-resources-configuring-about_nodes-nodes-resources-configuring"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/nodes/index#nodes-nodes-resources-configuring-about_nodes-nodes-resources-configuring"
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
 
 [[checks]]
 check_id = "7.1.tsr.1_4_2_5_node_architecture"
 title = "1.4.2.5. Node Architecture"
 description = "Node CPU architecture (amd64, arm64, ppc64le, s390x) must be consistent\nor properly handled with multi-arch scheduling. Mismatched architectures\nwithout proper image support cause pod CrashLoopBackOff.\n"
-recommendation = "1. Check node architectures:\n   `oc get nodes -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.status.nodeInfo.architecture}{\"\\n\"}{end}'`\n2. For mixed-architecture clusters, verify multi-architecture images are available and node affinity rules are configured appropriately.\n"
+# why-rec
+# CORRECTED. Rec is unique architecture (absorbable). One line is engine PASS. Mixed is
+# INFO (supported with multi-arch images), not FAIL. Do not dump jsonpath per node.
+recommendation = "1. Unique `status.nodeInfo.architecture` across all nodes:\n   `oc get nodes --no-headers -o custom-columns=ARCH:.status.nodeInfo.architecture | sort -u`\n2. One line is PASS. Multiple lines is mixed architecture (engine INFO, not FAIL). Mixed is supported when images and scheduling cover each arch.\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -525,7 +741,10 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_5_other_basic_checks"
 title = "1.5. Other Basic Checks"
 description = "This parent section groups additional platform-level checks covering SELinux,\nDNS, networking, time synchronization, FIPS, and security configurations that\nare foundational to cluster health.\n"
-recommendation = "1. Review overall node conditions:\n   `oc get nodes -o json`\n2. Check for any conditions in a non-healthy state.\n3. See sub-checks for specific SELinux, DNS, network, time, and security validations.\n"
+# why-rec
+# CORRECTED. 1.5 is the TSR parent (route), not a node JSON dump. Detailed remediation lives on
+# 1.5.1–1.5.18. Do not dump `oc get nodes -o json`.
+recommendation = "1. This row only groups platform checks.\n2. SELinux is 1.5.1, DNS is 1.5.2, NetworkManager is 1.5.3, CIDRs are 1.5.4, firewall is 1.5.5, proxy is 1.5.6, time is 1.5.7, SDN is 1.5.8.\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -543,6 +762,15 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_5_1_selinux"
 title = "1.5.1. SELinux"
 description = "SELinux must be in Enforcing mode on all OCP nodes. Permissive or Disabled\nmodes leave the cluster vulnerable and are unsupported. Red Hat support\nrequires Enforcing mode for all production deployments.\n"
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: SELinux must be in Enforcing mode on all OCP nodes.
+# The rec remediates THAT story by starting at `oc debug node/<name> -- chroot /host getenforce`
+# — the live object/command for this check, not a neighboring TSR item.
+# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
+# `oc debug` was not executed this pass (starts a node pod). Treat those steps as command-form.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Verify SELinux mode on nodes:\n   `oc debug node/<name> -- chroot /host getenforce`\n2. Confirm all nodes report `Enforcing`.\n3. If a node is in `Permissive` mode, investigate MachineConfig changes or manual host modifications that may have altered the SELinux configuration.\n"
 priority_hint = ""
 impact = "none"
@@ -561,7 +789,11 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_5_2_dns"
 title = "1.5.2. DNS"
 description = "DNS is a foundational cluster service. The DNS operator, CoreDNS pods, and\nupstream resolver configuration must all be healthy for service discovery,\npod networking, and operator functionality.\n"
-recommendation = "1. Check DNS operator status:\n   `oc get dns.operator/default -o yaml`\n2. Verify CoreDNS pods are running:\n   `oc get pods -n openshift-dns`\n3. See sub-checks for config and pod-level details.\n"
+# why-rec
+# CORRECTED. 1.5.2 is the parent (route). `oc get dns.operator` is NAME/AGE only. Rec
+# PASS/FAIL Available/Progressing/Degraded like ClusterOperators. Object is `default`.
+# Config is 1.5.2.1, pods 1.5.2.2, alerts 1.5.2.3.
+recommendation = "1. PASS/FAIL `dns.operator default` (`Available=True`, `Progressing=False`, `Degraded=False`):\n   `oc get dns.operator default -o jsonpath='{range .status.conditions[*]}{.type}={.status}{\"\\n\"}{end}' | awk -F= '$1==\"Available\"{a=$2} $1==\"Progressing\"{p=$2} $1==\"Degraded\"{d=$2} END{print (a==\"True\" && p==\"False\" && d==\"False\"?\"PASS\":\"FAIL\"), \"Available=\"a, \"Progressing=\"p, \"Degraded=\"d}'`\n2. Forwarding and upstreams are 1.5.2.1. Pods are 1.5.2.2. Alerts are 1.5.2.3.\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -579,7 +811,12 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_5_2_1_dns_config"
 title = "1.5.2.1. DNS Config"
 description = "The cluster DNS configuration defines upstream resolvers and forwarding rules.\nMisconfigured DNS settings cause resolution failures for external services\nand can cascade into operator degradation.\n"
-recommendation = "1. Review DNS configuration:\n   `oc get dns.operator/default -o yaml`\n2. Check `spec.servers` and `spec.upstreamResolvers`.\n3. Verify upstream resolvers are reachable from cluster nodes:\n   `oc debug node/<name> -- chroot /host nslookup redhat.com <upstream-ip>`\n"
+# why-rec
+# CORRECTED. `spec.servers` is optional and often absent (this lab: absent). Do not dump YAML.
+# Do not use `dns cluster` (config.openshift.io) — that spec is baseDomain, not forwarding.
+# Object is `dns.operator default`. Default upstream type is SystemResolvConf (node resolv.conf),
+# not a list of IPs. Collect used the wrong name `cluster` (NotFound); live name is `default`.
+recommendation = "1. This CR is `dns.operator default` (operator.openshift.io). `dns cluster` (config.openshift.io) has `baseDomain`, not these fields:\n   `oc get dns.operator default -o custom-columns=NAME:.metadata.name,UPSTREAM:.spec.upstreamResolvers.upstreams[*].type,SERVERS:.spec.servers`\n2. `spec.servers` is often `<none>`. That is the default. It is only set for extra / split-horizon zones.\n3. `UPSTREAM` is `.spec.upstreamResolvers.upstreams[*].type`:\n   - `SystemResolvConf`: CoreDNS uses each node's `/etc/resolv.conf`. There is no upstream IP in this CR.\n   - `Network`: explicit address+port in that CR.\n4. If type is `Network`, the upstream is that IP; if `SystemResolvConf`, it is the node resolver.\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -597,7 +834,10 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_5_2_2_dns_pods"
 title = "1.5.2.2. DNS Pods"
 description = "CoreDNS pods in the openshift-dns namespace handle all cluster DNS queries.\nPods not in Running state or with high restart counts indicate DNS service\ndegradation affecting the entire cluster.\n"
-recommendation = "1. Check DNS pod health:\n   `oc get pods -n openshift-dns -o wide`\n2. Verify all pods are `Running` with `0` restarts.\n3. For unhealthy pods, check logs:\n   `oc logs -n openshift-dns <pod-name>`\n4. Describe the pod for events:\n   `oc describe pod -n openshift-dns <pod-name>`\n"
+# why-rec
+# CORRECTED. Requiring 0 restarts is too strict for long-uptime Running pods. Rec now: Running
+# and not CrashLoopBackOff. `oc get pods -n openshift-dns` is the right object.
+recommendation = "1. Check DNS pod health:\n   `oc get pods -n openshift-dns -o wide`\n2. Verify DNS pods are `Running` and not `CrashLoopBackOff`. Restarts over a long uptime are not by themselves a failure.\n3. For unhealthy pods, check logs:\n   `oc logs -n openshift-dns <pod-name>`\n4. Describe the pod for events:\n   `oc describe pod -n openshift-dns <pod-name>`\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -615,6 +855,15 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_5_3_network_manager"
 title = "1.5.3. Network Manager"
 description = "NetworkManager is required on all RHCOS nodes for network configuration\nmanagement. It must be active and managing the primary interfaces for\nOVN-Kubernetes or OpenShift SDN to function correctly.\n"
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: NetworkManager is required on all RHCOS nodes for network configuration management.
+# The rec remediates THAT story by starting at `oc debug node/<name> -- chroot /host systemctl
+# status NetworkManager` — the live object/command for this check, not a neighboring TSR item.
+# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
+# `oc debug` was not executed this pass (starts a node pod). Treat those steps as command-form.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Verify NetworkManager is active on nodes:\n   `oc debug node/<name> -- chroot /host systemctl status NetworkManager`\n2. Check that primary interfaces are managed:\n   `oc debug node/<name> -- chroot /host nmcli device status`\n"
 priority_hint = ""
 impact = "none"
@@ -633,7 +882,12 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_5_4_shared_network"
 title = "1.5.4. Shared Network"
 description = "In shared network environments multiple clusters or services share the same\nL2/L3 network segment. This requires careful IP allocation, VLAN management,\nand awareness of broadcast domain impacts.\n"
-recommendation = "1. Review network configuration:\n   `oc get network.config cluster -o json`\n2. Verify `clusterNetwork` and `serviceNetwork` CIDR ranges do not overlap with other infrastructure.\n3. Check for DHCP conflicts or IP exhaustion in shared subnets using node network diagnostics.\n"
+# why-rec
+# CORRECTED. Do not dump `network.config cluster -o json`. Rec prints clusterNetwork cidr/hostPrefix
+# and serviceNetwork. `serviceNetwork` is a string list: jsonpath `{range}{.}{/range}` prints empty
+# on this oc; `{@}` or custom-columns works. Lab confirmed custom-columns. Overlap is a human
+# compare, including 1.5.10 machineNetwork.
+recommendation = "1. Print pod and service CIDRs only.. `clusterNetwork` items are objects (`cidr`, `hostPrefix`); `serviceNetwork` is a list of CIDR strings:\n   `oc get network.config cluster -o custom-columns=CLUSTER:.spec.clusterNetwork[*].cidr,HOSTPREFIX:.spec.clusterNetwork[*].hostPrefix,SERVICE:.spec.serviceNetwork[*]`\n2. Those CIDRs must not overlap each other. Compare them to machineNetwork (1.5.10) and to any other cluster or service on the same L2.\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -651,7 +905,12 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_5_5_firewalls"
 title = "1.5.5. Firewalls"
 description = "OpenShift requires specific ports open between nodes, to external registries,\nand to cloud APIs. Missing firewall rules cause intermittent failures in\nnode communication, image pulls, and operator reconciliation.\n"
-recommendation = "1. Review the cluster network config:\n   `oc get network.config cluster -o json`\n2. Test connectivity between nodes on key ports (6443, 2379-2380, 10250, 4789/6081):\n   `oc debug node/<name> -- chroot /host curl -k https://<target>:6443/healthz`\n"
+# why-rec
+# CORRECTED. `network.config -o json` is CIDRs/plugin, not firewall ports. `curl :6443/healthz`
+# only tests the API and starts a node pod; it does not test etcd, kubelet, or UDP Geneve.
+# Rec prints networkType, then the documented port list. Registry/cloud egress is 1.5.6.
+# Engine 7.1.sys.firewall WARNs on proxy presence; this TSR row is the port list.
+recommendation = "1. `network.config` does not list firewall ports. Print the CNI name only:\n   `oc get network.config cluster -o jsonpath='{.spec.networkType}{\"\\n\"}'`\n2. Confirm these are allowed (security groups / ACLs / host firewall):\n   - API 6443/tcp to control-plane\n   - etcd 2379/tcp and 2380/tcp between control-plane nodes\n   - kubelet 10250/tcp to all nodes\n   - OVNKubernetes: Geneve 6081/udp between all nodes\n   - OpenShiftSDN (removed in 4.17): VXLAN 4789/udp — ignore on current releases\n3. Egress to registries and the update graph is 1.5.6 (`proxy` / `noProxy`). curl of `/healthz` is not a firewall matrix.\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -669,7 +928,11 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_5_6_proxy"
 title = "1.5.6. Proxy"
 description = "Cluster-wide proxy configuration controls how nodes and pods reach external\nnetworks. Misconfigured proxy settings cause image pull failures, operator\ndegradation, and inability to reach update services.\n"
-recommendation = "1. Review proxy configuration:\n   `oc get proxy cluster -o json`\n2. Verify `spec.httpProxy`, `spec.httpsProxy`, and `spec.noProxy` are correct.\n3. Ensure `noProxy` includes cluster network CIDRs, service network, node subnet, and `.cluster.local`.\n"
+# why-rec
+# CORRECTED. `-o json` dumps the whole Proxy object. Rec prints httpProxy, httpsProxy, noProxy,
+# and trustedCA.name — the fields this check needs. noProxy must cover cluster/service/machine
+# CIDRs and `.cluster.local` (see 1.5.4 / 1.5.10). trustedCA changes can reboot nodes.
+recommendation = "1. Print `httpProxy`, `httpsProxy`, and `noProxy` only:\n   `oc get proxy cluster -o jsonpath='{.spec.httpProxy}{\"\\t\"}{.spec.httpsProxy}{\"\\t\"}{.spec.noProxy}{\"\\n\"}'`\n2. If those are set, `noProxy` must include clusterNetwork, serviceNetwork, machineNetwork, and `.cluster.local` (see 1.5.4 and 1.5.10).\n3. Print trustedCA ConfigMap name only:\n   `oc get proxy cluster -o jsonpath='{.spec.trustedCA.name}{\"\\n\"}'`\n"
 priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "cluster-wide egress"
@@ -687,6 +950,16 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_5_7_time"
 title = "1.5.7. Time"
 description = "Accurate time synchronization across all nodes is critical for certificate\nvalidation, etcd consistency, log correlation, and distributed system\ncoordination. Clock skew causes cryptographic failures and split-brain.\n"
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: Accurate time synchronization across all nodes is critical for certificate
+# validation, etcd consistency, log correlation, and distributed system coordination.
+# The rec remediates THAT story by starting at `oc debug node/<name> -- chroot /host chronyc
+# tracking` — the live object/command for this check, not a neighboring TSR item.
+# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
+# `oc debug` was not executed this pass (starts a node pod). Treat those steps as command-form.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Check time synchronization status across nodes.\n2. Review chrony or NTP status:\n   `oc debug node/<name> -- chroot /host chronyc tracking`\n3. See sub-checks for NTP, Chrony, PTP, and clock alert specifics.\n"
 priority_hint = ""
 impact = "none"
@@ -705,6 +978,15 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_5_7_1_ntp"
 title = "1.5.7.1. NTP"
 description = "NTP time synchronization ensures all cluster nodes maintain accurate clocks.\nRHCOS uses chrony by default, but legacy NTP configuration may exist on\nRHEL worker nodes.\n"
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: NTP time synchronization ensures all cluster nodes maintain accurate clocks.
+# The rec remediates THAT story by starting at `oc debug node/<name> -- chroot /host timedatectl
+# status` — the live object/command for this check, not a neighboring TSR item.
+# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
+# `oc debug` was not executed this pass (starts a node pod). Treat those steps as command-form.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Verify time synchronization on nodes:\n   `oc debug node/<name> -- chroot /host timedatectl status`\n2. Confirm NTP is synchronized and the time source is reachable.\n3. For RHEL workers, check `chronyd` status:\n   `oc debug node/<name> -- chroot /host systemctl status chronyd`\n"
 priority_hint = ""
 impact = "none"
@@ -723,6 +1005,9 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_5_7_2_chrony"
 title = "1.5.7.2. Chrony"
 description = "Chrony is the default NTP implementation on RHCOS. It must be configured with\nreachable time sources and maintaining synchronization within acceptable\nskew thresholds.\n"
+# why-rec
+# ENGINEERING JUDGMENT. `chronyc tracking` via debug is the real check (not executed). The <100ms
+# offset cutoff is operational, not a vendor number.
 recommendation = "1. Check chrony tracking status:\n   `oc debug node/<name> -- chroot /host chronyc tracking`\n2. Review chrony sources:\n   `oc debug node/<name> -- chroot /host chronyc sources -v`\n3. Verify the reported offset is within acceptable bounds (`< 100ms`) and sources are reachable.\n"
 priority_hint = ""
 impact = "none"
@@ -741,7 +1026,10 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_5_7_3_ptp"
 title = "1.5.7.3. PTP"
 description = "Precision Time Protocol provides sub-microsecond time accuracy for workloads\nrequiring strict synchronization (telco, financial). PTP operator and\ngrandmaster clock configuration must be validated where deployed.\n"
-recommendation = "1. Check whether the PTP operator is installed:\n   `oc get subscription -A | grep ptp`\n2. If present, verify PTP daemon configuration:\n   `oc get ptpconfig -A -o yaml`\n3. Check PTP pods:\n   `oc get pods -n openshift-ptp`\n4. Review PTP clock state and offset metrics.\n"
+# why-rec
+# CORRECTED. `ptpconfig -o yaml` dumps profiles, matchers, and interface config. Rec lists
+# profile names only. N/A when the PTP operator is absent. Investigation only (impact none).
+recommendation = "1. Check whether the PTP operator is installed:\n   `oc get subscription -A | grep ptp`\n2. If present, print PTP profile names only:\n   `oc get ptpconfig -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,PROFILES:.spec.profile[*].name`\n3. Check PTP pods:\n   `oc get pods -n openshift-ptp`\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -759,7 +1047,12 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_5_7_4_clock_alerts"
 title = "1.5.7.4. Clock Alerts"
 description = "Clock-related alerts (ClockSkewDetected, NTPDaemonUnreachable) indicate\ntime synchronization failures that can cascade into certificate validation\nerrors and etcd consistency issues.\n"
-recommendation = "1. Check for active clock alerts:\n   `oc get prometheusrule -A -o json | grep -i clock`\n2. Review firing alerts:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -s http://localhost:9090/api/v1/alerts`\n3. Investigate affected nodes' chrony or NTP configuration.\n"
+# why-rec
+# CORRECTED. Do not dump PrometheusRule JSON. Rec jsonpath-prints alert names, then jq-filters
+# firing Prometheus HTTP alerts to {state, alertname, severity}. Lab names are
+# `NodeClockSkewDetected` and `NodeClockNotSynchronising`. Empty output means none firing.
+# Chrony is 1.5.7.2.
+recommendation = "1. The clock rules shipped by node-exporter are `NodeClockSkewDetected` and `NodeClockNotSynchronising`:\n   `oc get prometheusrule node-exporter-rules -n openshift-monitoring -o jsonpath='{range .spec.groups[*].rules[?(@.alert)]}{.alert}{\"\\n\"}{end}'`\n2. See which of those are firing:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -s http://localhost:9090/api/v1/alerts | jq '.data.alerts[] | select(.labels.alertname | test(\"NodeClock|ClockSkew|NTPDaemon\")) | {state, alertname: .labels.alertname, severity: .labels.severity}'`\n   Empty output means none of those alerts are firing.\n3. Chrony offset is 1.5.7.2.\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -777,7 +1070,11 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_5_8_sdn"
 title = "1.5.8. SDN"
 description = "The cluster network plugin (OVN-Kubernetes) provides pod networking, service\nload balancing, and network policy enforcement. OVN-Kubernetes is the only\nsupported network plugin from OCP 4.17 onward. Network health is critical for\nall pod-to-pod and pod-to-service communication.\n"
-recommendation = "1. Check network operator status:\n   `oc get clusteroperator network -o json`\n2. Review network type:\n   `oc get network.config cluster -o jsonpath='{.spec.networkType}'`\n3. Verify OVN-Kubernetes pods:\n   `oc get pods -n openshift-ovn-kubernetes`\n"
+# why-rec
+# CORRECTED. `-o json` dumps the whole ClusterOperator. Rec PASS/FAIL Available=True,
+# Progressing=False, Degraded=False (oc get co columns 3-5) and prints conditions on FAIL.
+# networkType stays jsonpath. Investigation only (impact none).
+recommendation = "1. PASS/FAIL the network ClusterOperator (`Available=True`, `Progressing=False`, `Degraded=False`):\n   `oc get co network --no-headers | awk '{print ($3==\"True\" && $4==\"False\" && $5==\"False\"?\"PASS\":\"FAIL\"), $0}'`\n2. Print conditions if FAIL:\n   `oc get clusteroperator network -o jsonpath='{range .status.conditions[*]}{.type}={.status} reason={.reason}{\"\\n\"}{end}'`\n3. Review network type:\n   `oc get network.config cluster -o jsonpath='{.spec.networkType}'`\n4. Verify OVN-Kubernetes pods:\n   `oc get pods -n openshift-ovn-kubernetes`\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -795,6 +1092,15 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_5_9_swap"
 title = "1.5.9. Swap"
 description = "Kubernetes does not support swap on nodes by default. Enabled swap can cause\nunpredictable pod memory behavior, OOM kill ordering issues, and is\nunsupported in production OCP deployments.\n"
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: Kubernetes does not support swap on nodes by default.
+# The rec remediates THAT story by starting at `oc debug node/<name> -- chroot /host swapon
+# --show` — the live object/command for this check, not a neighboring TSR item.
+# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
+# `oc debug` was not executed this pass (starts a node pod). Treat those steps as command-form.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Verify swap is disabled on all nodes:\n   `oc debug node/<name> -- chroot /host swapon --show`\n2. Confirm the output is empty.\n3. If swap is enabled, disable it via MachineConfig so the change persists across reboots.\n"
 priority_hint = ""
 impact = "none"
@@ -813,7 +1119,10 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_5_10_machine_network"
 title = "1.5.10. Machine Network"
 description = "The machine network CIDR defines the subnet used for node IP addresses.\nThis must not overlap with cluster or service networks and must have\nsufficient address space for current and planned node scaling.\n"
-recommendation = "1. Review the machine network from install config:\n   `oc get configmap cluster-config-v1 -n kube-system -o jsonpath='{.data.install-config}'`\n2. Verify actual node IPs fall within the declared machine network CIDR:\n   `oc get nodes -o wide`\n"
+# why-rec
+# CORRECTED. Rec greps the install-config `networking:` block only (not the full ConfigMap). `oc
+# get nodes -o wide` confirms node IPs against machineNetwork.
+recommendation = "1. Review the machine network from install config. Extract the `networking:` block only; the ConfigMap can contain trust bundles and BMC addresses:\n   `oc get configmap cluster-config-v1 -n kube-system -o jsonpath='{.data.install-config}' | grep -A20 '^networking:'`\n2. Verify actual node IPs fall within the declared machine network CIDR:\n   `oc get nodes -o wide`\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -831,7 +1140,10 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_5_11_fips"
 title = "1.5.11. FIPS"
 description = "FIPS 140-2 mode enforces use of validated cryptographic modules. FIPS must\nbe enabled at install time and cannot be toggled post-install. This check\nverifies whether FIPS is active and consistent across nodes.\n"
-recommendation = "1. Check FIPS status in the install config:\n   `oc get configmap cluster-config-v1 -n kube-system -o jsonpath='{.data.install-config}' | grep fips`\n2. Verify FIPS on nodes:\n   `oc debug node/<name> -- chroot /host cat /proc/sys/crypto/fips_enabled`\n3. Confirm a value of `1` indicates FIPS is active.\n"
+# why-rec
+# CORRECTED. Grep `^fips:` only. FIPS cannot be enabled after install. Node
+# `/proc/sys/crypto/fips_enabled` is command-form (`oc debug` not executed).
+recommendation = "1. Check FIPS status in the install config without dumping the rest of the file:\n   `oc get configmap cluster-config-v1 -n kube-system -o jsonpath='{.data.install-config}' | grep -i '^fips:'`\n2. Verify FIPS on nodes:\n   `oc debug node/<name> -- chroot /host cat /proc/sys/crypto/fips_enabled`\n3. Confirm a value of `1` indicates FIPS is active. FIPS cannot be enabled after install.\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -849,7 +1161,11 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_5_12_huge_pages"
 title = "1.5.12. Huge Pages"
 description = "Huge pages provide large memory page allocations (2Mi or 1Gi) for performance-\nsensitive workloads like databases and DPDK applications. Configuration must\nmatch workload requirements without over-allocating node memory.\n"
-recommendation = "1. Check huge page allocation on nodes:\n   `oc get nodes -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.status.capacity.hugepages-2Mi}{\"\\t\"}{.status.capacity.hugepages-1Gi}{\"\\n\"}{end}'`\n2. Review detailed huge page configuration:\n   `oc debug node/<name> -- chroot /host cat /proc/meminfo | grep Huge`\n"
+# why-rec
+# CORRECTED. Unlabeled jsonpath `0  0` is opaque. Rec uses custom-columns HUGE_2MI / HUGE_1GI.
+# `0` means none allocated — engine NOT_APPLICABLE, not a failure. Do not `oc debug` unless
+# a column is non-zero. Lab is all zeros.
+recommendation = "1. Print huge-page **capacity** with column names. These are `status.capacity.hugepages-2Mi` and `hugepages-1Gi` (Kubernetes quantity; `0` means none allocated):\n   `oc get nodes -o custom-columns=NAME:.metadata.name,HUGE_2MI:.status.capacity.hugepages-2Mi,HUGE_1GI:.status.capacity.hugepages-1Gi`\n2. Read the columns:\n   - both `0`: huge pages are not configured. This check is N/A (not a FAIL) unless the design required DPDK/DB huge pages.\n   - non-zero: pages are reserved on that node; confirm the size matches the workload (2Mi vs 1Gi).\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -867,6 +1183,9 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_5_13_gpu"
 title = "1.5.13. GPU"
 description = "GPU nodes require the NVIDIA GPU Operator or equivalent for device plugin,\ndriver, and container toolkit management. Misconfigured GPU support causes\nworkload scheduling failures and resource waste.\n"
+# why-rec
+# ENGINEERING JUDGMENT. Presence check is valid. Namespace `gpu-operator-resources` is one
+# install NS; NVIDIA often uses `nvidia-gpu-operator`. Lab has no GPU operator.
 recommendation = "1. Check for a GPU operator subscription:\n   `oc get subscription -A | grep gpu`\n2. Verify GPU nodes expose allocatable resources:\n   `oc get nodes -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.status.allocatable.nvidia\\.com/gpu}{\"\\n\"}{end}'`\n3. Review GPU operator pods:\n   `oc get pods -n gpu-operator-resources`\n"
 priority_hint = ""
 impact = "none"
@@ -885,6 +1204,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_5_14_entropy"
 title = "1.5.14. Entropy"
 description = "Sufficient entropy is required for cryptographic operations, TLS handshakes,\nand certificate generation. Low entropy causes random number generation\nblocking, slow TLS negotiations, and pod startup delays.\n"
+# why-rec
+# ENGINEERING JUDGMENT. Debug path is real (not executed). 200 / 3000+ cutoffs are not vendor.
 recommendation = "1. Check available entropy on nodes:\n   `oc debug node/<name> -- chroot /host cat /proc/sys/kernel/random/entropy_avail`\n2. Investigate values below `200`.\n3. Expect modern kernels with `virtio-rng` or `RDRAND` to report high entropy (`3000+`).\n"
 priority_hint = ""
 impact = "none"
@@ -903,7 +1224,10 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_5_15_remote_health_reporting"
 title = "1.5.15. Remote Health Reporting"
 description = "Remote health reporting (Insights/Telemetry) sends anonymized cluster data\nto Red Hat for proactive support and recommendations. Disabling it removes\naccess to Insights advisor recommendations and may affect support SLAs.\n"
-recommendation = "1. Check Insights operator status:\n   `oc get clusteroperator insights -o json`\n2. Verify the pull secret includes `cloud.openshift.com`:\n   `oc get secret pull-secret -n openshift-config -o jsonpath='{.data.\\.dockerconfigjson}' | base64 -d | python3 -m json.tool | grep cloud.openshift.com`\n"
+# why-rec
+# CORRECTED. Never decode the cluster pull secret. Rec is Insights operator status only. Insights
+# Available on the lab.
+recommendation = "1. Check Insights operator status:\n   `oc get clusteroperator insights`\n2. Confirm Insights is Available/not Degraded, and that remote health was not disabled in the cluster capability or proxy path.\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -921,7 +1245,11 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_5_16_project_self_provisioner_state"
 title = "1.5.16. Project Self Provisioner State"
 description = "The self-provisioner cluster role binding allows authenticated users to create\nprojects without admin approval. In production, this is often restricted to\nprevent uncontrolled namespace proliferation.\n"
-recommendation = "1. Check self-provisioner state:\n   `oc get clusterrolebinding self-provisioners -o yaml`\n2. If project creation should be restricted, remove the self-provisioner binding:\n   `oc patch clusterrolebinding self-provisioners -p '{\"subjects\": null}'`\n3. Manage project requests through a controlled approval process.\n"
+# why-rec
+# CORRECTED. `-o yaml` dumps the whole ClusterRoleBinding. Rec prints subject kind/name/
+# namespace only. Empty subjects means self-provisioning is already disabled. Patching subjects
+# is non-disruptive for running workloads.
+recommendation = "1. Print who is bound as self-provisioner:\n   `oc get clusterrolebinding self-provisioners -o jsonpath='{range .subjects[*]}{.kind}{\"\\t\"}{.name}{\"\\t\"}{.namespace}{\"\\n\"}{end}'`\n2. Empty output means self-provisioning is already disabled.\n3. If project creation should be restricted, clear subjects:\n   `oc patch clusterrolebinding self-provisioners -p '{\"subjects\": null}'`\n4. Manage project requests through a controlled approval process.\n"
 priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "user project creation"
@@ -939,7 +1267,11 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_5_17_authentication"
 title = "1.5.17. Authentication"
 description = "Cluster authentication configuration determines identity providers, token\nlifetimes, and access controls. Production clusters should use enterprise\nidentity providers and remove the default kubeadmin account.\n"
-recommendation = "1. Review OAuth configuration:\n   `oc get oauth cluster -o json`\n2. Verify configured identity providers and token settings.\n3. Check whether kubeadmin still exists:\n   `oc get secret kubeadmin -n kube-system`\n4. If an external identity provider is configured and validated, remove kubeadmin for security.\n"
+# why-rec
+# CORRECTED. `-o json` dumps OAuth including IdP config that can include bind DNs. Rec prints
+# identity provider name+type and accessTokenMaxAgeSeconds only, then checks whether kubeadmin
+# exists. Editing OAuth rolls authentication pods, not nodes.
+recommendation = "1. Print identity provider names and types only:\n   `oc get oauth cluster -o jsonpath='{.spec.identityProviders[*].name}{\"\\t\"}{.spec.identityProviders[*].type}{\"\\n\"}'`\n2. Print token max age if set:\n   `oc get oauth cluster -o jsonpath='{.spec.tokenConfig.accessTokenMaxAgeSeconds}{\"\\n\"}'`\n3. Check whether kubeadmin still exists:\n   `oc get secret kubeadmin -n kube-system --ignore-not-found`\n4. If an external identity provider is configured and validated, remove kubeadmin for security.\n"
 priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "authentication components"
@@ -957,7 +1289,10 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.tsr.1_5_18_security_context_constraints"
 title = "1.5.18. Security Context Constraints"
 description = "Security Context Constraints control the actions pods can perform and what\nresources they can access. Overly permissive SCCs (especially privileged or\nanyuid) increase the attack surface of the cluster.\n"
-recommendation = "1. Review SCCs:\n   `oc get scc -o json`\n2. List workloads using the `privileged` SCC:\n   `oc get pods -A -o json | jq '.items[] | select(.metadata.annotations[\"openshift.io/scc\"]==\"privileged\") | .metadata.namespace + \"/\" + .metadata.name'`\n3. Minimize use of `privileged` and `anyuid` SCCs to only validated workloads.\n"
+# why-rec
+# CORRECTED. `-o json` dumps every SCC. Rec prints privilege flags as columns and lists only
+# pods using `privileged` or `anyuid`. Investigation only (impact none).
+recommendation = "1. List SCC privilege flags:\n   `oc get scc -o custom-columns=NAME:.metadata.name,PRIV:.allowPrivilegedContainer,ALLOWPRIVESC:.allowPrivilegeEscalation,RUNAS:.runAsUser.type`\n2. List pods using `privileged` or `anyuid`:\n   `oc get pods -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,SCC:.metadata.annotations.openshift\\.io/scc --no-headers | awk '$3==\"privileged\" || $3==\"anyuid\" {print}'`\n3. Minimize `privileged` and `anyuid` to only validated workloads.\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""

@@ -6,7 +6,7 @@ from collections import Counter, defaultdict
 from html import escape
 
 from hc_report.evaluators._common import _CATEGORY_MAP
-from hc_report.kb_loader import load_kb
+from hc_report.kb_loader import NEEDS_REVIEW_MARKER, load_kb
 from hc_report.models import CheckResult, Finding
 from hc_report.notes import get_note
 
@@ -23,16 +23,14 @@ _BADGE: dict[str, str] = {
 _TSR_TITLE_RE = re.compile(r"^(\d+(?:\.\d+)*\.?)\s+(.+)$")
 _WHITESPACE_RE = re.compile(r"\s+")
 _ANCHOR_TOKEN_RE = re.compile(r"[^a-z0-9]+")
-
-
-def _flatten_summary_cell(text: str, max_len: int = 120) -> str:
-    """Collapse whitespace/newlines into a single-line markdown table cell."""
-    if not text:
-        return ""
-    flat = _WHITESPACE_RE.sub(" ", text).strip().replace("|", " ")
-    if len(flat) > max_len:
-        return flat[:max_len]
-    return flat
+_FAILURE_REASON_RE = re.compile(
+    r"\[(PASS|FAIL|WARNING|INFO|NOT APPLICABLE)\]",
+    re.IGNORECASE,
+)
+_SUMMARY_MAX_LENGTH = 220
+_SUMMARY_MIN_SENTENCE_CHARS = 40
+_SUMMARY_MIN_USABLE_CHARS = 8
+_UNUSABLE_SUMMARY_VALUES = frozenset({"n/a", "none", "unknown", "na"})
 
 
 def _md_table_cell(text: str) -> str:
@@ -169,19 +167,108 @@ def _truncate_at_word_boundary(text: str, max_length: int) -> str:
     return truncated + "…"
 
 
-def _summarize_evidence(text: str) -> str:
-    """Produce a concise summary of multi-line check evidence for §6.2.
+def _extract_failure_reason(evidence: str) -> str:
+    """Return the first FAIL remainder, else the first WARNING remainder."""
+    first_fail = ""
+    first_warning = ""
+    for line in evidence.splitlines():
+        for match in _FAILURE_REASON_RE.finditer(line):
+            status = match.group(1).upper()
+            if status not in {"FAIL", "WARNING"}:
+                continue
+            remainder = line[match.end():].lstrip()
+            if remainder.startswith("-"):
+                remainder = remainder[1:].lstrip()
+            if remainder[:7].casefold() == "reason:":
+                remainder = remainder[7:].lstrip()
+            next_tag = _FAILURE_REASON_RE.search(remainder)
+            if next_tag:
+                remainder = remainder[: next_tag.start()]
+            remainder = remainder.strip()
+            if status == "FAIL" and not first_fail:
+                first_fail = remainder
+            elif status == "WARNING" and not first_warning:
+                first_warning = remainder
+            if first_fail:
+                return first_fail
+    return first_fail or first_warning
 
-    For TSR/CCX multi-line text containing [PASS]/[FAIL]/[WARNING] tags,
-    emit a count-based summary sentence. For plain text (deterministic
-    checks), return the flattened string truncated at a word boundary.
-    """
-    if not text:
+
+def _clean_summary_prose(text: str) -> str:
+    """Flatten, strip status tags, capitalize, and end with a sentence mark."""
+    flattened = _WHITESPACE_RE.sub(" ", text).replace("|", " ").strip()
+    flattened = _FAILURE_REASON_RE.sub("", flattened)
+    flattened = _WHITESPACE_RE.sub(" ", flattened).strip()
+    if not flattened:
         return ""
-    statuses = _RESULT_STATUS_RE.findall(text)
+    characters = list(flattened)
+    for index, character in enumerate(characters):
+        if character.isalpha():
+            characters[index] = character.upper()
+            flattened = "".join(characters)
+            break
+    if flattened[-1] not in ".!?":
+        flattened += "."
+    return flattened
+
+
+def _truncate_summary_sentence(text: str, max_length: int = _SUMMARY_MAX_LENGTH) -> str:
+    """Prefer a sentence end inside the cap; else truncate at a word boundary."""
+    if len(text) <= max_length:
+        return text
+    window = text[:max_length]
+    sentence_end = max(window.rfind("."), window.rfind("!"), window.rfind("?"))
+    if sentence_end >= _SUMMARY_MIN_SENTENCE_CHARS:
+        return window[: sentence_end + 1].strip()
+    return _truncate_at_word_boundary(text, max_length)
+
+
+def _match_summary_pattern(finding: Finding) -> str:
+    """Return the first matching KB summary_patterns text, or empty."""
+    if not finding.check_id:
+        return ""
+    entry = load_kb().get_entry(finding.check_id)
+    if entry is None:
+        return ""
+    haystack = (finding.description or "").casefold()
+    for pattern in entry.summary_patterns:
+        if pattern.contains.casefold() in haystack:
+            return pattern.text
+    return ""
+
+
+def _finish_summary_prose(text: str) -> str:
+    """Clean, omit unusable text, and truncate at sentence then word boundary."""
+    cleaned = _clean_summary_prose(text)
+    folded = cleaned.rstrip(".!?").casefold()
+    if (
+        not cleaned
+        or len(cleaned) < _SUMMARY_MIN_USABLE_CHARS
+        or not any(character.isascii() and character.isalpha() for character in cleaned)
+        or folded in _UNUSABLE_SUMMARY_VALUES
+    ):
+        return ""
+    return _truncate_summary_sentence(cleaned)
+
+
+def _chapter_finding_summary(finding: Finding) -> str:
+    """One-line Chapter 4 / §6.1 summary: pattern, then FAIL/WARNING, never KB description."""
+    evidence = finding.description or ""
+    source = _match_summary_pattern(finding)
+    if not source:
+        source = _extract_failure_reason(evidence)
+    if not source and not _RESULT_STATUS_RE.search(evidence):
+        source = evidence
+    return _finish_summary_prose(source)
+
+
+def _status_count_sentence(evidence: str) -> str:
+    """Status-count sentence for tagged evidence; empty when there are no tags."""
+    if not evidence:
+        return ""
+    statuses = _RESULT_STATUS_RE.findall(evidence)
     if not statuses:
-        flat = _WHITESPACE_RE.sub(" ", text).strip()
-        return _truncate_at_word_boundary(flat, 200)
+        return ""
     total = len(statuses)
     fail_count = statuses.count("FAIL")
     warn_count = statuses.count("WARNING")
@@ -197,6 +284,21 @@ def _summarize_evidence(text: str) -> str:
     if info_not_applicable_count:
         parts.append(f"{info_not_applicable_count} INFO/N/A")
     return f"{total} sub-checks evaluated: {', '.join(parts)}"
+
+
+def _finding_observation(finding: Finding) -> str:
+    """§6.2 Observation: count, then pattern, then first FAIL/WARNING reason."""
+    evidence = finding.description or ""
+    count_sentence = _status_count_sentence(evidence)
+    pattern_text = _finish_summary_prose(_match_summary_pattern(finding))
+    extracted_raw = _extract_failure_reason(evidence)
+    if not extracted_raw and not count_sentence:
+        extracted_raw = evidence
+    extracted_text = _finish_summary_prose(extracted_raw)
+    if pattern_text and extracted_text and pattern_text.casefold() == extracted_text.casefold():
+        extracted_text = ""
+    blocks = [block for block in (count_sentence, pattern_text, extracted_text) if block]
+    return "\n\n".join(blocks)
 
 
 def _split_finding_title(title: str) -> tuple[str, str]:
@@ -265,8 +367,9 @@ def _build_check_results_table(
         badge = _BADGE.get(check.status, check.status)
         result_cell = _md_table_cell(_clean_evidence_for_cell(check.evidence))
         anchor = _build_evidence_anchor(check.check_id, finding_ids_by_check.get(check.check_id, []))
+        display_title = load_kb().get_title(check.check_id) or check.description
         rows = (
-            f"| **Check** | **{_md_table_cell(check.description)}** |\n"
+            f"| **Check** | **{_md_table_cell(display_title)}** |\n"
             f"|:---|:---|\n"
             f"| **Status** | {badge} |\n"
             f"| **Result** | {result_cell} |"
@@ -307,7 +410,11 @@ def _build_findings_sections(findings: list[Finding], ocp_version: str = "latest
             display, tsr = _split_finding_title(finding.title)
             check_id = finding.check_id or "n/a"
             sections.append(f"#### {finding.id}. {display}\n")
-            sections.append(f"**Check ID:** `{check_id}`")
+            if finding.member_check_ids:
+                member_ids = " ".join(f"`{member_id}`" for member_id in finding.member_check_ids)
+                sections.append(f"**Check ID:** {member_ids}")
+            else:
+                sections.append(f"**Check ID:** `{check_id}`")
             sections.append(f"**TSR ref:** {tsr}\n")
             kb_desc = knowledge_base.get_description(check_id) if check_id != "n/a" else ""
             if kb_desc:
@@ -315,7 +422,7 @@ def _build_findings_sections(findings: list[Finding], ocp_version: str = "latest
             # Anchor after Observation so pandoc keeps #### as a heading and
             # HTML injection shows "View evidence" on its own line under Observation.
             sections.append(
-                f"**Observation:**\n\n{_summarize_evidence(finding.description)}\n\n"
+                f"**Observation:**\n\n{_finding_observation(finding)}\n\n"
                 f"{_build_finding_anchor(finding.id, check_id)}\n"
             )
             sections.append(f"**Recommendation:**\n\n{finding.recommendation}\n")
@@ -326,9 +433,12 @@ def _build_findings_sections(findings: list[Finding], ocp_version: str = "latest
 
 
 def _format_impact_block(finding: Finding) -> str:
-    if not finding.impact or finding.impact == "none":
-        return ""
-    label = finding.impact.replace("-", " ").title()
+    if not finding.impact:
+        return f"**Level of Impact:** {NEEDS_REVIEW_MARKER}\n"
+    if finding.impact == "none":
+        label = "None"
+    else:
+        label = finding.impact.replace("-", " ").title()
     scope = f" ({finding.impact_scope})" if finding.impact_scope else ""
     detail = f" — {finding.impact_detail}" if finding.impact_detail else ""
     return f"**Level of Impact:** {label}{scope}{detail}\n"
@@ -338,36 +448,35 @@ def _build_critical_findings(findings: list[Finding]) -> str:
     critical = [finding for finding in findings if finding.priority in ("P0", "P1")]
     if not critical:
         return "_No critical or high-priority findings identified._"
-    knowledge_base = load_kb()
     lines = ["| Priority | Finding | Summary |", "|----------|---------|---------|"]
     for finding in critical:
         display, _tsr = _split_finding_title(finding.title)
-        kb_desc = knowledge_base.get_description(finding.check_id) if finding.check_id else ""
-        summary = _flatten_summary_cell(kb_desc) if kb_desc else _flatten_summary_cell(finding.description)
+        summary = _chapter_finding_summary(finding)
         lines.append(f"| {finding.priority} | {finding.id} — {display} | {summary} |")
     return "\n".join(lines)
 
 
+def _critical_summary_bullet(finding: Finding) -> str:
+    display, _tsr = _split_finding_title(finding.title)
+    summary = _chapter_finding_summary(finding)
+    if summary:
+        return f"- **{finding.id} — {display}**: {summary}"
+    return f"- **{finding.id} — {display}**"
+
+
 def _build_critical_findings_summary(findings: list[Finding]) -> str:
-    knowledge_base = load_kb()
     p0_findings = [finding for finding in findings if finding.priority == "P0"]
     p1_findings = [finding for finding in findings if finding.priority == "P1"]
     lines = []
     if p0_findings:
         lines.append(f"**{len(p0_findings)} Critical (P0) finding(s)** require immediate action:\n")
         for finding in p0_findings:
-            display, _tsr = _split_finding_title(finding.title)
-            kb_desc = knowledge_base.get_description(finding.check_id) if finding.check_id else ""
-            flat = _flatten_summary_cell(kb_desc) if kb_desc else _flatten_summary_cell(finding.description)
-            lines.append(f"- **{finding.id} — {display}**: {flat}")
+            lines.append(_critical_summary_bullet(finding))
         lines.append("")
     if p1_findings:
         lines.append(f"**{len(p1_findings)} High (P1) finding(s)** require near-term attention:\n")
         for finding in p1_findings:
-            display, _tsr = _split_finding_title(finding.title)
-            kb_desc = knowledge_base.get_description(finding.check_id) if finding.check_id else ""
-            flat = _flatten_summary_cell(kb_desc) if kb_desc else _flatten_summary_cell(finding.description)
-            lines.append(f"- **{finding.id} — {display}**: {flat}")
+            lines.append(_critical_summary_bullet(finding))
     return "\n".join(lines) if lines else "_No critical findings._"
 
 

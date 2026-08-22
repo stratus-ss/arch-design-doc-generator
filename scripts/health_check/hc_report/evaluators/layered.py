@@ -5,6 +5,7 @@ from hc_report.evaluators._common import (
     _find_condition,
     _get_items,
     _is_missing,
+    _resource_metadata,
     _resource_name,
     _resource_status,
 )
@@ -23,40 +24,6 @@ _LAYERED_PRODUCTS: list[tuple[str, str]] = [
     ("OpenShift Serverless (Knative Eventing)", "serverless_kneventing"),
     ("Quay Registry", "quay_registry"),
     ("OCP AI / Data Science", "datasciencecluster"),
-]
-
-# TSR section 4 product groups to map NOT_APPLICABLE when product missing
-_TSR_PRODUCT_GROUPS: list[tuple[str, str, str, list[str]]] = [
-    # (TSR ref prefix, product name, detection key, check titles)
-    ("4.1", "Cluster Logging", "logging_clusterlogging", [
-        "4.1.1 Logging Supported Configuration", "4.1.2 Logging Storage Type",
-        "4.1.3 Logging Storage Size", "4.1.4 Logging Pod Status",
-        "4.1.5.1 Elasticsearch Health", "4.1.5.2 Loki Health",
-        "4.1.6 Cluster Log Forwarders", "4.1.7 Logging Alerts",
-        "4.1.8 Logging Security Context Constraints",
-    ]),
-    ("4.2", "ODF", "odf_storagecluster", [
-        "4.2 ODF (all sub-checks)",
-    ]),
-    ("4.3", "Service Mesh", "servicemesh_smcp", [
-        "4.3.2 Service Mesh Pods", "4.3.2 Service Mesh Projects", "4.3.3 ServiceMesh Members",
-    ]),
-    ("4.4", "Serverless", "serverless_knserving", [
-        "4.4.1 OpenShift Serverless Supported Config", "4.4.2 Knative Installed",
-    ]),
-    ("4.5", "Quay", "quay_registry", [
-        "4.5.1.1 Quay Supported Configuration", "4.5.2 Quay Pods",
-        "4.5.3.1 Quay Bridge Operator", "4.5.3.2 Quay Security Operator",
-    ]),
-    ("4.6", "ACS", "acs_central", [
-        "4.6.1 Red Hat Advanced Cluster Security Installed", "4.6.2 ACS Pods",
-    ]),
-    ("4.9", "OpenShift AI", "datasciencecluster", [
-        "4.9.1 OpenShift AI Self-Managed Supported Configuration",
-    ]),
-    ("4.10", "RHOSO", "rhoso_openstackcontrolplane", [
-        "4.10 RHOSO (all sub-checks)",
-    ]),
 ]
 
 
@@ -136,7 +103,71 @@ def _evaluate_cnv_aggregate(category_data: dict, category_id: str, category_name
             checks.append(CheckResult(category_id, category_name, f"{category_id}.cnv.pods",
                                       "4.8 CNV Pod Status", "PASS",
                                       f"All {len(pod_items)} CNV pods Running/Succeeded", "cnv"))
+    checks += _evaluate_cnv_live_migratable(category_data, category_id, category_name)
     return checks
+
+
+def _live_migratable_vmi_lines(vmi_data: dict) -> list[str]:
+    lines: list[str] = []
+    for item in _get_items(vmi_data):
+        metadata = _resource_metadata(item)
+        namespace = metadata.get("namespace", "unknown")
+        name = metadata.get("name", "unknown")
+        conditions = item.get("status", {}).get("conditions", [])
+        condition = _find_condition(conditions, "LiveMigratable")
+        if condition.get("status") != "False":
+            continue
+        reason = condition.get("reason") or "unknown"
+        message = condition.get("message") or "unknown"
+        lines.append(f"{namespace}/{name}: {reason}: {message}")
+    return lines
+
+
+def _eviction_strategy_lines(vm_data: dict) -> list[str]:
+    lines: list[str] = []
+    for item in _get_items(vm_data):
+        metadata = _resource_metadata(item)
+        namespace = metadata.get("namespace", "unknown")
+        name = metadata.get("name", "unknown")
+        template = item.get("spec", {}).get("template", {})
+        strategy = template.get("spec", {}).get("evictionStrategy")
+        if strategy is not None and strategy != "LiveMigrateIfPossible":
+            continue
+        value = "None" if strategy is None else strategy
+        lines.append(f"evictionStrategy {namespace}/{name}: {value}")
+    return lines
+
+
+def _evaluate_cnv_live_migratable(
+    category_data: dict, category_id: str, category_name: str,
+) -> list[CheckResult]:
+    check_id = f"{category_id}.cnv.live_migratable"
+    description = "VM live-migratable status (engine)"
+    vmi_data = category_data.get("cnv_vmi", {})
+    if vmi_data.get("_hc_not_found") or _is_missing(vmi_data):
+        return [CheckResult(
+            category_id, category_name, check_id, description, "SKIPPED",
+            "VMI data not collected", "cnv",
+        )]
+    not_migratable = _live_migratable_vmi_lines(vmi_data)
+    eviction_lines = _eviction_strategy_lines(category_data.get("cnv_vm", {}))
+    if not_migratable:
+        evidence_lines = [f"{len(not_migratable)} VMI(s) not LiveMigratable"]
+        evidence_lines.extend(not_migratable)
+        evidence_lines.extend(eviction_lines)
+        return [CheckResult(
+            category_id, category_name, check_id, description, "WARNING",
+            "\n".join(evidence_lines), "cnv",
+        )]
+    if eviction_lines:
+        return [CheckResult(
+            category_id, category_name, check_id, description, "INFO",
+            "\n".join(eviction_lines), "cnv",
+        )]
+    return [CheckResult(
+        category_id, category_name, check_id, description, "PASS",
+        "All collected VMIs report LiveMigratable=True", "cnv",
+    )]
 
 
 def _evaluate_acm_aggregate(category_data: dict, category_id: str, category_name: str) -> list[CheckResult]:
@@ -207,21 +238,6 @@ def _evaluate_logging_aggregate(category_data: dict, category_id: str, category_
     return checks
 
 
-def _evaluate_tsr_product_groups(category_data: dict, category_id: str, category_name: str) -> list[CheckResult]:
-    """Generate NOT_APPLICABLE checks for uninstalled product groups per TSR mapping."""
-    checks: list[CheckResult] = []
-    for prefix, product, detect_key, titles in _TSR_PRODUCT_GROUPS:
-        data = category_data.get(detect_key, {"_hc_not_found": True})
-        if data.get("_hc_not_found") or _is_missing(data):
-            for title in titles:
-                safe_id = title.replace(" ", "_").replace(".", "_").replace("(", "").replace(")", "")[:40]
-                checks.append(CheckResult(category_id, category_name, f"{category_id}.tsr.{safe_id}",
-                                          title, "NOT_APPLICABLE",
-                                          f"{product} not installed on this cluster",
-                                          product.lower().replace(" ", "_")))
-    return checks
-
-
 def evaluate_layered(category_data: dict, results: dict, category_id: str, category_name: str) -> list[CheckResult]:
     """Dispatch evaluators for 7.4 Layered Products."""
     checks: list[CheckResult] = []
@@ -235,5 +251,4 @@ def evaluate_layered(category_data: dict, results: dict, category_id: str, categ
     checks += _evaluate_cnv_aggregate(category_data, category_id, category_name)
     checks += _evaluate_acm_aggregate(category_data, category_id, category_name)
     checks += _evaluate_logging_aggregate(category_data, category_id, category_name)
-    checks += _evaluate_tsr_product_groups(category_data, category_id, category_name)
     return checks

@@ -1,8 +1,11 @@
 [[checks]]
 check_id = "7.7.scc.custom"
 title = "Custom SCCs"
-description = "Custom SCCs may grant elevated privileges beyond what is necessary. Review each\ncustom SCC against the principle of least privilege and prefer built-in SCCs or\nPod Security Admission where possible.\n"
-recommendation = "1. Audit custom SCCs and compare each against the built-in `restricted-v2` baseline.\n   `oc get scc -o name`\n2. Identify workloads depending on elevated permissions.\n   `oc adm policy who-can use scc/<name>`\n3. Where possible, migrate workloads to `restricted-v2` or use Pod Security Admission enforce labels.\n"
+description = "This is a deterministic engine check; it is not a TSR worksheet item. Custom SCCs may grant elevated privileges beyond what is necessary. Review each\ncustom SCC against the principle of least privilege and prefer built-in SCCs or\nPod Security Admission where possible.\n"
+# why-rec
+# CORRECTED. `oc adm policy who-can use scc/<name>` warns that the resource type is unknown. The
+# engine reads SCC `.users` / `.groups`. Rec uses `oc get scc <name>`.
+recommendation = "1. Audit custom SCCs and compare each against the built-in `restricted-v2` baseline.\n   `oc get scc -o name`\n2. Identify users and groups on a custom SCC:\n   `oc get scc <name> -o jsonpath='{.users}{\"\\n\"}{.groups}{\"\\n\"}'`\n3. Where possible, migrate workloads to `restricted-v2` or use Pod Security Admission enforce labels.\n"
 priority_hint = ""
 impact = "workload-shift"
 impact_scope = "workloads currently using custom SCCs"
@@ -20,7 +23,10 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.scc.privileged_users"
 title = "Privileged SCC usage"
 description = "The `privileged` SCC grants unrestricted host access. Only system service\naccounts should normally require it. Audit all non-system principals with this\nassignment and revoke access where it is not strictly required.\n"
-recommendation = "1. List all principals bound to the `privileged` SCC.\n   `oc adm policy who-can use scc/privileged`\n2. Remove any non-system subjects that do not have a documented requirement.\n3. Migrate those workloads to a less-privileged SCC and validate pod startup before revoking access.\n"
+# why-rec
+# CORRECTED. Same as custom SCCs: `oc get scc privileged` is what the engine evaluates. Revoking
+# privileged access can require workload rollout (impact workload-shift).
+recommendation = "1. List principals on the `privileged` SCC object (this is what the engine reads):\n   `oc get scc privileged -o jsonpath='{.users}{\"\\n\"}{.groups}{\"\\n\"}'`\n2. Remove any non-system subjects that do not have a documented requirement.\n3. Migrate those workloads to a less-privileged SCC and validate pod startup before revoking access.\n"
 priority_hint = ""
 impact = "workload-shift"
 impact_scope = "workloads using the privileged SCC"
@@ -37,8 +43,12 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.7.oauth.idp"
 title = "External identity providers"
-description = "The default `kubeadmin` user should be removed after external identity\nproviders are configured. Use RBAC to keep cluster-admin access limited to a\nsmall, controlled set of principals.\n"
-recommendation = "1. Configure at least one external identity provider.\n2. Ensure the correct `cluster-admin` RBAC bindings exist before removing the emergency account.\n3. Remove the `kubeadmin` secret.\n   `oc delete secret kubeadmin -n kube-system`\n"
+description = "This check fires when no OAuth identity providers are configured, leaving only\nthe bootstrap `kubeadmin` account. After at least one working IdP exists and a\nnon-kubeadmin cluster-admin can log in, remove the kubeadmin secret.\n"
+# why-rec
+# CORRECTED. Engine WARNs only when identityProviders is empty (HTPasswd PASSes). Rec must not
+# require an 'external' IdP or delete kubeadmin before a non-kubeadmin cluster-admin can log in.
+# Lab IdP is HTPasswd; kubeadmin secret still exists.
+recommendation = "1. List configured identity providers:\n   `oc get oauth cluster -o jsonpath='{.spec.identityProviders}'`\n2. If none exist, configure an IdP (LDAP, OIDC, GitHub, GitLab, HTPasswd, or another supported type).\n3. Confirm a non-kubeadmin user has `cluster-admin` and can authenticate.\n4. Only then remove the bootstrap account:\n   `oc delete secret kubeadmin -n kube-system`\n"
 priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "authentication components"
@@ -55,8 +65,11 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.7.rbac.cluster_admin"
 title = "Cluster-admin RBAC"
-description = "The cluster-admin role grants unrestricted access to every resource in the\ncluster. Review the list of assigned users and groups regularly and keep it as\nsmall as possible.\n"
-recommendation = "1. Audit `cluster-admin` bindings.\n   `oc get clusterrolebindings -o json | jq '.items[] | select(.roleRef.name==\"cluster-admin\") | .subjects'`\n2. Remove any service accounts or users that do not require full cluster access.\n3. Prefer scoped roles (`edit`, `admin`) per namespace for daily operations.\n"
+description = "This is a deterministic engine check; it is not a TSR worksheet item. The cluster-admin role grants unrestricted access to every resource in the\ncluster. Review the list of assigned users and groups regularly and keep it as\nsmall as possible.\n"
+# why-rec
+# CORRECTED. Rec lists ClusterRoleBindings whose ROLE is cluster-admin, with subject names
+# as a column. Do not dump CRB JSON.
+recommendation = "1. List `cluster-admin` bindings:\n   `oc get clusterrolebinding --no-headers -o custom-columns=NAME:.metadata.name,ROLE:.roleRef.name,SUBJECTS:.subjects[*].name | awk '$2==\"cluster-admin\" {print}'`\n2. Remove any service accounts or users that do not require full cluster access.\n3. Prefer scoped roles (`edit`, `admin`) per namespace for daily operations.\n"
 priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "access control only"
@@ -74,7 +87,9 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.compliance"
 title = "Compliance Operator"
 description = "The Compliance Operator automates security scanning against profiles such as\nCIS, NIST, and STIG, and provides continuous monitoring plus supported\nremediation workflows.\n"
-recommendation = "1. Validate the Compliance Operator.\n   `oc get csv -n openshift-compliance`\n2. Review configured suites.\n   `oc get compliancesuite -n openshift-compliance -o yaml`\n3. If the operator is missing, install or validate it in `openshift-compliance`, select the required benchmark profile (for example CIS or NIST), and run scans on a regular cadence.\n4. Review generated remediations before applying them, because some remediations change node or control-plane configuration.\n"
+# why-rec
+# CORRECTED. Rec prints ComplianceSuite name and phase as columns. Do not dump suite YAML.
+recommendation = "1. Validate the Compliance Operator:\n   `oc get csv -n openshift-compliance`\n2. Print suite name and phase:\n   `oc get compliancesuite -n openshift-compliance -o custom-columns=NAME:.metadata.name,PHASE:.status.phase,SCHEDULE:.spec.schedule`\n3. If the operator is missing, install or validate it in `openshift-compliance`, select the required benchmark profile (for example CIS or NIST), and run scans on a regular cadence.\n4. Review generated remediations before applying them, because some remediations change node or control-plane configuration.\n"
 priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "compliance operator and scan workloads"
@@ -92,6 +107,15 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.csr"
 title = "Certificate signing requests"
 description = "Pending CSRs typically indicate new nodes waiting for certificate approval. In\nmanual approval mode they block node join; in auto-approve mode they often\nindicate a bootstrap or node-health issue.\n"
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: Pending CSRs typically indicate new nodes waiting for certificate approval.
+# The rec remediates THAT story by starting at `oc get csr` — the live object/command for this
+# check, not a neighboring TSR item.
+# Impact `non-disruptive`: CSR approval allows pending components or nodes to continue operation
+# without rebooting existing cluster nodes.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Review pending CSRs.\n   `oc get csr`\n2. Approve only trusted node or service requests after validating the requester identity.\n3. Investigate repeated CSR accumulation as a separate node bootstrap, certificate rotation, or machine health issue.\n"
 priority_hint = ""
 impact = "non-disruptive"
@@ -110,6 +134,17 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.ccx_external.cve_2026_31431_copy_fail_in_algif_aead"
 title = "CCX CVE-2026-31431 kernel algif_aead"
 description = "A known kernel security vulnerability (CVE-2026-31431) affects this cluster's RHCOS version. The vulnerability is in the kernel's cryptography subsystem and can cause a kernel panic under certain workloads. A patched kernel version is available — the evidence shows the fixed version number."
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: A known kernel security vulnerability (CVE-2026-31431) affects this cluster's
+# RHCOS version.
+# The rec remediates THAT story by starting at `oc get nodes -o
+# custom-columns=NAME:.metadata.name,KERNEL:.status.nodeInfo.kernelVersion` — the live
+# object/command for this check, not a neighboring TSR item.
+# Impact `maintenance-window`: Applying the fixed RHCOS/kernel content requires rolling node
+# updates and reboots to bring the patched kernel into service.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Check the kernel version running on each node.\n   `oc get nodes -o custom-columns=NAME:.metadata.name,KERNEL:.status.nodeInfo.kernelVersion`\n2. Compare the running version against the fix version in the advisory.\n   https://access.redhat.com/security/cve/CVE-2026-31431\n3. If nodes are running the vulnerable kernel, upgrade the cluster to the fixed OCP version shown in the evidence, or apply RHCOS updates.\n   `oc adm upgrade`\n4. Plan a maintenance window because nodes will need to reboot to pick up the new kernel.\n"
 priority_hint = ""
 impact = "maintenance-window"
@@ -128,6 +163,17 @@ default = "https://access.redhat.com/security/cve/CVE-2026-31431"
 check_id = "7.7.ccx_external.cve_2026_43284_dirty_frag"
 title = "CCX CVE-2026-43284 dirty frag"
 description = "A known kernel security vulnerability (CVE-2026-43284) affects this cluster's RHCOS version. The vulnerability involves memory page handling and can lead to data corruption or service disruption under memory pressure. A patched kernel version is available."
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: A known kernel security vulnerability (CVE-2026-43284) affects this cluster's
+# RHCOS version.
+# The rec remediates THAT story by starting at `oc get nodes -o
+# custom-columns=NAME:.metadata.name,KERNEL:.status.nodeInfo.kernelVersion` — the live
+# object/command for this check, not a neighboring TSR item.
+# Impact `maintenance-window`: Applying the fixed RHCOS/kernel content requires rolling node
+# updates and reboots to bring the patched kernel into service.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Check the kernel version running on each node.\n   `oc get nodes -o custom-columns=NAME:.metadata.name,KERNEL:.status.nodeInfo.kernelVersion`\n2. Compare the running version against the fix version in the advisory.\n   https://access.redhat.com/security/cve/CVE-2026-43284\n3. Upgrade the cluster to the fixed OCP version shown in the evidence.\n   `oc adm upgrade`\n4. Plan a maintenance window because nodes will reboot during the upgrade to load the patched kernel.\n"
 priority_hint = ""
 impact = "maintenance-window"
@@ -146,6 +192,15 @@ default = "https://access.redhat.com/security/cve/CVE-2026-43284"
 check_id = "7.7.ccx_internal.high_severity_alerts"
 title = "CCX high severity alerts"
 description = "Red Hat Insights detected one or more critical or warning alerts actively firing in the cluster. These alerts indicate real-time problems such as disk pressure, expiring certificates, or unhealthy operators that need investigation before they cause outages."
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: Red Hat Insights detected one or more critical or warning alerts actively firing
+# in the cluster.
+# The rec remediates THAT story by starting at `the numbered procedure` — the live object/command
+# for this check, not a neighboring TSR item.
+# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. View active alerts in the OCP console: Observe → Alerting, filter by\n   severity=critical or severity=warning.\n2. Each alert links to a runbook with specific investigation steps — follow it.\n3. Common root causes include:\n   - Disk pressure on nodes\n   - Certificates approaching expiry\n   - Degraded cluster operators\n4. Address the root cause rather than silencing the alert.\n"
 priority_hint = ""
 impact = "none"
@@ -164,6 +219,16 @@ default = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat
 check_id = "7.7.ccx_internal.high_core_dns_errors_high_alerts"
 title = "CCX high CoreDNS error rate"
 description = "The cluster's internal DNS service (CoreDNS) is producing a high rate of errors. DNS is fundamental — when it fails, pods cannot discover services, health probes fail, and operators may degrade. The evidence shows specific DNS lookup failures and the domains involved."
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: The cluster's internal DNS service (CoreDNS) is producing a high rate of errors.
+# The rec remediates THAT story by starting at `oc -n openshift-dns logs -l
+# dns.operator.openshift.io/daemonset-dns --tail=100` — the live object/command for this check,
+# not a neighboring TSR item.
+# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
+# `oc debug` was not executed this pass (starts a node pod). Treat those steps as command-form.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Check CoreDNS pod logs for error patterns.\n   `oc -n openshift-dns logs -l dns.operator.openshift.io/daemonset-dns --tail=100`\n2. Look for SERVFAIL or NXDOMAIN errors for specific domains, because these indicate either missing DNS records or unreachable upstream resolvers.\n3. Verify upstream DNS resolver connectivity from a node.\n   `oc debug node/<node> -- chroot /host nslookup <failing-domain>`\n4. Check that no NetworkPolicies are blocking DNS traffic on port 53.\n   `oc get networkpolicy -A | grep -i dns`\n"
 priority_hint = ""
 impact = "none"
@@ -182,6 +247,15 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.ccx_internal.certificates_expiring_soon"
 title = "CCX certificates expiring soon"
 description = "One or more TLS certificates in the cluster are approaching their expiration date. If a certificate expires, the affected endpoint (API server, ingress router, or internal service) will reject connections. OpenShift automatically rotates its own internal certificates, but any certificates you provided manually (custom ingress certs, API server certs) must be renewed by you."
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: One or more TLS certificates in the cluster are approaching their expiration date.
+# The rec remediates THAT story by starting at `oc get csr` — the live object/command for this
+# check, not a neighboring TSR item.
+# Impact `workload-shift`: Renewing user-provided certificates rolls the components that mount
+# those secrets and can briefly reset TLS sessions while new certs are loaded.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Identify which certificates are expiring.\n   `oc get csr`\n   `oc get secret -n openshift-kube-apiserver -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\\n' | grep serving`\n2. For user-provided certificates (ingress, API), renew the certificate with your CA before the expiration date.\n3. Update the corresponding Secret.\n   `oc create secret tls <name> --cert=<new-cert> --key=<new-key> -n <ns> --dry-run=client -o yaml | oc apply -f -`\n4. No action is needed for OCP-managed internal certificates because they auto-rotate.\n5. If `cert-manager` is installed, check managed certificates.\n   `oc get certificates -A`\n"
 priority_hint = ""
 impact = "workload-shift"
@@ -200,6 +274,9 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.ccx_internal.etcd_low_backend_performance"
 title = "CCX etcd low backend performance"
 description = "Red Hat Insights detected that etcd is taking too long to write data to disk on one or more control plane nodes. The evidence shows slow fdatasync and backend commit times. When etcd cannot write fast enough, the cluster's API becomes slow or unresponsive — every kubectl/oc command and every controller reconciliation is affected."
+# why-rec
+# ENGINEERING JUDGMENT on the 4 GB defrag trigger (this lab quota is 8.6 GB). 50 sequential IOPS
+# and <10ms P99 fsync are documented etcd practices. etcdctl endpoint status verified.
 recommendation = "1. Check the current etcd database size and member health:\n   `oc -n openshift-etcd exec -c etcd etcd-<member> -- etcdctl endpoint status --cluster -w table`\n2. Run fio benchmarks on control plane disks to verify they meet requirements:\n   - Minimum 50 sequential IOPS\n   - P99 fsync latency under 10ms\n3. If disk latency is too high:\n   - On bare metal: dedicate an NVMe/SSD partition for /var/lib/etcd\n   - On virtualized platforms: check for noisy-neighbor I/O contention\n4. If database size is large (>4 GB), schedule defragmentation in a\n   maintenance window after taking an etcd backup.\n"
 priority_hint = ""
 impact = "maintenance-window"
@@ -218,6 +295,14 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.ccx_internal.operators_check"
 title = "CCX operators check"
 description = "One or more cluster operators are not fully healthy. A healthy operator shows Available=True, Progressing=False, Degraded=False. Degraded operators can cause missing features, block upgrades, or trigger cascading failures in other components that depend on them."
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: One or more cluster operators are not fully healthy.
+# The rec remediates THAT story by starting at `oc get co` — the live object/command for this
+# check, not a neighboring TSR item.
+# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. List all operator states:\n   `oc get co`\n2. For any operator not showing Available=True / Degraded=False, investigate:\n   `oc describe co <operator-name>`\n3. Check the operator's pod logs for errors:\n   `oc logs -n <operator-namespace> <operator-pod>`\n4. Common causes: expired certificates, missing secrets, node resource\n   exhaustion, or a failed rollout stuck in Progressing=True.\n"
 priority_hint = ""
 impact = "none"
@@ -236,6 +321,16 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.ccx_internal.pods_check_containers"
 title = "CCX pods container health"
 description = "One or more pods have containers that are repeatedly crashing (CrashLoopBackOff), cannot pull their image (ImagePullBackOff), or are restarting frequently. The evidence lists the specific pods and their restart counts. These failures may indicate application bugs, missing configuration, or infrastructure problems."
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: One or more pods have containers that are repeatedly crashing (CrashLoopBackOff),
+# cannot pull their image (ImagePullBackOff), or are restarting frequently.
+# The rec remediates THAT story by starting at `oc get pods -A | grep -E
+# 'CrashLoop|Error|ImagePull'` — the live object/command for this check, not a neighboring TSR
+# item.
+# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. List all unhealthy pods:\n   `oc get pods -A | grep -E 'CrashLoop|Error|ImagePull'`\n2. For CrashLoopBackOff pods, check why the container is crashing:\n   `oc logs <pod> -n <ns> --previous` — shows the last crash output\n   `oc describe pod <pod> -n <ns>` — look for OOMKilled or exit codes\n3. For ImagePullBackOff pods, verify:\n   - The image name and tag are correct\n   - Registry credentials (pull secrets) are configured\n   - Network connectivity to the image registry is working\n"
 priority_hint = ""
 impact = "none"
@@ -254,6 +349,16 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.ccx_internal.uninstalled_operators_with_leftover_resources"
 title = "CCX uninstalled operators with leftover resources"
 description = "An operator was previously installed and then removed, but some of its resources (custom resource definitions, namespaces, webhooks) were left behind. These orphaned resources can cause errors, slow down API discovery, and interfere with future operator installations."
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: An operator was previously installed and then removed, but some of its resources
+# (custom resource definitions, namespaces, webhooks) were left behind.
+# The rec remediates THAT story by starting at `oc get crd | grep <operator-keyword>` — the live
+# object/command for this check, not a neighboring TSR item.
+# Impact `non-disruptive`: Cleaning up orphaned resources updates API discovery and admission
+# objects immediately, but it does not reboot nodes when no active workloads depend on them.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Identify the orphaned operator from the evidence (e.g. \"advanced-cluster-management\").\n2. Check whether any custom resources still exist for its CRDs.\n   `oc get crd | grep <operator-keyword>`\n   `oc get <crd-name> -A`\n3. Remove orphaned CRDs when the custom resource list is empty.\n   `oc delete crd <crd-name>`\n4. Delete leftover webhooks.\n   `oc delete validatingwebhookconfiguration <name>`\n   `oc delete mutatingwebhookconfiguration <name>`\n5. Clean up the orphaned namespace if it still exists.\n   `oc delete namespace <operator-namespace>`\n"
 priority_hint = ""
 impact = "non-disruptive"
@@ -272,11 +377,27 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.ccx_internal.webhooks_check"
 title = "CCX webhooks health"
 description = "Insights detected webhooks that are intercepting too many API resources or have connectivity problems. Webhooks inspect every API request before it completes — if a webhook's backing service is down or slow, it can block all cluster operations including pod creation and configuration changes."
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: Insights detected webhooks that are intercepting too many API resources or have
+# connectivity problems.
+# The rec remediates THAT story by starting at `oc get
+# validatingwebhookconfigurations,mutatingwebhookconfigurations` — the live object/command for
+# this check, not a neighboring TSR item.
+# Impact `non-disruptive`: Webhook tuning applies live without node restarts, but it can
+# immediately change whether API requests are blocked, mutated, or allowed.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. List all webhook configurations.\n   `oc get validatingwebhookconfigurations,mutatingwebhookconfigurations`\n2. For each webhook, verify its backing service is running.\n   `oc get endpoints <service> -n <namespace>`\n3. If a webhook belongs to a removed operator, delete it.\n   `oc delete mutatingwebhookconfiguration <name>`\n4. For non-critical webhooks, consider reducing `timeoutSeconds` to `5-10s` or changing `failurePolicy` from `\"Fail\"` to `\"Ignore\"`.\n"
 priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "API admission path"
 impact_detail = "Webhook tuning applies live without node restarts, but it can immediately change whether API requests are blocked, mutated, or allowed."
+# Design (Chunk E): Insights/CCX webhooks are a third dataset for the same
+# customer topic as TSR 3.13 and the live validating/mutating scans. On review
+# they duplicated Chapter 6 without adding a distinct action. Keep this check
+# in chapter 7; do not emit a Chapter 6 finding.
+include_in_findings = false
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#configuring-dynamic-admission_admission-plug-ins"
@@ -290,6 +411,16 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.ccx_internal.image_registry_storage_comprehensive"
 title = "CCX image registry storage"
 description = "The internal image registry is using \"emptyDir\" (temporary) storage. This means any container images pushed to the internal registry will be lost when the registry pod restarts. Builds that push images internally and ImageStream imports will fail after a restart. Production clusters should use persistent storage."
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: The internal image registry is using "emptyDir" (temporary) storage.
+# The rec remediates THAT story by starting at `oc get
+# configs.imageregistry.operator.openshift.io cluster -o jsonpath='{.spec.storage}'` — the live
+# object/command for this check, not a neighboring TSR item.
+# Impact `workload-shift`: Changing registry storage or registry rollout settings rolls registry
+# pods and can briefly interrupt builds or internal image pulls/pushes.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Check the current registry storage type:\n   `oc get configs.imageregistry.operator.openshift.io cluster -o jsonpath='{.spec.storage}'`\n2. If it shows \"emptyDir\", configure a persistent backend:\n   - Bare metal: use a PVC with a supported StorageClass\n   - Cloud: use native object storage (S3, Azure Blob, GCS)\n3. Verify the registry pods are healthy after the change:\n   `oc get pods -n openshift-image-registry`\n4. Confirm the image pruner is enabled to manage storage growth.\n"
 priority_hint = ""
 impact = "workload-shift"
@@ -308,11 +439,22 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.ccx_internal.tls_handshake_errors"
 title = "CCX TLS handshake errors"
 description = "Cluster components are failing to establish secure (TLS) connections with each other. The evidence shows which components are affected. Common causes include expired certificates, mismatched TLS versions between components, or network appliances (load balancers, firewalls) interfering with encrypted traffic inside the cluster."
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: Cluster components are failing to establish secure (TLS) connections with each
+# other.
+# The rec remediates THAT story by starting at `oc get secret -n <namespace> -o
+# jsonpath='{.items[*].metadata.name}' | tr ' ' '\n' | grep -E 'tls|cert|serving'` — the live
+# object/command for this check, not a neighboring TSR item.
+# Impact `workload-shift`: Fixing handshake errors can require certificate rotation or TLS
+# profile changes that restart the affected operands.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Identify which components are failing from the evidence log entries.\n2. Check certificate validity on the affected endpoints:\n   `oc get secret -n <namespace> -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\\n' | grep -E 'tls|cert|serving'`\n3. Verify the TLS security profile is not too restrictive:\n   `oc get apiserver cluster -o jsonpath='{.spec.tlsSecurityProfile}'`\n4. If a load balancer or proxy sits between cluster nodes, ensure it is\n   configured to pass through (not terminate) internal cluster TLS traffic.\n"
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "workload-shift"
+impact_scope = "components failing TLS handshakes"
+impact_detail = "Fixing handshake errors can require certificate rotation or TLS profile changes that restart the affected operands."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/security_and_compliance/index#tls-profiles-view-details_tls-security-profiles"
@@ -326,7 +468,10 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.tsr.7_1_security"
 title = "7.1. Security"
 description = "Parent section covering cluster security posture including container security,\nauditing, encryption, vulnerability scanning, TLS profiles, and pod security\nadmission. Comprehensive security requires addressing each sub-area.\n"
-recommendation = "1. Review overall security posture.\n   `oc get scc -o name`\n   `oc get oauth cluster -o yaml`\n   `oc get apiserver cluster -o yaml`\n   `oc get namespaces -o json | jq '.items[].metadata.labels[\"pod-security.kubernetes.io/enforce\"]'`\n2. Address individual sub-check findings for specific security concerns.\n"
+# why-rec
+# CORRECTED. Parent row. Print IdP types, apiserver encryption, and PSA enforce labels as
+# columns. Do not dump OAuth or APIServer YAML.
+recommendation = "1. Print SCC names:\n   `oc get scc -o custom-columns=NAME:.metadata.name,PRIV:.allowPrivilegedContainer`\n2. Print identity provider types:\n   `oc get oauth cluster -o jsonpath='{.spec.identityProviders[*].name}{\"\\t\"}{.spec.identityProviders[*].type}{\"\\n\"}'`\n3. Print API server encryption type:\n   `oc get apiserver cluster -o jsonpath='{.spec.encryption.type}{\"\\n\"}'`\n4. Print PSA enforce labels:\n   `oc get namespaces -o custom-columns=NAME:.metadata.name,ENFORCE:.metadata.labels.pod-security\\.kubernetes\\.io/enforce`\n5. Address individual sub-check findings for specific security concerns.\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -344,7 +489,10 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.tsr.7_1_1_container_security"
 title = "7.1.1. Container Security"
 description = "Evaluates container security context constraints usage, privileged container\nprevalence, and root user execution. Containers running with elevated\nprivileges increase the blast radius of a compromise.\n"
-recommendation = "1. Audit SCC assignments for running pods.\n   `oc get pods -A -o json | jq -r '.items[] | .metadata.namespace + \"/\" + .metadata.name + \" \" + .metadata.annotations[\"openshift.io/scc\"]'`\n2. Identify pods using `privileged` or `anyuid` SCCs and evaluate whether they can be migrated to `restricted-v2`.\n3. Review custom SCCs.\n   `oc get scc -o json`\n"
+# why-rec
+# CORRECTED. Rec prints pod SCC annotations as a column and SCC privilege flags. Do not
+# dump pod or SCC JSON.
+recommendation = "1. List the SCC each running pod used:\n   `oc get pods -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,SCC:.metadata.annotations.openshift\\.io/scc --no-headers | awk '$3==\"privileged\" || $3==\"anyuid\" {print}'`\n2. Evaluate whether those pods can be migrated to `restricted-v2`.\n3. List SCC privilege flags:\n   `oc get scc -o custom-columns=NAME:.metadata.name,PRIV:.allowPrivilegedContainer,ALLOWPRIVESC:.allowPrivilegeEscalation,RUNAS:.runAsUser.type`\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -362,6 +510,16 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.tsr.7_1_2_auditing"
 title = "7.1.2. Auditing"
 description = "Assesses API server audit logging configuration and retention. Audit logs are\nessential for compliance, incident investigation, and detecting unauthorized\naccess patterns.\n"
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: Assesses API server audit logging configuration and retention.
+# The rec remediates THAT story by starting at `oc get apiserver cluster -o
+# jsonpath='{.spec.audit.profile}'` — the live object/command for this check, not a neighboring
+# TSR item.
+# Impact `rolling-restart`: Audit-profile changes roll API server configuration and can briefly
+# reset API connections while control-plane pods reconcile.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Check the current audit profile.\n   `oc get apiserver cluster -o jsonpath='{.spec.audit.profile}'`\n2. Treat `Default` as metadata-only logging.\n3. For compliance requirements, enable `WriteRequestBodies` or `AllRequestBodies`.\n4. Verify audit log storage capacity is adequate for the increased verbosity.\n"
 priority_hint = ""
 impact = "rolling-restart"
@@ -380,7 +538,11 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.tsr.7_1_4_encrypting_data"
 title = "7.1.4. Encrypting data"
 description = "Evaluates etcd encryption configuration for secrets and other sensitive\nresources. Without etcd encryption at rest, anyone with access to etcd\nbackups or disk can read secrets in plaintext.\n"
-recommendation = "1. Check encryption status.\n   `oc get apiserver cluster -o jsonpath='{.spec.encryption}'`\n2. Enable etcd encryption.\n   `oc patch apiserver cluster --type=merge -p '{\"spec\":{\"encryption\":{\"type\":\"aescbc\"}}}'`\n3. Monitor encryption migration progress.\n   `oc get openshiftapiserver -o jsonpath='{.items[0].status.conditions}'`\n"
+# why-rec
+# CORRECTED. Empty spec.encryption means identity (unencrypted). API enum is identity / aescbc /
+# aesgcm. Rec prefers aesgcm and watches named `openshiftapiserver cluster`. Enabling encryption
+# rolls API servers and migrates secrets.
+recommendation = "1. Check encryption status.\n   `oc get apiserver cluster -o jsonpath='{.spec.encryption}'`\n2. Empty `spec.encryption` means identity (unencrypted). Enable datastore encryption with `aesgcm` (preferred) or `aescbc`:\n   `oc patch apiserver cluster --type=merge -p '{\"spec\":{\"encryption\":{\"type\":\"aesgcm\"}}}'`\n3. Monitor encryption migration progress on the named object:\n   `oc get openshiftapiserver cluster -o jsonpath='{.status.conditions}'`\n"
 priority_hint = ""
 impact = "rolling-restart"
 impact_scope = "API server and etcd encryption migration"
@@ -398,7 +560,10 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.tsr.7_1_5_vulnerability_scanning"
 title = "7.1.5. Vulnerability Scanning"
 description = "Checks whether container image vulnerability scanning is configured and\nactive. Without scanning, vulnerable base images and application dependencies\nremain undetected in the cluster.\n"
-recommendation = "1. Verify image scanning is operational. If you are using the Red Hat Quay integration, check `ImageContentSourcePolicy`.\n2. For external scanners, confirm scanning pods are running.\n3. Review pod images for known CVE exposure and cross-reference them with your vulnerability database.\n   `oc get pods -A -o json | jq -r '.items[].spec.containers[].image' | sort -u`\n"
+# why-rec
+# CORRECTED. Rec lists unique container images via jsonpath, not `oc get pods -A -o json`.
+# Mirror resources stay as `oc get` names.
+recommendation = "1. Verify image scanning is operational. For disconnected or mirrored registries, review ImageDigestMirrorSet / ImageTagMirrorSet (current) and ImageContentSourcePolicy (deprecated but still present):\n   `oc get imagedigestmirrorset,imagetagmirrorset,imagecontentsourcepolicy`\n2. For external scanners, confirm scanning pods are running.\n3. List unique container images:\n   `oc get pods -A -o jsonpath='{range .items[*]}{range .spec.containers[*]}{.image}{\"\\n\"}{end}{end}' | sort -u`\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -416,6 +581,17 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.tsr.7_1_6_tls_security_profiles"
 title = "7.1.6. TLS Security Profiles"
 description = "Evaluates TLS security profile settings across API server, ingress, and kubelet\ncomponents. Weak TLS profiles allow cipher suites vulnerable to known attacks;\noverly strict profiles may break client compatibility.\n"
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: Evaluates TLS security profile settings across API server, ingress, and kubelet
+# components.
+# The rec remediates THAT story by starting at `oc get apiserver cluster -o
+# jsonpath='{.spec.tlsSecurityProfile}'` — the live object/command for this check, not a
+# neighboring TSR item.
+# Impact `rolling-restart`: TLS profile changes propagate across multiple components and trigger
+# operator-managed rollouts that can briefly reset connections.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Check TLS profiles.\n   `oc get apiserver cluster -o jsonpath='{.spec.tlsSecurityProfile}'`\n   `oc get ingresscontroller default -n openshift-ingress-operator -o jsonpath='{.spec.tlsSecurityProfile}'`\n2. Ensure production clusters use at least the `Intermediate` profile.\n3. Verify external clients support the target cipher set before tightening.\n"
 priority_hint = ""
 impact = "rolling-restart"
@@ -434,7 +610,10 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.tsr.7_1_7_pod_security_admission"
 title = "7.1.7. Pod Security Admission"
 description = "Evaluates Pod Security Admission (PSA) label enforcement across namespaces.\nPSA replaces PodSecurityPolicy and provides namespace-level enforcement of\npod security standards (privileged, baseline, restricted).\n"
-recommendation = "1. Audit PSA labels across namespaces.\n   `oc get namespaces -o json | jq '.items[] | {name: .metadata.name, enforce: .metadata.labels[\"pod-security.kubernetes.io/enforce\"]}'`\n2. Ensure production namespaces enforce at least `baseline` or `restricted`.\n3. Apply labels where needed.\n   `oc label ns <ns> pod-security.kubernetes.io/enforce=restricted --overwrite`\n"
+# why-rec
+# CORRECTED. Rec prints namespace PSA enforce labels as a column, not namespace JSON into
+# jq.
+recommendation = "1. Audit PSA enforce labels:\n   `oc get namespaces -o custom-columns=NAME:.metadata.name,ENFORCE:.metadata.labels.pod-security\\.kubernetes\\.io/enforce`\n2. Ensure production namespaces enforce at least `baseline` or `restricted`.\n3. Apply labels where needed:\n   `oc label ns <ns> pod-security.kubernetes.io/enforce=restricted --overwrite`\n"
 priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "namespace admission enforcement"
@@ -452,6 +631,16 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.tsr.7_2_compliance"
 title = "7.2. Compliance"
 description = "Parent section covering compliance assessment including automated scanning,\nscan results analysis, and file integrity monitoring. Compliance posture\nrequires continuous validation against organizational security baselines.\n"
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: Parent section covering compliance assessment including automated scanning, scan
+# results analysis, and file integrity monitoring.
+# The rec remediates THAT story by starting at `oc get csv -n openshift-compliance` — the live
+# object/command for this check, not a neighboring TSR item.
+# This is a section overview. Detailed remediation lives on the numbered sub-checks.
+# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Verify Compliance Operator installation.\n   `oc get csv -n openshift-compliance`\n2. Verify File Integrity Operator installation.\n   `oc get csv -n openshift-file-integrity`\n3. Review scan schedules and results to ensure continuous compliance monitoring is active.\n"
 priority_hint = ""
 impact = "none"
@@ -470,6 +659,15 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.tsr.7_2_1_compliance_check"
 title = "7.2.1. Compliance Check"
 description = "Evaluates whether the Compliance Operator is installed and active with\nconfigured scan schedules. Without automated compliance scanning, security\ndrift goes undetected between manual audits.\n"
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: Evaluates whether the Compliance Operator is installed and active with configured
+# scan schedules.
+# The rec remediates THAT story by starting at `oc get pods -n openshift-compliance` — the live
+# object/command for this check, not a neighboring TSR item.
+# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Verify the Compliance Operator is running.\n   `oc get pods -n openshift-compliance`\n2. Check configured `ScanSettings`.\n   `oc get scansettings -n openshift-compliance`\n3. Ensure at least one `ComplianceSuite` is scheduled against a relevant profile (`CIS`, `NIST`, or `STIG`).\n"
 priority_hint = ""
 impact = "none"
@@ -488,7 +686,10 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.tsr.7_2_1_1_compliance_scans"
 title = "7.2.1.1. Compliance Scans"
 description = "Checks ComplianceScan execution status and schedule. Scans that are not running\nor have stale last-run timestamps indicate the compliance monitoring pipeline\nis broken or misconfigured.\n"
-recommendation = "1. List scans and verify their phase is `DONE` or `RUNNING`.\n   `oc get compliancescan -n openshift-compliance`\n2. Check scan schedules in the parent `ComplianceSuite`.\n   `oc get compliancesuite -n openshift-compliance -o yaml`\n3. Investigate failed or stale scans by checking scanner pod logs.\n"
+# why-rec
+# CORRECTED. Rec prints ComplianceSuite phase and schedule as columns. Scan list stays `oc
+# get compliancescan`.
+recommendation = "1. List scans and verify their phase is `DONE` or `RUNNING`:\n   `oc get compliancescan -n openshift-compliance -o custom-columns=NAME:.metadata.name,PHASE:.status.phase`\n2. Print suite schedule and phase:\n   `oc get compliancesuite -n openshift-compliance -o custom-columns=NAME:.metadata.name,PHASE:.status.phase,SCHEDULE:.spec.schedule`\n3. Investigate failed or stale scans by checking scanner pod logs.\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -506,7 +707,10 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.tsr.7_2_1_2_compliance_scan_results"
 title = "7.2.1.2. Compliance Scan Results"
 description = "Evaluates ComplianceCheckResult objects for FAIL and INCONSISTENT findings.\nFailed compliance checks indicate configuration drift from the target security\nbaseline and may have regulatory implications.\n"
-recommendation = "1. List failed checks.\n   `oc get compliancecheckresults -n openshift-compliance -o json | jq '.items[] | select(.status==\"FAIL\") | .metadata.name'`\n2. Review failed rules and available remediations.\n   `oc get complianceremediations -n openshift-compliance`\n3. Apply remediations only after reviewing their impact.\n"
+# why-rec
+# CORRECTED. Rec lists FAIL ComplianceCheckResults as a column filtered by awk, not JSON
+# into jq.
+recommendation = "1. List failed checks:\n   `oc get compliancecheckresults -n openshift-compliance -o custom-columns=NAME:.metadata.name,STATUS:.status --no-headers | awk '$2==\"FAIL\" {print}'`\n2. Review failed rules and available remediations:\n   `oc get complianceremediations -n openshift-compliance`\n3. Apply remediations only after reviewing their impact.\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -524,6 +728,14 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.tsr.7_2_2_file_integrity"
 title = "7.2.2. File Integrity"
 description = "Evaluates File Integrity Operator deployment and monitoring status. File\nintegrity monitoring detects unauthorized changes to critical system files\non cluster nodes, which may indicate compromise or configuration drift.\n"
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: Evaluates File Integrity Operator deployment and monitoring status.
+# The rec remediates THAT story by starting at `oc get fileintegrity -A` — the live
+# object/command for this check, not a neighboring TSR item.
+# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Check FIO status.\n   `oc get fileintegrity -A`\n2. Review integrity check results.\n   `oc get fileintegritynodestatuses -A`\n3. Investigate any nodes showing `FAILED` status by reviewing the changed files list.\n4. Ensure FIO is monitoring critical paths like `/etc`, `/boot`, and `/usr/lib/systemd`.\n"
 priority_hint = ""
 impact = "none"
@@ -542,6 +754,15 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.ccx_internal.unsupported_cni_plugin"
 title = "CCX Unsupported CNI Plugin"
 description = "Insights detected a non-supported CNI plugin in use. Using unsupported CNI\nplugins means Red Hat cannot provide full support for networking issues and\nupgrade paths may be blocked.\n"
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: Insights detected a non-supported CNI plugin in use.
+# The rec remediates THAT story by starting at `oc get network cluster -o
+# jsonpath='{.spec.networkType}'` — the live object/command for this check, not a neighboring TSR
+# item.
+# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Validate the active CNI plugin.\n   `oc get network cluster -o jsonpath='{.spec.networkType}'`\n2. Confirm the value is `OVNKubernetes` or `OpenShiftSDN`.\n3. If a third-party CNI is detected, verify it is certified and that the vendor provides support.\n4. Review the Insights recommendation for specific migration guidance.\n"
 priority_hint = ""
 impact = "none"
@@ -560,6 +781,15 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.ccx_internal.cluster_status_overview"
 title = "CCX Cluster Status Overview"
 description = "Insights provides a high-level cluster status assessment covering overall health\nindicators. This CCX check aggregates multiple signals into a single cluster\nhealth determination.\n"
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: Insights provides a high-level cluster status assessment covering overall health
+# indicators.
+# The rec remediates THAT story by starting at `oc get co` — the live object/command for this
+# check, not a neighboring TSR item.
+# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Validate the CCX cluster status finding against live state.\n   `oc get co`\n   `oc get nodes`\n   `oc get clusterversion`\n2. Compare the Insights finding with current cluster conditions to confirm whether the reported issues persist.\n"
 priority_hint = ""
 impact = "none"
@@ -578,7 +808,10 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.ccx_internal.cluster_status_overview_machines"
 title = "CCX Cluster Status Overview Machines"
 description = "Insights detected machine-level issues including failed provisioning, stuck\ndeletions, or machines not matching their MachineSet desired state.\n"
-recommendation = "1. Validate machine status and compare desired versus actual state.\n   `oc get machines -A`\n2. Check for failed machines.\n   `oc get machines -A -o json | jq '.items[] | select(.status.phase != \"Running\") | .metadata.name + \" \" + .status.phase'`\n3. Investigate provisioning errors in machine-api operator logs.\n"
+# why-rec
+# CORRECTED. Rec lists machines whose PHASE is not Running as columns, not machine JSON
+# into jq.
+recommendation = "1. Validate machine status:\n   `oc get machines -A`\n2. List machines not in Running:\n   `oc get machines -A --no-headers -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,PHASE:.status.phase | awk '$3!=\"Running\" {print}'`\n3. Investigate provisioning errors in machine-api operator logs.\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -596,7 +829,10 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.ccx_internal.cluster_status_overview_networks"
 title = "CCX Cluster Status Overview Networks"
 description = "Insights detected networking configuration issues or degraded network operator\nstatus that may affect pod-to-pod communication or external connectivity.\n"
-recommendation = "1. Validate network status.\n   `oc get co network`\n   `oc get network cluster -o yaml`\n2. Check for degraded network pods in the active network namespace.\n   `oc get pods -n openshift-ovn-kubernetes`\n   `oc get pods -n openshift-sdn`\n3. Review recent network-related events.\n   `oc get events -A --field-selector reason=NetworkNotReady`\n"
+# why-rec
+# CORRECTED. Rec PASS/FAIL the network ClusterOperator and prints networkType. Do not dump
+# network.config YAML.
+recommendation = "1. PASS/FAIL the network ClusterOperator:\n   `oc get co network --no-headers | awk '{print ($3==\"True\" && $4==\"False\" && $5==\"False\"?\"PASS\":\"FAIL\"), $0}'`\n2. Print network type only:\n   `oc get network.config cluster -o jsonpath='{.spec.networkType}'`\n3. Check OVN-Kubernetes pods:\n   `oc get pods -n openshift-ovn-kubernetes`\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -614,6 +850,14 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.ccx_internal.cluster_status_overview_nodes_and_machineconfigpools"
 title = "CCX Cluster Status Overview Nodes And Machineconfigpools"
 description = "Insights detected issues with node readiness or MachineConfigPool degradation.\nNotReady nodes cannot schedule workloads; degraded MCPs block configuration\nrollout and upgrades.\n"
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: Insights detected issues with node readiness or MachineConfigPool degradation.
+# The rec remediates THAT story by starting at `oc get nodes` — the live object/command for this
+# check, not a neighboring TSR item.
+# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Validate node and MachineConfigPool status.\n   `oc get nodes`\n   `oc get mcp`\n2. Identify `NotReady` nodes and investigate them.\n   `oc describe node <node>`\n3. For degraded MCPs, inspect pool details and MCO logs.\n   `oc describe mcp <pool>`\n4. Consider common causes such as failed kubelet restarts, disk pressure, or stalled MachineConfig rendering.\n"
 priority_hint = ""
 impact = "none"
@@ -632,6 +876,14 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.ccx_internal.cluster_status_overview_operators"
 title = "CCX Cluster Status Overview Operators"
 description = "Insights detected ClusterOperators in degraded or unavailable states. Degraded\noperators cause feature loss, blocked upgrades, or cascading failures in\ndependent components.\n"
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: Insights detected ClusterOperators in degraded or unavailable states.
+# The rec remediates THAT story by starting at `oc get co` — the live object/command for this
+# check, not a neighboring TSR item.
+# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Validate operator status.\n   `oc get co`\n2. Investigate degraded operators.\n   `oc describe co <name>`\n3. Check operator namespace pod logs for specific error messages.\n4. Consider common causes including expired certificates, missing secrets, resource exhaustion, or failed rollouts.\n"
 priority_hint = ""
 impact = "none"
@@ -650,7 +902,10 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.ccx_internal.image_registry_pods"
 title = "CCX Image Registry Pods"
 description = "Insights detected unhealthy image registry pods or registry configuration\nissues. Registry pod failures block builds, ImageStream imports, and internal\nimage distribution.\n"
-recommendation = "1. Validate registry pod health.\n   `oc get pods -n openshift-image-registry`\n2. Check image-registry operator status.\n   `oc get co image-registry`\n3. Review registry configuration.\n   `oc get configs.imageregistry.operator.openshift.io cluster -o yaml`\n4. Confirm the storage backend is accessible and has capacity.\n"
+# why-rec
+# CORRECTED. Rec prints managementState and storage backend names, not ImageRegistry
+# config YAML (credentials).
+recommendation = "1. Validate registry pod health:\n   `oc get pods -n openshift-image-registry`\n2. PASS/FAIL the image-registry ClusterOperator:\n   `oc get co image-registry --no-headers | awk '{print ($3==\"True\" && $4==\"False\" && $5==\"False\"?\"PASS\":\"FAIL\"), $0}'`\n3. Print managementState and storage backend names:\n   `oc get configs.imageregistry.operator.openshift.io cluster -o custom-columns=STATE:.spec.managementState,REPLICAS:.spec.replicas,EMPTYDIR:.spec.storage.emptyDir,PVC:.spec.storage.pvc.claim`\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -668,6 +923,19 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.ccx_internal.master_nodes_are_schedulable"
 title = "CCX Master Nodes Are Schedulable"
 description = "Insights detected that control plane (master) nodes are configured as\nschedulable for user workloads. This allows application pods to compete with\ncritical control-plane components for resources.\n"
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: Insights detected that control plane (master) nodes are configured as schedulable
+# for user workloads.
+# The rec remediates THAT story by starting at `oc get scheduler cluster -o
+# jsonpath='{.spec.mastersSchedulable}'` — the live object/command for this check, not a
+# neighboring TSR item.
+# Impact `non-disruptive`: Disabling master schedulability prevents new user workloads from
+# landing on control-plane nodes but does not evict existing pods or reboot nodes. On compact
+# 3-node clusters where all nodes serve as both control-plane and worker, this affects 100% of
+# cluster capacity.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Check scheduler configuration.\n   `oc get scheduler cluster -o jsonpath='{.spec.mastersSchedulable}'`\n2. If `mastersSchedulable` is true and that is not intentional (for example on compact 3-node clusters), set it to false.\n   `oc patch scheduler cluster --type=merge -p '{\"spec\":{\"mastersSchedulable\": false}}'`\n3. Verify control plane taints are present.\n   `oc describe nodes -l node-role.kubernetes.io/master=`\n"
 priority_hint = ""
 impact = "non-disruptive"
@@ -686,7 +954,10 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.ccx_internal.node_ip_does_not_match_machine_network"
 title = "CCX Node IP Does Not Match Machine Network"
 description = "Insights detected nodes whose IP addresses do not match the configured machine\nnetwork CIDR. This indicates potential network misconfiguration that may cause\nrouting issues or break cluster communication.\n"
-recommendation = "1. Validate node IPs.\n   `oc get nodes -o json | jq '.items[] | {name: .metadata.name, ip: .status.addresses[] | select(.type==\"InternalIP\") | .address}'`\n2. Compare them against the machine network.\n   `oc get network cluster -o jsonpath='{.status.clusterNetwork}'`\n3. Investigate nodes with mismatched IPs for DHCP or static assignment issues.\n"
+# why-rec
+# CORRECTED — wrong CIDR. clusterNetwork is the pod CIDR. Compare node InternalIP to
+# install-config machineNetwork (grep the networking: block; do not dump the ConfigMap).
+recommendation = "1. Validate node InternalIPs:\n   `oc get nodes -o wide`\n2. Compare them against the install-config **machineNetwork** CIDR, not the pod `clusterNetwork`. The ConfigMap can contain trust bundles — grep only the networking keys:\n   `oc get configmap cluster-config-v1 -n kube-system -o jsonpath='{.data.install-config}' | grep -A20 '^networking:'`\n3. Investigate nodes whose InternalIP falls outside machineNetwork for DHCP or static assignment issues.\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -704,7 +975,10 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.ccx_internal.node_requirements_internal"
 title = "CCX Node Requirements Internal"
 description = "Insights detected nodes that do not meet minimum resource or configuration\nrequirements for their role. Under-resourced nodes may experience instability,\nOOMKills, or inability to run required system workloads.\n"
-recommendation = "1. Validate node resources.\n   `oc get nodes -o json | jq '.items[] | {name: .metadata.name, cpu: .status.allocatable.cpu, memory: .status.allocatable.memory}'`\n2. Compare results against minimum requirements for the node role (master: 4 vCPU/16GB, worker: 2 vCPU/8GB minimum).\n3. Investigate the Insights recommendation for specific requirement violations.\n"
+# why-rec
+# CORRECTED. Rec prints allocatable CPU and memory as columns. PASS/FAIL uses the same 4
+# vCPU / 16 GiB (control plane) and 2 vCPU / 8 GiB (worker) floors as 1.4.
+recommendation = "1. Print allocatable CPU and memory:\n   `oc get nodes -o custom-columns=NAME:.metadata.name,CPU:.status.allocatable.cpu,MEMORY:.status.allocatable.memory,ROLES:.metadata.labels.node-role\\.kubernetes\\.io/master`\n2. PASS/FAIL control-plane nodes at 4 vCPU / 16 GiB (16777216 Ki):\n   `oc get nodes -l node-role.kubernetes.io/master --no-headers -o custom-columns=NAME:.metadata.name,CPU:.status.capacity.cpu,MEM:.status.capacity.memory | awk '{print ($2+0>=4 && $3+0>=16777216?\"PASS\":\"FAIL\"), $0}'`\n3. PASS/FAIL worker-role nodes at 2 vCPU / 8 GiB (8388608 Ki):\n   `oc get nodes -l node-role.kubernetes.io/worker --no-headers -o custom-columns=NAME:.metadata.name,CPU:.status.capacity.cpu,MEM:.status.capacity.memory | awk '{print ($2+0>=2 && $3+0>=8388608?\"PASS\":\"FAIL\"), $0}'`\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -722,6 +996,14 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.ccx_internal.pods_check"
 title = "CCX Pods Check"
 description = "Red Hat Insights found pods that are not in a healthy Running or Completed state. This includes pods stuck in Pending, CrashLoopBackOff, Error, or other abnormal states. The evidence lists the affected pods and their status."
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: Red Hat Insights found pods that are not in a healthy Running or Completed state.
+# The rec remediates THAT story by starting at `oc get pods -A | grep -Ev 'Running|Completed'` —
+# the live object/command for this check, not a neighboring TSR item.
+# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. List all non-healthy pods:\n   `oc get pods -A | grep -Ev 'Running|Completed'`\n2. For each problem pod, check what went wrong:\n   `oc describe pod <pod> -n <ns>` — look at Events and Status sections\n   `oc logs <pod> -n <ns> --previous` — see the last crash output\n3. Common causes: resource limits too low (OOMKilled), missing ConfigMaps\n   or Secrets, image pull failures, or node resource exhaustion.\n"
 priority_hint = ""
 impact = "none"
@@ -740,6 +1022,16 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.ccx_internal.version_check"
 title = "CCX Version Check"
 description = "Insights detected the cluster is running an older or unsupported version of\nOpenShift. Running unsupported versions means no security patches, bug fixes,\nor Red Hat support coverage.\n"
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: Insights detected the cluster is running an older or unsupported version of
+# OpenShift.
+# The rec remediates THAT story by starting at `oc get clusterversion` — the live object/command
+# for this check, not a neighboring TSR item.
+# Impact `maintenance-window`: Addressing version currency requires performing a cluster upgrade,
+# which rolls operators, nodes, and workloads over time.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Check the current cluster version.\n   `oc get clusterversion`\n2. Compare it against supported lifecycle dates.\n   https://access.redhat.com/support/policy/updates/openshift\n3. Plan the upgrade path using the OCP Upgrade Graph.\n   https://access.redhat.com/labs/ocpupgradegraph/\n4. Test the upgrade in non-production before applying it to production clusters.\n"
 priority_hint = ""
 impact = "maintenance-window"
@@ -758,7 +1050,10 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.7.ccx_internal.version_info"
 title = "CCX Version Info"
 description = "Insights version information check providing details about the cluster version,\nupdate channel, and available updates. This informational check helps track\ncluster currency and update availability.\n"
-recommendation = "1. Review version details.\n   `oc get clusterversion -o json | jq '{version: .items[0].status.desired.version, channel: .items[0].spec.channel, available: .items[0].status.availableUpdates}'`\n2. Confirm the cluster is on a supported channel.\n3. Ensure available updates are being evaluated for scheduling.\n"
+# why-rec
+# CORRECTED. Rec prints version, channel, and available update versions from named
+# `clusterversion version`, not a JSON dump of availableUpdates objects.
+recommendation = "1. Print version, channel, and recommended updates:\n   `oc get clusterversion version -o jsonpath='{.status.desired.version}{\" \"}{.spec.channel}{\"\\n\"}{range .status.availableUpdates[*]}available={.version}{\"\\n\"}{end}'`\n   `oc adm upgrade`\n2. Confirm the cluster is on a supported channel.\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""

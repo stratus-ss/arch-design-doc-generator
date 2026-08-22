@@ -85,6 +85,7 @@ COPY scripts/health_check/ /toolkit/health_check/
 # ── Toolkit entrypoint + setup script ────────────────────────────────
 COPY scripts/entrypoint.sh /toolkit/entrypoint.sh
 COPY scripts/setup_project.py /toolkit/setup_project.py
+COPY scripts/setup_status.py /toolkit/setup_status.py
 RUN chmod +x /toolkit/entrypoint.sh
 
 # Puppeteer config: --no-sandbox required when running as root in container
