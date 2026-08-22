@@ -509,30 +509,11 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.7.tsr.7_1_2_auditing"
 title = "7.1.2. Auditing"
-description = "Assesses API server audit logging configuration and retention. Audit logs are\nessential for compliance, incident investigation, and detecting unauthorized\naccess patterns.\n"
+content_from = "7.6.apiserver.audit"
+finding_group = "apiserver-audit"
+finding_group_title = "API server audit profile"
 # why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: Assesses API server audit logging configuration and retention.
-# The rec remediates THAT story by starting at `oc get apiserver cluster -o
-# jsonpath='{.spec.audit.profile}'` — the live object/command for this check, not a neighboring
-# TSR item.
-# Impact `rolling-restart`: Audit-profile changes roll API server configuration and can briefly
-# reset API connections while control-plane pods reconcile.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
-recommendation = "1. Check the current audit profile.\n   `oc get apiserver cluster -o jsonpath='{.spec.audit.profile}'`\n2. Treat `Default` as metadata-only logging.\n3. For compliance requirements, enable `WriteRequestBodies` or `AllRequestBodies`.\n4. Verify audit log storage capacity is adequate for the increased verbosity.\n"
-priority_hint = ""
-impact = "rolling-restart"
-impact_scope = "API server audit pipeline"
-impact_detail = "Audit-profile changes roll API server configuration and can briefly reset API connections while control-plane pods reconcile."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/security_and_compliance/index#configuring-audit-policy_audit-log-policy-config"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/security_and_compliance/index#configuring-audit-policy_audit-log-policy-config"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/security_and_compliance/index#configuring-audit-policy_audit-log-policy-config"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/security_and_compliance/index#configuring-audit-policy_audit-log-policy-config"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/security_and_compliance/index#configuring-audit-policy_audit-log-policy-config"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/security_and_compliance/index#configuring-audit-policy_audit-log-policy-config"
+# Alias of 7.6.apiserver.audit (C-09). Grouped in Chapter 6; do not hide TSR.
 
 [[checks]]
 check_id = "7.7.tsr.7_1_4_encrypting_data"
@@ -901,23 +882,11 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.7.ccx_internal.image_registry_pods"
 title = "CCX Image Registry Pods"
-description = "Insights detected unhealthy image registry pods or registry configuration\nissues. Registry pod failures block builds, ImageStream imports, and internal\nimage distribution.\n"
+content_from = "7.5.tsr.5_4_registry_health"
+finding_group = "registry-health-pods"
+finding_group_title = "Image registry health (pods and ClusterOperator)"
 # why-rec
-# CORRECTED. Rec prints managementState and storage backend names, not ImageRegistry
-# config YAML (credentials).
-recommendation = "1. Validate registry pod health:\n   `oc get pods -n openshift-image-registry`\n2. PASS/FAIL the image-registry ClusterOperator:\n   `oc get co image-registry --no-headers | awk '{print ($3==\"True\" && $4==\"False\" && $5==\"False\"?\"PASS\":\"FAIL\"), $0}'`\n3. Print managementState and storage backend names:\n   `oc get configs.imageregistry.operator.openshift.io cluster -o custom-columns=STATE:.spec.managementState,REPLICAS:.spec.replicas,EMPTYDIR:.spec.storage.emptyDir,PVC:.spec.storage.pvc.claim`\n"
-priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/registry/index#checking-the-status-of-registry-pods_accessing-the-registry"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/registry/index#checking-the-status-of-registry-pods_accessing-the-registry"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/registry/index#checking-the-status-of-registry-pods_accessing-the-registry"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/registry/index#checking-the-status-of-registry-pods_accessing-the-registry"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/registry/index#checking-the-status-of-registry-pods_accessing-the-registry"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/registry/index#checking-the-status-of-registry-pods_accessing-the-registry"
+# Alias of 7.5.tsr.5_4_registry_health (C-06). Keep in Chapter 6 as a group member.
 
 [[checks]]
 check_id = "7.7.ccx_internal.master_nodes_are_schedulable"

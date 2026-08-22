@@ -106,11 +106,14 @@ description = "Automatic installPlanApproval causes operators to upgrade automat
 # CORRECTED. Automatic and Manual are both valid `installPlanApproval` values. Rec now lists
 # subscriptions first, then prefers Manual for production as an operational choice, except where
 # docs require Manual (STS / workload identity). Changing approval does not reboot nodes.
-recommendation = "1. List subscription approval strategies:\n   `oc get subscription -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,APPROVAL:.spec.installPlanApproval,STATE:.status.state`\n2. For production clusters, prefer `Manual` so operators do not upgrade without review:\n   `oc patch subscription <name> -n <ns> --type=merge -p '{\"spec\":{\"installPlanApproval\":\"Manual\"}}'`\n3. Automatic approval is supported. Treat a change to Manual as an operational preference except where docs require Manual (for example cloud STS or workload-identity installs).\n"
+# InstallPlan list lives on this canonical row so C-01 aliases can pointer (DR-2).
+recommendation = "1. List subscription approval strategies:\n   `oc get subscription -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,APPROVAL:.spec.installPlanApproval,STATE:.status.state`\n2. For production clusters, prefer `Manual` so operators do not upgrade without review:\n   `oc patch subscription <name> -n <ns> --type=merge -p '{\"spec\":{\"installPlanApproval\":\"Manual\"}}'`\n3. Automatic approval is supported. Treat a change to Manual as an operational preference except where docs require Manual (for example cloud STS or workload-identity installs).\n4. Review pending InstallPlans and approve them only during planned windows:\n   `oc get installplan -A`\n"
 priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "affected operator namespace"
 impact_detail = "Changing installPlanApproval updates Subscription behavior immediately without rebooting nodes or evicting workloads."
+finding_group = "operator-approval"
+finding_group_title = "Operator subscription installPlanApproval"
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/operators/index#olm-installplan_olm-understanding-olm"

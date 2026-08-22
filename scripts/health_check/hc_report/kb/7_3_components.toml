@@ -285,6 +285,8 @@ priority_hint = ""
 impact = "none"
 impact_scope = ""
 impact_detail = ""
+finding_group = "dns-operator-health"
+finding_group_title = "DNS Operator / CoreDNS health"
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_operators/index#nw-dns-operator_dns-operator"
@@ -322,12 +324,14 @@ default = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat
 [[checks]]
 check_id = "7.3.webhooks.validatingwebhooks"
 title = "Validating admission webhooks"
-description = "Admission webhooks with high timeouts or `failurePolicy=Fail` can block API\noperations when the webhook backend is unavailable. Ensure webhook backends are\nhighly available and tune timeouts for non-critical paths.\nThis check is the live scan of ValidatingWebhookConfiguration objects (timeout and failurePolicy). TSR worksheet 3.13 covers validating and mutating together as one row and is listed in chapter 7 only. Insights check 7.7.ccx_internal.webhooks_check is a separate dataset and is also chapter 7 only.\n"
+description = "Validating admission webhooks admit or deny API requests without changing the\nobject. A `failurePolicy=Fail` hook or a slow/down backend can reject creates\nand updates cluster-wide (pods, configs, CRDs). This check is the live scan of\n`ValidatingWebhookConfiguration` timeout and failurePolicy. It is not the\nmutating (object-rewrite) scan. TSR worksheet 3.13 covers both kinds as one\nrow and is chapter 7 only. Insights `7.7.ccx_internal.webhooks_check` is a\nseparate dataset and is also chapter 7 only.\n"
 # why-rec
-# CORRECTED. Default `oc get` lacks timeout/failurePolicy. Split into three short jq
+# CORRECTED. Story is admit/deny on ValidatingWebhookConfiguration, not mutating.
+# Default `oc get` lacks timeout/failurePolicy. Split into three short jq
 # commands (fail_policy count, timeout>10 table, Fail+critical-ns). Tables print headers
 # and go through `column -t`. Lab: WARNING 43, WARNING 9 timeout>10, PASS 0 fail_tier.
-recommendation = "1. Count `failurePolicy=Fail` hooks (WARNING if >0; shipped operators commonly use Fail with an empty selector):\n   `oc get validatingwebhookconfigurations -o json | jq '[.items[].webhooks[]? | select(.failurePolicy==\"Fail\")] | length' | awk '{print ($1==0?\"PASS\":\"WARNING\"), \"fail_policy=\"$1}'`\n2. Print `CONFIG`, `HOOK`, `TIMEOUT`, `POLICY`, `SERVICE` for `timeoutSeconds>10` (WARNING if any rows):\n   `oc get validatingwebhookconfigurations -o json | jq -r '\"CONFIG\\tHOOK\\tTIMEOUT\\tPOLICY\\tSERVICE\", (.items[] as $config | $config.webhooks[]? | select((.timeoutSeconds // 10) > 10) | [$config.metadata.name, .name, (.timeoutSeconds // 10 | tostring), (.failurePolicy // \"Ignore\"), ((.clientConfig.service.namespace // \"-\")+\"/\"+(.clientConfig.service.name // \"-\"))] | @tsv)' | column -t | awk 'NR==1{print; next} {print; n++} END{print (n==0?\"PASS\":\"WARNING\"), n+0, \"timeout>10\"}'`\n   Empty: no timeout WARNING.\n3. Print Fail hooks whose selector values name `openshift-*`, `kube-system`, `kube-public`, or `default` (FAIL if any rows):\n   `oc get validatingwebhookconfigurations -o json | jq -r '\"CONFIG\\tHOOK\\tNS_VALUES\", (.items[] as $config | $config.webhooks[]? | select(.failurePolicy==\"Fail\") | [((.namespaceSelector.matchLabels // {})[]), (.namespaceSelector.matchExpressions[]?.values[]?)] as $ns | select(any($ns[]; type==\"string\" and (startswith(\"openshift-\") or .==\"kube-system\" or .==\"kube-public\" or .==\"default\"))) | [$config.metadata.name, .name, ($ns|join(\",\"))] | @tsv)' | column -t | awk 'NR==1{print; next} {print; n++} END{print (n==0?\"PASS\":\"FAIL\"), n+0, \"fail_tier\"}'`\n   Empty: no FAIL from this check. PASS on 1–3: this check is done.\n4. For each remaining SERVICE, print ready/notReady:\n   `oc get endpointslice -n <ns> -l kubernetes.io/service-name=<svc> -o json | jq '{ready: ([.items[].endpoints[]? | select(.conditions.ready==true)] | length), notReady: ([.items[].endpoints[]? | select(.conditions.ready!=true)] | length)}'`\n   `ready=0` means the webhook backend is down.\n5. https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#configuring-dynamic-admission_admission-plug-ins\n"
+# Keep this rec distinct from 7.3.webhooks.mutatingwebhooks (C-05).
+recommendation = "1. This is the validating (admit/deny) scan. Count `failurePolicy=Fail` hooks (WARNING if >0; shipped operators commonly use Fail with an empty selector):\n   `oc get validatingwebhookconfigurations -o json | jq '[.items[].webhooks[]? | select(.failurePolicy==\"Fail\")] | length' | awk '{print ($1==0?\"PASS\":\"WARNING\"), \"fail_policy=\"$1}'`\n2. Print `CONFIG`, `HOOK`, `TIMEOUT`, `POLICY`, `SERVICE` for `timeoutSeconds>10` (WARNING if any rows):\n   `oc get validatingwebhookconfigurations -o json | jq -r '\"CONFIG\\tHOOK\\tTIMEOUT\\tPOLICY\\tSERVICE\", (.items[] as $config | $config.webhooks[]? | select((.timeoutSeconds // 10) > 10) | [$config.metadata.name, .name, (.timeoutSeconds // 10 | tostring), (.failurePolicy // \"Ignore\"), ((.clientConfig.service.namespace // \"-\")+\"/\"+(.clientConfig.service.name // \"-\"))] | @tsv)' | column -t | awk 'NR==1{print; next} {print; n++} END{print (n==0?\"PASS\":\"WARNING\"), n+0, \"timeout>10\"}'`\n   Empty: no timeout WARNING.\n3. Print Fail hooks whose selector values name `openshift-*`, `kube-system`, `kube-public`, or `default` (FAIL if any rows):\n   `oc get validatingwebhookconfigurations -o json | jq -r '\"CONFIG\\tHOOK\\tNS_VALUES\", (.items[] as $config | $config.webhooks[]? | select(.failurePolicy==\"Fail\") | [((.namespaceSelector.matchLabels // {})[]), (.namespaceSelector.matchExpressions[]?.values[]?)] as $ns | select(any($ns[]; type==\"string\" and (startswith(\"openshift-\") or .==\"kube-system\" or .==\"kube-public\" or .==\"default\"))) | [$config.metadata.name, .name, ($ns|join(\",\"))] | @tsv)' | column -t | awk 'NR==1{print; next} {print; n++} END{print (n==0?\"PASS\":\"FAIL\"), n+0, \"fail_tier\"}'`\n   Empty: no FAIL from this check. PASS on 1–3: this check is done.\n4. For each remaining SERVICE, print ready/notReady:\n   `oc get endpointslice -n <ns> -l kubernetes.io/service-name=<svc> -o json | jq '{ready: ([.items[].endpoints[]? | select(.conditions.ready==true)] | length), notReady: ([.items[].endpoints[]? | select(.conditions.ready!=true)] | length)}'`\n   `ready=0` means the webhook backend is down.\n5. https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#configuring-dynamic-admission_admission-plug-ins\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -344,11 +348,14 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.3.webhooks.mutatingwebhooks"
 title = "Mutating admission webhooks"
-description = "Admission webhooks with high timeouts or `failurePolicy=Fail` can block API\noperations when the webhook backend is unavailable. Ensure webhook backends are\nhighly available and tune timeouts for non-critical paths.\nThis check is the live scan of MutatingWebhookConfiguration objects (timeout and failurePolicy). TSR worksheet 3.13 covers validating and mutating together as one row and is listed in chapter 7 only. Insights check 7.7.ccx_internal.webhooks_check is a separate dataset and is also chapter 7 only.\n"
+description = "Mutating admission webhooks rewrite API objects before they are persisted\n(defaults, sidecars, labels, security context). A `failurePolicy=Fail` hook or a\nslow/down backend can block those mutations and stall admission. Unexpected\nmutations also change cluster security posture. This check is the live scan of\n`MutatingWebhookConfiguration` timeout and failurePolicy. It is not the\nvalidating (admit/deny) scan. TSR worksheet 3.13 covers both kinds as one row\nand is chapter 7 only. Insights `7.7.ccx_internal.webhooks_check` is a separate\ndataset and is also chapter 7 only.\n"
 # why-rec
-# CORRECTED. Same three-command split as 7.3.webhooks.validatingwebhooks, with headers
-# and `column -t`. Lab: WARNING 15, WARNING 3 timeout>10, PASS 0 fail_tier.
-recommendation = "1. Count `failurePolicy=Fail` hooks (WARNING if >0; shipped operators commonly use Fail with an empty selector):\n   `oc get mutatingwebhookconfigurations -o json | jq '[.items[].webhooks[]? | select(.failurePolicy==\"Fail\")] | length' | awk '{print ($1==0?\"PASS\":\"WARNING\"), \"fail_policy=\"$1}'`\n2. Print `CONFIG`, `HOOK`, `TIMEOUT`, `POLICY`, `SERVICE` for `timeoutSeconds>10` (WARNING if any rows):\n   `oc get mutatingwebhookconfigurations -o json | jq -r '\"CONFIG\\tHOOK\\tTIMEOUT\\tPOLICY\\tSERVICE\", (.items[] as $config | $config.webhooks[]? | select((.timeoutSeconds // 10) > 10) | [$config.metadata.name, .name, (.timeoutSeconds // 10 | tostring), (.failurePolicy // \"Ignore\"), ((.clientConfig.service.namespace // \"-\")+\"/\"+(.clientConfig.service.name // \"-\"))] | @tsv)' | column -t | awk 'NR==1{print; next} {print; n++} END{print (n==0?\"PASS\":\"WARNING\"), n+0, \"timeout>10\"}'`\n   Empty: no timeout WARNING.\n3. Print Fail hooks whose selector values name `openshift-*`, `kube-system`, `kube-public`, or `default` (FAIL if any rows):\n   `oc get mutatingwebhookconfigurations -o json | jq -r '\"CONFIG\\tHOOK\\tNS_VALUES\", (.items[] as $config | $config.webhooks[]? | select(.failurePolicy==\"Fail\") | [((.namespaceSelector.matchLabels // {})[]), (.namespaceSelector.matchExpressions[]?.values[]?)] as $ns | select(any($ns[]; type==\"string\" and (startswith(\"openshift-\") or .==\"kube-system\" or .==\"kube-public\" or .==\"default\"))) | [$config.metadata.name, .name, ($ns|join(\",\"))] | @tsv)' | column -t | awk 'NR==1{print; next} {print; n++} END{print (n==0?\"PASS\":\"FAIL\"), n+0, \"fail_tier\"}'`\n   Empty: no FAIL from this check. PASS on 1–3: this check is done.\n4. For each remaining SERVICE, print ready/notReady:\n   `oc get endpointslice -n <ns> -l kubernetes.io/service-name=<svc> -o json | jq '{ready: ([.items[].endpoints[]? | select(.conditions.ready==true)] | length), notReady: ([.items[].endpoints[]? | select(.conditions.ready!=true)] | length)}'`\n   `ready=0` means the webhook backend is down.\n5. https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#configuring-dynamic-admission_admission-plug-ins\n"
+# CORRECTED. Story is object mutation on MutatingWebhookConfiguration, not validating.
+# Same three-command split as 7.3.webhooks.validatingwebhooks, with headers
+# and `column -t`, but `oc get mutatingwebhookconfigurations`. Lab: WARNING 15,
+# WARNING 3 timeout>10, PASS 0 fail_tier. Keep this rec distinct from
+# 7.3.webhooks.validatingwebhooks (C-05).
+recommendation = "1. This is the mutating (object-rewrite) scan. Count `failurePolicy=Fail` hooks (WARNING if >0; shipped operators commonly use Fail with an empty selector):\n   `oc get mutatingwebhookconfigurations -o json | jq '[.items[].webhooks[]? | select(.failurePolicy==\"Fail\")] | length' | awk '{print ($1==0?\"PASS\":\"WARNING\"), \"fail_policy=\"$1}'`\n2. Print `CONFIG`, `HOOK`, `TIMEOUT`, `POLICY`, `SERVICE` for `timeoutSeconds>10` (WARNING if any rows):\n   `oc get mutatingwebhookconfigurations -o json | jq -r '\"CONFIG\\tHOOK\\tTIMEOUT\\tPOLICY\\tSERVICE\", (.items[] as $config | $config.webhooks[]? | select((.timeoutSeconds // 10) > 10) | [$config.metadata.name, .name, (.timeoutSeconds // 10 | tostring), (.failurePolicy // \"Ignore\"), ((.clientConfig.service.namespace // \"-\")+\"/\"+(.clientConfig.service.name // \"-\"))] | @tsv)' | column -t | awk 'NR==1{print; next} {print; n++} END{print (n==0?\"PASS\":\"WARNING\"), n+0, \"timeout>10\"}'`\n   Empty: no timeout WARNING.\n3. Print Fail hooks whose selector values name `openshift-*`, `kube-system`, `kube-public`, or `default` (FAIL if any rows):\n   `oc get mutatingwebhookconfigurations -o json | jq -r '\"CONFIG\\tHOOK\\tNS_VALUES\", (.items[] as $config | $config.webhooks[]? | select(.failurePolicy==\"Fail\") | [((.namespaceSelector.matchLabels // {})[]), (.namespaceSelector.matchExpressions[]?.values[]?)] as $ns | select(any($ns[]; type==\"string\" and (startswith(\"openshift-\") or .==\"kube-system\" or .==\"kube-public\" or .==\"default\"))) | [$config.metadata.name, .name, ($ns|join(\",\"))] | @tsv)' | column -t | awk 'NR==1{print; next} {print; n++} END{print (n==0?\"PASS\":\"FAIL\"), n+0, \"fail_tier\"}'`\n   Empty: no FAIL from this check. PASS on 1–3: this check is done.\n4. For each remaining SERVICE, print ready/notReady:\n   `oc get endpointslice -n <ns> -l kubernetes.io/service-name=<svc> -o json | jq '{ready: ([.items[].endpoints[]? | select(.conditions.ready==true)] | length), notReady: ([.items[].endpoints[]? | select(.conditions.ready!=true)] | length)}'`\n   `ready=0` means the webhook backend is down.\n5. https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#configuring-dynamic-admission_admission-plug-ins\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -492,8 +499,9 @@ description = "This check evaluates how platform monitoring stores Prometheus an
 # why-rec
 # CORRECTED. Rec said "read TSR evidence". Live fields are Prometheus/Alertmanager
 # STORAGECLASS and ACCESS (`<none>` = emptyDir), then PVC MODE, then SC PROVISIONER.
+# Drop `--no-headers` so KIND/NAME/STORAGECLASS/ACCESS print. awk skips the header row.
 # Lab: FAIL emptyDir, no PVCs, only nfs-csi (file). volumeClaimTemplate is 7.3.monitoring.config.
-recommendation = "1. PASS/FAIL Prometheus and Alertmanager storage (`STORAGECLASS` `<none>` is emptyDir; `ReadWriteMany` is file/RWX):\n   `oc get prometheus,alertmanager -n openshift-monitoring --no-headers -o custom-columns=KIND:.kind,NAME:.metadata.name,STORAGECLASS:.spec.storage.volumeClaimTemplate.spec.storageClassName,ACCESS:.spec.storage.volumeClaimTemplate.spec.accessModes[*] | awk '{print} $3==\"<none>\"{e=1} $4 ~ /ReadWriteMany/{r=1} END{if(e) print \"FAIL emptyDir\"; else if(r) print \"WARNING RWX\"; else print \"PASS\"}'`\n2. Print monitoring PVC `PHASE`, `SC`, and `MODE` (empty = no PVCs):\n   `oc get pvc -n openshift-monitoring -o custom-columns=NAME:.metadata.name,PHASE:.status.phase,SC:.spec.storageClassName,MODE:.spec.accessModes[*]`\n3. Print StorageClass provisioners (match the `SC` from step 2, or the candidates if emptyDir):\n   `oc get sc -o custom-columns=NAME:.metadata.name,PROVISIONER:.provisioner`\n   `nfs`, `efs`, `azurefile`, or `cephfs` in `PROVISIONER` is file storage (WARNING). Prefer `ReadWriteOnce` on a block provisioner.\n4. `volumeClaimTemplate` in `cluster-monitoring-config` is `7.3.monitoring.config`.\n5. https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/latest/html-single/configuring_core_platform_monitoring/index#configuring-a-persistent-volume-claim_storing-and-recording-data\n"
+recommendation = "1. PASS/FAIL Prometheus and Alertmanager storage (`STORAGECLASS` `<none>` is emptyDir; `ReadWriteMany` is file/RWX):\n   `oc get prometheus,alertmanager -n openshift-monitoring -o custom-columns=KIND:.kind,NAME:.metadata.name,STORAGECLASS:.spec.storage.volumeClaimTemplate.spec.storageClassName,ACCESS:.spec.storage.volumeClaimTemplate.spec.accessModes[*] | awk '{print} NR>1 && $3==\"<none>\"{e=1} NR>1 && $4 ~ /ReadWriteMany/{r=1} END{if(e) print \"FAIL emptyDir\"; else if(r) print \"WARNING RWX\"; else print \"PASS\"}'`\n2. Print monitoring PVC `PHASE`, `SC`, and `MODE` (empty = no PVCs):\n   `oc get pvc -n openshift-monitoring -o custom-columns=NAME:.metadata.name,PHASE:.status.phase,SC:.spec.storageClassName,MODE:.spec.accessModes[*]`\n3. Print StorageClass provisioners (match the `SC` from step 2, or the candidates if emptyDir):\n   `oc get sc -o custom-columns=NAME:.metadata.name,PROVISIONER:.provisioner`\n   `nfs`, `efs`, `azurefile`, or `cephfs` in `PROVISIONER` is file storage (WARNING). Prefer `ReadWriteOnce` on a block provisioner.\n4. `volumeClaimTemplate` in `cluster-monitoring-config` is `7.3.monitoring.config`.\n5. https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/latest/html-single/configuring_core_platform_monitoring/index#configuring-a-persistent-volume-claim_storing-and-recording-data\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -613,31 +621,11 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.3.tsr.3_2_3_operators_plan_approval"
 title = "3.2.3. Operators Plan approval"
-description = "Checks whether operator subscriptions use Automatic or Manual install plan\napproval. Automatic approval can lead to unplanned operator upgrades that may\nintroduce breaking changes or require cluster-version prerequisites.\n"
+content_from = "7.1.subs.approval"
+finding_group = "operator-approval"
+finding_group_title = "Operator subscription installPlanApproval"
 # why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: Checks whether operator subscriptions use Automatic or Manual install plan
-# approval.
-# The rec remediates THAT story by starting at `oc get subscription -A -o
-# custom-columns=NS:.metadata.namespace,NAME:.metadata.name,APPROVAL:.spec.installPlanApproval` —
-# the live object/command for this check, not a neighboring TSR item.
-# Impact `non-disruptive`: Changing installPlanApproval from Automatic to Manual does not restart
-# anything but changes how future operator updates are applied.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
-recommendation = "1. Review approval strategies:\n   `oc get subscription -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,APPROVAL:.spec.installPlanApproval`\n2. For production clusters, consider setting critical operators to Manual approval to control upgrade timing.\n"
-priority_hint = ""
-impact = "non-disruptive"
-impact_scope = "operator upgrade behavior"
-impact_detail = "Changing installPlanApproval from Automatic to Manual does not restart anything but changes how future operator updates are applied."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/operators/index#olm-installing-operators-from-operatorhub"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/operators/index#olm-installing-operators-from-operatorhub"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/operators/index#olm-installing-operators-from-operatorhub"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/operators/index#olm-installing-operators-from-operatorhub"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/operators/index#olm-installing-operators-from-operatorhub"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/operators/index#olm-installing-operators-from-operatorhub"
+# Alias of 7.1.subs.approval (C-01). Chapter 6 grouped with 7.1; do not hide TSR.
 
 [[checks]]
 check_id = "7.3.tsr.3_4_master_configuration"
@@ -1054,15 +1042,12 @@ check_id = "7.3.tsr.3_8_1_haproxy_status"
 title = "3.8.1. HAProxy Status"
 description = "Validates that the default HAProxy-based ingress router pods are running and\nhealthy across scheduled nodes. Degraded routers cause external traffic\nblackouts for affected routes.\n"
 # why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: Validates that the default HAProxy-based ingress router pods are running and
-# healthy across scheduled nodes.
-# The rec remediates THAT story by starting at `oc get pods -n openshift-ingress -o wide` — the
-# live object/command for this check, not a neighboring TSR item.
-# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
-recommendation = "1. Check router pod status and verify all replicas are running:\n   `oc get pods -n openshift-ingress -o wide`\n2. Review router logs for errors:\n   `oc logs -n openshift-ingress deployment/router-default --tail=50`\n"
+# CORRECTED. Engine is IngressController Available, not a log dump. `oc get
+# ingresscontroller` is NAME/AGE only. `-o wide` prints IPs. `--tail=50` is
+# parseIPList / router-reloaded noise. Rec PASS/FAIL Available/Progressing/Degraded
+# plus Canary, then READY/STATUS pods, then grep klog E/F and reload/TLS failures.
+# Lab: PASS Canary=True; --since=1h grep empty.
+recommendation = "1. PASS/FAIL `ingresscontroller default` (`Available=True`, `Progressing=False`, `Degraded=False`):\n   `oc get ingresscontroller default -n openshift-ingress-operator -o json | jq -r '.status.conditions as $c | (first($c[] | select(.type==\"Available\") | .status) // \"-\") as $a | (first($c[] | select(.type==\"Progressing\") | .status) // \"-\") as $p | (first($c[] | select(.type==\"Degraded\") | .status) // \"-\") as $d | (first($c[] | select(.type==\"CanaryChecksSucceeding\") | .status) // \"-\") as $canary | (if $a==\"True\" and $p==\"False\" and $d==\"False\" then \"PASS\" else \"FAIL\" end) + \" Available=\"+$a+\" Progressing=\"+$p+\" Degraded=\"+$d+\" Canary=\"+$canary'`\n2. Print router pod `READY` and `STATUS`:\n   `oc get pods -n openshift-ingress -o custom-columns=NAME:.metadata.name,READY:.status.containerStatuses[0].ready,STATUS:.status.phase,RESTARTS:.status.containerStatuses[0].restartCount,NODE:.spec.nodeName | awk '{print} NR>1 && ($2!=\"true\" || $3!=\"Running\"){bad=1} END{print (bad?\"FAIL\":\"PASS\"), \"router pods\"}'`\n3. Grep klog errors and reload/TLS failures for the last hour (empty = none). Healthy lines are `parseIPList` and `router reloaded`:\n   `oc logs -n openshift-ingress -l ingresscontroller.operator.openshift.io/deployment-ingresscontroller=default --since=1h | grep -E '^E|^F|reload failed|error reloading|x509'`\n4. Replica count is 3.8 / `7.2.topo.haproxy_ha`. Tuning is 3.8.2.\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -1081,21 +1066,21 @@ check_id = "7.3.tsr.3_8_2_ingress_controller_tuning"
 title = "3.8.2. Ingress Controller Tuning"
 description = "Reviews ingress controller tuning parameters such as thread count, connection\ntimeouts, and resource limits. Suboptimal tuning can cause connection drops\nunder load or excessive resource consumption.\n"
 # why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: Reviews ingress controller tuning parameters such as thread count, connection
-# timeouts, and resource limits.
-# The rec remediates THAT story by starting at `oc get ingresscontroller default -n
-# openshift-ingress-operator -o jsonpath='{.spec.tuningOptions}'` — the live object/command for
-# this check, not a neighboring TSR item.
-# Impact `rolling-restart`: Tuning changes trigger a rolling restart of router pods which can
-# briefly affect active connections during the rollout.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
-recommendation = "1. Review tuning options:\n   `oc get ingresscontroller default -n openshift-ingress-operator -o jsonpath='{.spec.tuningOptions}'`\n2. Check resource limits:\n   `oc get pods -n openshift-ingress -o jsonpath='{.items[0].spec.containers[0].resources}'`\n"
+# CORRECTED. `{.spec.tuningOptions}` dumps `{"reloadInterval":"0s"}` which looks
+# custom; CRD says `0s` means the documented default (currently 5s).
+# `{.items[0].spec.containers[0].resources}` dumps JSON from an arbitrary pod.
+# Rec prints named columns, scores empty/`0s` as defaults, and lists CRD defaults:
+# threadCount 4 (max 64), maxConnections 50000, client/server 30s, FIN 1s,
+# tunnel 1h, healthCheckInterval 5s, reloadInterval 5s, tlsInspectDelay 5s.
+# healthCheckInterval below 5s causes excess backend probes. Router resources:
+# named request/limit columns; empty limits is the Operator default. Engine is
+# always INFO. Lab: PASS defaults; RELOAD=0s; CPU_REQ=100m MEM_REQ=256Mi limits
+# none. Impact none: inspect only. HAProxy status is 3.8.1.
+recommendation = "1. Print named `tuningOptions` fields (`<none>` or `0s` = Operator default):\n   `oc get ingresscontroller default -n openshift-ingress-operator -o custom-columns=NAME:.metadata.name,THREADS:.spec.tuningOptions.threadCount,MAXCONN:.spec.tuningOptions.maxConnections,CLIENT:.spec.tuningOptions.clientTimeout,SERVER:.spec.tuningOptions.serverTimeout,TUNNEL:.spec.tuningOptions.tunnelTimeout,HEALTH:.spec.tuningOptions.healthCheckInterval,RELOAD:.spec.tuningOptions.reloadInterval | column -t`\n2. Score empty/`0s` as defaults (engine is INFO either way):\n   `oc get ingresscontroller default -n openshift-ingress-operator -o json | jq -r '(.spec.tuningOptions // {}) as $t | [$t | to_entries[] | select(.value != null and .value != \"\" and .value != 0 and .value != \"0s\")] as $custom | if ($custom|length)==0 then \"PASS defaults\" else \"INFO custom \"+($custom | map(.key+\"=\"+(.value|tostring)) | join(\" \")) end'`\n3. Documented defaults when `<none>` or `0s` (IngressController CRD): `threadCount` 4 (max 64), `maxConnections` 50000, `clientTimeout`/`serverTimeout` 30s, `clientFinTimeout`/`serverFinTimeout` 1s, `tunnelTimeout` 1h, `healthCheckInterval` 5s, `reloadInterval` 5s, `tlsInspectDelay` 5s. `healthCheckInterval` below 5s causes excess backend probes. Leave defaults unless you have a measured need.\n4. Print router container requests/limits:\n   `oc get deploy -n openshift-ingress -o custom-columns=NAME:.metadata.name,CPU_REQ:.spec.template.spec.containers[0].resources.requests.cpu,MEM_REQ:.spec.template.spec.containers[0].resources.requests.memory,CPU_LIM:.spec.template.spec.containers[0].resources.limits.cpu,MEM_LIM:.spec.template.spec.containers[0].resources.limits.memory | column -t`\n   Empty `CPU_LIM`/`MEM_LIM` is the Operator default. HAProxy status is 3.8.1.\n5. https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#nw-ingress-controller-configuration-parameters_configuring-ingress\n"
 priority_hint = ""
-impact = "rolling-restart"
-impact_scope = "ingress router pods"
-impact_detail = "Tuning changes trigger a rolling restart of router pods which can briefly affect active connections during the rollout."
+impact = "none"
+impact_scope = ""
+impact_detail = ""
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#nw-ingress-controller-configuration-parameters_configuring-ingress"
@@ -1110,9 +1095,17 @@ check_id = "7.3.tsr.3_8_3_ingress_sharding"
 title = "3.8.3. Ingress Sharding"
 description = "Checks whether ingress sharding is configured to distribute routes across\nmultiple ingress controllers. Sharding enables traffic isolation, separate\nscaling, and domain-based routing policies.\n"
 # why-rec
-# CORRECTED. Rec prints routeSelector and namespaceSelector columns -- the sharding fields
-# -- not a full IngressController dump.
-recommendation = "1. Print route and namespace selectors:\n   `oc get ingresscontroller -n openshift-ingress-operator -o custom-columns=NAME:.metadata.name,ROUTE_SELECTOR:.spec.routeSelector,NS_SELECTOR:.spec.namespaceSelector,REPLICAS:.spec.replicas`\n"
+# CORRECTED. `custom-columns` of `.spec.routeSelector` prints a Go map dump
+# (`map[matchExpressions:[map[...]]]`); empty NS is `<none>` with no meaning.
+# One controller is not sharding. Lab `default` has a platform
+# `hypershift.openshift.io/hosted-control-plane:DoesNotExist` routeSelector —
+# that is not a user shard. Rec extracts matchLabels/matchExpressions as
+# `key=value` / `key:Operator[:values]`, scores 1 vs many controllers the same
+# way as the engine, then counts routes by `status.ingress[].routerName` and
+# lists dual-admitted routes (documented overlap: unrestricted default still
+# admits shard routes). Lab: INFO n=1; 13 routes on default; OVERLAP 0.
+# HAProxy status is 3.8.1. Tuning is 3.8.2.
+recommendation = "1. Print NAME, DOMAIN, REPLICAS, and selector matchLabels/matchExpressions (`-` = none; an empty selector admits all routes). `hypershift.openshift.io/hosted-control-plane:DoesNotExist` on `default` is the platform filter, not a user shard:\n   `oc get ingresscontroller -n openshift-ingress-operator -o json | jq -r 'def selector_text: [((.matchLabels // {}) | to_entries | map(.key+\"=\"+(.value|tostring))), ((.matchExpressions // []) | map(.key+\":\"+.operator + (if ((.values // [])|length)>0 then \":\"+((.values)|join(\"|\")) else \"\" end)))] | flatten | join(\",\") | if .==\"\" then \"-\" else . end; ([\"NAME\",\"DOMAIN\",\"REPLICAS\",\"ROUTE_SEL\",\"NS_SEL\"], (.items[] | [.metadata.name, (.status.domain // .spec.domain // \"-\"), (.spec.replicas|tostring), ((.spec.routeSelector // {}) | selector_text), ((.spec.namespaceSelector // {}) | selector_text)])) | @tsv' | column -t`\n2. Score controller count (1 = sharding not applicable; extra controllers with `-`/`-` also admit all routes):\n   `oc get ingresscontroller -n openshift-ingress-operator -o json | jq -r 'def nonempty_selector: ((.matchLabels // {})|length)>0 or ((.matchExpressions // [])|length)>0; def has_sel: ((.spec.routeSelector // {}) | nonempty_selector) or ((.spec.namespaceSelector // {}) | nonempty_selector); .items as $items | ($items|length) as $n | ([$items[] | select(has_sel)]|length) as $sharded | if $n==1 then \"INFO n=1 sharding not applicable\" elif $sharded==0 then \"WARNING n=\"+($n|tostring)+\" controllers none sharded\" else \"PASS n=\"+($n|tostring)+\" sharded=\"+($sharded|tostring) end'`\n3. Count routes by admitted router (`status.ingress[].routerName`). OVERLAP is routes admitted by more than one controller (unrestricted `default` still admits shard routes):\n   `oc get route -A -o json | jq -r '.items as $routes | ([\"ROUTER\",\"ADMITTED\"], ([$routes[] | (([.status.ingress[]?.routerName] | unique) | if length==0 then [\"none\"] else . end)[]] | group_by(.)[] | [.[0], (length|tostring)]), [\"OVERLAP\", ([$routes[] | select(([.status.ingress[]?.routerName] | unique | length)>1)] | length | tostring)]) | @tsv' | column -t`\n4. Print overlapping routes (empty = none):\n   `oc get route -A -o json | jq -r '([\"NS\",\"NAME\",\"ROUTERS\"], (.items[] | select(([.status.ingress[]?.routerName] | unique | length)>1) | [.metadata.namespace, .metadata.name, ([.status.ingress[]?.routerName]|unique|join(\",\"))])) | @tsv' | column -t | awk 'NR==1{print; next} {print; n++} END{print (n==0?\"PASS\":\"WARNING\"), n+0, \"overlap\"}'`\n5. HAProxy status is 3.8.1. Tuning is 3.8.2.\n6. https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#nw-ingress-sharding_configuring-ingress\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -1159,16 +1152,14 @@ check_id = "7.3.tsr.3_9_1_storage_provisioner_plugins"
 title = "3.9.1. Storage Provisioner Plugins"
 description = "Validates installed storage provisioners and their associated StorageClasses.\nMissing or misconfigured provisioners prevent dynamic volume creation and\ncan block workload deployments.\n"
 # why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: Validates installed storage provisioners and their associated StorageClasses.
-# The rec remediates THAT story by starting at `oc get storageclass -o
-# custom-columns=NAME:.metadata.name,PROVISIONER:.provisioner,DEFAULT:.metadata.annotations.storag
-# eclass\.kubernetes\.io/is-default-class` — the live object/command for this check, not a
-# neighboring TSR item.
-# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
-recommendation = "1. List storage classes and their provisioners:\n   `oc get storageclass -o custom-columns=NAME:.metadata.name,PROVISIONER:.provisioner,DEFAULT:.metadata.annotations.storageclass\\.kubernetes\\.io/is-default-class`\n2. Verify each provisioner has healthy controller pods running.\n"
+# CORRECTED. DEFAULT annotation columns steal `7.3.storage.default_sc`.
+# "Verify controller pods" has no object, label, or PASS line.
+# TSR 3.9.1 is the StorageClass inventory: provisioner, reclaim, binding,
+# expansion, age, which class is default, and PVC count per class.
+# Rec is `oc get storageclass` (those columns), default name, then PVC counts.
+# Lab: PASS 1 storageclasses; INFO default=nfs-csi; nfs-csi 22 PVCs.
+# Local PVs 3.9.2. Unsupported 3.9.3. CSIDrivers 3.9.5. Flex 3.9.6.
+recommendation = "1. Print StorageClass `PROVISIONER`, reclaim policy, binding mode, expansion, and age (`(default)` marks the default class):\n   `oc get storageclass | awk 'NR==1{print; next} {print; n++} END{print (n==0?\"FAIL\":\"PASS\"), n+0, \"storageclasses\"}'`\n   Empty: no provisioners.\n2. Print the default class name (`INFO no default` is `7.3.storage.default_sc`):\n   `oc get storageclass -o json | jq -r '[.items[] | select(.metadata.annotations[\"storageclass.kubernetes.io/is-default-class\"]==\"true\") | .metadata.name] | if length==0 then \"INFO no default\" else \"INFO default=\"+join(\",\") end'`\n3. Count PVCs per StorageClass (usage; bind health is 3.9.4 / `7.3.storage.pvcs`):\n   `oc get pvc -A -o json | jq -r '([\"SC\",\"PVCS\"], ([.items[] | .spec.storageClassName // \"<none>\"] | group_by(.)[] | [.[0], (length|tostring)])) | @tsv' | column -t`\n4. Local path PVs are 3.9.2. Unsupported drivers are 3.9.3. CSIDriver objects are 3.9.5. FlexVolume is 3.9.6.\n5. https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/storage/index#dynamic-provisioning\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -1208,14 +1199,15 @@ check_id = "7.3.tsr.3_9_3_dynamic_storage_provisioner_plugins"
 title = "3.9.3. Dynamic Storage Provisioner Plugins"
 description = "This check evaluates dynamic provisioner plugins. Failures include a provisioner that cannot bind volumes and a CSI (or in-tree) provisioner that Red Hat does not support for this platform."
 # why-rec
-# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
-# Check story: This check evaluates dynamic provisioner plugins.
-# The rec remediates THAT story by starting at `oc get pvc -A` — the live object/command for this
-# check, not a neighboring TSR item.
-# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
-recommendation = "1. Identify the provisioner named in the evidence.\n2. If the provisioner is unsupported, plan a supported CSI driver and StorageClass.\n3. If the provisioner is supported but failing, inspect provisioner logs and a test PVC.\n   `oc get pvc -A`\n"
+# CORRECTED. "Identify the provisioner in the evidence" has no command.
+# `oc get pvc -A` dumps every claim. We cannot catalog every vendor plugin;
+# we can classify kubernetes.io/no-provisioner (static), other kubernetes.io/*
+# (in-tree), CSIDriver present (csi), or missing-driver. RH-supported CSI
+# table is 3.9.5 (TSR PASSed nfs.csi.k8s.io here and WARNED it on 3.9.5).
+# Rec prints platform type, the classify table, and not-Bound PVCs joined to
+# provisioner. Lab: BareMetal; nfs-csi KIND=csi CSIDRIVER=yes;
+# SCORE PASS plugins-present; PASS 0 unbound.
+recommendation = "1. Print platform type (use it with the supported-CSI table; whether a CSI driver is Red Hat-supported is 3.9.5):\n   `oc get infrastructure cluster -o jsonpath='{.status.platformStatus.type}{\"\\n\"}'`\n2. Classify each StorageClass provisioner. This does not enumerate vendors. `static` = `kubernetes.io/no-provisioner` (3.9.2). `in-tree` = other `kubernetes.io/*`. `csi` = a CSIDriver object exists. `missing-driver` = the class names a plugin that is not installed:\n   `oc get sc,csidriver -o json | jq -r 'def plugin_kind($drivers): if .==\"kubernetes.io/no-provisioner\" then \"static\" elif startswith(\"kubernetes.io/\") then \"in-tree\" elif (($drivers|index(.))!=null) then \"csi\" else \"missing-driver\" end; [.items[] | select(.kind==\"CSIDriver\") | .metadata.name] as $drivers | [.items[] | select(.kind==\"StorageClass\")] as $classes | [$classes[] | .provisioner | plugin_kind($drivers)] as $kinds | (if ($classes|length)==0 then \"FAIL no-storageclasses\" elif any($kinds[]; .==\"missing-driver\") then \"FAIL missing-driver\" elif any($kinds[]; .==\"in-tree\") then \"WARNING in-tree\" elif (($kinds|length)>0 and all($kinds[]; .==\"static\")) then \"INFO no-dynamic-provisioners\" else \"PASS plugins-present\" end) as $score | ([\"SC\",\"PROVISIONER\",\"KIND\",\"CSIDRIVER\"], ($classes[] | .provisioner as $p | [.metadata.name, $p, ($p|plugin_kind($drivers)), (if ($drivers|index($p))!=null then \"yes\" else \"no\" end)]), [\"SCORE\",$score,\"-\",\"-\",\"-\"]) | @tsv' | column -t -s $'\\t'`\n3. Print not-Bound PVCs with their provisioner (empty = none). PV/PVC field mismatch is 3.9.4:\n   `oc get pvc,sc -A -o json | jq -r '[.items[] | select(.kind==\"StorageClass\") | {name:.metadata.name, provisioner}] as $classes | ([\"NS\",\"PVC\",\"PHASE\",\"SC\",\"PROVISIONER\"], (.items[] | select(.kind==\"PersistentVolumeClaim\" and .status.phase != \"Bound\") | .spec.storageClassName as $sc | [.metadata.namespace, .metadata.name, .status.phase, ($sc // \"<none>\"), (([$classes[] | select(.name==$sc) | .provisioner][0]) // \"-\")])) | @tsv' | column -t -s $'\\t' | awk 'NR==1{print; next} {print; n++} END{print (n==0?\"PASS\":\"FAIL\"), n+0, \"unbound\"}'`\n4. StorageClass inventory is 3.9.1. FlexVolume is 3.9.6.\n5. https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/storage/index#persistent-storage-csi-drivers-supported_persistent-storage-csi\n"
 priority_hint = ""
 impact = "none"
 impact_scope = ""

@@ -343,6 +343,8 @@ priority_hint = ""
 impact = "none"
 impact_scope = ""
 impact_detail = ""
+finding_group = "registry-health-pods"
+finding_group_title = "Image registry health (pods and ClusterOperator)"
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/registry/index#checking-the-status-of-registry-pods_accessing-the-registry"
@@ -593,6 +595,8 @@ priority_hint = ""
 impact = "none"
 impact_scope = ""
 impact_detail = ""
+finding_group = "dns-operator-health"
+finding_group_title = "DNS Operator / CoreDNS health"
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_operators/index#nw-dns-operator_dns-operator"
