@@ -2,6 +2,17 @@
 check_id = "7.8.etcd.leader_changes"
 title = "etcd leader changes"
 description = "Frequent etcd leader elections indicate instability, often caused by disk\nlatency, network timeouts, or control plane resource contention. Excessive\nleader churn affects write availability and overall control plane stability.\n"
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: Frequent etcd leader elections indicate instability, often caused by disk latency,
+# network timeouts, or control plane resource contention.
+# The rec remediates THAT story by starting at `oc -n openshift-etcd exec -c etcd etcd-<member>
+# -- etcdctl endpoint status --cluster -w table` — the live object/command for this check, not a
+# neighboring TSR item.
+# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
+# etcdctl endpoint health/status via `oc -n openshift-etcd exec -c etcd` was verified on this lab.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Check the current leader and member status:\n   `oc -n openshift-etcd exec -c etcd etcd-<member> -- etcdctl endpoint status --cluster -w table`\n2. Inspect recent member logs:\n   `oc -n openshift-etcd logs etcd-<member> -c etcd --since=1h`\n3. Review recent etcd pod reschedules, control-plane node drains, and disruptive maintenance events before treating elevated leader changes as a failure signal.\n4. If leader churn persists, investigate control-plane resource pressure and node latency to identify the underlying instability.\n"
 priority_hint = ""
 impact = "none"
@@ -21,6 +32,18 @@ check_id = "7.8.etcd.wal*"
 pattern = true
 title = "etcd WAL fsync latency"
 description = "etcd WAL fsync latency directly impacts write throughput and leader elections.\nP99 latency above 10ms indicates slow disk I/O; above 50ms, etcd may begin\nlosing leadership and causing cluster instability.\n"
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: etcd WAL fsync latency directly impacts write throughput and leader elections.
+# The rec remediates THAT story by starting at `oc -n openshift-monitoring exec prometheus-k8s-0
+# -c prometheus -- curl -sG http://localhost:9090/api/v1/query --data-urlencode
+# 'query=histogram_quantile(0.99, rate(etcd_disk_wal_fsync_duration_seconds_bucket[5m]))'` — the
+# live object/command for this check, not a neighboring TSR item.
+# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
+# Prometheus exec to localhost:9090 was verified on this lab (prometheus-k8s-0 Running).
+# etcdctl endpoint health/status via `oc -n openshift-etcd exec -c etcd` was verified on this lab.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Confirm which etcd member is reporting high WAL fsync latency from Prometheus:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -sG http://localhost:9090/api/v1/query --data-urlencode 'query=histogram_quantile(0.99, rate(etcd_disk_wal_fsync_duration_seconds_bucket[5m]))'`\n2. Correlate the WAL signal with backend commit and peer network latency:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -sG http://localhost:9090/api/v1/query --data-urlencode 'query=histogram_quantile(0.99, rate(etcd_disk_backend_commit_duration_seconds_bucket[5m]))'`\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -sG http://localhost:9090/api/v1/query --data-urlencode 'query=histogram_quantile(0.99, rate(etcd_network_peer_round_trip_time_seconds_bucket[2m]))'`\n3. Verify the affected member status directly from etcd:\n   `oc -n openshift-etcd exec -c etcd etcd-<member> -- etcdctl endpoint status --cluster -w table`\n4. Ensure the etcd nodes use NVMe or SSD storage with fsync support and dedicate a partition for `/var/lib/etcd` on bare metal where possible.\n5. If latency remains elevated, validate the storage subsystem with the `quay.io/cloud-bulldozer/etcd-perf` fio image before planning remediation.\n"
 priority_hint = ""
 impact = "none"
@@ -39,6 +62,16 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.8.etcd.proposals"
 title = "etcd failed proposals"
 description = "Failed raft proposals indicate that some write requests could not be committed.\nThis usually points to a slow or failed cluster member, or disk/network\nlatency affecting quorum progress.\n"
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: Failed raft proposals indicate that some write requests could not be committed.
+# The rec remediates THAT story by starting at `oc -n openshift-etcd exec etcd-<member> -c etcd
+# -- etcdctl endpoint status --cluster -w table` — the live object/command for this check, not a
+# neighboring TSR item.
+# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
+# etcdctl endpoint health/status via `oc -n openshift-etcd exec -c etcd` was verified on this lab.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Review etcd health:\n   `oc -n openshift-etcd exec etcd-<member> -c etcd -- etcdctl endpoint status --cluster -w table`\n2. Confirm that proposal latency is not being blocked by slow disks or overloaded control-plane nodes.\n3. Correlate spikes with related alerts such as `etcdHighNumberOfLeaderChanges` or `etcdGRPCRequestsSlow`.\n"
 priority_hint = ""
 impact = "none"
@@ -57,6 +90,15 @@ default = "https://etcd.io/docs/latest/tuning/"
 check_id = "7.8.apiserver.latency"
 title = "API server latency"
 description = "API server P99 latency above expected thresholds can cause timeouts in\nkubelet, controller-manager, and scheduler operations. Investigate etcd\nslowness, control plane resource exhaustion, and excessive API churn.\n"
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: API server P99 latency above expected thresholds can cause timeouts in kubelet,
+# controller-manager, and scheduler operations.
+# The rec remediates THAT story by starting at `oc get --raw /readyz` — the live object/command
+# for this check, not a neighboring TSR item.
+# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Measure API responsiveness:\n   `oc get --raw /readyz`\n2. Inspect `apiserver_request_duration_seconds` trends in Prometheus.\n3. Correlate latency with webhook timeouts, etcd slowness, or overloaded control-plane nodes before changing configuration.\n"
 priority_hint = ""
 impact = "none"
@@ -70,7 +112,10 @@ default = "https://raw.githubusercontent.com/kubernetes/community/master/sig-sca
 check_id = "7.8.pvc.util.critical"
 title = "PVC utilization critical"
 description = "PVCs above 90% utilization are at immediate risk of filling completely, which\ncauses application errors, data loss, or pod eviction. Expand or migrate\nimmediately before the volume reaches 100%.\n"
-recommendation = "1. Expand the PVC immediately if the StorageClass supports volume expansion:\n   `oc patch pvc <name> -n <ns> -p '{\"spec\":{\"resources\":{\"requests\":{\"storage\":\"<new-size>\"}}}}'`\n2. If expansion is not supported, migrate data to a larger PVC.\n3. Add alerting on high utilization.\n"
+# why-rec
+# CORRECTED. Rec must check StorageClass allowVolumeExpansion before patching the PVC. 90% is a
+# capacity-risk threshold (operational). Expansion may be online; migration is not.
+recommendation = "1. Confirm whether the StorageClass allows expansion:\n   `oc get sc -o custom-columns=NAME:.metadata.name,EXPAND:.allowVolumeExpansion`\n2. If expansion is supported, expand the PVC:\n   `oc patch pvc <name> -n <ns> -p '{\"spec\":{\"resources\":{\"requests\":{\"storage\":\"<new-size>\"}}}}'`\n3. If expansion is not supported, migrate data to a larger PVC.\n4. Add alerting on high utilization.\n"
 priority_hint = ""
 impact = "workload-shift"
 impact_scope = "workloads mounted to the affected PVC"
@@ -88,6 +133,9 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.8.pvc.util.warning"
 title = "PVC utilization warning"
 description = "PVCs above 80% utilization may fill unexpectedly during peak workload periods.\nPlan expansion or migration proactively before capacity becomes critical.\n"
+# why-rec
+# ENGINEERING JUDGMENT. 80% is an operational warning, not a vendor PVC hard limit. `oc get sc`
+# EXPAND column is the right discovery before planning expansion.
 recommendation = "1. Monitor PVC growth and plan expansion before capacity becomes critical.\n2. Confirm whether the StorageClass allows expansion:\n   `oc get sc -o custom-columns=NAME:.metadata.name,EXPAND:.allowVolumeExpansion`\n3. If the StorageClass does not allow expansion, schedule a migration to a larger volume before utilization exceeds safe thresholds.\n"
 priority_hint = ""
 impact = "non-disruptive"
@@ -106,6 +154,14 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.8.pvc.util.ok"
 title = "PVC utilization normal"
 description = "PVC capacity is currently within the expected threshold. Continue monitoring\nfor sustained growth trends and confirm expansion procedures are documented.\n"
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: PVC capacity is currently within the expected threshold.
+# The rec remediates THAT story by starting at `oc get pvc -A` — the live object/command for this
+# check, not a neighboring TSR item.
+# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Continue normal capacity monitoring while usage remains within safe thresholds:\n   `oc get pvc -A`\n2. Confirm expansion support:\n   `oc get sc -o custom-columns=NAME:.metadata.name,EXPAND:.allowVolumeExpansion`\n3. Verify growth trends so expansion can be planned before the PVC reaches warning or critical utilization.\n"
 priority_hint = ""
 impact = "none"

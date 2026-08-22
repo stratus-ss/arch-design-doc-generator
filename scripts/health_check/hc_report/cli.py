@@ -15,8 +15,8 @@ from config import find_project_yaml, get_health_check_config, load_config
 from hc_report.evaluators import evaluate_checks
 from hc_report.evaluators._common import (
     _cluster_version_object,
-    _resource_metadata,
     _resource_spec,
+    _resource_status,
 )
 from hc_report.findings import derive_findings
 from hc_report.loader import load_results, resolve_cluster_targets
@@ -101,9 +101,11 @@ def _extract_cluster_id(results: dict) -> str:
         return ""
     clusterversion = _cluster_version_object(clusterversion_raw)
     clusterversion_spec = _resource_spec(clusterversion)
-    clusterversion_metadata = _resource_metadata(clusterversion)
+    clusterversion_status = _resource_status(clusterversion)
     return str(
-        clusterversion_spec.get("clusterID") or clusterversion_metadata.get("uid") or ""
+        clusterversion_spec.get("clusterID")
+        or clusterversion_status.get("clusterID")
+        or ""
     ).strip()
 
 
@@ -464,7 +466,9 @@ def main() -> None:
         print("")
 
     any_unfilled = False
+    explicit_tsr_html = args.tsr_html
     for cluster_name, cluster_results_dir in targets:
+        args.tsr_html = explicit_tsr_html
         cluster_output_dir = output_dir / cluster_name if cluster_name else output_dir
         if multi:
             print(f"{'=' * 60}")

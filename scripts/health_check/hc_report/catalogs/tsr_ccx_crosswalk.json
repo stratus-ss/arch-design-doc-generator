@@ -211,6 +211,39 @@
       "tags": []
     },
     {
+      "check_id": "7.1.tsr.1_4_2_1_operating_system_version",
+      "category_id": "7.1",
+      "category_name": "Base Platform Checks",
+      "source": "tsr",
+      "group": "section1",
+      "title": "1.4.2.1. Operating System Version",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "1.4.2.1",
+      "tags": []
+    },
+    {
+      "check_id": "7.1.tsr.1_4_2_2_node_cpus",
+      "category_id": "7.1",
+      "category_name": "Base Platform Checks",
+      "source": "tsr",
+      "group": "section1",
+      "title": "1.4.2.2. Node CPUs",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "1.4.2.2",
+      "tags": []
+    },
+    {
+      "check_id": "7.1.tsr.1_4_2_3_node_memory",
+      "category_id": "7.1",
+      "category_name": "Base Platform Checks",
+      "source": "tsr",
+      "group": "section1",
+      "title": "1.4.2.3. Node Memory",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "1.4.2.3",
+      "tags": []
+    },
+    {
       "check_id": "7.1.tsr.1_4_2_4_node_disk",
       "category_id": "7.1",
       "category_name": "Base Platform Checks",

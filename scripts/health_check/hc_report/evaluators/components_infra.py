@@ -187,12 +187,12 @@ def _evaluate_storage_aggregate(category_data: dict, category_id: str, category_
         csi = [provider for provider in provisioners if ".csi." in provider or provider.endswith(".csi")]
         if csi:
             checks.append(CheckResult(category_id, category_name, f"{category_id}.storage.csi",
-                                      "3.9.5 CSI Drivers", "PASS",
+                                      "StorageClass provisioners (engine)", "PASS",
                                       f"CSI provisioners: {', '.join(sorted(csi))}",
                                       "storageclass"))
         else:
             checks.append(CheckResult(category_id, category_name, f"{category_id}.storage.csi",
-                                      "3.9.5 CSI Drivers", "WARNING",
+                                      "StorageClass provisioners (engine)", "WARNING",
                                       f"No CSI drivers detected. Provisioners: {', '.join(sorted(provisioners))}",
                                       "storageclass"))
         flex = [provider for provider in provisioners if "flex" in provider.lower()]
@@ -203,7 +203,7 @@ def _evaluate_storage_aggregate(category_data: dict, category_id: str, category_
                                   else "No flexvolume provisioners (deprecated mechanism not in use)",
                                   "storageclass"))
     else:
-        checks.append(_not_applicable(f"{category_id}.storage.csi", "3.9.5 CSI Drivers", category_id, category_name))
+        checks.append(_not_applicable(f"{category_id}.storage.csi", "StorageClass provisioners (engine)", category_id, category_name))
         checks.append(CheckResult(category_id, category_name, f"{category_id}.storage.flexvolumes",
                                   "3.9.6 Storage Flexvolumes", "NOT_APPLICABLE",
                                   "Storage class data unavailable", "storageclass"))

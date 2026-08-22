@@ -28,7 +28,8 @@ _SECTION_MAP = [
     ("7. Security and Compliance-panel", "ccx-checks-section-btn", "7.7", "Security and Compliance", "7"),
 ]
 
-_EVIDENCE_MAX = 2000
+# Absurd-input guard only — not a content-length policy for TSR Result text.
+_EVIDENCE_ABSURD_LIMIT = 1_000_000
 
 _ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-9;]*[a-zA-Z]")
 
@@ -49,7 +50,7 @@ def _strip_html(text: str) -> str:
     # <table> markup. A bare `[ \t]+ -> " "` collapse would destroy that
     # alignment (renderer.py needs a 3+ space run to detect column
     # boundaries), but preserving the full original padding width verbatim
-    # wastes the fixed evidence-length budget (_EVIDENCE_MAX) on cosmetic
+    # wastes the evidence buffer (_EVIDENCE_ABSURD_LIMIT) on cosmetic
     # terminal-alignment spaces, which previously pushed real table rows
     # past the truncation cutoff. Normalize any wide gap down to a fixed
     # 3-space marker: the column-boundary signal survives, incidental 1-2
@@ -101,7 +102,7 @@ def _extract_leaf_check(
     evidence = ""
     result_match = re.search(r">Result</td>\s*<td[^>]*>(.*?)</td>", leaf_html, re.S | re.I)
     if result_match:
-        evidence = _strip_html(result_match.group(1))[:_EVIDENCE_MAX]
+        evidence = _strip_html(result_match.group(1))[:_EVIDENCE_ABSURD_LIMIT]
 
     ref_match = re.match(r"^(\d+(?:\.\d+)*)", title)
     tsr_ref = ref_match.group(1) if ref_match else section_number
@@ -206,7 +207,7 @@ def _extract_ccx_check(chunk: str, group: str) -> dict | None:
     evidence = ""
     message_match = re.search(r"<b>Message:</b>\s*(.*?)(?:</td>|$)", chunk, re.S)
     if message_match:
-        evidence = _strip_html(message_match.group(1))[:_EVIDENCE_MAX]
+        evidence = _strip_html(message_match.group(1))[:_EVIDENCE_ABSURD_LIMIT]
 
     check_id = f"7.7.ccx_{group}.{_slugify(title)}"
     return {

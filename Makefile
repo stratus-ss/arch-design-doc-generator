@@ -53,6 +53,33 @@ define require
 	@if [ -z "$($(1))" ]; then echo "$(if $(2),$(2),Error: set $(1)=...)"; exit 1; fi
 endef
 
+# Echo DIR, or the unique cluster child that contains manifest.json.
+# Fail closed if several cluster children exist. Lets RESULTS_DIR=output/hc_collect/<date>
+# (and LEDGER=.../<date>/skipped_commands.jsonl) match the nested fetch layout.
+define hc_resolve_cluster_dir
+if [ -f "$(1)/manifest.json" ]; then printf '%s' "$(1)"; \
+else \
+	cluster_count=0; \
+	resolved_dir=""; \
+	for manifest_path in "$(1)"/*/manifest.json; do \
+		if [ -f "$$manifest_path" ]; then \
+			cluster_count=$$((cluster_count + 1)); \
+			resolved_dir=$$(dirname "$$manifest_path"); \
+		fi; \
+	done; \
+	if [ "$$cluster_count" -eq 1 ]; then \
+		echo "Note: using cluster results dir $$resolved_dir" >&2; \
+		printf '%s' "$$resolved_dir"; \
+	elif [ "$$cluster_count" -gt 1 ]; then \
+		echo "Error: multiple cluster result directories under $(1)." >&2; \
+		echo "Set RESULTS_DIR=$(1)/<cluster_name> or LEDGER=$(1)/<cluster_name>/skipped_commands.jsonl." >&2; \
+		exit 1; \
+	else \
+		printf '%s' "$(1)"; \
+	fi; \
+fi
+endef
+
 # Collect/fetch/merge do not require project.yaml; remind the operator if it is missing.
 define warn_missing_project_yaml
 	@if [ ! -f project.yaml ]; then \
@@ -430,11 +457,31 @@ hc-build-catalog: ## Rebuild TSR/CCX catalog JSON from a TSR HTML export (set TS
 		--input-html "$(TSR_HTML)" \
 		--output-json scripts/health_check/hc_report/catalogs/tsr_ccx_crosswalk.json
 
-hc-investigate: image ## Trace a finding to raw evidence (container)
-	@$(_RUNOUT) hc-investigate $(FINDING_ARGS)
+hc-investigate: image ## Trace a finding/check back to raw evidence (set RESULTS_DIR=, and FINDING_ID= or QUERY= or CHECK_ID=)
+	$(call require,RESULTS_DIR,Error: set RESULTS_DIR=output/hc_collect/<date>)
+	@results_dir=$$($(call hc_resolve_cluster_dir,$(RESULTS_DIR))); \
+	$(_RUNOUT) hc-investigate \
+		--results-dir "$$results_dir" \
+		$(if $(FINDING_ID),--finding-id "$(FINDING_ID)") \
+		$(if $(QUERY),--query "$(QUERY)") \
+		$(if $(CHECK_ID),--check-id "$(CHECK_ID)") \
+		$(if $(HC_CHECK_PROFILE),--check-profile "$(HC_CHECK_PROFILE)") \
+		$(if $(HC_TSR_HTML),--tsr-html "$(HC_TSR_HTML)") \
+		$(if $(HC_CATALOG_PATH),--catalog-path "$(HC_CATALOG_PATH)")
 
-hc-skip-summary: ## Summarize skipped commands from supportshell collection (host)
-	@$(PYTHON) scripts/health_check/hc_skip_summary.py --ledger "$(if $(RESULTS_DIR),$(RESULTS_DIR),$(HC_COLLECT_OUT))/skipped_commands.jsonl"
+hc-skip-summary: ## Render skipped_commands.jsonl into readable YAML (set LEDGER= or RESULTS_DIR=)
+	$(if $(LEDGER),,$(if $(RESULTS_DIR),,$(call require,LEDGER,Error: set LEDGER=path/to/skipped_commands.jsonl or RESULTS_DIR=output/hc_collect/<date>)))
+	@ledger="$(if $(LEDGER),$(LEDGER),$(RESULTS_DIR)/skipped_commands.jsonl)"; \
+	if [ ! -f "$$ledger" ]; then \
+		results_dir=$$($(call hc_resolve_cluster_dir,$(if $(LEDGER),$(patsubst %/,%,$(dir $(LEDGER))),$(RESULTS_DIR)))); \
+		ledger="$$results_dir/skipped_commands.jsonl"; \
+	fi; \
+	if [ ! -f "$$ledger" ]; then \
+		echo "Error: skipped_commands.jsonl not found at $$ledger"; \
+		echo "Set LEDGER=output/hc_collect/<date>/<cluster>/skipped_commands.jsonl"; \
+		exit 1; \
+	fi; \
+	$(PYTHON) scripts/health_check/hc_skip_summary.py --ledger "$$ledger"
 
 hc-command-ref: ## Generate docs/HC_Command_Reference.md from collect scripts (host)
 	@$(PYTHON) scripts/health_check/generate_command_reference.py > docs/HC_Command_Reference.md

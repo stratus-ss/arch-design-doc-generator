@@ -18,6 +18,12 @@ _REDHAT_DOCS_PREFIX = "https://docs.redhat.com/en/documentation/"
 
 
 @dataclass(frozen=True)
+class SummaryPattern:
+    contains: str
+    text: str
+
+
+@dataclass(frozen=True)
 class KBEntry:
     check_id: str
     title: str = ""
@@ -28,6 +34,11 @@ class KBEntry:
     impact: str = ""
     impact_scope: str = ""
     impact_detail: str = ""
+    summary_patterns: tuple[SummaryPattern, ...] = field(default_factory=tuple)
+    finding_group: str = ""
+    finding_group_title: str = ""
+    include_in_findings: bool = True
+    finding_on_info: bool = False
     links: dict[str, str] = field(default_factory=dict)
     is_pattern: bool = False
 
@@ -80,6 +91,10 @@ class KnowledgeBase:
     def get_description(self, check_id: str) -> str:
         entry = self.get_entry(check_id)
         return entry.description.strip() if entry else ""
+
+    def get_title(self, check_id: str) -> str:
+        entry = self.get_entry(check_id)
+        return entry.title.strip() if entry else ""
 
     def get_doc_link(self, check_id: str, ocp_version: str) -> str:
         entry = self.get_entry(check_id)
@@ -136,6 +151,49 @@ def _normalize_versions(raw_versions: object) -> tuple[str, ...]:
     return tuple(versions)
 
 
+def _normalize_summary_patterns(raw_patterns: object, source_path: Path) -> tuple[SummaryPattern, ...]:
+    if raw_patterns is None:
+        return ()
+    if not isinstance(raw_patterns, list):
+        raise ValueError(f"Invalid summary_patterns in {source_path}: expected a list")
+    if not raw_patterns:
+        return ()
+    patterns: list[SummaryPattern] = []
+    for item in raw_patterns:
+        if not isinstance(item, dict):
+            raise ValueError(f"Invalid summary_patterns in {source_path}: expected tables")
+        contains = str(item.get("contains", "")).strip()
+        text = str(item.get("text", "")).strip()
+        if not contains or not text:
+            raise ValueError(
+                f"Invalid summary_patterns in {source_path}: contains and text are required"
+            )
+        patterns.append(SummaryPattern(contains=contains, text=text))
+    return tuple(patterns)
+
+
+def _normalize_finding_group(raw_value: object) -> str:
+    if raw_value is None:
+        return ""
+    return str(raw_value).strip()
+
+
+def _normalize_include_in_findings(raw_value: object, source_path: Path) -> bool:
+    if raw_value is None:
+        return True
+    if isinstance(raw_value, bool):
+        return raw_value
+    raise ValueError(f"Invalid include_in_findings in {source_path}: expected a bool")
+
+
+def _normalize_finding_on_info(raw_value: object, source_path: Path) -> bool:
+    if raw_value is None:
+        return False
+    if isinstance(raw_value, bool):
+        return raw_value
+    raise ValueError(f"Invalid finding_on_info in {source_path}: expected a bool")
+
+
 def _load_toml_file(path: Path) -> dict:
     try:
         with open(path, "rb") as handle:
@@ -164,6 +222,17 @@ def _make_entry(raw_entry: object, source_path: Path) -> KBEntry:
         impact=str(raw_entry.get("impact", "")).strip(),
         impact_scope=str(raw_entry.get("impact_scope", "")).strip(),
         impact_detail=str(raw_entry.get("impact_detail", "")).strip(),
+        summary_patterns=_normalize_summary_patterns(
+            raw_entry.get("summary_patterns"), source_path
+        ),
+        finding_group=_normalize_finding_group(raw_entry.get("finding_group")),
+        finding_group_title=_normalize_finding_group(raw_entry.get("finding_group_title")),
+        include_in_findings=_normalize_include_in_findings(
+            raw_entry.get("include_in_findings"), source_path
+        ),
+        finding_on_info=_normalize_finding_on_info(
+            raw_entry.get("finding_on_info"), source_path
+        ),
         links=_normalize_links(raw_entry.get("links", {})),
         is_pattern=bool(raw_entry.get("pattern", False)),
     )

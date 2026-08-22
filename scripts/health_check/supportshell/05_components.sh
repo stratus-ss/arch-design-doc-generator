@@ -39,7 +39,7 @@ hc_capture_json "$CATEGORY" "nncp"                        get nncp || true
 hc_capture_json "$CATEGORY" "net_attach_def"              get net-attach-def -A || true
 
 # DNS
-hc_capture_json "$CATEGORY" "dns_operator"                get dns.operator cluster
+hc_capture_json "$CATEGORY" "dns_operator"                get dns.operator default
 hc_capture_json "$CATEGORY" "dns_config"                  get dns cluster
 
 # CRDs and deprecated APIs

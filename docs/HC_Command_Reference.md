@@ -53,7 +53,7 @@ Generated from `scripts/health_check/collect/[0-9][0-9]_*.sh`.
 | network_operator | `oc get network.operator cluster -o json` | 7.3 |
 | nncp | `oc get nncp -o json` | 7.3 |
 | net_attach_def | `oc get net-attach-def -A -o json` | 7.3 |
-| dns_operator | `oc get dns.operator cluster -o json` | 7.3 |
+| dns_operator | `oc get dns.operator default -o json` | 7.3 |
 | dns_config | `oc get dns cluster -o json` | 7.3 |
 | crds | `oc get crd -o json` | 7.3 |
 | apirequestcounts | `oc get apirequestcounts -o json` | 7.3 |
@@ -68,6 +68,8 @@ Generated from `scripts/health_check/collect/[0-9][0-9]_*.sh`.
 | cnv_hyperconverged | `oc get hyperconverged -n openshift-cnv -o json` | 7.4 |
 | cnv_kubevirt | `oc get kubevirt -n openshift-cnv -o json` | 7.4 |
 | cnv_pods | `oc get pods -n openshift-cnv -o json` | 7.4 |
+| cnv_vm | `oc get vm -A -o json` | 7.4 |
+| cnv_vmi | `oc get vmi -A -o json` | 7.4 |
 | acm_multiclusterhub | `oc get multiclusterhub -n open-cluster-management -o json` | 7.4 |
 | acm_pods | `oc get pods -n open-cluster-management -o json` | 7.4 |
 | acs_central | `oc get central -n stackrox -o json` | 7.4 |

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections import Counter, defaultdict
 
 from hc_report.evaluators._common import (
@@ -20,6 +21,7 @@ _COMPACT_CLUSTER_DOC_REF = (
     "https://docs.openshift.com/container-platform/4.18/installing/installing_platform_agnostic/"
     "installing-platform-agnostic.html#configuring-a-three-node-cluster_installing-platform-agnostic"
 )
+_POD_KEY_RE = re.compile(r"\b([a-z0-9][a-z0-9.-]{0,61})/([a-z0-9][a-z0-9.-]{0,251})\b")
 
 
 def _parse_alerts_list(alerts_data: dict) -> list[dict]:
@@ -374,11 +376,16 @@ def _evaluate_health_registry(results: dict, category_id: str, category_name: st
         return [CheckResult(category_id, category_name, f"{category_id}.registry_health",
                             "5.4 Registry Health", "SKIPPED",
                             "Registry data unavailable", "imageregistry")]
-    mgmt = reg.get("spec", {}).get("managementState", "unknown")
+    management_state = reg.get("spec", {}).get("managementState", "unknown")
+    if management_state == "Managed":
+        status = "PASS"
+    elif management_state in ("Unmanaged", "Removed"):
+        status = "INFO"
+    else:
+        status = "WARNING"
     return [CheckResult(category_id, category_name, f"{category_id}.registry_health",
-                        "5.4 Registry Health",
-                        "PASS" if mgmt == "Managed" else "WARNING",
-                        f"Registry managementState: {mgmt}", "imageregistry")]
+                        "5.4 Registry Health", status,
+                        f"Registry managementState: {management_state}", "imageregistry")]
 
 
 def _evaluate_health_pod_restarts(category_data: dict, category_id: str, category_name: str) -> list[CheckResult]:
@@ -404,6 +411,43 @@ def _evaluate_health_pod_restarts(category_data: dict, category_id: str, categor
     return [CheckResult(category_id, category_name, f"{category_id}.pod_restarts",
                         "5.5 Pod Frequent Restarts", "PASS",
                         "No pods with excessive restarts (>10)", "pods")]
+
+
+def _pod_keys_from_text(text: str) -> set[str]:
+    return {f"{match.group(1)}/{match.group(2)}" for match in _POD_KEY_RE.finditer(text)}
+
+
+def _collected_pod_keys(results: dict) -> set[str]:
+    pods_all = results.get("07_cluster_health", {}).get("pods_all")
+    if not pods_all:
+        return set()
+    keys: set[str] = set()
+    for pod in _get_items(pods_all):
+        metadata = pod.get("metadata", {})
+        namespace = metadata.get("namespace", "")
+        name = metadata.get("name", "")
+        if namespace and name:
+            keys.add(f"{namespace}/{name}")
+    return keys
+
+
+def annotate_pod_restart_collection_gap(checks: list[CheckResult], results: dict) -> None:
+    engine_check = None
+    tsr_check = None
+    for check in checks:
+        if check.check_id == "7.5.pod_restarts":
+            engine_check = check
+        elif check.check_id == "7.5.tsr.5_5_pod_frequent_restarts":
+            tsr_check = check
+    if engine_check is None or tsr_check is None:
+        return
+    missing_count = len(_pod_keys_from_text(tsr_check.evidence) - _collected_pod_keys(results))
+    if missing_count == 0:
+        return
+    engine_check.evidence += (
+        f"\nTSR 5.5 names {missing_count} pod key(s) not present in collected pods_all "
+        "(collect gap, not the engine restart filter)."
+    )
 
 
 def _evaluate_health_node_roles(nodes_data: dict, category_id: str, category_name: str) -> list[CheckResult]:

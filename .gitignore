@@ -65,6 +65,9 @@ Thumbs.db
 *.swo
 .cursor/
 
+# ── Generated local-only Health Check artifacts ─────────────────────
+docs/HC_RECOMMENDATION_AUDIT_LOG.md
+
 # ── Local planning / scratch (do not commit) ────────────────────────
 # Session execution state never ships — keep this rule even if agent_planning/
 # is later tracked. Listed after agent_planning/ so it remains last-match.

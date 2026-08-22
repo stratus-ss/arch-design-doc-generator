@@ -466,7 +466,7 @@ mkdir -p output/tsr_html
 cp ~/Downloads/<tsr_filename>.html output/tsr_html/
 ```
 
-The report generator matches files in `output/tsr_html/` to clusters by UUID or cluster name found inside the HTML content, so no renaming is required.
+The report generator matches each file's **Cluster ID** header to the cluster's `spec.clusterID` (filename and exact Cluster Name are not required). Cluster Name is a fallback, including OpenShift's infrastructureName suffix (`nam-arl-01` vs `nam-arl-01-pcq8r`).
 
 **Alternatives to auto-discovery:**
 
@@ -728,7 +728,7 @@ Code quality is enforced via `ruff.toml` (C901 ≤ 15, max-branches ≤ 15, max-
 make hc-report
 make hc-html
 make hc-pdf
-make hc-investigate FINDING_ARGS='...'
+make hc-investigate RESULTS_DIR=output/hc_collect/<date> FINDING_ID=6.2.3.1
 
 # container entrypoint subcommands (scripts/entrypoint.sh):
 hc-report

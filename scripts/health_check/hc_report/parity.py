@@ -53,41 +53,71 @@ def load_tsr_runtime(tsr_json_path: Path) -> dict[str, dict]:
     return records
 
 
+_TSR_HTML_HEADER_CHARS = 100_000
+_TSR_CLUSTER_ID = re.compile(
+    r"Cluster ID:</strong>\s*"
+    r"([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})",
+    re.IGNORECASE,
+)
+_TSR_CLUSTER_NAME = re.compile(
+    r"Cluster Name:</strong>\s*([^<]+)",
+    re.IGNORECASE,
+)
+
+
+def _parse_tsr_html_cluster_identity(header_text: str) -> tuple[str, str]:
+    """Return (cluster_id, cluster_name) from TSR HTML header fields."""
+    id_match = _TSR_CLUSTER_ID.search(header_text)
+    name_match = _TSR_CLUSTER_NAME.search(header_text)
+    parsed_id = id_match.group(1).lower() if id_match else ""
+    parsed_name = name_match.group(1).strip() if name_match else ""
+    return parsed_id, parsed_name
+
+
+def _cluster_names_match(collect_name: str, html_name: str) -> bool:
+    """True when collect infrastructureName and TSR Cluster Name refer to the same cluster.
+
+    TSR prints the short name (``nam-arl-01``); OpenShift infrastructureName
+    often adds a five-character suffix (``nam-arl-01-pcq8r``).
+    """
+    if not collect_name or not html_name:
+        return False
+    collect_folded = collect_name.casefold()
+    html_folded = html_name.casefold()
+    if collect_folded == html_folded:
+        return True
+    return collect_folded.startswith(html_folded + "-") or html_folded.startswith(
+        collect_folded + "-"
+    )
+
+
 def discover_tsr_html(tsr_dir: Path, cluster_id: str, cluster_name: str) -> Path | None:
-    """Find the best-matching TSR HTML file for the current cluster."""
+    """Find the TSR HTML whose Cluster ID header matches this cluster.
+
+    Cluster Name is a fallback only (exact or infrastructureName suffix).
+    Filenames are not used.
+    """
     if not tsr_dir.is_dir():
         return None
 
-    cluster_id = str(cluster_id).strip()
+    cluster_id = str(cluster_id).strip().lower()
     cluster_name = str(cluster_name).strip()
     id_matches: list[Path] = []
     name_matches: list[Path] = []
-    overlap = max(len(cluster_id), len(cluster_name), 1) - 1
 
     for path in tsr_dir.glob("*.html"):
         if not path.is_file():
             continue
         try:
             with path.open("r", encoding="utf-8", errors="ignore") as handle:
-                tail = ""
-                has_name_match = False
-                while True:
-                    chunk = handle.read(50_000)
-                    if not chunk:
-                        break
-                    snippet = tail + chunk
-                    if cluster_id and cluster_id in snippet:
-                        id_matches.append(path)
-                        break
-                    if cluster_name and cluster_name in snippet:
-                        has_name_match = True
-                    tail = snippet[-overlap:] if overlap else ""
+                header_text = handle.read(_TSR_HTML_HEADER_CHARS)
         except OSError:
             continue
-
-        if path in id_matches:
+        html_cluster_id, html_cluster_name = _parse_tsr_html_cluster_identity(header_text)
+        if cluster_id and html_cluster_id and cluster_id == html_cluster_id:
+            id_matches.append(path)
             continue
-        if has_name_match:
+        if _cluster_names_match(cluster_name, html_cluster_name):
             name_matches.append(path)
 
     if id_matches:
@@ -172,22 +202,15 @@ def _resolve_ccx_status(
     return "SKIPPED", evidence, []
 
 
-def _tsr_fail_missed_by_native(
-    norm_title: str, tsr_runtime: dict[str, dict], existing_desc_fail: set[str]
-) -> bool:
-    """True when the TSR authoritatively FAILs a check whose title matches an
-    existing native check, but no native check with that same title already
-    reports FAIL — i.e. the native evaluation missed (or was inconclusive
-    about) a real problem the TSR caught. Per project policy, the TSR is
-    authoritative unless we have direct documentation proof to the contrary,
-    so this FAIL must still surface even though a same-titled native check
-    already exists (it is added as a distinct row, not merged into the
-    native one, to avoid silently overwriting native evaluation logic).
+def _tsr_keeps_row_with_native_title(norm_title: str, tsr_runtime: dict[str, dict]) -> bool:
+    """True when a TSR FAIL or WARNING must keep its catalog row even if a
+    native check already uses the same normalized title.
     """
     tsr_record = tsr_runtime.get(norm_title)
     if not tsr_record:
         return False
-    return _status(str(tsr_record.get("status", ""))) == "FAIL" and norm_title not in existing_desc_fail
+    status = _status(str(tsr_record.get("status", "")))
+    return status in ("FAIL", "WARNING")
 
 
 def expand_with_parity_checks(
@@ -207,9 +230,8 @@ def expand_with_parity_checks(
 
     Title-match deduplication (an existing native check already covers this
     TSR title) is normally used to avoid duplicate report rows. That
-    dedup is bypassed only when the TSR authoritatively FAILs the check and no
-    existing native check of the same title already reports FAIL — see
-    _tsr_fail_missed_by_native().
+    dedup is bypassed when the TSR runtime status is FAIL or WARNING — see
+    _tsr_keeps_row_with_native_title().
     """
     catalog = _load_catalog(catalog_path)
     if not catalog:
@@ -217,9 +239,6 @@ def expand_with_parity_checks(
 
     existing_ids = {check.check_id for check in checks}
     existing_desc = {_normalize(check.description) for check in checks}
-    existing_desc_fail = {
-        _normalize(check.description) for check in checks if check.status == "FAIL"
-    }
     runtime_ccx = _collect_runtime_ccx(results)
     tsr_runtime = load_tsr_runtime(tsr_runtime_path) if tsr_runtime_path else {}
     expanded = list(checks)
@@ -239,7 +258,7 @@ def expand_with_parity_checks(
             continue
         norm_title = _normalize(title)
         if source == "tsr" and norm_title in existing_desc:
-            if not _tsr_fail_missed_by_native(norm_title, tsr_runtime, existing_desc_fail):
+            if not _tsr_keeps_row_with_native_title(norm_title, tsr_runtime):
                 continue
 
         category_id = str(entry.get("category_id", "7.7"))
@@ -294,7 +313,5 @@ def expand_with_parity_checks(
         )
         existing_ids.add(check_id)
         existing_desc.add(norm_title)
-        if status == "FAIL":
-            existing_desc_fail.add(norm_title)
 
     return expanded

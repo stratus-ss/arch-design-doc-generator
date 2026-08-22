@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from hc_report.evaluators.health import annotate_pod_restart_collection_gap
 from hc_report.models import CheckResult
 from hc_report.parity import expand_with_parity_checks
 from hc_report.registry import evaluate_from_registry
@@ -33,4 +34,5 @@ def evaluate_checks(
         catalog_path=catalog_path,
         tsr_runtime_path=tsr_runtime_path,
     )
+    annotate_pod_restart_collection_gap(checks, results)
     return checks

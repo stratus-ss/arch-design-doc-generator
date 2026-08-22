@@ -2,6 +2,15 @@
 check_id = "7.9.hw.*.identity"
 title = "Hardware Identity"
 description = "Server vendor, model, and BIOS version provide context for hardware support,\nfirmware advisories, and capacity planning. Verifying these details against the\nvendor support matrix ensures the platform runs on certified hardware.\n"
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: Server vendor, model, and BIOS version provide context for hardware support,
+# firmware advisories, and capacity planning.
+# The rec remediates THAT story by starting at `the numbered procedure` — the live object/command
+# for this check, not a neighboring TSR item.
+# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Review the hardware vendor, server model, and BIOS version reported by each node.\n2. Verify that the server model appears on the Red Hat certified hardware list.\n3. Ensure BIOS or UEFI firmware is current per the vendor's advisory channel.\n"
 priority_hint = ""
 impact = "none"
@@ -18,6 +27,9 @@ default = "https://catalog.redhat.com/hardware"
 check_id = "7.9.hw.*.cpu"
 title = "CPU"
 description = "CPU model and core count determine the node's compute capacity. Control plane\nnodes require a minimum of 4 vCPUs; worker nodes should be sized according to\nthe expected workload profile.\n"
+# why-rec
+# ENGINEERING JUDGMENT for worker sizing. Control-plane 4 vCPU minimum is documented install
+# guidance. `oc adm top nodes` is utilization, not capacity.
 recommendation = "1. Verify that CPU core counts meet or exceed the minimum requirements for each node role.\n2. Confirm that every control plane node has at least 4 vCPUs.\n3. For worker nodes, validate sizing against the workload profile and monitor utilization:\n   `oc adm top nodes`\n"
 priority_hint = ""
 impact = "none"
@@ -36,6 +48,14 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.9.hw.*.memory"
 title = "Memory"
 description = "Physical RAM determines the node's memory capacity. Control plane nodes require\na minimum of 16 GiB; worker nodes should be sized for the expected workload\nfootprint including kubelet, container runtime, and application pods.\n"
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: Physical RAM determines the node's memory capacity.
+# The rec remediates THAT story by starting at `oc adm top nodes` — the live object/command for
+# this check, not a neighboring TSR item.
+# Impact `none` is honest: the rec is investigation. It does not require patch/taint/upgrade.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Verify that each node's physical RAM meets or exceeds the minimum for its role.\n2. Confirm that every control plane node has at least 16 GiB of memory.\n3. Monitor memory pressure and investigate nodes approaching capacity limits:\n   `oc adm top nodes`\n"
 priority_hint = ""
 impact = "none"
@@ -54,6 +74,17 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.9.hw.*.disk"
 title = "Disk"
 description = "Disk type and capacity affect cluster performance and supportability. Rotational\n(HDD) storage causes etcd latency and raft timeouts on control plane nodes.\nSSD or NVMe storage is strongly recommended for all nodes, especially those\nrunning etcd.\n"
+# why-rec
+# `✅ VERIFIED`. Lab: OCP 4.21.5 compact BareMetal, 2026-08-21.
+# Check story: Disk type and capacity affect cluster performance and supportability.
+# The rec remediates THAT story by starting at `oc -n openshift-etcd exec -c etcd etcd-<member>
+# -- etcdctl endpoint status --cluster -w table` — the live object/command for this check, not a
+# neighboring TSR item.
+# Impact `maintenance-window`: Replacing rotational storage with SSD/NVMe on control plane nodes
+# requires a maintenance window and may involve node drain, reinstallation, or disk migration.
+# etcdctl endpoint health/status via `oc -n openshift-etcd exec -c etcd` was verified on this lab.
+# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
+# text is the right response.
 recommendation = "1. Verify that all control plane nodes use SSD or NVMe storage.\n2. If rotational disks are detected, plan migration to solid-state storage.\n3. Validate etcd disk performance with fio benchmarks on control plane nodes to confirm the storage meets the minimum 50 sequential IOPS and <10ms P99 fsync latency requirement.\n4. Review etcd backend health:\n   `oc -n openshift-etcd exec -c etcd etcd-<member> -- etcdctl endpoint status --cluster -w table`\n"
 priority_hint = ""
 impact = "maintenance-window"

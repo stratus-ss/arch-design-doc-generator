@@ -3,7 +3,7 @@
 make hc-report
 make hc-html
 make hc-pdf
-make hc-investigate FINDING_ARGS='...'
+make hc-investigate RESULTS_DIR=output/hc_collect/<date> FINDING_ID=6.2.3.1
 
 # container entrypoint subcommands (scripts/entrypoint.sh):
 hc-report
