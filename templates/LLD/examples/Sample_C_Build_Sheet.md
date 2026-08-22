@@ -56,12 +56,12 @@
 
 | Field | Value |
 |---|---|
-| **Cluster Name** | ocp-sa-prod-01 |
-| **Base Domain** | ocp.example.corp |
-| **Full API FQDN** | api.ocp-sa-prod-01.ocp.example.corp |
-| **Full Ingress FQDN** | *.apps.ocp-sa-prod-01.ocp.example.corp |
+| **Cluster Name** | `{CLUSTER_NAME}` |
+| **Base Domain** | `<base_domain>` |
+| **Full API FQDN** | `api.<cluster>.<base_domain>` |
+| **Full Ingress FQDN** | `*.apps.<cluster>.<base_domain>` |
 | **Tier** | Datacenter |
-| **Site** | Site Alpha |
+| **Site** | `{SITE_1}` |
 | **ACM Hub** | ACM {TIER_PRIMARY}/{TIER_MIDDLE} Hub |
 | **OCP Version** | 4.21 |
 | **Update Channel** | stable |
@@ -77,13 +77,13 @@
 
 | Node Role | Hostname | Serial Number | Intersight Profile | BMC IP | BMC MAC | Boot MAC (vNIC 0) |
 |-----------|----------|---------------|-------------------|--------|---------|-------------------|
-| Control Plane | cp-0 | FCH2345A001 | ocp-sa-prod-01-cp | 10.1.100.10 | AA:BB:CC:00:01:00 | AA:BB:CC:01:01:00 |
-| Control Plane | cp-1 | FCH2345A002 | ocp-sa-prod-01-cp | 10.1.100.11 | AA:BB:CC:00:01:01 | AA:BB:CC:01:01:01 |
-| Control Plane | cp-2 | FCH2345A003 | ocp-sa-prod-01-cp | 10.1.100.12 | AA:BB:CC:00:01:02 | AA:BB:CC:01:01:02 |
-| Worker | worker-0 | FCH2345A004 | ocp-sa-prod-01-wk | 10.1.100.13 | AA:BB:CC:00:01:03 | AA:BB:CC:01:01:03 |
-| Worker | worker-1 | FCH2345A005 | ocp-sa-prod-01-wk | 10.1.100.14 | AA:BB:CC:00:01:04 | AA:BB:CC:01:01:04 |
+| Control Plane | cp-0 | `<serial>` | `<cluster>-cp` | `<bmc_ip>` | `<bmc_mac>` | `<boot_mac>` |
+| Control Plane | cp-1 | `<serial>` | `<cluster>-cp` | `<bmc_ip>` | `<bmc_mac>` | `<boot_mac>` |
+| Control Plane | cp-2 | `<serial>` | `<cluster>-cp` | `<bmc_ip>` | `<bmc_mac>` | `<boot_mac>` |
+| Worker | worker-0 | `<serial>` | `<cluster>-wk` | `<bmc_ip>` | `<bmc_mac>` | `<boot_mac>` |
+| Worker | worker-1 | `<serial>` | `<cluster>-wk` | `<bmc_ip>` | `<bmc_mac>` | `<boot_mac>` |
 | ... | ... | ... | ... | ... | ... | ... |
-| Worker | worker-15 | FCH2345A019 | ocp-sa-prod-01-wk | 10.1.100.28 | AA:BB:CC:00:01:18 | AA:BB:CC:01:01:18 |
+| Worker | worker-N | `<serial>` | `<cluster>-wk` | `<bmc_ip>` | `<bmc_mac>` | `<boot_mac>` |
 
 **Intersight Profile Status:**
 
@@ -102,31 +102,31 @@
 
 | Network Layer | VLAN ID | Subnet | Gateway | MTU |
 |---------------|---------|--------|---------|-----|
-| Management | 100 | 10.1.1.0/24 | 10.1.1.1 | 1500 |
+| Management | 100 | `<mgmt_subnet>` | `<mgmt_gateway>` | 1500 |
 | VM Data | 200-210 | Various | Various | 1500 |
-| Storage | 300 | 10.1.3.0/24 | 10.1.3.1 | 9000 |
-| Migration | 400 | 10.1.4.0/24 | 10.1.4.1 | 9000 |
-| Backup | 500 | 10.1.5.0/24 | 10.1.5.1 | 9000 |
-| BMC | 600 | 10.1.100.0/24 | 10.1.100.1 | 1500 |
+| Storage | 300 | `<storage_subnet>` | `<storage_gateway>` | 9000 |
+| Migration | 400 | `<migration_subnet>` | `<migration_gateway>` | 9000 |
+| Backup | 500 | `<backup_subnet>` | `<backup_gateway>` | 9000 |
+| BMC | 600 | `<bmc_subnet>` | `<bmc_gateway>` | 1500 |
 
 **VIPs:**
 
 | VIP Type | IP Address | Network | VLAN | Infoblox Reserved |
 |----------|-----------|---------|------|-------------------|
-| API VIP | 10.1.1.200 | Management | 100 | [x] |
-| Ingress VIP | 10.1.1.201 | Management | 100 | [x] |
+| API VIP | `<api_vip>` | Management | 100 | [x] |
+| Ingress VIP | `<ingress_vip>` | Management | 100 | [x] |
 
 **Per-Node IP Assignments:**
 
 | Hostname | Mgmt IP | Storage IP | Migration IP | Backup IP | BMC IP |
 |----------|---------|------------|-------------|-----------|--------|
-| cp-0 | 10.1.1.10 | 10.1.3.10 | 10.1.4.10 | 10.1.5.10 | 10.1.100.10 |
-| cp-1 | 10.1.1.11 | 10.1.3.11 | 10.1.4.11 | 10.1.5.11 | 10.1.100.11 |
-| cp-2 | 10.1.1.12 | 10.1.3.12 | 10.1.4.12 | 10.1.5.12 | 10.1.100.12 |
-| worker-0 | 10.1.1.20 | 10.1.3.20 | 10.1.4.20 | 10.1.5.20 | 10.1.100.13 |
-| worker-1 | 10.1.1.21 | 10.1.3.21 | 10.1.4.21 | 10.1.5.21 | 10.1.100.14 |
+| cp-0 | `<mgmt_ip>` | `<storage_ip>` | `<migration_ip>` | `<backup_ip>` | `<bmc_ip>` |
+| cp-1 | `<mgmt_ip>` | `<storage_ip>` | `<migration_ip>` | `<backup_ip>` | `<bmc_ip>` |
+| cp-2 | `<mgmt_ip>` | `<storage_ip>` | `<migration_ip>` | `<backup_ip>` | `<bmc_ip>` |
+| worker-0 | `<mgmt_ip>` | `<storage_ip>` | `<migration_ip>` | `<backup_ip>` | `<bmc_ip>` |
+| worker-1 | `<mgmt_ip>` | `<storage_ip>` | `<migration_ip>` | `<backup_ip>` | `<bmc_ip>` |
 | ... | ... | ... | ... | ... | ... |
-| worker-15 | 10.1.1.35 | 10.1.3.35 | 10.1.4.35 | 10.1.5.35 | 10.1.100.28 |
+| worker-N | `<mgmt_ip>` | `<storage_ip>` | `<migration_ip>` | `<backup_ip>` | `<bmc_ip>` |
 
 ### 1.4 DNS Records
 
@@ -134,15 +134,15 @@
 
 | Record Type | FQDN | Target | Created | Verified |
 |-------------|------|--------|---------|----------|
-| A + PTR | api.ocp-sa-prod-01.ocp.example.corp | 10.1.1.200 | [x] | [x] |
-| A + PTR | api-int.ocp-sa-prod-01.ocp.example.corp | 10.1.1.200 | [x] | [x] |
-| Wildcard A | *.apps.ocp-sa-prod-01.ocp.example.corp | 10.1.1.201 | [x] | [x] |
-| A + PTR | cp-0.ocp-sa-prod-01.ocp.example.corp | 10.1.1.10 | [x] | [x] |
-| A + PTR | cp-1.ocp-sa-prod-01.ocp.example.corp | 10.1.1.11 | [x] | [x] |
-| A + PTR | cp-2.ocp-sa-prod-01.ocp.example.corp | 10.1.1.12 | [x] | [x] |
-| A + PTR | worker-0.ocp-sa-prod-01.ocp.example.corp | 10.1.1.20 | [x] | [x] |
+| A + PTR | `api.<cluster>.<base_domain>` | `<api_vip>` | [x] | [x] |
+| A + PTR | `api-int.<cluster>.<base_domain>` | `<api_vip>` | [x] | [x] |
+| Wildcard A | `*.apps.<cluster>.<base_domain>` | `<ingress_vip>` | [x] | [x] |
+| A + PTR | `<hostname>.<cluster>.<base_domain>` | `<node_ip>` | [x] | [x] |
+| A + PTR | `<hostname>.<cluster>.<base_domain>` | `<node_ip>` | [x] | [x] |
+| A + PTR | `<hostname>.<cluster>.<base_domain>` | `<node_ip>` | [x] | [x] |
+| A + PTR | `<hostname>.<cluster>.<base_domain>` | `<node_ip>` | [x] | [x] |
 | ... | ... | ... | ... | ... |
-| A + PTR | worker-15.ocp-sa-prod-01.ocp.example.corp | 10.1.1.35 | [x] | [x] |
+| A + PTR | `<hostname>.<cluster>.<base_domain>` | `<node_ip>` | [x] | [x] |
 
 ### 1.5 Certificate Inventory
 
@@ -150,8 +150,8 @@
 
 | Certificate | Subject / SAN | Issued By | Expiry | Received | Validated |
 |-------------|--------------|-----------|--------|----------|-----------|
-| API server | api.ocp-sa-prod-01.ocp.example.corp | Enterprise CA | 2028-04-01 | [x] | [x] |
-| Ingress wildcard | *.apps.ocp-sa-prod-01.ocp.example.corp | Internal CA | 2028-04-01 | [x] | [x] |
+| API server | `api.<cluster>.<base_domain>` | Enterprise CA | `<expiry_date>` | [x] | [x] |
+| Ingress wildcard | `*.apps.<cluster>.<base_domain>` | Internal CA | `<expiry_date>` | [x] | [x] |
 
 ### 1.6 Firewall Rule Checklist
 
@@ -184,8 +184,8 @@
 
 | Parameter | Value |
 |---|---|
-| NTP Server 1 | ntp1.ash.example.corp |
-| NTP Server 2 | ntp2.ash.example.corp |
+| NTP Server 1 | `ntp1.<base_domain>` |
+| NTP Server 2 | `ntp2.<base_domain>` |
 | MachineConfig applied | [x] |
 | All nodes synced | [x] |
 | Max offset observed | 12ms |
@@ -196,9 +196,9 @@
 
 | # | Check | Result | Pass/Fail |
 |---|-------|--------|-----------|
-| 1 | DNS — API resolves to 10.1.1.200 | 10.1.1.200 | Pass |
-| 2 | DNS — API-int resolves to 10.1.1.200 | 10.1.1.200 | Pass |
-| 3 | DNS — Wildcard resolves to 10.1.1.201 | 10.1.1.201 | Pass |
+| 1 | DNS — API resolves to `<api_vip>` | `<api_vip>` | Pass |
+| 2 | DNS — API-int resolves to `<api_vip>` | `<api_vip>` | Pass |
+| 3 | DNS — Wildcard resolves to `<ingress_vip>` | `<ingress_vip>` | Pass |
 | 4 | DNS — All node A records correct | All match | Pass |
 | 5 | DNS — All node PTR records correct | All match | Pass |
 | 6 | NTP — Synced, offset < 100ms | 12ms | Pass |
@@ -244,10 +244,10 @@
 
 | Field | Value |
 |---|---|
-| **Cluster Name** | ocp-sd-fairview-01 |
-| **Base Domain** | ocp.example.corp |
-| **Full API FQDN** | api.ocp-sd-fairview-01.ocp.example.corp |
-| **Full Ingress FQDN** | *.apps.ocp-sd-fairview-01.ocp.example.corp |
+| **Cluster Name** | `{CLUSTER_NAME}` |
+| **Base Domain** | `<base_domain>` |
+| **Full API FQDN** | `api.<cluster>.<base_domain>` |
+| **Full Ingress FQDN** | `*.apps.<cluster>.<base_domain>` |
 | **Tier** | {TIER_EDGE} (3-node compact) |
 | **Site** | {SITE} {TIER_EDGE} |
 | **ACM Hub** | ACM {TIER_EDGE} Hub |
@@ -258,9 +258,9 @@
 
 | Node Role | Hostname | Serial Number | Intersight Profile | BMC IP | Boot MAC |
 |-----------|----------|---------------|-------------------|--------|----------|
-| Compact | node-0 | UE-R001-001 | ocp-sd-fairview-01 | 10.50.100.10 | AA:BB:CC:50:01:00 |
-| Compact | node-1 | UE-R001-002 | ocp-sd-fairview-01 | 10.50.100.11 | AA:BB:CC:50:01:01 |
-| Compact | node-2 | UE-R001-003 | ocp-sd-fairview-01 | 10.50.100.12 | AA:BB:CC:50:01:02 |
+| Compact | node-0 | `<serial>` | `<cluster>` | `<bmc_ip>` | `<boot_mac>` |
+| Compact | node-1 | `<serial>` | `<cluster>` | `<bmc_ip>` | `<boot_mac>` |
+| Compact | node-2 | `<serial>` | `<cluster>` | `<bmc_ip>` | `<boot_mac>` |
 
 ### 2.3 Network Allocation
 
@@ -268,10 +268,10 @@
 
 | Network Layer | VLAN ID | Subnet | Gateway | MTU |
 |---------------|---------|--------|---------|-----|
-| Management | 100 | 10.50.1.0/24 | 10.50.1.1 | 1500 |
+| Management | 100 | `<mgmt_subnet>` | `<mgmt_gateway>` | 1500 |
 | VM Data | 200-202 | Various | Various | 1500 |
-| Backup | 500 | 10.50.5.0/24 | 10.50.5.1 | 9000 |
-| BMC | 600 | 10.50.100.0/24 | 10.50.100.1 | 1500 |
+| Backup | 500 | `<backup_subnet>` | `<backup_gateway>` | 9000 |
+| BMC | 600 | `<bmc_subnet>` | `<bmc_gateway>` | 1500 |
 
 *No dedicated storage or migration VLANs — local ODF, combined bonds.*
 
@@ -279,16 +279,16 @@
 
 | VIP Type | IP Address | Infoblox Reserved |
 |----------|-----------|-------------------|
-| API VIP | 10.50.1.200 | [x] |
-| Ingress VIP | 10.50.1.201 | [x] |
+| API VIP | `<api_vip>` | [x] |
+| Ingress VIP | `<ingress_vip>` | [x] |
 
 **Per-Node IP Assignments:**
 
 | Hostname | Mgmt IP | Backup IP | BMC IP |
 |----------|---------|-----------|--------|
-| node-0 | 10.50.1.10 | 10.50.5.10 | 10.50.100.10 |
-| node-1 | 10.50.1.11 | 10.50.5.11 | 10.50.100.11 |
-| node-2 | 10.50.1.12 | 10.50.5.12 | 10.50.100.12 |
+| node-0 | `<mgmt_ip>` | `<backup_ip>` | `<bmc_ip>` |
+| node-1 | `<mgmt_ip>` | `<backup_ip>` | `<bmc_ip>` |
+| node-2 | `<mgmt_ip>` | `<backup_ip>` | `<bmc_ip>` |
 
 ### 2.4 Pre-Flight & Gate 1 (abbreviated)
 

@@ -35,11 +35,11 @@ This LLD provides implementation specifications for Fleet Operations (Phase 3): 
 
 ```mermaid
 flowchart TB
-    L1["<b>Layer 1: Fleet Infrastructure</b><br/>LLD-47 ACM hubs,<br/>registration, Klusterlet, Argo Agent"]
-    L2["<b>Layer 2: GitOps and Delivery</b><br/>LLD-48 Repo / hybrid delivery,<br/>LLD-49 ESO secrets"]
-    L3["<b>Layer 3: Lifecycle Management</b><br/>LLD-50 maxUnavailable"]
-    L4["<b>Layer 4: Remediation and Resilience</b><br/>LLD-51 NHC / SNR / FAR / Watchdog,<br/>LLD-52 NMO,<br/>LLD-53 Fleet compute"]
-    L5["<b>Layer 5: Fleet Observability and Compliance</b><br/>LLD-54 Multicluster observability,<br/>LLD-55 CIS / Tenable fleet compliance"]
+    L1["<b>Layer 1: Fleet Infrastructure</b><br/>LLD-46 ACM hubs,<br/>registration, Klusterlet, Argo Agent"]
+    L2["<b>Layer 2: GitOps and Delivery</b><br/>LLD-47 Repo / hybrid delivery,<br/>LLD-48 ESO secrets"]
+    L3["<b>Layer 3: Lifecycle Management</b><br/>LLD-49 maxUnavailable"]
+    L4["<b>Layer 4: Remediation and Resilience</b><br/>LLD-50 NHC / SNR / FAR / Watchdog,<br/>LLD-51 NMO,<br/>LLD-52 Fleet compute"]
+    L5["<b>Layer 5: Fleet Observability and Compliance</b><br/>LLD-53 Multicluster observability,<br/>LLD-54 CIS / {SCAN_VENDOR} fleet compliance"]
     L1 --> L2 --> L3 --> L4 --> L5
 ```
 
@@ -62,16 +62,16 @@ flowchart TB
 
 ---
 
-## LLD-47: Fleet Registration Validation
+## LLD-46: Fleet Registration Validation
 
 Validate that ACM-provisioned spoke clusters are registered to the correct split hubs with the required labels and policy targeting in place for fleet-wide governance and lifecycle operations. *(ADR 5)*
 ### Prerequisites
 
 | ID | Item | Owner | Status |
 |----|------|-------|--------|
-| CG-47-1 | Decide final ACM hub count and tier placement ({TIER_PRIMARY}, Regional, {TIER_EDGE}, sandbox/lab) to close open ADR 5 decisions                  | Architecture / Leadership | Open |
-| CG-47-2 | Decide how production ACM hubs handle failure (active/passive standby vs independent per-site hubs)                               | Architecture / Leadership | Open |
-| CG-47-3 | Confirm firewall and DNS routes are open from spoke clusters to their ACM hub (required for cluster management and monitoring)     | Platform / Network        | Open |
+| CG-46-1 | Decide final ACM hub count and tier placement (DC, Regional, {TIER_EDGE}, sandbox/lab) to close open ADR 5 decisions                  | Architecture / Leadership | Open |
+| CG-46-2 | Decide how production ACM hubs handle failure (active/passive standby vs independent per-site hubs)                               | Architecture / Leadership | Open |
+| CG-46-3 | Confirm firewall and DNS routes are open from spoke clusters to their ACM hub (required for cluster management and monitoring)     | Platform / Network        | Open |
 
 ### Dependencies
 
@@ -87,7 +87,7 @@ The following parameter is Phase 3 scope - a post-provisioning tuning action val
 
 | Parameter                  | Value                                            | Description                                                                                     | Source |
 | -------------------------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------- | ------ |
-| Klusterlet policy interval | 60s default, 120s for high-latency {TIER_EDGE} spokes | Controls how frequently the klusterlet polls for policy changes; tune WAN {TIER_EDGE_LOWER} to reduce churn | HLD    |
+| Klusterlet policy interval | 60s default, 120s for high-latency {TIER_EDGE} spokes | Controls how frequently the klusterlet polls for policy changes; tune WAN {TIER_EDGE} sites to reduce churn | HLD    |
 
 ### Sample Configuration
 
@@ -97,13 +97,13 @@ The following parameter is Phase 3 scope - a post-provisioning tuning action val
 apiVersion: cluster.open-cluster-management.io/v1
 kind: ManagedCluster
 metadata:
-  name: dc-sb-prod-01
+  name: {CLUSTER_NAME}
   labels:
-    name: dc-sb-prod-01
+    name: {CLUSTER_NAME}
     tier: dc
-    site: site-beta
+    site: {SITE_2}
     environment: production
-    cluster.open-cluster-management.io/clusterset: {TIER_PRIMARY_LOWER}-production
+    cluster.open-cluster-management.io/clusterset: datacenter-production
 spec:
   hubAcceptsClient: true
   leaseDurationSeconds: 60
@@ -112,12 +112,12 @@ apiVersion: cluster.open-cluster-management.io/v1
 kind: ManagedClusterAddon
 metadata:
   name: klusterlet-addon
-  namespace: dc-sb-prod-01
+  namespace: {CLUSTER_NAME}
 spec:
   installNamespace: open-cluster-management-agent
 ```
 
-**Placement (policy targeting {TIER_PRIMARY} production example):**
+**Placement (policy targeting DC production example):**
 
 ```yaml
 apiVersion: cluster.open-cluster-management.io/v1beta1
@@ -162,11 +162,11 @@ oc get csr | grep pending   # approve if Manual import path used
 
 ### Tier Variance
 
-| Parameter | {TIER_PRIMARY} | {TIER_MIDDLE} | {TIER_EDGE} |
+| Parameter | DC | Regional | {TIER_EDGE} |
 |---|---|---|---|
-| Hub affinity | ACM hub — {TIER_PRIMARY} (or prod hub per final ADR 5) | ACM hub — Regional or embedded in {TIER_PRIMARY} (**TBD**) | Dedicated {TIER_EDGE} ACM hub |
-| Cluster count band | Few large clusters | Small/medium clusters | ~400 compact clusters |
-| Network latency profile | LAN / low WAN | WAN to hub possible | Highest WAN variance (e.g., international {TIER_EDGE_LOWER}) |
+| Hub affinity | ACM hub — DC (or prod hub per final ADR 5) | ACM hub — Regional or embedded in DC (**TBD**) | Dedicated {TIER_EDGE} ACM hub |
+| Cluster count band | Few large clusters | Small/medium clusters | ~{TIER_EDGE_COUNT} compact clusters |
+| Network latency profile | LAN / low WAN | WAN to hub possible | Highest WAN variance (e.g., international {TIER_EDGE} sites) |
 | Management blast radius segment | Segment bound to hub | Same | {TIER_EDGE}-only segment |
 
 ### Implementation Procedure
@@ -203,32 +203,32 @@ oc -n open-cluster-management-agent get pods
 
 | ID | Criterion | Test | Expected Result |
 |----|-----------|------|-----------------|
-| AC-47-1 | Policies reach spoke | ACM console policy status for pilot cluster | Non-empty compliance report per pilot policy |
-| AC-47-2 | Klusterlet policy interval tuned | `oc get klusterletconfig -o jsonpath='{.spec.policyController.interval}'` on {TIER_EDGE} hub | 120s for {TIER_EDGE} spokes; 60s elsewhere |
-| AC-47-3 | Hub inventory documented | Hub inventory record (URLs, namespaces, credential store references) reviewed and committed | Document exists and covers all active hubs |
+| AC-46-1 | Policies reach spoke | ACM console policy status for pilot cluster | Non-empty compliance report per pilot policy |
+| AC-46-2 | Klusterlet policy interval tuned | `oc get klusterletconfig -o jsonpath='{.spec.policyController.interval}'` on {TIER_EDGE} hub | 120s for {TIER_EDGE} spokes; 60s elsewhere |
+| AC-46-3 | Hub inventory documented | Hub inventory record (URLs, namespaces, credential store references) reviewed and committed | Document exists and covers all active hubs |
 
 ---
 
-## LLD-48: GitOps Repository & Delivery — ArgoCD + ACM Hybrid
+## LLD-47: GitOps Repository & Delivery — ArgoCD + ACM Hybrid
 
 Define the Git repository structure and configure the ArgoCD + ACM hybrid delivery model for consistent Day-2 configuration across all clusters. *(ADR 49)*
 ### Prerequisites
 
 | ID | Item | Owner | Status |
 |----|------|-------|--------|
-| CG-48-1 | Confirm monorepo-per-site repository boundaries and naming convention from sandbox pilot for rollout to production and {TIER_EDGE} sites | Platform | Closed |
-| CG-48-2 | Implement automated alerts when configuration drifts between repositories (e.g., a change in one repo is not reflected in another) | Platform | Open |
-| CG-48-3 | Conduct workshop with Red Hat to finalise how ACM operator policies are scoped and targeted per cluster tier                       | Platform / RH | Open |
-| CG-48-4 | Validate that ACM can bootstrap the GitOps operator and ArgoCD Agent onto spoke clusters without relying on manual Ansible steps   | Platform | Open |
-| CG-48-5 | Confirm OpenShift GitOps version is 1.20.1 or later on all hubs (minimum version required for ArgoCD Agent connectivity)          | Platform | Open |
-| CG-48-6 | Identify and register at least one canary cluster per ACM hub segment to serve as the first upgrade target each cycle              | Platform | Open |
-| CG-48-7 | Produce a tested compatibility matrix confirming which operator versions are approved for each target OCP minor version            | Platform | Open |
+| CG-47-1 | Confirm monorepo-per-site repository boundaries and naming convention from sandbox pilot for rollout to production and {TIER_EDGE} sites | Platform | Closed |
+| CG-47-2 | Implement automated alerts when configuration drifts between repositories (e.g., a change in one repo is not reflected in another) | Platform | Open |
+| CG-47-3 | Conduct workshop with Red Hat to finalise how ACM operator policies are scoped and targeted per cluster tier                       | Platform / RH | Open |
+| CG-47-4 | Validate that ACM can bootstrap the GitOps operator and ArgoCD Agent onto spoke clusters without relying on manual Ansible steps   | Platform | Open |
+| CG-47-5 | Confirm OpenShift GitOps version is 1.20.1 or later on all hubs (minimum version required for ArgoCD Agent connectivity)          | Platform | Open |
+| CG-47-6 | Identify and register at least one canary cluster per ACM hub segment to serve as the first upgrade target each cycle              | Platform | Open |
+| CG-47-7 | Produce a tested compatibility matrix confirming which operator versions are approved for each target OCP minor version            | Platform | Open |
 
 ### Dependencies
 
 | Blocked By | Reason |
 |------------|--------|
-| LLD-47 | Clusters registered with ACM hubs |
+| LLD-46 | Clusters registered with ACM hubs |
 
 ### Configuration Parameters
 
@@ -391,25 +391,25 @@ spec:
 
 ### Tier Variance
 
-| Parameter | {TIER_PRIMARY} | {TIER_MIDDLE} | {TIER_EDGE} |
+| Parameter | DC | Regional | {TIER_EDGE} |
 |---|---|---|---|
 | Repo | Production repo (**TBD** split) | Same or Regional-focused repo (**TBD**) | Likely isolated repo / team (**TBD**) |
 | Promotion bake | Sandbox → lab same week → prod 1–2 wk | Same pattern scaled | Lab mock → pilot → regional rollout (**TBD**) |
-| Hub Argo endpoint | Hub in {TIER_PRIMARY} segment | Hub in Regional or shared (**TBD**) | {TIER_EDGE} hub |
+| Hub Argo endpoint | Hub in DC segment | Hub in Regional or shared (**TBD**) | {TIER_EDGE} hub |
 | ACM policy payloads | Tier-specific operator pins | Tier-specific pins | Conservative pins / bandwidth (**TBD**) |
 
 ### Implementation Procedure
 
 **Execution Readiness Checks:**
 
-- [ ] Git org permissions, fork model, CODEOWNERS, and {TIER_EDGE} protection configured per ADR 49.
-- [ ] ACM hub reachable from spokes; Placement labels applied (LLD-47).
+- [ ] Git org permissions, fork model, CODEOWNERS, and branch protection configured per ADR 49.
+- [ ] ACM hub reachable from spokes; Placement labels applied (LLD-46).
 - [ ] Decide initial `targetRevision` strategy (SHA vs tag).
 
 **Steps:**
 
 1. Stand up COP-template directory layout in chosen repo(s); migrate existing SRE content incrementally (**TBD** cutover milestones).
-2. On hub OpenShift GitOps — deploy root app-of-apps and repo credentials (non-plaintext paths per LLD-49).
+2. On hub OpenShift GitOps — deploy root app-of-apps and repo credentials (non-plaintext paths per LLD-48).
 3. Implement ACM OperatorPolicy manifests for pinned operators (OCP-V, NMO, logging stack, observability endpoints — list **TBD**).
 4. Enable ArgoCD Agent on spokes via ACM bootstrap policy (label-triggered) once OpenShift GitOps operator present.
 5. Validate eventual consistency — Argo applies config before operator finishes install; converge to healthy state (ADR 49).
@@ -432,35 +432,35 @@ oc get operatorpolicy.policy.open-cluster-management.io -n policies
 
 | ID | Criterion | Test | Expected Result |
 |----|-----------|------|-----------------|
-| AC-48-1 | App-of-apps sync healthy | Hub Argo Applications `Synced/Healthy` | No persistent `Degraded` |
-| AC-48-2 | Agents registered | Hub shows agent connection for spokes | Connected |
-| AC-48-3 | OperatorPolicy enforced | ACM policy CSV matches approved list | Compliance `Compliant` |
-| AC-48-4 | Repo structure matches site scaffold | Repo review | `.helm/`, `components/`, `groups/`, `clusters/<hub>/managed-clusters/`, and `implementation/` present |
-| AC-48-5 | Sync windows block during moratorium | Attempt manual sync on prod AppProject during deny window | Sync rejected with window violation message |
+| AC-47-1 | App-of-apps sync healthy | Hub Argo Applications `Synced/Healthy` | No persistent `Degraded` |
+| AC-47-2 | Agents registered | Hub shows agent connection for spokes | Connected |
+| AC-47-3 | OperatorPolicy enforced | ACM policy CSV matches approved list | Compliance `Compliant` |
+| AC-47-4 | Repo structure matches site scaffold | Repo review | `.helm/`, `components/`, `groups/`, `clusters/<hub>/managed-clusters/`, and `implementation/` present |
+| AC-47-5 | Sync windows block during moratorium | Attempt manual sync on prod AppProject during deny window | Sync rejected with window violation message |
 
 ---
 
-## LLD-49: Secret Sync via ArgoCD + ESO
+## LLD-48: Secret Sync via ArgoCD + ESO
 
 Configure ArgoCD to deploy ExternalSecret CRs across the fleet so that ESO pulls secrets from {SECRET_MGMT_VENDOR} consistently on every cluster. *(ADR 20)*
 ### Prerequisites
 
 | ID | Item | Owner | Status |
 |----|------|-------|--------|
-| CG-49-1 | Deliver complete inventory of all secrets required by ACM, ArgoCD, and cluster operations (prerequisite to PAM integration work)    | Platform    | Open |
-| CG-49-2 | Schedule and complete {SECRET_MGMT_VENDOR}/Conjur integration session with Security to agree ESO connection patterns                | Security / PAM      | Open |
-| CG-49-3 | Set a decision date for switching to an alternative secrets solution if {SECRET_MGMT_VENDOR} integration is not ready in time       | Architecture        | Open |
-| CG-49-4 | Agree and document how secrets needed at GitOps sync time will be retrieved from the vault without storing values in Git             | Platform / Security | Open |
+| CG-48-1 | Deliver complete inventory of all secrets required by ACM, ArgoCD, and cluster operations (prerequisite to PAM integration work)    | Platform    | Open |
+| CG-48-2 | Schedule and complete {SECRET_MGMT_VENDOR} integration session with Security to agree ESO connection patterns                | Security / PAM      | Open |
+| CG-48-3 | Set a decision date for switching to an alternative secrets solution if {SECRET_MGMT_VENDOR} integration is not ready in time       | Architecture        | Open |
+| CG-48-4 | Agree and document how secrets needed at GitOps sync time will be retrieved from the vault without storing values in Git             | Platform / Security | Open |
 
 ### Dependencies
 
 | Blocked By | Reason |
 |------------|--------|
-| LLD-48 | ArgoCD bootstrapped on spokes |
+| LLD-47 | ArgoCD bootstrapped on spokes |
 
 ### Configuration Parameters
 
-Architecture decisions for secrets delivery ({SECRET_MGMT_VENDOR}/Conjur, ESO, and ArgoCD delivery path) are defined in ADR 20. This section remains blocked pending CG-49-2; sample manifests below represent the target state once unblocked.
+Architecture decisions for secrets delivery ({SECRET_MGMT_VENDOR}, ESO, and ArgoCD delivery path) are defined in ADR 20. This section remains blocked pending CG-48-2; sample manifests below represent the target state once unblocked.
 
 ### Sample Configuration
 
@@ -511,7 +511,7 @@ spec:
 
 ### Tier Variance
 
-| Parameter | {TIER_PRIMARY} | {TIER_MIDDLE} | {TIER_EDGE} |
+| Parameter | DC | Regional | {TIER_EDGE} |
 |---|---|---|---|
 | Vault connectivity | Datacenter LAN expectations | WAN to vault possible | {TIER_EDGE} firewall path **TBD** (ADR 16) |
 | Secret refresh tolerances | **TBD** | **TBD** | Stricter WAN failure modes (**TBD**) |
@@ -525,8 +525,8 @@ spec:
 
 **Steps:**
 
-1. Catalog secrets (CG-49-1).
-2. For each class define: owner, rotation, Conjur path, namespaces affected.
+1. Catalog secrets (CG-48-1).
+2. For each class define: owner, rotation, vault path, namespaces affected.
 3. Apply `SecretStore` + RBAC via ArgoCD; validate non-privileged namespaces cannot read vault creds.
 4. Replace manual secret injection milestones as connectors go live.
 
@@ -545,28 +545,28 @@ oc get secrets <target> -n openshift-config -o yaml | wc -l
 
 | ID | Criterion | Test | Expected Result |
 |----|-----------|------|-----------------|
-| AC-49-1 | No plaintext secrets in Git | Repo secret scanner / manual PR review | Violations flagged |
-| AC-49-2 | ExternalSecret resolves | `oc describe externalsecret` | Ready True |
-| AC-49-3 | ACM install secrets readiness | Provision test spoke without manual undocumented steps | Success after catalog (**TBD** gate) |
+| AC-48-1 | No plaintext secrets in Git | Repo secret scanner / manual PR review | Violations flagged |
+| AC-48-2 | ExternalSecret resolves | `oc describe externalsecret` | Ready True |
+| AC-48-3 | ACM install secrets readiness | Provision test spoke without manual undocumented steps | Success after catalog (**TBD** gate) |
 
 ---
 
-## LLD-50: maxUnavailable Strategy
+## LLD-49: maxUnavailable Strategy
 
 Set maxUnavailable values for MachineConfigPool updates to control how many nodes can be rebooting simultaneously during rolling upgrades. *(ADR 45)*
 ### Prerequisites
 
 | ID | Item | Owner | Status |
 |----|------|-------|--------|
-| CG-50-1 | Validate in sandbox that VMs migrate successfully when multiple nodes reboot in parallel on large clusters (16+ workers)        | Platform      | Open |
-| CG-50-2 | Confirm with Red Hat whether changing the parallel-reboot limit on a node pool triggers an immediate node reboot               | Platform / RH | Open |
-| CG-50-3 | Store each cluster's maximum parallel-reboot value explicitly in Git so it is tracked and not left to platform defaults        | Platform      | Open |
+| CG-49-1 | Validate in sandbox that VMs migrate successfully when multiple nodes reboot in parallel on large clusters (16+ workers)        | Platform      | Open |
+| CG-49-2 | Confirm with Red Hat whether changing the parallel-reboot limit on a node pool triggers an immediate node reboot               | Platform / RH | Open |
+| CG-49-3 | Store each cluster's maximum parallel-reboot value explicitly in Git so it is tracked and not left to platform defaults        | Platform      | Open |
 
 ### Dependencies
 
 | Blocked By | Reason |
 |------------|--------|
-| LLD-48 | Upgrade orchestration (TALM CGU) defined |
+| LLD-47 | Upgrade orchestration (TALM CGU) defined |
 
 ### Reference
 
@@ -595,7 +595,7 @@ spec:
   nodeSelector:
     matchLabels:
       node-role.kubernetes.io/worker: ""
-  maxUnavailable: 1   # overlays: bump to 2-4 ONLY after CG-50-1
+  maxUnavailable: 1   # overlays: bump to 2-4 ONLY after CG-49-1
 ```
 
 Apply via GitOps overlay per cluster tier.
@@ -604,7 +604,7 @@ Apply via GitOps overlay per cluster tier.
 
 Per Cross-Cutting matrix:
 
-| Parameter | {TIER_PRIMARY} | {TIER_MIDDLE} | {TIER_EDGE} |
+| Parameter | DC | Regional | {TIER_EDGE} |
 |---|---|---|---|
 | Node count | High | Medium | Compact (implicit 1) |
 | maxUnavailable targets | **2–4 post-validation** | **1–2** | **1** |
@@ -620,7 +620,7 @@ Per Cross-Cutting matrix:
 
 1. Set explicit `spec.maxUnavailable` for `worker`, `master` pools (master pool usually `1`).
 2. Document value in fleet inventory YAML per cluster (`clusters/<name>/kustomization.yaml`).
-3. After sandbox success, elevate {TIER_PRIMARY} worker pools gradually (2→3→**TBD ceiling**).
+3. After sandbox success, elevate DC worker pools gradually (2→3→**TBD ceiling**).
 
 **Verification:**
 
@@ -636,32 +636,32 @@ oc get mcp worker -o jsonpath='{.spec.maxUnavailable}'; echo
 
 | ID | Criterion | Test | Expected Result |
 |----|-----------|------|-----------------|
-| AC-50-1 | maxUnavailable explicitly set per MCP | `oc get mcp worker -o jsonpath='{.spec.maxUnavailable}'` | Non-empty integer value (not defaulted/omitted) |
-| AC-50-2 | Tier-correct parallelism matches HLD sizing | Compare maxUnavailable value against HLD tier band (e.g. sandbox=2–4, prod=1) | Value within approved range for each tier |
-| AC-50-3 | Capacity headroom validated before bump | Run `oc adm top nodes` and confirm ≥1 spare worker worth of allocatable CPU/RAM | Available capacity > single-node workload footprint |
-| AC-50-4 | VM workloads remain available during rolling update | Trigger MCP update in sandbox; monitor `oc get vmi` for unexpected `Failed`/`Unknown` states | Zero VM interruptions beyond live-migration settle time |
-| AC-50-5 | Rollback path verified | Patch maxUnavailable back to `1` during active rollout; confirm drain pauses | Only 1 node draining after patch; remaining nodes unaffected |
+| AC-49-1 | maxUnavailable explicitly set per MCP | `oc get mcp worker -o jsonpath='{.spec.maxUnavailable}'` | Non-empty integer value (not defaulted/omitted) |
+| AC-49-2 | Tier-correct parallelism matches HLD sizing | Compare maxUnavailable value against HLD tier band (e.g. sandbox=2–4, prod=1) | Value within approved range for each tier |
+| AC-49-3 | Capacity headroom validated before bump | Run `oc adm top nodes` and confirm ≥1 spare worker worth of allocatable CPU/RAM | Available capacity > single-node workload footprint |
+| AC-49-4 | VM workloads remain available during rolling update | Trigger MCP update in sandbox; monitor `oc get vmi` for unexpected `Failed`/`Unknown` states | Zero VM interruptions beyond live-migration settle time |
+| AC-49-5 | Rollback path verified | Patch maxUnavailable back to `1` during active rollout; confirm drain pauses | Only 1 node draining after patch; remaining nodes unaffected |
 
 ---
 
-## LLD-51: Node Remediation & Recovery Model
+## LLD-50: Node Remediation & Recovery Model
 
 Configure automated node health checks, hardware watchdog integration, and BMC-based remediation actions to detect and recover unhealthy nodes without manual intervention. *(ADR 44)*
 ### Prerequisites
 
 | ID | Item | Owner | Status |
 |----|------|-------|--------|
-| CG-51-1 | Validate in sandbox that automated hard-reboot via {HW_MGMT_PLATFORM} BMC works end-to-end, then formally close the ADR decision | Platform / RH  | Open |
-| CG-51-2 | Decide whether NodeHealthCheck runs unpaused (fully automatic remediation) or paused (remediation disabled until an operator explicitly unpauses); note that medik8s has no per-incident approval gate — this is a cluster-wide on/off setting | Ops / Security | Open |
-| CG-51-3 | Document whether the automated fence action powers the node off or reboots it, and specify any workload-class exceptions            | Platform       | Open |
-| CG-51-4 | Confirm that bare-metal servers expose a hardware watchdog device that the self-remediation operator can use                        | Platform            | Open |
-| CG-51-5 | Validate in sandbox that the automated fence agent can authenticate to BMC and trigger a power action                               | Infrastructure / RH | Open |
+| CG-50-1 | Validate in sandbox that automated hard-reboot via {HW_MGMT_PLATFORM} BMC works end-to-end, then formally close the ADR decision | Platform / RH  | Open |
+| CG-50-2 | Decide whether NodeHealthCheck runs unpaused (fully automatic remediation) or paused (remediation disabled until an operator explicitly unpauses); note that medik8s has no per-incident approval gate — this is a cluster-wide on/off setting | Ops / Security | Open |
+| CG-50-3 | Document whether the automated fence action powers the node off or reboots it, and specify any workload-class exceptions            | Platform       | Open |
+| CG-50-4 | Confirm that bare-metal servers expose a hardware watchdog device that the self-remediation operator can use                        | Platform            | Open |
+| CG-50-5 | Validate in sandbox that the automated fence agent can authenticate to BMC and trigger a power action                               | Infrastructure / RH | Open |
 
 ### Dependencies
 
 | Blocked By | Reason |
 |------------|--------|
-| LLD-49 | BMC secrets vaulted via ESO (or interim manual procedure per LLD-49 while blocked) |
+| LLD-48 | BMC secrets vaulted via ESO (or interim manual procedure per LLD-48 while blocked) |
 
 ### Configuration Parameters
 
@@ -733,7 +733,7 @@ spec:
 
 ### Tier Variance
 
-| Parameter | {TIER_PRIMARY} | {TIER_MIDDLE} | {TIER_EDGE} |
+| Parameter | DC | Regional | {TIER_EDGE} |
 |---|---|---|---|
 | BMC redundancy | Dedicated full-feature UCS | UCS | Unified Edge BMC model (**validate FAR**) (**TBD**) |
 
@@ -742,7 +742,7 @@ spec:
 **Execution Readiness Checks:**
 
 - [ ] Workload Availability / medik8s operators installed via ACM pins.
-- [ ] BMC secrets vaulted (LLD-49) — never plain in Git.
+- [ ] BMC secrets vaulted (LLD-48) — never plain in Git.
 - [ ] Live migration prerequisites met (RWX disks per ADR 37).
 
 **Steps:**
@@ -766,28 +766,28 @@ spec:
 
 | ID | Criterion | Test | Expected Result |
 |----|-----------|------|-----------------|
-| AC-51-1 | SNR remediates soft faults | Simulate kubelet hang (**TBD** harness) | Node returns Ready |
-| AC-51-2 | FAR triggers after SNR timeout | Simulate hard hang | BMC cycle observed + VMs rescheduled |
-| AC-51-3 | POC loop regression absent | Scenario replay | FAR invoked — no indefinite SNR loop |
-| AC-51-4 | Hardware watchdog path preferred | Inspect SNR diagnostic logs | Strategy shows hardware watchdog when device exists |
-| AC-51-5 | BMC Redfish reachable | `curl -sk https://<bmc>/redfish/v1/Systems` | HTTP 200 |
+| AC-50-1 | SNR remediates soft faults | Simulate kubelet hang (**TBD** harness) | Node returns Ready |
+| AC-50-2 | FAR triggers after SNR timeout | Simulate hard hang | BMC cycle observed + VMs rescheduled |
+| AC-50-3 | POC loop regression absent | Scenario replay | FAR invoked — no indefinite SNR loop |
+| AC-50-4 | Hardware watchdog path preferred | Inspect SNR diagnostic logs | Strategy shows hardware watchdog when device exists |
+| AC-50-5 | BMC Redfish reachable | `curl -sk https://<bmc>/redfish/v1/Systems` | HTTP 200 |
 
 ---
 
-## LLD-52: Node Maintenance Operator
+## LLD-51: Node Maintenance Operator
 
 Deploy the Node Maintenance Operator to provide a controlled cordon-and-drain workflow for planned node maintenance with VM live migration. *(ADR 47)*
 ### Prerequisites
 
 | ID | Item | Owner | Status |
 |----|------|-------|--------|
-| CG-52-1 | Confirm the Node Maintenance Operator subscription channel and approved version, then pin it in the ACM policy              | Platform   | Open |
-| CG-52-2 | Deliver and test the Ansible automation that opens and closes a node drain request linked to an approved ServiceNow change  | Automation | Open |
-| CG-52-3 | Evaluate and optionally implement automated ServiceNow ticket status updates when node maintenance state changes (optional) | Automation | Open |
+| CG-51-1 | Confirm the Node Maintenance Operator subscription channel and approved version, then pin it in the ACM policy              | Platform   | Open |
+| CG-51-2 | Deliver and test the Ansible automation that opens and closes a node drain request linked to an approved ServiceNow change  | Automation | Open |
+| CG-51-3 | Evaluate and optionally implement automated ServiceNow ticket status updates when node maintenance state changes (optional) | Automation | Open |
 
 ### Dependencies
 
-No hard blockers. Recommended sequencing is after LLD-51 for a coherent remediation + maintenance operating model.
+No hard blockers. Recommended sequencing is after LLD-50 for a coherent remediation + maintenance operating model.
 
 ### Configuration Parameters
 
@@ -826,7 +826,7 @@ CLI alternative for break-glass: `oc adm cordon`, `drain`.
 
 ### Tier Variance
 
-| Parameter | {TIER_PRIMARY} | {TIER_MIDDLE} | {TIER_EDGE} |
+| Parameter | DC | Regional | {TIER_EDGE} |
 |---|---|---|---|
 | Maintenance frequency | Highest | Moderate | Lower absolute count (**TBD** staffing model) |
 
@@ -858,37 +858,37 @@ oc describe nm drain-worker-17
 
 | ID | Criterion | Test | Expected Result |
 |----|-----------|------|-----------------|
-| AC-52-1 | NMO subscribed | ACM policy / `Subscription` CSV | Desired CSV |
-| AC-52-2 | Planned drain migrates VMs | Observation / metrics | VMs Running elsewhere |
-| AC-52-3 | SNOW linkage | Pilot CHG automation | Matching ticket references |
+| AC-51-1 | NMO subscribed | ACM policy / `Subscription` CSV | Desired CSV |
+| AC-51-2 | Planned drain migrates VMs | Observation / metrics | VMs Running elsewhere |
+| AC-51-3 | SNOW linkage | Pilot CHG automation | Matching ticket references |
 
 ---
 
-## LLD-53: Fleet Compute Configuration
+## LLD-52: Fleet Compute Configuration
 
 Standardize compute-related MachineConfigs, kernel parameters, and runtime settings across the fleet via GitOps delivery. *(ADR 37, 38, 39, 40, 45)*
 ### Prerequisites
 
 | ID | Item | Owner | Status |
 |----|------|-------|--------|
-| CG-53-1 | Confirm GitOps overlays set Live Migrate as the default VM eviction strategy on all clusters                                    | Platform      | Open                      |
-| CG-53-2 | Confirm capacity dashboards are available and visible per ACM hub (dashboard IDs to be assigned)                                | Observability | Open                      |
-| CG-53-3 | Confirm Pressure Stall Information kernel setting is applied on all worker nodes before enabling the descheduler (Phase 1 link) | Platform      | Track Phase 1 LLD linkage |
-| CG-53-4 | Select and confirm the descheduler VM-balancing profile after sandbox testing                                                   | Platform      | Open                      |
+| CG-52-1 | Confirm GitOps overlays set Live Migrate as the default VM eviction strategy on all clusters                                    | Platform      | Open                      |
+| CG-52-2 | Confirm capacity dashboards are available and visible per ACM hub (dashboard IDs to be assigned)                                | Observability | Open                      |
+| CG-52-3 | Confirm Pressure Stall Information kernel setting is applied on all worker nodes before enabling the descheduler (Phase 1 link) | Platform      | Track Phase 1 LLD linkage |
+| CG-52-4 | Select and confirm the descheduler VM-balancing profile after sandbox testing                                                   | Platform      | Open                      |
 
 ### Dependencies
 
 | Blocked By | Reason |
 |------------|--------|
-| LLD-52 | Node Maintenance Operator deployed |
+| LLD-51 | Node Maintenance Operator deployed |
 
 ### Configuration Parameters
 
 The following settings are applied during earlier phases and validated fleet-wide in Phase 3 via ACM governance policies:
 
-- **EvictionStrategy `LiveMigrate`** -- set as OCP-V default in Phase 2 (LLD-34/AC-34-4)
+- **EvictionStrategy `LiveMigrate`** -- set as OCP-V default in Phase 2 (LLD-33/AC-33-4)
 - **Memory overcommit disabled** -- enforced in Phase 2 (ADR 38)
-- **Pods per node `512`** -- applied via KubeletConfig in Phase 1 (LLD-14/AC-14-7)
+- **Pods per node `512`** -- applied via KubeletConfig in Phase 1 (LLD-13/AC-14-7)
 
 The following parameters are Phase 3 scope -- new configuration applied during fleet operations:
 
@@ -961,7 +961,7 @@ spec:
 
 Per Cross-Cutting:
 
-| Parameter | {TIER_PRIMARY} | {TIER_MIDDLE} | {TIER_EDGE} |
+| Parameter | DC | Regional | {TIER_EDGE} |
 |---|---|---|---|
 | Spare-node strategy | Maintain 2–3 | 1–2 | Implicit N-1 (~34% HA reserve guideline) |
 | maxUnavailable parallelism | Highest post-validation | Middle | Locked at 1 |
@@ -992,31 +992,31 @@ Per Cross-Cutting:
 
 | ID | Criterion | Test | Expected Result |
 |----|-----------|------|-----------------|
-| AC-53-1 | LiveMigrate default enforced | Sampling VM specs (**TBD** script) | `LiveMigrate` majority |
-| AC-53-2 | Capacity headroom | Dashboard / query | ≥1 usable worker headroom (**TBD** metric naming) |
-| AC-53-3 | MCP parallelism consistent | Fleet inventory diff | Matches tier |
-| AC-53-4 | workloadUpdateStrategy persisted on HCO | `oc get hc -n openshift-cnv -o jsonpath='{.spec.workloadUpdateStrategy}'` | Shows `LiveMigrate` method with batch settings |
+| AC-52-1 | LiveMigrate default enforced | Sampling VM specs (**TBD** script) | `LiveMigrate` majority |
+| AC-52-2 | Capacity headroom | Dashboard / query | ≥1 usable worker headroom (**TBD** metric naming) |
+| AC-52-3 | MCP parallelism consistent | Fleet inventory diff | Matches tier |
+| AC-52-4 | workloadUpdateStrategy persisted on HCO | `oc get hc -n openshift-cnv -o jsonpath='{.spec.workloadUpdateStrategy}'` | Shows `LiveMigrate` method with batch settings |
 
 ---
 
-## LLD-54: Multicluster Observability
+## LLD-53: Multicluster Observability
 
 Configure ACM Multicluster Observability with Thanos on the hub to aggregate Prometheus metrics from all spoke clusters for fleet-wide visibility. *(ADR 42, 43)*
 ### Prerequisites
 
 | ID | Item | Owner | Status |
 |----|------|-------|--------|
-| CG-54-1 | Calculate and provision storage capacity for per-cluster Prometheus to retain at least 30 days of metrics data       | Observability | Open |
-| CG-54-2 | Provision an object storage bucket per ACM hub and configure the metrics allowlist to include virtualisation metrics  | Observability | Open |
-| CG-54-3 | Deploy log forwarding to {SIEM_PLATFORM} fleet-wide and agree a cutover schedule per tier                            | Observability | Open |
-| CG-54-4 | Validate alert routing from clusters to the NOC platform and document the future migration path to {NOC_PLATFORM}    | Observability | Open |
-| CG-54-5 | Assess readiness to migrate VM dashboards from Grafana to Perses and agree a migration timeline                      | Observability | Open |
+| CG-53-1 | Calculate and provision storage capacity for per-cluster Prometheus to retain at least 30 days of metrics data       | Observability | Open |
+| CG-53-2 | Provision an object storage bucket per ACM hub and configure the metrics allowlist to include virtualisation metrics  | Observability | Open |
+| CG-53-3 | Deploy log forwarding to {SIEM_PLATFORM} fleet-wide and agree a cutover schedule per tier                            | Observability | Open |
+| CG-53-4 | Validate alert routing from clusters to the NOC platform and document the future migration path to {NOC_PLATFORM}    | Observability | Open |
+| CG-53-5 | Assess readiness to migrate VM dashboards from Grafana to Perses and agree a migration timeline                      | Observability | Open |
 
 ### Dependencies
 
 | Blocked By | Reason |
 |------------|--------|
-| LLD-53 | Fleet compute configuration applied |
+| LLD-52 | Fleet compute configuration applied |
 
 ### Sample Configuration
 
@@ -1039,9 +1039,9 @@ data:
 
 ### Tier Variance
 
-| Parameter | {TIER_PRIMARY} | {TIER_MIDDLE} | {TIER_EDGE} |
+| Parameter | DC | Regional | {TIER_EDGE} |
 |---|---|---|---|
-| Stack depth | Full (logs+metrics+NOC alerts) | Full / possible ICOS WAN | {TIER_EDGE} row in CrossCutting suggests reduced stack panels — confirm scope (**TBD**) |
+| Stack depth | Full (logs+metrics+NOC alerts) | Full / possible {OBJECT_STORAGE} WAN | {TIER_EDGE} row in CrossCutting suggests reduced stack panels — confirm scope (**TBD**) |
 
 ### Implementation Procedure
 
@@ -1058,7 +1058,7 @@ data:
 
 **Verification:**
 
-- Sample alert firing test into Moogsoft non-prod queue.
+- Sample alert firing test into {EVENT_MGMT_PLATFORM} non-prod queue.
 
 **Rollback:**
 
@@ -1068,13 +1068,13 @@ data:
 
 | ID | Criterion | Test | Expected Result |
 |----|-----------|------|-----------------|
-| AC-54-1 | Thanos ingest healthy | Grafana explore / `thanos ruler` alerts | Targets up |
-| AC-54-2 | Logs land in {SIEM_PLATFORM} | Search (`index=TBD kube_namespace=openshift*`) | Events present (**TBD** index) |
-| AC-54-3 | Alerts route | Synthetic alert | Moogsoft (**or {NOC_PLATFORM} later**) acknowledgement |
+| AC-53-1 | Thanos ingest healthy | Grafana explore / `thanos ruler` alerts | Targets up |
+| AC-53-2 | Logs land in {SIEM_PLATFORM} | Search (`index=TBD kube_namespace=openshift*`) | Events present (**TBD** index) |
+| AC-53-3 | Alerts route | Synthetic alert | {EVENT_MGMT_PLATFORM} (**or {NOC_PLATFORM} later**) acknowledgement |
 
 ---
 
-## LLD-55: Fleet-wide Compliance & Hardening
+## LLD-54: Fleet-wide Compliance & Hardening
 
 Enforce CIS benchmarks, audit policies, and security hardening standards fleet-wide via ACM governance policies with automated compliance reporting. *(ADR 25)*
 
@@ -1082,17 +1082,17 @@ Enforce CIS benchmarks, audit policies, and security hardening standards fleet-w
 
 | ID      | Item                                                                                                       | Owner               | Status |
 | ------- | ---------------------------------------------------------------------------------------------------------- | ------------------- | ------ |
-| CG-55-1 | Onboard all managed clusters into Tenable for CIS scanning and confirm network paths are open per ACM hub  | Security            | Open   |
-| CG-55-2 | Deliver an ACM governance policy baseline mapped to the agreed CIS controls (mapping sheet required)       | Platform / Security | Open   |
-| CG-55-3 | Agree the plan and timeline to migrate from CIS benchmark version 1.8 to 1.9                               | InfoSec             | Open   |
-| CG-55-4 | Implement the process for exporting quarterly Tenable scan results in a format suitable for audit evidence | Compliance          | Open   |
+| CG-54-1 | Onboard all managed clusters into {SCAN_VENDOR} for CIS scanning and confirm network paths are open per ACM hub  | Security            | Open   |
+| CG-54-2 | Deliver an ACM governance policy baseline mapped to the agreed CIS controls (mapping sheet required)       | Platform / Security | Open   |
+| CG-54-3 | Agree the plan and timeline to migrate from CIS benchmark version 1.8 to 1.9                               | InfoSec             | Open   |
+| CG-54-4 | Implement the process for exporting quarterly {SCAN_VENDOR} scan results in a format suitable for audit evidence | Compliance          | Open   |
 
 ### Dependencies
 
 | Blocked By | Reason                              |
 | ---------- | ----------------------------------- |
-| LLD-54     | Multicluster observability deployed |
-| LLD-48     | GitOps delivery pipeline functional |
+| LLD-53     | Multicluster observability deployed |
+| LLD-47     | GitOps delivery pipeline functional |
 
 ### Configuration Parameters
 
@@ -1100,8 +1100,8 @@ Enforce CIS benchmarks, audit policies, and security hardening standards fleet-w
 | ------------------------------ | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ----------------- |
 | Policy namespace               | `policies`                                         | Hub namespace where all governance PolicySets are deployed; ACM watches this NS for policy propagation | ACM best practice |
 | Default remediationAction      | `inform`                                           | All policies start as audit-only; escalation to `enforce` requires CAB approval per individual control | ADR 25 / HLD      |
-| CIS benchmark version          | 1.8 (current); 1.9 migration **TBD** timeline     | Controls mapped to ACM policies and Tenable scan profiles must align to same benchmark version         | ADR 25            |
-| Tenable scan schedule          | Weekly (**TBD** exact cron per tier)               | External scans against cluster API/node endpoints; scheduled outside maintenance moratoriums           | Security          |
+| CIS benchmark version          | 1.8 (current); 1.9 migration **TBD** timeline     | Controls mapped to ACM policies and {SCAN_VENDOR} scan profiles must align to same benchmark version         | ADR 25            |
+| {SCAN_VENDOR} scan schedule          | Weekly (**TBD** exact cron per tier)               | External scans against cluster API/node endpoints; scheduled outside maintenance moratoriums           | Security          |
 | Compliance evaluation interval | `10m` (ACM default)                                | How often ACM re-evaluates policy compliance on managed clusters                                       | ACM docs          |
 
 ### Sample Configuration
@@ -1182,21 +1182,21 @@ spec:
 
 ### Tier Variance
 
-| Parameter          | {TIER_PRIMARY}                                  | {TIER_MIDDLE}                    | {TIER_EDGE}                                                |
+| Parameter          | DC                                  | {TIER_MIDDLE}                    | {TIER_EDGE}                                                |
 | ------------------ | ----------------------------------- | ---------------------- | ----------------------------------------------------- |
 | Scan schedule      | Weekly (Sunday 02:00 ET)            | Weekly (Sunday 04:00)  | Bi-weekly (**TBD** — WAN scheduling tolerance)        |
-| PolicySet rollout  | After sandbox validation            | Same wave as {TIER_PRIMARY}        | Separate wave — confirm WAN policy sync               |
-| Tenable profile    | Full CIS OCP + OCP-V (26 controls)  | Same as {TIER_PRIMARY}             | Reduced scope if hardware constraints (**TBD**)       |
+| PolicySet rollout  | After sandbox validation            | Same wave as DC        | Separate wave — confirm WAN policy sync               |
+| {SCAN_VENDOR} profile    | Full CIS OCP + OCP-V (26 controls)  | Same as DC             | Reduced scope if hardware constraints (**TBD**)       |
 | Auto-enforce scope | None (inform only)                  | None (inform only)     | None (inform only)                                    |
 
 ### Implementation Procedure
 
 **Execution Readiness Checks:**
 
-- [ ] etcd encryption enabled (LLD-21).
-- [ ] GitOps repo structure includes `components/compliance/` path (LLD-48).
-- [ ] Tenable scanner appliance deployed with network access to cluster nodes (LLD-02 firewall rules).
-- [ ] ACM hub operational with managed clusters registered (LLD-47).
+- [ ] etcd encryption enabled (LLD-20).
+- [ ] GitOps repo structure includes `components/compliance/` path (LLD-47).
+- [ ] {SCAN_VENDOR} scanner appliance deployed with network access to cluster nodes (LLD-02 firewall rules).
+- [ ] ACM hub operational with managed clusters registered (LLD-46).
 
 **Steps:**
 
@@ -1230,18 +1230,18 @@ oc label managedcluster <sandbox-cluster> compliance-baseline=cis-1.8
 oc get policy -n policies -o custom-columns=NAME:.metadata.name,COMPLIANT:.status.compliant
 ```
 
-6. Expand placement labels to {TIER_PRIMARY}/{TIER_MIDDLE} clusters, then {TIER_EDGE} clusters in subsequent waves.
+6. Expand placement labels to DC/{TIER_MIDDLE} clusters, then {TIER_EDGE} clusters in subsequent waves.
 
-7. Configure Tenable scan credentials and schedules:
-   - Provide Tenable scanner with SSH key for `core` user (read-only scan profile).
+7. Configure {SCAN_VENDOR} scan credentials and schedules:
+   - Provide {SCAN_VENDOR} scanner with SSH key for `core` user (read-only scan profile).
    - Set scan schedule per tier (see Tier Variance).
    - Map scan results to CIS control IDs matching the ACM policy names.
 
-8. Validate Tenable findings align with ACM compliance dashboard. Discrepancies indicate:
-   - Missing ACM policies (controls only covered by Tenable).
+8. Validate {SCAN_VENDOR} findings align with ACM compliance dashboard. Discrepancies indicate:
+   - Missing ACM policies (controls only covered by {SCAN_VENDOR}).
    - False positives in either tool (document in exception register).
 
-9. Establish remediation workflow: Tenable finding → Jira/SNOW ticket → PR to Git manifest → CAB approval → ArgoCD sync.
+9. Establish remediation workflow: {SCAN_VENDOR} finding → Jira/SNOW ticket → PR to Git manifest → CAB approval → ArgoCD sync.
 
 **Verification:**
 
@@ -1265,11 +1265,11 @@ oc get policy -n policies -o json | \
 
 | ID      | Criterion                      | Test                                                                  | Expected Result                                                      |
 | ------- | ------------------------------ | --------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| AC-55-1 | Policies synced to hub         | `oc get policy -n policies` on each hub                               | All expected Policy CRs present and propagated                       |
-| AC-55-2 | Sandbox compliance reported    | ACM console → Governance → Compliance tab for sandbox cluster         | Status shows `Compliant` or documented exceptions                    |
-| AC-55-3 | Tenable scan completes         | Tenable console → scan history for target clusters                    | Last scan within scheduled window; results downloadable              |
-| AC-55-4 | ACM + Tenable findings aligned | Compare ACM non-compliant list with Tenable critical/high findings    | No unaccounted discrepancies (delta documented in exception register) |
-| AC-55-5 | Remediation workflow exercised | Intentionally introduce non-compliance → verify PR/CAB path completes | Finding → ticket → PR → CAB → merge → ArgoCD sync → compliant       |
+| AC-54-1 | Policies synced to hub         | `oc get policy -n policies` on each hub                               | All expected Policy CRs present and propagated                       |
+| AC-54-2 | Sandbox compliance reported    | ACM console → Governance → Compliance tab for sandbox cluster         | Status shows `Compliant` or documented exceptions                    |
+| AC-54-3 | {SCAN_VENDOR} scan completes         | {SCAN_VENDOR} console → scan history for target clusters                    | Last scan within scheduled window; results downloadable              |
+| AC-54-4 | ACM + {SCAN_VENDOR} findings aligned | Compare ACM non-compliant list with {SCAN_VENDOR} critical/high findings    | No unaccounted discrepancies (delta documented in exception register) |
+| AC-54-5 | Remediation workflow exercised | Intentionally introduce non-compliance → verify PR/CAB path completes | Finding → ticket → PR → CAB → merge → ArgoCD sync → compliant       |
 
 ---
 
@@ -1278,15 +1278,15 @@ oc get policy -n policies -o json | \
 
 | Layer | HLD Gate Criterion | LLD Acceptance Tests | Status |
 |-------|-------------------|---------------------|--------|
-| L1 | Clusters provisioned in Phase 1 (`LLD-12`) are visible in their respective ACM hubs with `Compliant` status | Phase 1 AC-12-1..4, AC-47-1 | [ ] |
-| L2 | ArgoCD app-of-apps syncing from Git repo; ACM operator policies enforcing operator versions fleet-wide | AC-48-1, AC-48-3, AC-48-4 | [ ] |
-| L2 | ArgoCD Agent deployed on all spoke clusters; hub Argo instance shows fleet-wide sync status | AC-48-2 | [ ] |
-| L3 | Canary cluster identified and upgrade path tested | CG-48-6, CG-48-7 | [ ] |
-| L4 | SNR/FAR operators deployed; {HW_MGMT_PLATFORM} IPMI-over-LAN confirmed | AC-51-2, AC-51-5, CG-51-1 | [ ] |
-| L4 | NMO deployed on all OCP-V clusters; {ITSM_PLATFORM} integration via AAP functional | AC-52-1, AC-52-3 | [ ] |
-| L4/L3 | VM eviction set to `LiveMigrate`; capacity headroom verified (**1+** spare node per cluster, **2–3** preferred {TIER_PRIMARY}/Regional) | AC-53-1, AC-53-2 | [ ] |
-| L5 | ACM Thanos aggregating metrics from managed clusters; Grafana/Perses dashboards operational | AC-54-1 | [ ] |
-| L5 | Vector → {SIEM_PLATFORM} log forwarding active across fleet; AlertManager → Moogsoft routing confirmed | AC-54-2, AC-54-3 | [ ] |
-| L5 | Tenable CIS scans running across fleet; ACM compliance policies reporting status per cluster | AC-55-1, AC-55-2 | [ ] |
+| L1 | Clusters provisioned in Phase 1 (`LLD-12`) are visible in their respective ACM hubs with `Compliant` status | Phase 1 AC-12-1..4, AC-46-1 | [ ] |
+| L2 | ArgoCD app-of-apps syncing from Git repo; ACM operator policies enforcing operator versions fleet-wide | AC-47-1, AC-47-3, AC-47-4 | [ ] |
+| L2 | ArgoCD Agent deployed on all spoke clusters; hub Argo instance shows fleet-wide sync status | AC-47-2 | [ ] |
+| L3 | Canary cluster identified and upgrade path tested | CG-47-6, CG-47-7 | [ ] |
+| L4 | SNR/FAR operators deployed; {HW_MGMT_PLATFORM} IPMI-over-LAN confirmed | AC-50-2, AC-50-5, CG-50-1 | [ ] |
+| L4 | NMO deployed on all OCP-V clusters; {ITSM_PLATFORM} integration via AAP functional | AC-51-1, AC-51-3 | [ ] |
+| L4/L3 | VM eviction set to `LiveMigrate`; capacity headroom verified (**1+** spare node per cluster, **2–3** preferred DC/Regional) | AC-52-1, AC-52-2 | [ ] |
+| L5 | ACM Thanos aggregating metrics from managed clusters; Grafana/Perses dashboards operational | AC-53-1 | [ ] |
+| L5 | Vector → {SIEM_PLATFORM} log forwarding active across fleet; AlertManager → {EVENT_MGMT_PLATFORM} routing confirmed | AC-53-2, AC-53-3 | [ ] |
+| L5 | {SCAN_VENDOR} CIS scans running across fleet; ACM compliance policies reporting status per cluster | AC-54-1, AC-54-2 | [ ] |
 
 **Gate 3 PASSED when all rows show [x].**

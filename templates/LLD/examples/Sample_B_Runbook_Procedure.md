@@ -444,7 +444,7 @@ Not applicable — certificate procurement is non-destructive. If certificates a
    - BMC VLAN (MTU 1500)
 
 2. **Configure FC SAN zoning** ({TIER_PRIMARY}/{TIER_MIDDLE} only):
-   - Zone each node's FC HBA WWPN to FlashSystem target ports
+   - Zone each node's FC HBA WWPN to {BLOCK_STORAGE_ARRAY} target ports
    - Verify zone membership via switch CLI
 
 3. **Verify MTU end-to-end:**

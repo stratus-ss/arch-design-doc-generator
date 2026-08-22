@@ -142,14 +142,14 @@ flowchart TB
 |-------|------|-----|---------|-------|
 | Management | Site-specific | 1500 | OCP API, etcd, DNS, NTP | All |
 | VM Data | Multiple | 1500 | VM tenant traffic (OVS bridges + NADs) | All |
-| Storage | Site-specific | 9000/9216 | FlashSystem FC block access | {TIER_PRIMARY}, {TIER_MIDDLE} |
+| Storage | Site-specific | 9000/9216 | {BLOCK_STORAGE_ARRAY} FC block access | {TIER_PRIMARY}, {TIER_MIDDLE} |
 | Migration | Dedicated | 9000 | Live migration memory transfer | {TIER_PRIMARY}, {TIER_MIDDLE} |
 | Backup | Dedicated | 9000 | {BACKUP_VENDOR} agent traffic | All |
 | BMC/CIMC | Site-specific | 1500 | Out-of-band management | All |
 
 **FC SAN zoning ({TIER_PRIMARY}/{TIER_MIDDLE} only):**
 
-- Zone each node FC HBA WWPN to FlashSystem target ports
+- Zone each node FC HBA WWPN to {BLOCK_STORAGE_ARRAY} target ports
 - Verify zone membership via switch CLI
 
 **Firewall rules (18 rule groups):**

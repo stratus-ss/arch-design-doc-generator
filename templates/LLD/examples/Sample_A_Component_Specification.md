@@ -269,8 +269,8 @@ spec:
 **chrony.conf content (before base64 encoding):**
 
 ```
-server ntp1.<site>.example.corp iburst
-server ntp2.<site>.example.corp iburst
+server ntp1.<base_domain> iburst
+server ntp2.<base_domain> iburst
 driftfile /var/lib/chrony/drift
 makestep 1.0 3
 rtcsync
@@ -467,10 +467,10 @@ platform:
 |-------|------|-----|---------|-------|
 | Management | Site-specific | 1500 | OCP API, etcd, DNS, NTP | All |
 | VM Data | Multiple (all presented VLANs) | 1500 | VM tenant traffic via OVS bridges + NADs | All |
-| Storage | Site-specific | 9000/9216 | FlashSystem FC block access | {TIER_PRIMARY}, {TIER_MIDDLE} |
+| Storage | Site-specific | 9000/9216 | {BLOCK_STORAGE_ARRAY} FC block access | {TIER_PRIMARY}, {TIER_MIDDLE} |
 | Migration | Dedicated | 9000 | Live migration memory page transfer | {TIER_PRIMARY}, {TIER_MIDDLE} |
 | Backup | Dedicated | 9000 | {BACKUP_VENDOR} agent backup traffic | All |
-| FC SAN | N/A (FC zoning) | N/A | FlashSystem block access | {TIER_PRIMARY}, {TIER_MIDDLE} |
+| FC SAN | N/A (FC zoning) | N/A | {BLOCK_STORAGE_ARRAY} block access | {TIER_PRIMARY}, {TIER_MIDDLE} |
 | BMC/CIMC | Site-specific | 1500 | Out-of-band management, Redfish | All |
 
 ### Tier Variance

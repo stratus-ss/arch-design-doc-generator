@@ -12,10 +12,10 @@
 | **Version**            | 0.4                                                              |
 | **Status**             | Draft                                                            |
 | **Classification**     | Internal — Confidential                                          |
-| **Author**             | {AUTHOR}                                           |
+| **Author**             | {AUTHOR}                                        |
 | **Reviewers**          | {REVIEWER_LIST}                       |
 | **Approval Authority** | {APPROVER}                                  |
-| **Last Updated**       | 2026-06-16                                                       |
+| **Last Updated**       | {DATE}                                                       |
 
 ### Platform Version Alignment
 
@@ -30,10 +30,10 @@
 
 | Ver | Date       | Author                    | Changes                                  |
 | --- | ---------- | ------------------------- | ---------------------------------------- |
-| 0.1 | 2026-06-05 | {AUTHOR} | Initial Phase 1 ACM Hub Deployment LLD |
-| 0.2 | 2026-06-16 | {AUTHOR}               | Renumbered hub sections from LLD-46x to LLD-11x, replaced Gate 2.5 with Hub Gate, and realigned flow to start after Phase 1 pre-install artifacts |
-| 0.3 | 2026-06-16 | {AUTHOR}               | Made ACM Hub LLD fully self-contained: added explicit pre-install prerequisite summary, removed direct spoke-LDD forward flow references, and added a formal Hub Gate handoff note. |
-| 0.4 | 2026-06-16 | {AUTHOR}               | Integrated Foundation LLD sections (LLD-01 through LLD-10, LLD-12) into ACM Hub LLD and enforced `install-config.yaml` via `openshift-install` as the Phase 1 hub installation method (no ACM dependency). |
+| 0.1 | {DATE} | {AUTHOR} | Initial Phase 1 ACM Hub Deployment LLD |
+| 0.2 | {DATE} | {AUTHOR}               | Renumbered hub sections from LLD-45x to LLD-11x, replaced Gate 2.5 with Hub Gate, and realigned flow to start after Phase 1 pre-install artifacts |
+| 0.3 | {DATE} | {AUTHOR}               | Made ACM Hub LLD fully self-contained: added explicit pre-install prerequisite summary, removed direct spoke-LDD forward flow references, and added a formal Hub Gate handoff note. |
+| 0.4 | {DATE} | {AUTHOR}               | Integrated Foundation LLD sections (LLD-01 through LLD-10, LLD-12) into ACM Hub LLD and enforced `install-config.yaml` via `openshift-install` as the Phase 1 hub installation method (no ACM dependency). |
 
 ---
 
@@ -77,7 +77,7 @@ No sample configuration for pre-install procurement. Post-install certificate de
 
 ### Tier Variance
 
-| Parameter           | {TIER_PRIMARY}            | {SITE_LAB}           | {TIER_EDGE}        |
+| Parameter           | DC            | {SITE_3}           | {TIER_EDGE}        |
 | ------------------- | ------------- | ------------- | ------------- |
 | API cert issuer     | Enterprise CA | Enterprise CA | Enterprise CA |
 | Ingress cert issuer | Internal CA   | Internal CA   | Internal CA   |
@@ -162,7 +162,7 @@ Open all required inter-node, ACM hub-spoke, BMC/Ironic provisioning, and extern
 | ID      | Item                                                                       | Owner                     | Status |
 | ------- | -------------------------------------------------------------------------- | ------------------------- | ------ |
 | CG-02-1 | Decide whether {TIER_EDGE} network egress uses a proxy or direct firewall rules | Network / Architecture    | Open   |
-| CG-02-2 | Finalise {TIER_EDGE} firewall rules and IP subnet allocations                   | Network / Sam ({TIER_EDGE} PM) | Open   |
+| CG-02-2 | Finalise {TIER_EDGE} firewall rules and IP subnet allocations                   | Network / {TIER_EDGE} PM | Open   |
 
 ### Dependencies
 
@@ -172,7 +172,7 @@ Open all required inter-node, ACM hub-spoke, BMC/Ironic provisioning, and extern
 
 | Parameter                                       | Value                     | Description                                                       | Source                |
 | ----------------------------------------------- | ------------------------- | ----------------------------------------------------------------- | --------------------- |
-| Egress model ({TIER_PRIMARY}/{SITE_LAB})                           | Firewall-only             | No cluster-wide proxy                                             | ADR 16                |
+| Egress model (DC/{SITE_3})                           | Firewall-only             | No cluster-wide proxy                                             | ADR 16                |
 | Egress model ({TIER_EDGE})                           | **TBD**                   | Firewall or proxy pending {TIER_EDGE} infra maturity                   | ADR 16                |
 | Inter-node — ICMP                               | ICMP all                  | Network reachability tests                                        | OCP install guide     |
 | Inter-node — metrics                            | TCP 1936                  | Ingress health-check probes                                       | OCP install guide     |
@@ -204,7 +204,7 @@ Open all required inter-node, ACM hub-spoke, BMC/Ironic provisioning, and extern
 | **Managed Cluster → Image Repo (provisioning)** |                           |                                                                   |                       |
 | Managed → Image Repo — rootfs                   | TCP 443 (80 disconnected) | Download rootfs/ISO image during cluster install                  | MCE Infra Operator    |
 | **ACM Hub → External**                          |                           |                                                                   |                       |
-| Hub → ObjectStore — Observability               | TCP 443                   | Thanos long-term metrics storage (ICOS / Cluster Backup Operator) | RHACM 2.12 networking |
+| Hub → ObjectStore — Observability               | TCP 443                   | Thanos long-term metrics storage ({OBJECT_STORAGE} / Cluster Backup Operator) | RHACM 2.12 networking |
 | Hub → Channel sources — GitOps                  | TCP 443                   | Git, Helm, Object Store for Application lifecycle / ArgoCD        | RHACM 2.12 networking |
 | **External Connectivity**                       |                           |                                                                   |                       |
 | External — NTP                                  | UDP 123                   | Time sync                                                         | OCP firewall guide    |
@@ -257,7 +257,7 @@ The hub cluster (and {REGISTRY_MIRROR} itself) must reach the following upstream
 ```
 Cluster: <cluster_name>
 Site: <site_name>
-Tier: {TIER_PRIMARY} / {SITE_LAB} / {TIER_EDGE}
+Tier: DC / {SITE_3} / {TIER_EDGE}
 ACM Hub: <hub_cluster_fqdn> / <hub_api_vip>
 
 Source → Destination rules:
@@ -301,10 +301,10 @@ Source → Destination rules:
 
 ### Tier Variance
 
-| Parameter                         | {TIER_PRIMARY}                                   | {SITE_LAB}                                  | {TIER_EDGE}                               |
+| Parameter                         | DC                                   | {SITE_3}                                  | {TIER_EDGE}                               |
 | --------------------------------- | ------------------------------------ | ------------------------------------ | ------------------------------------ |
 | Egress model                      | Firewall-only                        | Firewall-only                        | **TBD**                              |
-| Firewall locations                | {SITE_PRIMARY}/{SITE_SECONDARY}/{SITE_LAB}               | Site-specific                        | **TBD**                              |
+| Firewall locations                | {SITE_1}/{SITE_2}/{SITE_3}                 | Site-specific                        | **TBD**                              |
 | MCE Infra Operator / Ironic ports | Yes (ACM ZTP via Assisted Installer) | Yes (ACM ZTP via Assisted Installer) | Yes (ACM ZTP via Assisted Installer) |
 | VM traffic impacted               | No (bridged VLANs)                   | No (bridged VLANs)                   | No (bridged VLANs)                   |
 
@@ -324,7 +324,7 @@ Source → Destination rules:
 
 2. **Submit change request** to Network team per {CLIENT} change management process
 
-3. **Network team implements rules** on site-specific firewalls ({SITE_PRIMARY}, {SITE_SECONDARY}, or {SITE_LAB}/{TIER_EDGE} firewalls)
+3. **Network team implements rules** on site-specific firewalls ({SITE_1}, {SITE_2}, {SITE_3}, or {SITE_3}/{TIER_EDGE} firewalls)
 
 4. **Validate inter-node connectivity:**
    
@@ -511,12 +511,12 @@ interface port-channel <pc_id>
   spanning-tree port type network
 ```
 
-**FC SAN zoning example ({TIER_PRIMARY}/{SITE_LAB}):**
+**FC SAN zoning example (DC/{SITE_3}):**
 
 ```bash
 zone name OCPV_CP0_FLASH_A vsan <vsan_id>
   member pwwn <cp0_hba_wwpn>
-  member pwwn <flashsystem_target_wwpn_a>
+  member pwwn <block_array_target_wwpn_a>
 zoneset name OCPV_CLUSTER_A vsan <vsan_id>
   member OCPV_CP0_FLASH_A
 zoneset activate name OCPV_CLUSTER_A vsan <vsan_id>
@@ -524,7 +524,7 @@ zoneset activate name OCPV_CLUSTER_A vsan <vsan_id>
 
 ### Tier Variance
 
-| Parameter           | {TIER_PRIMARY}                       | {SITE_LAB}                      | {TIER_EDGE}                  |
+| Parameter           | DC                       | {SITE_3}                      | {TIER_EDGE}                  |
 | ------------------- | ------------------------ | ------------------------ | ----------------------- |
 | vNIC count          | 4 (full bond separation) | 4 (baseline)             | 2 (TBD, combined bonds) |
 | FC HBA / SAN zoning | Required                 | Required                 | N/A                     |
@@ -578,7 +578,7 @@ zoneset activate name OCPV_CLUSTER_A vsan <vsan_id>
     
     - Management (1500), VM Data (1500), Storage (9000), Migration (9000), Backup (9000), BMC (1500)
 
-11. **Configure FC SAN zoning** ({TIER_PRIMARY}/{SITE_LAB} only) — zone each node FC HBA WWPN to FlashSystem targets
+11. **Configure FC SAN zoning** (DC/{SITE_3} only) — zone each node FC HBA WWPN to {BLOCK_STORAGE_ARRAY} targets
 
 12. **Verify MTU end-to-end:**
     
@@ -624,7 +624,7 @@ show zoneset active vsan <vsan_id>
 
 ## LLD-04: IP Reservations & Load Balancer VIPs
 
-Reserve all node IPs, API/ingress VIPs, BMC IPs, and storage interface IPs in {DNS_IPAM_VENDOR} (IPAM) per cluster and validate no address conflicts exist. DNS record creation for these IPs is handled in LLD-05. *(ADR 12)*
+Reserve all node IPs, API/ingress VIPs, BMC IPs, and storage interface IPs in {IPAM_PLATFORM} (IPAM) per cluster and validate no address conflicts exist. DNS record creation for these IPs is handled in LLD-05. *(ADR 12)*
 
 ### Prerequisites
 
@@ -648,26 +648,26 @@ Reserve all node IPs, API/ingress VIPs, BMC IPs, and storage interface IPs in {D
 | CP node IPs           | 3 static per cluster               | NMState-managed                                  | HLD               |
 | Worker node IPs       | N static per cluster               | NMState-managed                                  | HLD               |
 | BMC/CIMC IPs          | 1 per node on management/BMC VLAN  | Out-of-band management                           | HLD               |
-| Storage interface IPs | 1 per node on storage VLAN         | FC ({TIER_PRIMARY}/{SITE_LAB}); ODF ({TIER_EDGE})                        | HLD               |
+| Storage interface IPs | 1 per node on storage VLAN         | FC (DC/{SITE_3}); ODF ({TIER_EDGE})                        | HLD               |
 | LB target — API       | TCP 6443, TCP 22623                | Backend: control plane nodes                     | OCP install guide |
 | LB target — Ingress   | TCP 80, TCP 443                    | Backend: workers (or all if schedulable masters) | OCP install guide |
-| IPAM system           | {DNS_IPAM_VENDOR}                           | Enterprise DNS/IPAM                              | ADR 13            |
-| F5 role               | DNS path only (GTM)                | Pool members are {DNS_IPAM_VENDOR}; not LB for OCP        | ADR 12            |
+| IPAM system           | {IPAM_PLATFORM}                           | Enterprise DNS/IPAM                              | ADR 13            |
+| F5 role               | DNS path only (GTM)                | Pool members are {IPAM_PLATFORM}; not LB for OCP        | ADR 12            |
 
 ### Sample Configuration
 
-**IP reservation naming convention (required in {DNS_IPAM_VENDOR}):**
+**IP reservation naming convention (required in {IPAM_PLATFORM}):**
 
 | Artifact Type      | Naming Pattern             | Example                             |
 | ------------------ | -------------------------- | ----------------------------------- |
-| Control-plane node | `<cluster>-cp-<index>`     | `dc-{SITE_PRIMARY}-prod-01-cp-0`             |
-| Worker node        | `<cluster>-worker-<index>` | `dc-{SITE_PRIMARY}-prod-01-worker-3`         |
-| API VIP            | `<cluster>-api-vip`        | `dc-{SITE_PRIMARY}-prod-01-api-vip`          |
-| Ingress VIP        | `<cluster>-ingress-vip`    | `dc-{SITE_PRIMARY}-prod-01-ingress-vip`      |
-| BMC endpoint       | `<cluster>-<node>-bmc`     | `dc-{SITE_PRIMARY}-prod-01-cp-0-bmc`         |
-| Storage interface  | `<cluster>-<node>-storage` | `dc-{SITE_PRIMARY}-prod-01-worker-3-storage` |
+| Control-plane node | `<cluster>-cp-<index>`     | `<cluster>-cp-0`             |
+| Worker node        | `<cluster>-worker-<index>` | `<cluster>-worker-3`         |
+| API VIP            | `<cluster>-api-vip`        | `<cluster>-api-vip`          |
+| Ingress VIP        | `<cluster>-ingress-vip`    | `<cluster>-ingress-vip`      |
+| BMC endpoint       | `<cluster>-<node>-bmc`     | `<cluster>-cp-0-bmc`         |
+| Storage interface  | `<cluster>-<node>-storage` | `<cluster>-worker-3-storage` |
 
-**{DNS_IPAM_VENDOR} CSV import template (reservation worksheet):**
+**{IPAM_PLATFORM} CSV import template (reservation worksheet):**
 
 ```csv
 name,ip_address,network_view,comment
@@ -704,7 +704,7 @@ spec:
 
 ### Tier Variance
 
-| Parameter             | {TIER_PRIMARY}                          | {SITE_LAB}                         | {TIER_EDGE}                                 |
+| Parameter             | DC                          | {SITE_3}                         | {TIER_EDGE}                                 |
 | --------------------- | --------------------------- | --------------------------- | -------------------------------------- |
 | Worker node count     | 16+                         | Variable (4-10)             | 0 (compact — 3 CP/worker)              |
 | Total IPs per cluster | ~30+                        | ~20-30                      | ~12                                    |
@@ -716,7 +716,7 @@ spec:
 **Execution Readiness Checks:**
 
 - [ ] Cluster name, tier, and node count finalized
-- [ ] {DNS_IPAM_VENDOR} access with permissions to create reservations
+- [ ] {IPAM_PLATFORM} access with permissions to create reservations
 - [ ] Baremetal network VLAN and subnet identified
 - [ ] BMC/CIMC VLAN identified
 
@@ -732,9 +732,9 @@ spec:
    
    - 1 BMC IP per node
    
-   - 1 storage interface IP per node ({TIER_PRIMARY}/{SITE_LAB})
+   - 1 storage interface IP per node (DC/{SITE_3})
 
-2. **Reserve all IPs in {DNS_IPAM_VENDOR}** using either CSV import or WAPI.
+2. **Reserve all IPs in {IPAM_PLATFORM}** using either CSV import or WAPI.
    
    Example WAPI call for one reservation:
    
@@ -775,23 +775,23 @@ curl -sk -u "${INFOBLOX_USER}:${INFOBLOX_PASS}" \
 
 **Rollback:**
 
-- Release IP reservations in {DNS_IPAM_VENDOR}
+- Release IP reservations in {IPAM_PLATFORM}
 - IPs return to available pool
 
 ### Acceptance Criteria
 
 | ID      | Criterion                     | Test                         | Expected Result           |
 | ------- | ----------------------------- | ---------------------------- | ------------------------- |
-| AC-04-1 | All IPs reserved              | {DNS_IPAM_VENDOR} query               | All cluster IPs allocated |
+| AC-04-1 | All IPs reserved              | {IPAM_PLATFORM} query               | All cluster IPs allocated |
 | AC-04-2 | No IP conflicts               | `arping -D -c 3 <ip>` per IP | No duplicate detected     |
-| AC-04-3 | VIPs not host-assigned        | {DNS_IPAM_VENDOR} — VIP records       | Reserved but unassigned   |
+| AC-04-3 | VIPs not host-assigned        | {IPAM_PLATFORM} — VIP records       | Reserved but unassigned   |
 | AC-04-4 | IP-to-host mapping documented | Mapping document reviewed    | Complete and accurate     |
 
 ---
 
 ## LLD-05: DNS, Static IPs & NTP
 
-Create DNS A/PTR records in {DNS_IPAM_VENDOR} for the IPs reserved in LLD-04 and validate resolution before cluster installation. Post-install NTP/chrony configuration is in LLD-13. *(ADR 48)*
+Create DNS A/PTR records in {IPAM_PLATFORM} for the IPs reserved in LLD-04 and validate resolution before cluster installation. Post-install NTP/chrony configuration is in LLD-13. *(ADR 48)*
 
 ### Prerequisites
 
@@ -810,7 +810,7 @@ Create DNS A/PTR records in {DNS_IPAM_VENDOR} for the IPs reserved in LLD-04 and
 
 | Parameter        | Value                                          | Description           | Source            |
 | ---------------- | ---------------------------------------------- | --------------------- | ----------------- |
-| DNS provider     | {DNS_IPAM_VENDOR}                                       | Enterprise DNS        | HLD               |
+| DNS provider     | {IPAM_PLATFORM}                                       | Enterprise DNS        | HLD               |
 | API record       | `api.<cluster>.<base_domain>` → API VIP        | A + PTR               | OCP install guide |
 | API-int record   | `api-int.<cluster>.<base_domain>` → API VIP    | A + PTR               | OCP install guide |
 | Ingress wildcard | `*.apps.<cluster>.<base_domain>` → Ingress VIP | Wildcard A            | OCP install guide |
@@ -819,10 +819,10 @@ Create DNS A/PTR records in {DNS_IPAM_VENDOR} for the IPs reserved in LLD-04 and
 
 ### Tier Variance
 
-| Parameter         | {TIER_PRIMARY}                 | {SITE_LAB}             | {TIER_EDGE}    |
+| Parameter         | DC                 | {SITE_3}             | {TIER_EDGE}    |
 | ----------------- | ------------------ | --------------- | --------- |
 | Node record count | 3 CP + 16+ workers | 3 CP + variable | 3 compact |
-| DNS provider      | {DNS_IPAM_VENDOR}           | {DNS_IPAM_VENDOR}        | {DNS_IPAM_VENDOR}  |
+| DNS provider      | {IPAM_PLATFORM}           | {IPAM_PLATFORM}        | {IPAM_PLATFORM}  |
 
 ### Implementation Procedure
 
@@ -830,7 +830,7 @@ Create DNS A/PTR records in {DNS_IPAM_VENDOR} for the IPs reserved in LLD-04 and
 
 - [ ] IP allocations completed (LLD-04)
 - [ ] Cluster name and base domain finalized
-- [ ] {DNS_IPAM_VENDOR} access
+- [ ] {IPAM_PLATFORM} access
 
 **Steps — L3: DNS Records (Network Team):**
 
@@ -864,7 +864,7 @@ Create DNS A/PTR records in {DNS_IPAM_VENDOR} for the IPs reserved in LLD-04 and
 
 **Rollback:**
 
-- DNS: delete records from {DNS_IPAM_VENDOR} (non-destructive)
+- DNS: delete records from {IPAM_PLATFORM} (non-destructive)
 
 ### Acceptance Criteria
 
@@ -888,7 +888,7 @@ Define the ACM tier classification label taxonomy, placement structure, and poli
 
 | ID      | Item                                                                 | Owner                | Status |
 | ------- | -------------------------------------------------------------------- | -------------------- | ------ |
-| CG-06-1 | Tier definitions approved in HLD (`Deployment Tier Model`)           | Architecture lead | Open   |
+| CG-06-1 | Tier definitions approved in HLD (`Deployment Tier Model`)           | Architecture | Open   |
 | CG-06-2 | Tier-specific PolicySet names finalized in GitOps repositories       | Platform     | Open   |
 
 ### Dependencies
@@ -900,10 +900,10 @@ Define the ACM tier classification label taxonomy, placement structure, and poli
 | Parameter                       | Value                                  | Description                                      | Source |
 | ------------------------------- | -------------------------------------- | ------------------------------------------------ | ------ |
 | Tier label key                 | `tier`                                 | Primary selector for ACM placement               | ADR 5  |
-| Tier label values              | `{TIER_PRIMARY_LOWER}`, `{TIER_MIDDLE_LOWER}`, `{TIER_EDGE_LOWER}`          | Fleet-standard tier identifiers                  | LLD-06 |
+| Tier label values              | `datacenter`, `{TIER_MIDDLE_LOWER}`, `{TIER_EDGE_LOWER}`          | Fleet-standard tier identifiers                  | LLD-06 |
 | Cluster class label key        | `cluster-class`                        | Tier-specific baseline class                     | LLD-06 |
-| Cluster class values           | `{TIER_PRIMARY_LOWER}-standard`, `{TIER_MIDDLE_LOWER}-standard`, `{TIER_EDGE_LOWER}-compact` | Used by overlays and policy targeting            | LLD-06 |
-| Storage profile label values   | `flashsystem-fc`, `odf-local`          | Drives storage policy overlays                   | ADR 6  |
+| Cluster class values           | `dc-standard`, `{TIER_MIDDLE_LOWER}-standard`, `{TIER_EDGE_LOWER}-compact` | Used by overlays and policy targeting            | LLD-06 |
+| Storage profile label values   | `{BLOCK_STORAGE_LOWER}-fc`, `odf-local`          | Drives storage policy overlays                   | ADR 6  |
 | Network profile label values   | `4nic-dedicated`, `2nic-compact`       | Drives network policy overlays                   | ADR 6  |
 | Policy namespace               | `policies`                             | Namespace for Placement/Binding/PolicySet        | ACM    |
 | Placement naming               | `placement-<tier>`                     | Standardized naming for cluster selection        | LLD-06 |
@@ -917,25 +917,25 @@ Define the ACM tier classification label taxonomy, placement structure, and poli
 apiVersion: cluster.open-cluster-management.io/v1
 kind: ManagedCluster
 metadata:
-  name: dc-{SITE_PRIMARY}-prod-01
+  name: {CLUSTER_NAME}
   labels:
-    tier: {TIER_PRIMARY_LOWER}
-    site: {SITE_PRIMARY}
+    tier: datacenter
+    site: {SITE_1}
     environment: production
-    cluster-class: {TIER_PRIMARY_LOWER}-standard
+    cluster-class: dc-standard
 ```
 
 **Tier label taxonomy (fleet standard):**
 
-| Label Key         | {TIER_PRIMARY} Value         | {TIER_MIDDLE} Value                | {TIER_EDGE} Value             |
+| Label Key         | Datacenter Value         | {SITE_3} Value                | {TIER_EDGE} Value             |
 | ----------------- | ------------------------ | ------------------------ | ------------------------ |
-| `tier`            | `{TIER_PRIMARY_LOWER}`             | `{TIER_MIDDLE_LOWER}`                    | `{TIER_EDGE_LOWER}`                 |
+| `tier`            | `datacenter`             | `{TIER_MIDDLE_LOWER}`                    | `{TIER_EDGE_LOWER}`                 |
 | `environment`     | `production` / `nonprod` | `production` / `nonprod` | `production` / `nonprod` |
-| `cluster-class`   | `{TIER_PRIMARY_LOWER}-standard`            | `{TIER_MIDDLE_LOWER}-standard`           | `{TIER_EDGE_LOWER}-compact`         |
-| `storage-profile` | `flashsystem-fc`         | `flashsystem-fc`         | `odf-local`              |
+| `cluster-class`   | `dc-standard`            | `{TIER_MIDDLE_LOWER}-standard`           | `{TIER_EDGE_LOWER}-compact`         |
+| `storage-profile` | `{BLOCK_STORAGE_LOWER}-fc`         | `{BLOCK_STORAGE_LOWER}-fc`         | `odf-local`              |
 | `network-profile` | `4nic-dedicated`         | `4nic-dedicated`         | `2nic-compact`           |
 
-**Placement + PolicySet binding example ({TIER_PRIMARY} clusters):**
+**Placement + PolicySet binding example (DC clusters):**
 
 ```yaml
 apiVersion: cluster.open-cluster-management.io/v1beta1
@@ -948,7 +948,7 @@ spec:
     - requiredClusterSelector:
         labelSelector:
           matchLabels:
-            tier: {TIER_PRIMARY_LOWER}
+            tier: datacenter
 ---
 apiVersion: policy.open-cluster-management.io/v1beta1
 kind: PlacementBinding
@@ -967,12 +967,12 @@ subjects:
 
 ### Tier Mapping
 
-| Label Key         | {TIER_PRIMARY} Value         | {TIER_MIDDLE} Value                | {TIER_EDGE} Value             |
+| Label Key         | Datacenter Value         | {SITE_3} Value                | {TIER_EDGE} Value             |
 | ----------------- | ------------------------ | ------------------------ | ------------------------ |
-| `tier`            | `{TIER_PRIMARY_LOWER}`             | `{TIER_MIDDLE_LOWER}`                    | `{TIER_EDGE_LOWER}`                 |
+| `tier`            | `datacenter`             | `{TIER_MIDDLE_LOWER}`                    | `{TIER_EDGE_LOWER}`                 |
 | `environment`     | `production` / `nonprod` | `production` / `nonprod` | `production` / `nonprod` |
-| `cluster-class`   | `{TIER_PRIMARY_LOWER}-standard`            | `{TIER_MIDDLE_LOWER}-standard`           | `{TIER_EDGE_LOWER}-compact`         |
-| `storage-profile` | `flashsystem-fc`         | `flashsystem-fc`         | `odf-local`              |
+| `cluster-class`   | `dc-standard`            | `{TIER_MIDDLE_LOWER}-standard`           | `{TIER_EDGE_LOWER}-compact`         |
+| `storage-profile` | `{BLOCK_STORAGE_LOWER}-fc`         | `{BLOCK_STORAGE_LOWER}-fc`         | `odf-local`              |
 | `network-profile` | `4nic-dedicated`         | `4nic-dedicated`         | `2nic-compact`           |
 
 ### Implementation Procedure
@@ -997,7 +997,7 @@ subjects:
 
 ```bash
 git log --oneline -- policies/placement-*.yaml policies/bind-*.yaml
-ls policies/placement-{TIER_PRIMARY_LOWER}.yaml policies/placement-{TIER_MIDDLE_LOWER}.yaml policies/placement-{TIER_EDGE_LOWER}.yaml
+ls policies/placement-datacenter.yaml policies/placement-{TIER_MIDDLE_LOWER}.yaml policies/placement-{TIER_EDGE_LOWER}.yaml
 ```
 
 **Rollback:**
@@ -1148,7 +1148,7 @@ networking:
 
 ### Tier Variance
 
-| Parameter       | {TIER_PRIMARY}                   | {SITE_LAB}                 | {TIER_EDGE}           |
+| Parameter       | DC                   | {SITE_3}                 | {TIER_EDGE}           |
 | --------------- | -------------------- | ------------------- | ---------------- |
 | Pod subnet      | 192.168.0.0/17       | 192.168.0.0/17      | 192.168.0.0/17   |
 | Service subnet  | 192.168.128.0/18     | 192.168.128.0/18    | 192.168.128.0/18 |
@@ -1267,7 +1267,7 @@ pullSecret: '{"auths":{"artifactory.{CLIENT_DOMAIN}":{"auth":"<base64>"}, "regis
 
 ### Tier Variance
 
-| Parameter                | {TIER_PRIMARY}                   | {SITE_LAB}                  | {TIER_EDGE}                                         |
+| Parameter                | DC                   | {SITE_3}                  | {TIER_EDGE}                                         |
 | ------------------------ | -------------------- | -------------------- | ---------------------------------------------- |
 | Image source             | {REGISTRY_MIRROR} (direct) | {REGISTRY_MIRROR} (direct) | {REGISTRY_MIRROR} (direct) or local mirror (**TBD**) |
 | Bandwidth to {REGISTRY_MIRROR} | High (LAN)           | High (LAN)           | Limited (WAN)                                  |
@@ -1378,7 +1378,7 @@ ssh-add ~/.ssh/ocp_cluster_key
 **Execution Readiness Checks:**
 
 - [ ] Platform team member with access to provisioning workstation
-- [ ] Enterprise secrets management system available (Vault, {SECRET_MGMT_VENDOR}, etc.)
+- [ ] Enterprise secrets management system available (Vault, {VAULT_SOLUTION}, etc.)
 
 **Steps:**
 
@@ -1487,10 +1487,10 @@ Provision the OCP clusters that will serve as ACM hubs, sized and placed per the
 
 | ID       | Item                                                                                                                                                               | Owner                     | Status |
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------- | ------ |
-| CG-11A-1 | Finalize ACM hub count and tier placement — confirm the exact number of hubs (sandbox, lab, prod-{SITE_PRIMARY}, prod-{SITE_SECONDARY}, {SITE_LAB}, {TIER_EDGE_LOWER}) to close open ADR 5 decisions | Architecture / Leadership | Open   |
-| CG-11A-2 | Confirm hub hardware (server count, NIC layout, NVMe availability) is allocated and cabled at each site before install begins                                      | Platform / {TIER_PRIMARY} Ops         | Open   |
+| CG-11A-1 | Finalize ACM hub count and tier placement — confirm the exact number of hubs (sandbox, lab, prod-{SITE_1}, prod-{SITE_2}, {SITE_3}, {TIER_EDGE} sites) to close open ADR 5 decisions | Architecture / Leadership | Open   |
+| CG-11A-2 | Confirm hub hardware (server count, NIC layout, NVMe availability) is allocated and cabled at each site before install begins                                      | Platform / DC Ops         | Open   |
 | CG-11A-3 | Confirm OCP version for hub clusters matches or exceeds spoke target version ({OCP_VERSION}) to ensure full MCE and RHACM 2.16 compatibility                                | Platform                  | Open   |
-| CG-11A-4 | Confirm hub clusters' DNS, TLS certificates, and {DNS_IPAM_VENDOR} IP reservations are provisioned before OCP install (follows Phase 1 LLD-01–05 pattern)                   | Platform / Network        | Open   |
+| CG-11A-4 | Confirm hub clusters' DNS, TLS certificates, and {IPAM_PLATFORM} IP reservations are provisioned before OCP install (follows Phase 1 LLD-01–05 pattern)                   | Platform / Network        | Open   |
 
 ### Dependencies
 
@@ -1501,25 +1501,25 @@ Provision the OCP clusters that will serve as ACM hubs, sized and placed per the
 | LLD-01     | TLS certs procured: API cert (CN=`api.<hub>.<domain>`) + ingress wildcard (CN=`*.apps.<hub>.<domain>`) |
 | LLD-02     | Firewall rules open: inter-node (2379-2380, 6443, 22623, 10250), BMC (443), {REGISTRY_MIRROR} (443)          |
 | LLD-03     | Hub servers racked, cabled, profiled in {HW_MGMT_PLATFORM} with BIOS "virtualization" preset + UEFI boot       |
-| LLD-04     | {DNS_IPAM_VENDOR} reservations: 3 node IPs + API VIP + ingress VIP + 3 BMC IPs per hub                          |
+| LLD-04     | {IPAM_PLATFORM} reservations: 3 node IPs + API VIP + ingress VIP + 3 BMC IPs per hub                          |
 | LLD-05     | DNS records: `api.<hub>.<domain>` → API VIP, `*.apps.<hub>.<domain>` → ingress VIP, per-node A + PTR   |
 | LLD-09     | {REGISTRY_MIRROR} pull secret: `.dockerconfigjson` with {REGISTRY_MIRROR} + Red Hat registry credentials           |
-| LLD-10     | SSH key pair generated, public key for `install-config.yaml`, private key stored in {SECRET_MGMT_VENDOR}           |
+| LLD-10     | SSH key pair generated, public key for `install-config.yaml`, private key stored in {VAULT_SOLUTION}           |
 
 ### Configuration Parameters
 
 | Parameter              | Value                                                           | Description                                         | Source                       |
 | ---------------------- | --------------------------------------------------------------- | --------------------------------------------------- | ---------------------------- |
-| Hub topology           | Split hubs — {TIER_PRIMARY}, {SITE_LAB}, {TIER_EDGE_LOWER}, sandbox, lab; **TBD per ADR 5** | Per-tier isolation of management-plane blast radius | ADR 5 / HLD Phase 1 & 3      |
+| Hub topology           | Split hubs — DC, {SITE_3}, {TIER_EDGE} sites, sandbox, lab; **TBD per ADR 5** | Per-tier isolation of management-plane blast radius | ADR 5 / HLD Phase 1 & 3      |
 | Hub OCP version        | {OCP_VERSION} (same as spoke target — LLD-07)                            | Supports RHACM 2.16 / MCE 2.11                      | ADR 2 / RHACM support matrix |
 | Control-plane topology | 3-node compact bare metal (schedulable masters, no workers)     | Validated at 3,500+ managed clusters                | RHACM 2.16 sizing docs       |
 | etcd storage           | NVMe local disk; **≤10 ms p99 fsync**                           | Primary hub performance driver at scale             | OCP {OCP_VERSION} HW requirements     |
 | Provisioning method    | `install-config.yaml` via `openshift-install` (no ACM dependency) | Required because ACM does not exist until hub is operational | ADR 1                        |
-| CPU / memory           | Match or exceed {TIER_PRIMARY} spoke sizing; {TIER_EDGE} profile for {TIER_EDGE} hubs | Scales with managed-cluster count                   | RHACM 2.16 sizing docs       |
+| CPU / memory           | Match or exceed DC spoke sizing; {TIER_EDGE} profile for {TIER_EDGE} hubs | Scales with managed-cluster count                   | RHACM 2.16 sizing docs       |
 
 ### Sample Configuration
 
-**Hub install-config.yaml (abbreviated — {TIER_PRIMARY} hub example):**
+**Hub install-config.yaml (abbreviated — DC hub example):**
 
 ```yaml
 apiVersion: v1
@@ -1562,12 +1562,12 @@ sshKey: '<ssh_pub_key>'
 
 ### Tier Variance
 
-| Parameter            | {TIER_PRIMARY} Hubs ({SITE_PRIMARY} / {SITE_SECONDARY})                  | {SITE_LAB} Hub                                      | {TIER_EDGE} Hub                                    | Sandbox / Lab Hub                  |
+| Parameter            | DC Hubs ({SITE_1} / {SITE_2})                  | {SITE_3} Hub                                      | {TIER_EDGE} Hub                                    | Sandbox / Lab Hub                  |
 | -------------------- | ------------------------------------------ | -------------------------------------------- | --------------------------------------------- | ---------------------------------- |
-| Managed cluster load | High (~40 {TIER_PRIMARY}/{SITE_LAB} clusters per {TIER_PRIMARY} hub)      | Low–Medium ({SITE_LAB} clusters only) — **TBD**     | High (~400 {TIER_EDGE} clusters)                   | Low (dev/test clusters)            |
-| Hardware profile     | Full {TIER_PRIMARY} server ({SERVER_MODEL} blade)              | {SERVER_MODEL} or shared with {TIER_PRIMARY} hub — **TBD ADR 5** | {HW_VENDOR} Unified Edge or equivalent compact node | Dev-grade or shared infrastructure |
-| Storage              | {BLOCK_STORAGE_VENDOR} (FC SAN) for etcd PVs      | {BLOCK_STORAGE_VENDOR} or ODF — **TBD**             | ODF on local NVMe                             | ODF or ephemeral                   |
-| DR posture           | Active/passive standby hub — **TBD ADR 5** | Aligned to {TIER_PRIMARY} or standalone — **TBD**        | Independent; no standby (tolerate hub loss)   | No DR required                     |
+| Managed cluster load | High (scale with DC/{TIER_MIDDLE} cluster count per DC hub)      | Low–Medium ({SITE_3} clusters only) — **TBD**     | High (~{TIER_EDGE_COUNT} {TIER_EDGE} clusters)                   | Low (dev/test clusters)            |
+| Hardware profile     | Full DC server ({SERVER_MODEL} blade)              | {SERVER_MODEL} or shared with DC hub — **TBD ADR 5** | {HW_VENDOR} Unified Edge or equivalent compact node | Dev-grade or shared infrastructure |
+| Storage              | {BLOCK_STORAGE_PRODUCT} (FC SAN) for etcd PVs      | {BLOCK_STORAGE_PRODUCT} or ODF — **TBD**             | ODF on local NVMe                             | ODF or ephemeral                   |
+| DR posture           | Active/passive standby hub — **TBD ADR 5** | Aligned to DC or standalone — **TBD**        | Independent; no standby (tolerate hub loss)   | No DR required                     |
 
 ### Implementation Procedure
 
@@ -1577,7 +1577,7 @@ sshKey: '<ssh_pub_key>'
 - [ ] Hub hardware allocated, racked, and cabled at target sites
 - [ ] DNS A/PTR records created for hub cluster API (`api.<hub>.<domain>`), ingress (`*.apps.<hub>.<domain>`), and each node
 - [ ] TLS certificates procured: API server cert (CN=`api.<hub>.<domain>`) and ingress wildcard cert (CN=`*.apps.<hub>.<domain>`)
-- [ ] Hub node IPs, API VIP, ingress VIP, and BMC IPs reserved in {DNS_IPAM_VENDOR}
+- [ ] Hub node IPs, API VIP, ingress VIP, and BMC IPs reserved in {IPAM_PLATFORM}
 - [ ] Firewall rules open for hub inter-node (TCP/2379-2380, TCP/6443, TCP/22623, TCP/10250), BMC (TCP/443 Redfish), and {REGISTRY_MIRROR} (TCP/443)
 - [ ] {REGISTRY_MIRROR} pull secret validated (see pre-flight step below)
 - [ ] SSH key pair generated and stored in vault for hub node access
@@ -1621,7 +1621,7 @@ fio --rw=write --ioengine=sync --fdatasync=1 \
   python3 -c "import sys,json; d=json.load(sys.stdin); p99=d['jobs'][0]['sync']['clat_ns']['percentile']['99.000000']/1e6; print(f'{'PASS' if p99<=10 else 'FAIL'}: etcd fsync p99 = {p99:.2f}ms')"
 ```
 
-> **If any check FAILs:** Remediate before proceeding. DNS failures → fix {DNS_IPAM_VENDOR} records. Firewall failures → submit change request. BMC failures → verify cabling/credentials. Certificate failures → re-request from CA. Pull secret failures → regenerate {REGISTRY_MIRROR} credentials. Disk I/O failures → verify NVMe is installed and mounted at `/var/lib/etcd`.
+> **If any check FAILs:** Remediate before proceeding. DNS failures → fix {IPAM_PLATFORM} records. Firewall failures → submit change request. BMC failures → verify cabling/credentials. Certificate failures → re-request from CA. Pull secret failures → regenerate {REGISTRY_MIRROR} credentials. Disk I/O failures → verify NVMe is installed and mounted at `/var/lib/etcd`.
 
 **Step 2 — OCP Cluster Install:**
 
@@ -1707,7 +1707,7 @@ oc get mcp -w   # wait for master MCP to finish rolling
 **Step 4 — Final Validation:**
 
 1. Validate all control-plane operators `Available` and all nodes `Ready`.
-2. Tag the hub cluster's kubeconfig with the hub's tier label and store in {SECRET_MGMT_VENDOR} / secure offline vault.
+2. Tag the hub cluster's kubeconfig with the hub's tier label and store in {VAULT_SOLUTION} / secure offline vault.
 3. Document hub API endpoints, ingress URLs, and tier assignments in the hub inventory register.
 
 **Verification:**
@@ -1743,7 +1743,7 @@ oc version
 | AC-12A-2 | All ClusterOperators Available  | `oc get co`                                           | All operators `Available=True`, `Degraded=False` |
 | AC-12A-3 | OCP version correct             | `oc version`                                          | Server version matches target ({OCP_VERSION}.x)           |
 | AC-12A-4 | Hub API and ingress DNS resolve | `dig api.<hub>.<domain>`, `dig *.apps.<hub>.<domain>` | A records resolve to correct VIPs                |
-| AC-12A-5 | Hub kubeconfig stored in vault  | {SECRET_MGMT_VENDOR} / vault record verified                      | Credential accessible to platform team only      |
+| AC-12A-5 | Hub kubeconfig stored in vault  | {VAULT_SOLUTION} / vault record verified                      | Credential accessible to platform team only      |
 
 ---
 
@@ -1766,7 +1766,7 @@ Install the Red Hat Advanced Cluster Management operator on each hub cluster via
 | Blocked By | Reason                                                                                                                                        |
 | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | LLD-11A    | Hub OCP cluster provisioned and all operators Ready                                                                                           |
-| LLD-23     | Hub cluster's global pull secret (`openshift-config/pull-secret`) includes {REGISTRY_MIRROR} + Red Hat registry credentials for operator image pull |
+| LLD-22     | Hub cluster's global pull secret (`openshift-config/pull-secret`) includes {REGISTRY_MIRROR} + Red Hat registry credentials for operator image pull |
 
 ### Configuration Parameters
 
@@ -1776,7 +1776,7 @@ Install the Red Hat Advanced Cluster Management operator on each hub cluster via
 | MCE version                | 2.11 (auto-installed by RHACM)              | Do not install separately                 | [RHACM 2.16 Install](https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_management_for_kubernetes/2.16/html-single/install/index)                                                            |
 | Operator namespace         | `open-cluster-management`                   | Dedicated namespace for hub components    | [RHACM 2.16 Install](https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_management_for_kubernetes/2.16/html-single/install/index)                                                            |
 | InstallPlanApproval        | `Manual`                                    | Prevents auto-upgrade to next minor       | ADR platform pinning policy                                                                                                                                                                                 |
-| `availabilityConfig`       | `High` (prod {TIER_PRIMARY}/{SITE_LAB}); `Basic` (sandbox/lab) | HA replicas vs single replica             | [RHACM 2.16 Install — MCH spec](https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_management_for_kubernetes/2.16/html-single/install/index#advanced-config-hub)                             |
+| `availabilityConfig`       | `High` (prod DC/{SITE_3}); `Basic` (sandbox/lab) | HA replicas vs single replica             | [RHACM 2.16 Install — MCH spec](https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_management_for_kubernetes/2.16/html-single/install/index#advanced-config-hub)                             |
 | `disableHubSelfManagement` | `false` (default)                           | Hub self-manages as `local-cluster`       | [RHACM 2.16 Install — Section 1.5 disableHubSelfManagement](https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_management_for_kubernetes/2.16/html-single/install/index#advanced-config-hub) |
 | `overrides.components`     | Default (all enabled)                       | All components required for {CLIENT} use case | [RHACM 2.16 Install](https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_management_for_kubernetes/2.16/html-single/install/index)                                                            |
 
@@ -1816,7 +1816,7 @@ spec:
   installPlanApproval: Manual
 ```
 
-**MultiClusterHub CR (production {TIER_PRIMARY} hub):**
+**MultiClusterHub CR (production DC hub):**
 
 ```yaml
 apiVersion: operator.open-cluster-management.io/v1
@@ -1885,9 +1885,9 @@ oc patch installplan -n multicluster-engine "${INSTALLPLAN}" \
 
 ### Tier Variance
 
-| Parameter                  | {TIER_PRIMARY} / {SITE_LAB} Production Hubs       | {TIER_EDGE} Hub                      | Sandbox / Lab Hub                     |
+| Parameter                  | DC / {SITE_3} Production Hubs       | {TIER_EDGE} Hub                      | Sandbox / Lab Hub                     |
 | -------------------------- | ------------------------------ | ------------------------------- | ------------------------------------- |
-| `availabilityConfig`       | `High` (HA replicas)           | `High` (manages ~400 clusters)  | `Basic` (single replica, cost-saving) |
+| `availabilityConfig`       | `High` (HA replicas)           | `High` (manages ~{TIER_EDGE_COUNT} clusters)  | `Basic` (single replica, cost-saving) |
 | `cluster-backup` component | Enabled (OADP backup required) | **TBD** — evaluate cost vs risk | Disabled (no backup needed)           |
 | InstallPlanApproval        | `Manual` (version-pinned)      | `Manual`                        | `Manual`                              |
 
@@ -2012,8 +2012,8 @@ Enable the Central Infrastructure Management (CIM) service on each hub cluster t
 | Blocked By | What Must Be Ready                                                                                                         |
 | ---------- | -------------------------------------------------------------------------------------------------------------------------- |
 | LLD-11B    | `MultiClusterHub` Running + MCE Available. Verify: `oc get multiclusterengine -o jsonpath='{.status.phase}'` → `Available` |
-| LLD-15     | Default StorageClass exists for PVCs. Verify: `oc get storageclass` — one class marked `(default)`                         |
-| LLD-16     | RHCOS ISO accessible from {REGISTRY_MIRROR}. Verify: `curl -sI <rhcos_iso_url>` returns HTTP 200                                 |
+| LLD-14     | Default StorageClass exists for PVCs. Verify: `oc get storageclass` — one class marked `(default)`                         |
+| LLD-15     | RHCOS ISO accessible from {REGISTRY_MIRROR}. Verify: `curl -sI <rhcos_iso_url>` returns HTTP 200                                 |
 
 ### Configuration Parameters
 
@@ -2025,7 +2025,7 @@ Enable the Central Infrastructure Management (CIM) service on each hub cluster t
 | `ClusterImageSet`              | `openshift-v{OCP_VERSION}.0`                                      | OCP release images available for spoke provisioning       | ADR 2 / LLD-07              |
 | GitOps ZTP plugin              | `ztp-site-generate` image matching OCP {OCP_VERSION}              | Generates `ClusterInstance` / `PolicyGenerator` manifests | OCP {OCP_VERSION} Edge Computing     |
 | Provisioning API               | `ClusterInstance` CR (SiteConfig Operator) for OCP {OCP_VERSION}+ | Active provisioning API for hub-managed deployments        | OCP {OCP_VERSION} Edge docs |
-| TALM operator                  | Install on hub alongside RHACM                           | Fleet-wide OCP upgrade orchestration (LLD-48)             | ADR 46                      |
+| TALM operator                  | Install on hub alongside RHACM                           | Fleet-wide OCP upgrade orchestration (LLD-47)             | ADR 46                      |
 
 > **Ref:** [Installing managed clusters with RHACM and ClusterInstance resources (OCP {OCP_VERSION})](https://docs.redhat.com/en/documentation/openshift_container_platform/{OCP_VERSION}/html/edge_computing/ztp-deploying-far-edge-sites)
 >
@@ -2056,7 +2056,7 @@ metadata:
   name: agent
 spec:
   # AgentServiceConfig is cluster-scoped. Tier guidance:
-  # - {TIER_PRIMARY}/{SITE_LAB} hubs: filesystemStorage 100Gi (Red Hat minimum)
+  # - DC/{SITE_3} hubs: filesystemStorage 100Gi (Red Hat minimum)
   # - {TIER_EDGE} hubs: filesystemStorage 100Gi (scale headroom)
   # - Sandbox/Lab hubs: filesystemStorage 20Gi (ephemeral non-production exception)
   # Baseline sizing: ~200MiB per managed cluster + 2-3GiB per supported OCP version.
@@ -2114,11 +2114,11 @@ spec:
 
 ### Tier Variance
 
-| Parameter                | {TIER_PRIMARY} / {SITE_LAB} Hubs                                                               | {TIER_EDGE} Hub                                                     | Sandbox / Lab Hub                                                |
+| Parameter                | DC / {SITE_3} Hubs                                                               | {TIER_EDGE} Hub                                                     | Sandbox / Lab Hub                                                |
 | ------------------------ | --------------------------------------------------------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `filesystemStorage` size | ≥100 GiB (Red Hat minimum; scale with ~200MiB/cluster + 2-3GiB/OCP version) | ≥100 GiB (scale: ~400 {TIER_EDGE} clusters to provision)            | 20 GiB (ephemeral non-production only; below production minimum) |
-| OS image download path   | Direct from {REGISTRY_MIRROR} / ICOS mirror over {TIER_PRIMARY} network                       | {REGISTRY_MIRROR} mirror accessible over WAN; validate latency first | Direct or cached                                                 |
-| TALM                     | Installed; used for {TIER_PRIMARY}/{SITE_LAB} upgrade orchestration                            | Installed; used for {TIER_EDGE} wave upgrades (primary use case)    | Installed but `ClusterGroupUpgrade` test only                    |
+| `filesystemStorage` size | ≥100 GiB (Red Hat minimum; scale with ~200MiB/cluster + 2-3GiB/OCP version) | ≥100 GiB (scale: ~{TIER_EDGE_COUNT} {TIER_EDGE} clusters to provision)            | 20 GiB (ephemeral non-production only; below production minimum) |
+| OS image download path   | Direct from {REGISTRY_MIRROR} / {OBJECT_STORAGE} mirror over DC network                       | {REGISTRY_MIRROR} mirror accessible over WAN; validate latency first | Direct or cached                                                 |
+| TALM                     | Installed; used for DC/{SITE_3} upgrade orchestration                            | Installed; used for {TIER_EDGE} wave upgrades (primary use case)    | Installed but `ClusterGroupUpgrade` test only                    |
 
 ### Implementation Procedure
 
@@ -2126,14 +2126,14 @@ spec:
 
 - [ ] `MultiClusterHub` Running with MCE Available — verify: `oc get multiclusterengine -o jsonpath='{.status.phase}'` → `Available`
 - [ ] CG-12C-1 closed with confirmed PVC sizes before first apply (resizing requires deleting and recreating `AgentServiceConfig`)
-- [ ] Default StorageClass exists — verify: `oc get storageclass` shows one marked `(default)` ({TIER_PRIMARY}/{SITE_LAB}: `ibm-block-gold-vsc`; {TIER_EDGE}: `ocs-storagecluster-ceph-rbd`)
+- [ ] Default StorageClass exists — verify: `oc get storageclass` shows one marked `(default)` (DC/{SITE_3}: `ibm-block-gold-vsc`; {TIER_EDGE}: `ocs-storagecluster-ceph-rbd`)
 - [ ] Hub has network path to BMC/Redfish endpoints — verify: `curl -sk https://<bmc_ip>/redfish/v1/` returns JSON
 - [ ] OCP {OCP_VERSION} RHCOS ISO accessible — verify: `curl -sI <artifactory_registry>/rhcos/{OCP_VERSION}/<iso_filename>` returns HTTP 200
 
 **Steps:**
 
 1. Apply the `Provisioning` CR to disable L2 provisioning network and enable `watchAllNamespaces`.
-2. Apply the cluster-scoped `AgentServiceConfig` CR with tier-appropriate storage sizes from the LLD-11C Tier Variance table. StorageClass availability from LLD-15 is a prerequisite.
+2. Apply the cluster-scoped `AgentServiceConfig` CR with tier-appropriate storage sizes from the LLD-11C Tier Variance table. StorageClass availability from LLD-14 is a prerequisite.
 3. Wait for `assisted-service` and `assisted-image-service` pods to become `Running` in the `multicluster-engine` namespace.
 4. Apply the `ClusterImageSet` CR for OCP {OCP_VERSION} pointing to the {REGISTRY_MIRROR}-mirrored release image.
 5. Install the TALM operator and approve its install plan.
@@ -2223,7 +2223,7 @@ Define and validate all network paths required for ACM hub operation: hub-to-spo
 ```
 Cluster: <hub_cluster_name>
 Site: <site_name>
-Tier: {TIER_PRIMARY} / {SITE_LAB} / {TIER_EDGE} / Sandbox / Lab
+Tier: DC / {SITE_3} / {TIER_EDGE} / Sandbox / Lab
 Spoke Tier Managed By This Hub: <tier_segment>
 
 Source → Destination rules:
@@ -2250,19 +2250,19 @@ Source → Destination rules:
 
 ### Tier Variance
 
-| Parameter                | {TIER_PRIMARY} / {SITE_LAB} Hubs                   | {TIER_EDGE} Hub                                                   | Sandbox / Lab Hub    |
+| Parameter                | DC / {SITE_3} Hubs                   | {TIER_EDGE} Hub                                                   | Sandbox / Lab Hub    |
 | ------------------------ | ------------------------------- | ------------------------------------------------------------ | -------------------- |
-| Spoke API path           | LAN / {TIER_PRIMARY} network (low latency)  | WAN (high latency; evaluate klusterlet poll interval tuning) | Lab network          |
-| BMC / Redfish path       | {TIER_PRIMARY} BMC VLAN (direct)            | {TIER_EDGE} BMC VLAN reachable from {TIER_EDGE} hub over LAN           | Lab BMC or simulated |
+| Spoke API path           | LAN / DC network (low latency)  | WAN (high latency; evaluate klusterlet poll interval tuning) | Lab network          |
+| BMC / Redfish path       | DC BMC VLAN (direct)            | {TIER_EDGE} BMC VLAN reachable from {TIER_EDGE} hub over LAN           | Lab BMC or simulated |
 | Cluster-proxy add-on     | Optional (direct API available) | Evaluate if WAN firewalls block direct hub → spoke API       | Not required         |
-| Klusterlet poll interval | Hub default                     | **TBD** — may require tuning for high-latency WAN {TIER_EDGE_LOWER}   | Hub default          |
+| Klusterlet poll interval | Hub default                     | **TBD** — may require tuning for high-latency WAN {TIER_EDGE} sites   | Hub default          |
 
 ### Implementation Procedure
 
 **Execution Readiness Checks:**
 
 - [ ] Hub cluster nodes have stable IPs and API/ingress VIPs configured (LLD-11A complete)
-- [ ] Spoke tier IP ranges and BMC IP ranges documented (obtain from {DNS_IPAM_VENDOR} / {TIER_PRIMARY} Ops — needed as source/destination in firewall rules below)
+- [ ] Spoke tier IP ranges and BMC IP ranges documented (obtain from {IPAM_PLATFORM} / DC Ops — needed as source/destination in firewall rules below)
 - [ ] Firewall change management ticket raised per {CLIENT} change control process (include all rules from the Reference matrix above)
 
 **Steps:**
@@ -2391,7 +2391,7 @@ Configure LDAP-backed OAuth authentication on each hub cluster and define RBAC s
 
 | Blocked By | Reason                                                                                           |
 | ---------- | ------------------------------------------------------------------------------------------------ |
-| LLD-24     | LDAP server, bind DN, and group schema available (used for spokes; reused for hubs)              |
+| LLD-23     | LDAP server, bind DN, and group schema available (used for spokes; reused for hubs)              |
 | LLD-11B    | `MultiClusterHub` Running before ACM RBAC (ManagedClusterSet, cluster-manager) can be configured |
 
 ### Configuration Parameters
@@ -2402,7 +2402,7 @@ Configure LDAP-backed OAuth authentication on each hub cluster and define RBAC s
 | ACM console access      | CRB → `cluster-manager-admin` + scoped viewers | Bound to LDAP groups                             | RHACM RBAC docs    |
 | `cluster-manager-admin` | Bound to platform-admin LDAP group             | Full ACM hub admin; restrict to senior engineers | RHACM RBAC docs    |
 | ManagedClusterSet RBAC  | Per-set admin bindings to team LDAP group      | Scopes policy/placement per cluster set          | ADR 5 / RHACM docs |
-| Breakglass account      | HTPasswd local admin (LLD-26 pattern)          | Vault-stored; for LDAP outage scenarios          | LLD-26             |
+| Breakglass account      | HTPasswd local admin (LLD-25 pattern)          | Vault-stored; for LDAP outage scenarios          | LLD-25             |
 
 ### Sample Configuration
 
@@ -2423,7 +2423,7 @@ subjects:
     name: <{CLIENT_LOWER}-platform-admin-ldap-group>
 ```
 
-**ManagedClusterSet ({TIER_PRIMARY} production — example):**
+**ManagedClusterSet (DC production — example):**
 
 > **Note:** The ClusterRole `open-cluster-management:managedclusterset:admin:<setname>` is **auto-generated by ACM** when the `ManagedClusterSet` is created. Do not create it manually — only create the `ClusterRoleBinding` that references it.
 
@@ -2431,7 +2431,7 @@ subjects:
 apiVersion: cluster.open-cluster-management.io/v1beta2
 kind: ManagedClusterSet
 metadata:
-  name: {TIER_PRIMARY_LOWER}-production
+  name: datacenter-production
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -2440,7 +2440,7 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: open-cluster-management:managedclusterset:admin:{TIER_PRIMARY_LOWER}-production
+  name: open-cluster-management:managedclusterset:admin:datacenter-production
 subjects:
   - kind: Group
     apiGroup: rbac.authorization.k8s.io
@@ -2449,9 +2449,9 @@ subjects:
 
 ### Tier Variance
 
-| Parameter          | {TIER_PRIMARY} / {SITE_LAB} Production Hubs                  | {TIER_EDGE} Hub                          | Sandbox / Lab Hub                        |
+| Parameter          | DC / {SITE_3} Production Hubs                  | {TIER_EDGE} Hub                          | Sandbox / Lab Hub                        |
 | ------------------ | ----------------------------------------- | ----------------------------------- | ---------------------------------------- |
-| ManagedClusterSets | {TIER_PRIMARY}-prod, {TIER_PRIMARY}-nonprod, {SITE_LAB} sets (TBD ADR 5) | {TIER_EDGE}-all or per-region sets (TBD) | Sandbox, lab                             |
+| ManagedClusterSets | DC-prod, DC-nonprod, {SITE_3} sets (TBD ADR 5) | {TIER_EDGE}-all or per-region sets (TBD) | Sandbox, lab                             |
 | RBAC strictness    | Strict — separate groups for admin/viewer | Strict — same pattern as production | Relaxed — broader team access acceptable |
 | Breakglass account | Required before production cutover        | Required                            | Required                                 |
 
@@ -2463,7 +2463,7 @@ subjects:
 - [ ] LDAP bind DN and password obtained from IAM team
 - [ ] LDAP CA certificate bundle available (PEM format)
 - [ ] LDAP group names confirmed: hub platform-admin group, hub viewer group, per-team cluster set manager groups
-- [ ] Breakglass password generated per {CLIENT} complexity policy and stored in {SECRET_MGMT_VENDOR}
+- [ ] Breakglass password generated per {CLIENT} complexity policy and stored in {VAULT_SOLUTION}
 - [ ] `MultiClusterHub` Running (LLD-11B)
 
 **Step 1 — Create LDAP Secrets and CA Bundle:**
@@ -2513,7 +2513,7 @@ oc patch oauth cluster --type=merge -p '{
 
 ```bash
 # Create sets for each logical grouping (adapt names to ADR 5 outcome)
-for SET in {TIER_PRIMARY_LOWER}-production {TIER_PRIMARY_LOWER}-nonprod {TIER_MIDDLE_LOWER} {TIER_EDGE_LOWER} sandbox lab; do
+for SET in datacenter-production datacenter-nonprod {TIER_MIDDLE_LOWER} {TIER_EDGE} sites sandbox lab; do
   cat <<EOF | oc apply -f -
 apiVersion: cluster.open-cluster-management.io/v1beta2
 kind: ManagedClusterSet
@@ -2570,7 +2570,7 @@ oc adm policy add-cluster-role-to-user cluster-admin breakglass
 rm -f /tmp/htpasswd
 ```
 
-> **Warning:** The breakglass account has full `cluster-admin` privileges. Store the password in {SECRET_MGMT_VENDOR} with restricted access. This account is for LDAP outage scenarios only.
+> **Warning:** The breakglass account has full `cluster-admin` privileges. Store the password in {VAULT_SOLUTION} with restricted access. This account is for LDAP outage scenarios only.
 
 **Step 6 — Test LDAP Login to ACM Console:**
 
@@ -2620,13 +2620,13 @@ oc get managedclusterset
 | AC-12E-2 | ACM admin role functional          | LDAP admin can `oc get managedcluster` and import clusters | Resources visible and actions permitted |
 | AC-12E-3 | ManagedClusterSet scoping enforced | Non-admin viewer account cannot see clusters outside set   | 403 or empty list outside assigned set  |
 | AC-12E-4 | Breakglass account functional      | Login with HTPasswd breakglass user; confirm cluster-admin | Login succeeds; `cluster-admin` access  |
-| AC-12E-5 | Breakglass credentials in vault    | {SECRET_MGMT_VENDOR} / vault record present for each hub               | Credential accessible to platform team  |
+| AC-12E-5 | Breakglass credentials in vault    | {VAULT_SOLUTION} / vault record present for each hub               | Credential accessible to platform team  |
 
 ---
 
 ## LLD-11F: Hub Storage & Observability Backend
 
-Provision the object storage endpoints and persistent volumes required by ACM hub services: `MultiClusterObservability` Thanos long-term metrics aggregation (S3-compatible), Assisted Installer ISO and agent image storage (`AgentServiceConfig` PVCs), and ACM internal service PVCs. This section covers the hub-side storage setup; spoke-side metric collection is operationalized in Phase 3 LLD-54.
+Provision the object storage endpoints and persistent volumes required by ACM hub services: `MultiClusterObservability` Thanos long-term metrics aggregation (S3-compatible), Assisted Installer ISO and agent image storage (`AgentServiceConfig` PVCs), and ACM internal service PVCs. This section covers the hub-side storage setup; spoke-side metric collection is operationalized in Phase 3 LLD-53.
 
 > **Ref:** [RHACM 2.16 Observability — Enabling observability service](https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_management_for_kubernetes/2.16/html-single/observability/index#enabling-observability-service)
 
@@ -2634,8 +2634,8 @@ Provision the object storage endpoints and persistent volumes required by ACM hu
 
 | ID       | Item                                                                                                                         | Owner              | Status |
 | -------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------ | ------ |
-| CG-11F-1 | Provision ICOS bucket per production {TIER_PRIMARY} hub and confirm S3 endpoint, access key, and bucket name available for Thanos config | Platform / Storage | Open   |
-| CG-11F-2 | Confirm ODF RGW endpoint available on {TIER_EDGE} hub clusters for Thanos object storage ({TIER_EDGE} hubs may not have ICOS access)   | Platform / Storage | Open   |
+| CG-11F-1 | Provision {OBJECT_STORAGE} bucket per production DC hub and confirm S3 endpoint, access key, and bucket name available for Thanos config | Platform / Storage | Open   |
+| CG-11F-2 | Confirm ODF RGW endpoint available on {TIER_EDGE} hub clusters for Thanos object storage ({TIER_EDGE} hubs may not have {OBJECT_STORAGE} access)   | Platform / Storage | Open   |
 | CG-11F-3 | Calculate `AgentServiceConfig` PVC sizes based on expected concurrent provisioning jobs per hub and OCP release image count  | Platform           | Open   |
 | CG-11F-4 | Confirm `MultiClusterObservability` retention and metrics allowlist requirements with the Observability team                 | Platform / Ops     | Open   |
 
@@ -2643,25 +2643,25 @@ Provision the object storage endpoints and persistent volumes required by ACM hu
 
 | Blocked By | What Must Be Ready                                                                                                                                                                            |
 | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| LLD-15     | A default StorageClass exists on the hub: `ibm-block-gold-vsc` ({TIER_PRIMARY}/{SITE_LAB}) or `ocs-storagecluster-ceph-rbd` ({TIER_EDGE}/lab). Verify: `oc get storageclass` — one class should be marked `(default)` |
-| LLD-16     | ICOS S3 bucket provisioned ({TIER_PRIMARY}/{SITE_LAB}) or ODF RGW endpoint available ({TIER_EDGE}). Credentials (access key + secret key) available from storage team or {SECRET_MGMT_VENDOR}                                     |
+| LLD-14     | A default StorageClass exists on the hub: `ibm-block-gold-vsc` (DC/{SITE_3}) or `ocs-storagecluster-ceph-rbd` ({TIER_EDGE}/lab). Verify: `oc get storageclass` — one class should be marked `(default)` |
+| LLD-15     | {OBJECT_STORAGE} S3 bucket provisioned (DC/{SITE_3}) or ODF RGW endpoint available ({TIER_EDGE}). Credentials (access key + secret key) available from storage team or {VAULT_SOLUTION}                                     |
 | LLD-11B    | `MultiClusterHub` phase is `Running` — verify: `oc get multiclusterhub -n open-cluster-management -o jsonpath='{.status.phase}'`                                                              |
 
 ### Configuration Parameters
 
 | Parameter                      | Value                                                         | Description                                        | Source                   |
 | ------------------------------ | ------------------------------------------------------------- | -------------------------------------------------- | ------------------------ |
-| Object store for Thanos        | ICOS ({TIER_PRIMARY}/{SITE_LAB}) / ODF RGW ({TIER_EDGE}) — S3-compatible              | Long-term metric retention backend                 | ADR 16 / LLD-16          |
+| Object store for Thanos        | {OBJECT_STORAGE} (DC/{SITE_3}) / ODF RGW ({TIER_EDGE}) — S3-compatible              | Long-term metric retention backend                 | ADR 16 / LLD-15          |
 | `thanos-object-storage` secret | Key: `thanos.yaml` (bucket, endpoint, access_key, secret_key) | Created in `open-cluster-management-observability` | RHACM 2.16 Observability |
-| Metrics retention              | Default Thanos retention (tuned in Phase 3 LLD-54)            | Defaults adequate until fleet-scale tuning         | RHACM 2.16 Observability |
+| Metrics retention              | Default Thanos retention (tuned in Phase 3 LLD-53)            | Defaults adequate until fleet-scale tuning         | RHACM 2.16 Observability |
 | ASC PVC — filesystem           | ≥100 GiB (prod); 20 GiB (sandbox/lab)                         | ~200 MiB/cluster + 2–3 GiB/OCP version             | CIM sizing guidance      |
 | ASC PVC — database             | ≥10 GiB                                                       | Assisted-service Postgres state                    | CIM sizing guidance      |
 | ASC PVC — image                | ≥50 GiB                                                       | Cached installer agent images                      | CIM sizing guidance      |
-| StorageClass                   | IBM block CSI ({TIER_PRIMARY}/{SITE_LAB}); ODF ({TIER_EDGE}/lab)                      | Inherits tier default from LLD-15                  | LLD-15                   |
+| StorageClass                   | IBM block CSI (DC/{SITE_3}); ODF ({TIER_EDGE}/lab)                      | Inherits tier default from LLD-14                  | LLD-14                   |
 
 ### Sample Configuration
 
-**Thanos object storage secret ({TIER_PRIMARY} hub — ICOS):**
+**Thanos object storage secret (DC hub — {OBJECT_STORAGE}):**
 
 ```yaml
 apiVersion: v1
@@ -2675,9 +2675,9 @@ stringData:
     type: s3
     config:
       bucket: {HUB_CLUSTER_NAME}-thanos
-      endpoint: <icos_s3_endpoint>
-      access_key: <TBD — from {SECRET_MGMT_VENDOR}>
-      secret_key: <TBD — from {SECRET_MGMT_VENDOR}>
+      endpoint: <object_storage_s3_endpoint>
+      access_key: <TBD — from {VAULT_SOLUTION}>
+      secret_key: <TBD — from {VAULT_SOLUTION}>
       insecure: false
 ```
 
@@ -2704,9 +2704,9 @@ spec:
 
 ### Tier Variance
 
-| Parameter                                | {TIER_PRIMARY} / {SITE_LAB} Production Hubs         | {TIER_EDGE} Hub                          | Sandbox / Lab Hub    |
+| Parameter                                | DC / {SITE_3} Production Hubs         | {TIER_EDGE} Hub                          | Sandbox / Lab Hub    |
 | ---------------------------------------- | -------------------------------- | ----------------------------------- | -------------------- |
-| Thanos object store backend              | ICOS (S3)                        | ODF RGW (local S3)                  | ODF RGW or ephemeral |
+| Thanos object store backend              | {OBJECT_STORAGE} (S3)                        | ODF RGW (local S3)                  | ODF RGW or ephemeral |
 | `MultiClusterObservability` availability | `High`                           | `High`                              | `Basic`              |
 | PVC StorageClass                         | IBM block CSI (`ibm-block-gold`) | ODF (`ocs-storagecluster-ceph-rbd`) | ODF or default       |
 
@@ -2714,7 +2714,7 @@ spec:
 
 **Execution Readiness Checks:**
 
-- [ ] ICOS bucket provisioned per {TIER_PRIMARY} hub — confirm bucket name, S3 endpoint URL, access key, and secret key are available (obtain from storage team or {SECRET_MGMT_VENDOR})
+- [ ] {OBJECT_STORAGE} bucket provisioned per DC hub — confirm bucket name, S3 endpoint URL, access key, and secret key are available (obtain from storage team or {VAULT_SOLUTION})
 - [ ] For {TIER_EDGE}/lab hubs: ODF deployed and healthy — verify: `oc get storagecluster -n openshift-storage` → `Phase: Ready`
 - [ ] `MultiClusterHub` Running — verify: `oc get multiclusterhub -n open-cluster-management -o jsonpath='{.status.phase}'` → `Running`
 - [ ] CIM `AgentServiceConfig` storage sizes confirmed (from LLD-11C Tier Variance table: ≥100 GiB filesystem for prod, 20 GiB for sandbox/lab)
@@ -2733,7 +2733,7 @@ oc create secret generic multiclusterhub-operator-pull-secret \
   --type=kubernetes.io/dockerconfigjson
 ```
 
-3. Create the `thanos-object-storage` secret in the `open-cluster-management-observability` namespace with tier-appropriate ICOS or ODF RGW credentials.
+3. Create the `thanos-object-storage` secret in the `open-cluster-management-observability` namespace with tier-appropriate {OBJECT_STORAGE} or ODF RGW credentials.
 4. Confirm the `MultiClusterObservability` CRD serves `v1beta2` before applying the CR: `oc get crd multiclusterobservabilities.observability.open-cluster-management.io -o jsonpath='{.spec.versions[*].name}' ; echo`
 5. Apply the `MultiClusterObservability` CR.
 6. Monitor pods in `open-cluster-management-observability` namespace until all Thanos components (receive, store, compactor, query) are `Running`.
@@ -2773,7 +2773,7 @@ curl -k https://rbac-query-proxy-open-cluster-management-observability.<apps_dom
 | AC-12F-3 | Object storage secret present          | `oc get secret thanos-object-storage -n open-cluster-management-observability` | Secret exists with `thanos.yaml` key |
 | AC-12F-4 | Hub metrics visible in ACM Grafana     | ACM console → Observe → Grafana                                                | Hub cluster dashboards populated     |
 | AC-12F-5 | AgentServiceConfig PVCs Bound          | `oc get pvc -n multicluster-engine`                                            | All three PVCs `Bound`               |
-| AC-12F-6 | StorageClass tier-correct              | PVC `storageClassName` matches hub tier                                        | IBM block ({TIER_PRIMARY}/{SITE_LAB}); ODF ({TIER_EDGE}/lab) |
+| AC-12F-6 | StorageClass tier-correct              | PVC `storageClassName` matches hub tier                                        | IBM block (DC/{SITE_3}); ODF ({TIER_EDGE}/lab) |
 
 ---
 
@@ -2789,15 +2789,15 @@ Define the ACM hub backup and disaster recovery posture using the OADP-based ACM
 
 | ID       | Item                                                                                                                                           | Owner                     | Status |
 | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- | ------ |
-| CG-11G-1 | Close ADR 5 open item on active/passive standby vs independent per-site hubs (determines whether a passive hub must be provisioned per {TIER_PRIMARY} hub) | Architecture / Leadership | Open   |
-| CG-11G-2 | Confirm backup storage location (ICOS bucket per {TIER_PRIMARY} hub) is provisioned and OADP credentials are available                                     | Platform / Storage        | Open   |
+| CG-11G-1 | Close ADR 5 open item on active/passive standby vs independent per-site hubs (determines whether a passive hub must be provisioned per DC hub) | Architecture / Leadership | Open   |
+| CG-11G-2 | Confirm backup storage location ({OBJECT_STORAGE} bucket per DC hub) is provisioned and OADP credentials are available                                     | Platform / Storage        | Open   |
 | CG-11G-3 | Define the backup schedule frequency and retention window with the SRE team (impacts RPO for hub recovery)                                     | Platform / SRE            | Open   |
 
 ### Dependencies
 
 | Blocked By | Reason                                                                |
 | ---------- | --------------------------------------------------------------------- |
-| LLD-16     | ICOS object storage bucket available for OADP backup storage location |
+| LLD-15     | {OBJECT_STORAGE} object storage bucket available for OADP backup storage location |
 | LLD-11B    | `MultiClusterHub` Running with `cluster-backup` component enabled     |
 
 ### Configuration Parameters
@@ -2808,7 +2808,7 @@ Define the ACM hub backup and disaster recovery posture using the OADP-based ACM
 | Active-active           | **Not supported** — do not implement                                                   | Klusterlet connects to exactly one hub                  | RHACM 2.16 BC docs         |
 | OADP backup scope       | `ManagedCluster`, klusterlet secrets, compliance, `ClusterDeployment`, `BareMetalHost` | Git rebuild alone insufficient for spoke-fleet recovery | RHACM 2.16 BC docs         |
 | Backup schedule         | **TBD with SRE** — rec: hourly (resources); daily (credentials)                        | Determines RPO                                          | RHACM backup docs          |
-| Backup storage location | ICOS S3 bucket (separate from Thanos) — one per hub                                    | Must survive total hub cluster failure                  | RHACM backup docs / LLD-16 |
+| Backup storage location | {OBJECT_STORAGE} S3 bucket (separate from Thanos) — one per hub                                    | Must survive total hub cluster failure                  | RHACM backup docs / LLD-15 |
 | Restore safety controls | Same ACM version; no dual-writer; shut down primary before activation                  | Prevents collision and restore failures                 | RHACM 2.16 BC docs         |
 
 ### Sample Configuration
@@ -2841,7 +2841,7 @@ spec:
   veleroTtl: "120h"                  # 5-day retention
 ```
 
-**DataProtectionApplication CR (OADP — S3 backup to ICOS):**
+**DataProtectionApplication CR (OADP — S3 backup to {OBJECT_STORAGE}):**
 
 ```yaml
 apiVersion: oadp.openshift.io/v1alpha1   # Requires OADP 1.x; if OADP 2.x auto-installed, see Step 2 for API guidance
@@ -2861,11 +2861,11 @@ spec:
         provider: aws
         default: true
         objectStorage:
-          bucket: acm-hub-backup-{SITE_PRIMARY}
+          bucket: acm-hub-backup-{HUB_ID}
           prefix: hub-backup
         config:
-          region: <icos_region>
-          s3Url: <icos_s3_endpoint>
+          region: <object_storage_region>
+          s3Url: <object_storage_s3_endpoint>
           s3ForcePathStyle: "true"
         credential:
           key: cloud
@@ -2895,11 +2895,11 @@ spec:
 
 ### Tier Variance
 
-| Parameter        | {TIER_PRIMARY} Production Hubs                                   | {TIER_EDGE} Hub                                                           | Sandbox / Lab Hub            |
+| Parameter        | DC Production Hubs                                   | {TIER_EDGE} Hub                                                           | Sandbox / Lab Hub            |
 | ---------------- | ---------------------------------------------------- | -------------------------------------------------------------------- | ---------------------------- |
 | DR model         | Active/passive (TBD ADR 5) + OADP backup             | Independent per hub; no standby; rely on spoke re-import if hub lost | No DR — restore from scratch |
 | Backup frequency | Hourly (managed resources); daily (credentials)      | Daily                                                                | No backup required           |
-| Passive hub      | TBD ADR 5 — provision at {SITE_PRIMARY} if primary is {SITE_SECONDARY} | Not applicable                                                       | Not applicable               |
+| Passive hub      | TBD ADR 5 — provision at {SITE_1} if primary is {SITE_2} | Not applicable                                                       | Not applicable               |
 
 ### Implementation Procedure
 
@@ -2908,17 +2908,17 @@ spec:
 - [ ] ADR 5 closed with documented production resiliency model (active/passive or independent hubs) before DR implementation begins
 - [ ] `MultiClusterHub` CR has `cluster-backup: enabled: true` — verify: `oc get multiclusterhub -n open-cluster-management -o jsonpath='{.spec.overrides.components}' | grep cluster-backup`
 - [ ] OADP operator auto-installed by cluster-backup component — verify: `oc get csv -n open-cluster-management-backup | grep oadp`
-- [ ] ICOS backup bucket provisioned (separate from Thanos bucket) — confirm: bucket name, S3 endpoint, access key, secret key from storage team or {SECRET_MGMT_VENDOR}
+- [ ] {OBJECT_STORAGE} backup bucket provisioned (separate from Thanos bucket) — confirm: bucket name, S3 endpoint, access key, secret key from storage team or {VAULT_SOLUTION}
 - [ ] Passive hub OCP cluster provisioned if ADR 5 selects active/passive — must be at same RHACM version as primary; follow LLD-11A + LLD-11B procedures for passive hub
 
 **Steps:**
 
 1. Verify the OADP operator was auto-installed by the `cluster-backup` component enabled in LLD-11B. The OADP operator is automatically deployed in the `open-cluster-management-backup` namespace when `cluster-backup: enabled: true` is set in the `MultiClusterHub` CR. If OADP is not present (e.g., STS/IAM environments), install it manually per [RHACM 2.16 Business Continuity docs](https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_management_for_kubernetes/2.16/html/business_continuity/business-cont-overview#dr4hub-install-backup-and-restore).
 2. Confirm OADP CSV version and align DPA API compatibility before applying manifests: `oc get csv -n open-cluster-management-backup | grep oadp`. RHACM 2.16 auto-installs OADP 1.4.x in `open-cluster-management-backup`; the `DataProtectionApplication` CR uses `oadp.openshift.io/v1alpha1` with this version. If you observe a different OADP major version (e.g., OADP 2.x), stop and consult the [RHACM 2.16 BC docs](https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_management_for_kubernetes/2.16/html/business_continuity/business-cont-overview#dr4hub-install-backup-and-restore) before proceeding.
-3. Create the cloud credential secret for ICOS S3 access.
+3. Create the cloud credential secret for {OBJECT_STORAGE} S3 access.
 4. Apply the `DataProtectionApplication` CR.
 5. Apply the `BackupSchedule` CR to start scheduled backups.
-6. Verify the first backup completes successfully and artifacts are present in the ICOS bucket.
+6. Verify the first backup completes successfully and artifacts are present in the {OBJECT_STORAGE} bucket.
 7. Build the restore target hub at the same ACM version as the source hub, then install the same required operators/namespaces before running restore. For passive hubs, apply the passive-hub `MultiClusterHub` variant with `disableHubSelfManagement: true` before restore.
 8. For activation restore scenarios, shut down (or pause backup on) the previous primary hub before restoring managed cluster activation data to avoid dual-writer backup collisions.
 9. **Restore drill:** On a passive (or sandbox) hub with RHACM installed, apply a `Restore` CR pointing to the latest backup. Verify that `ManagedCluster` objects, policies, and compliance data are restored.
@@ -2948,7 +2948,7 @@ oc get restore -n open-cluster-management-backup
 
 **Rollback:**
 
-- Disable the `BackupSchedule` CR to stop future backups. Existing backups in ICOS are retained per TTL policy. No cluster-side impact.
+- Disable the `BackupSchedule` CR to stop future backups. Existing backups in {OBJECT_STORAGE} are retained per TTL policy. No cluster-side impact.
 
 ### Acceptance Criteria
 
@@ -2957,7 +2957,7 @@ oc get restore -n open-cluster-management-backup
 | AC-12G-1 | OADP operator installed and DPA configured | `oc get dataprotectionapplication`                                                | `BackupLocationAvailable` condition True         |
 | AC-12G-2 | BackupSchedule active                      | `oc get backupschedule`                                                           | `phase: Enabled`                                 |
 | AC-12G-3 | Scheduled backup completes                 | `oc get backup -n open-cluster-management-backup`                                 | Latest backup `phase: Completed`                 |
-| AC-12G-4 | Backup artifacts present in ICOS           | AWS CLI / ICOS console listing backup bucket                                      | Backup files present with expected timestamp     |
+| AC-12G-4 | Backup artifacts present in {OBJECT_STORAGE}           | AWS CLI / {OBJECT_STORAGE} console listing backup bucket                                      | Backup files present with expected timestamp     |
 | AC-12G-5 | Restore drill passed                       | Apply `Restore` CR on passive/sandbox hub; verify ManagedCluster objects restored | `ManagedCluster` objects present post-restore    |
 | AC-12G-6 | Failover runbook documented                | Runbook review                                                                    | Step-by-step procedure for passive hub promotion |
 | AC-12G-7 | No backup collision state detected         | `oc get backupschedule -o jsonpath='{.items[*].status.phase}'`                    | No schedule in `BackupCollision` state           |
@@ -3110,7 +3110,7 @@ P99_MS=$(echo "scale=2; ${P99_US:-0} / 1000000" | bc)
 
 ### Tier Variance
 
-| Parameter              | {TIER_PRIMARY}                        | {SITE_LAB}                       | {TIER_EDGE}             |
+| Parameter              | DC                        | {SITE_3}                       | {TIER_EDGE}             |
 | ---------------------- | ------------------------- | ------------------------- | ------------------ |
 | FC SAN check           | Required                  | Required                  | N/A                |
 | BMC type               | {HW_VENDOR} {SERVER_MODEL} / {HW_MGMT_PLATFORM} | {HW_VENDOR} {SERVER_MODEL} / {HW_MGMT_PLATFORM} | {HW_VENDOR} Unified Edge |
@@ -3187,7 +3187,7 @@ Apply all Day-1 post-install platform configurations that were planned in LLD-01
 | Parameter           | Value                                            | Description                              | Source                |
 | ------------------- | ------------------------------------------------ | ---------------------------------------- | --------------------- |
 | Ingress secret name | `custom-ingress-cert`                            | In namespace `openshift-ingress`         | OCP cert config guide |
-| NTP servers         | Internal NTP (site-specific)                     | {TIER_PRIMARY}/{TIER_MIDDLE}: SRE-managed; {TIER_EDGE}: TBD         | HLD / ADR 48          |
+| NTP servers         | Internal NTP (site-specific)                     | DC/{TIER_MIDDLE}: SRE-managed; {TIER_EDGE}: TBD         | HLD / ADR 48          |
 | Chrony delivery     | MachineConfig via ArgoCD                         | ACM inform policy monitors compliance    | ADR 48                |
 | Guest VM time       | No hypervisor sync                               | Windows: AD; Linux: direct NTP           | ADR 48                |
 | PSI kernel arg      | `psi=1` via MachineConfig `99-worker-kernel-psi` | For descheduler profile                  | ADR 40                |
@@ -3301,9 +3301,9 @@ spec:
 
 ### Tier Variance
 
-| Parameter      | {TIER_PRIMARY}                            | {TIER_MIDDLE}              | {TIER_EDGE}                       |
+| Parameter      | DC                            | {TIER_MIDDLE}              | {TIER_EDGE}                       |
 | -------------- | ----------------------------- | ---------------- | ---------------------------- |
-| NTP servers    | {TIER_PRIMARY} internal NTP (SRE-managed) | {TIER_MIDDLE} internal NTP | {TIER_EDGE} network NTP (**TBD**) |
+| NTP servers    | DC internal NTP (SRE-managed) | {TIER_MIDDLE} internal NTP | {TIER_EDGE} network NTP (**TBD**) |
 | maxUnavailable | 2-4                           | 1-2              | 1                            |
 | IPMI hardening | Required                      | Required         | Required                     |
 
@@ -3560,7 +3560,7 @@ oc get configs.imageregistry.operator.openshift.io cluster -o jsonpath='{.spec.m
 | L3    | LDAP login to hub console; ACM admin RBAC functional; ManagedClusterSet scoping enforced; breakglass in vault                                                              | AC-12E-1, AC-12E-2, AC-12E-3, AC-12E-4, AC-12E-5           | [ ]    |
 | L4    | Thanos components Running; object storage secret present; AgentServiceConfig PVCs Bound                                                                                    | AC-12F-1, AC-12F-2, AC-12F-3, AC-12F-5                     | [ ]    |
 | L4    | Hub metrics visible in ACM Grafana                                                                                                                                         | AC-12F-4, AC-12H-6                                         | [ ]    |
-| L5    | OADP BackupSchedule active; scheduled backup Completed; backup artifacts in ICOS; restore drill passed; no backup collisions (for hubs with backup enabled by tier policy) | AC-12G-1, AC-12G-2, AC-12G-3, AC-12G-4, AC-12G-5, AC-12G-7 | [ ]    |
+| L5    | OADP BackupSchedule active; scheduled backup Completed; backup artifacts in {OBJECT_STORAGE}; restore drill passed; no backup collisions (for hubs with backup enabled by tier policy) | AC-12G-1, AC-12G-2, AC-12G-3, AC-12G-4, AC-12G-5, AC-12G-7 | [ ]    |
 | L5    | Pilot spoke imported per hub — ManagedCluster Available + Joined; pilot policy compliance report populated                                                                 | AC-12H-4                                                   | [ ]    |
 
 **Hub Gate PASSED when all rows show [x].**
@@ -3576,6 +3576,8 @@ Hub Gate passed. Spoke cluster provisioning can now proceed per the Phase 1 Foun
 | `{CLIENT}` | Client name | ACME Corp |
 | `{CLIENT_LOWER}` | Client name lowercase (for domains/URLs) | acme |
 | `{CLIENT_DOMAIN}` | Client domain | acme.example.com |
+| `{AUTHOR}` | Document author | J. Smith |
+| `{DATE}` | Document date | 2026-05-20 |
 | `{REVIEWER_LIST}` | Comma-separated reviewer names | A. Jones, B. Lee |
 | `{APPROVER}` | Approval authority | C. Director |
 | `{ADR_REGISTER}` | Path to ADR register file | ADR_acme.md |
@@ -3584,18 +3586,25 @@ Hub Gate passed. Spoke cluster provisioning can now proceed per the Phase 1 Foun
 | `{HW_MGMT_PLATFORM}` | Hardware management platform | Intersight |
 | `{HW_MONITORING_VENDOR}` | Hardware monitoring tool | Virtana |
 | `{SERVER_MODEL}` | Server hardware model | UCS M8 |
-| `{BLOCK_STORAGE_VENDOR}` | Block storage product name | FlashSystem |
+| `{BLOCK_STORAGE_PRODUCT}` | Block storage product name | (vendor block storage) |
 | `{SIEM_PLATFORM}` | SIEM / log aggregation platform | Splunk |
-| `{NOC_PLATFORM}` | Event management / AIOps platform | Moogsoft |
-| `{BACKUP_VENDOR}` | Backup solution vendor | e.g. Veeam, Commvault |
-| `{SECRET_MGMT_VENDOR}` | Secret / vault management vendor | CyberArk |
-| `{DNS_IPAM_VENDOR}` | IP address management system | Infoblox |
-| `{APM_VENDOR}` | Application performance monitoring | Dynatrace |
-| `{SCANNING_VENDOR}` | Vulnerability / compliance scanner | Tenable |
+| `{EVENT_MGMT_PLATFORM}` | Event management / AIOps platform | Moogsoft |
+| `{BACKUP_VENDOR}` | Backup solution vendor | Rubrik |
+| `{VAULT_SOLUTION}` | Secret / vault management vendor | CyberArk |
+| `{IPAM_PLATFORM}` | IP address management system | Infoblox |
+| `{APM_PLATFORM}` | Application performance monitoring | Dynatrace |
+| `{SCAN_VENDOR}` | Vulnerability / compliance scanner | Tenable |
 | `{REGISTRY_MIRROR}` | Container image registry mirror | Artifactory |
 | `{REGISTRY_MIRROR_FQDN}` | Registry mirror FQDN | artifactory.acme.example.com |
 | `{CVD_URL}` | Hardware vendor CVD documentation URL | https://... |
-| `{SITE_LIST}` | Comma-separated site names | Site-Alpha, Site-Beta, Site-Gamma |
-| `{SITE_PRIMARY}` / `{SITE_SECONDARY}` / `{SITE_LAB}` | Individual site names | Site-Alpha / Site-Beta / Site-Gamma |
+| `{TIER_PRIMARY}` | Primary / datacenter tier name | Datacenter |
+| `{TIER_MIDDLE}` | Regional / mid-tier name | Regional |
+| `{TIER_EDGE}` | Edge / remote-site tier name | Edge |
+| `{TIER_MIDDLE_LOWER}` | Mid-tier label (lowercase) | regional |
+| `{TIER_EDGE_LOWER}` | Edge-tier label (lowercase) | edge |
+| `{TIER_EDGE_COUNT}` | Approximate edge-site or edge-cluster count | ~N |
+| `{OBJECT_STORAGE}` | S3-compatible object storage | (S3-compatible object store) |
+| `{SITE_LIST}` | Comma-separated site names | `{SITE_1}, {SITE_2}, {SITE_3}` |
+| `{SITE_1}` / `{SITE_2}` / `{SITE_3}` | Individual site names | `{SITE_1}` / `{SITE_2}` / `{SITE_3}` |
 | `{HUB_CLUSTER_NAME}` | ACM hub cluster name | acm-hub-dc-east |
 | `{NTP_DOMAIN}` | NTP server domain suffix | site.acme.net |
