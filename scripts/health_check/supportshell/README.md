@@ -258,7 +258,7 @@ The report covers:
 
 **How finding priority is determined:**
 
-Priority isn't stored anywhere in the collected data — it's derived at report-generation time from two inputs: the check's status (`FAIL` or `WARNING`; a `PASS`, `INFO`, `NOT_APPLICABLE`, or `SKIPPED` check never becomes a finding at all) and a keyword match against that check's plain-English description text. `FAIL` checks whose description mentions a small set of severity-signalling terms (node readiness, cluster operators, critical alerts, etc.) become `P0`; every other `FAIL` becomes `P1`. `WARNING` checks are split the same way into `P2` / `P3` using a different keyword list (resource utilization, upgrades, deprecated features, etc.).
+Priority isn't stored anywhere in the collected data — it's derived at report-generation time from two inputs: the check's status (`FAIL` or `WARNING`; `INFO` becomes a P3 finding only when the KB sets `finding_on_info`; `PASS`, `NOT_APPLICABLE`, and `SKIPPED` never become findings) and a keyword match against that check's plain-English description text. `FAIL` checks whose description mentions a small set of severity-signalling terms (node readiness, cluster operators, critical alerts, etc.) become `P0`; every other `FAIL` becomes `P1`. `WARNING` checks are split the same way into `P2` / `P3` using a different keyword list (resource utilization, upgrades, deprecated features, etc.).
 
 This is a best-effort heuristic based on wording, not a guaranteed-correct severity rating — the keyword lists live in `scripts/health_check/hc_report/findings.py` if you want to see exactly what triggers each bucket. If a finding lands in a priority you disagree with for a given engagement, the generated report is just markdown: edit the finding's priority label or move it between chapters directly in `output/Health_Check_Report/<ClientPrefix>_OpenShift_Health_Check_<cluster>.md` before delivering it. The original check status and description are preserved unedited in the companion `<ClientPrefix>_HC_audit_<cluster>.json` file if you need to double-check what drove a classification.
 
@@ -482,13 +482,15 @@ scripts/health_check/hc_report/
   loader.py        — load_results() (manifest or directory scan)
   metadata.py      — derive_metadata() from collected JSON
   registry.py      — check-profile dispatch (core/extended/advisory)
-  evaluators/      — per-category check functions (9 submodules)
+  evaluators/      — per-category check functions (12 modules plus `_common.py` and `_shared_checks.py`)
   parity.py        — TSR/CCX additive parity expansion
   tsr_parser.py    — parse TSR HTML exports into parity status inputs
   catalogs/        — tsr_ccx_crosswalk.json (+ README)
   kb/               — external TOML knowledge base: descriptions, recommendations, impact
-                       metadata, and version-aware doc links, keyed by check_id
-  kb_loader.py      — loads/version-resolves the KB; get_recommendation()/get_links()/get_impact()
+                       metadata, and version-aware doc links, keyed by check_id.
+                       Sparse `content_from` rows are aliases; see root README Knowledge Base.
+  kb_loader.py      — loads/version-resolves the KB (including `content_from` aliases);
+                       get_recommendation()/get_links()/get_impact()
   link_review/      — suggest + HTTP-check KB documentation URLs (does not rewrite TOMLs)
   build_crosswalk_catalog.py — regenerates catalogs/tsr_ccx_crosswalk.json
   findings.py      — derive_findings(); resolves recommendation/impact via kb_loader.py,

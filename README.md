@@ -107,6 +107,27 @@ Rebuild the catalog with `make hc-build-catalog TSR_HTML=path/to/export.html`. O
 
 `project.example.hc.yaml` is the HC template; never commit `project.yaml` or kubeconfigs.
 
+### Knowledge Base (KB) for recommendations and notes
+
+Report prose (description, recommendation, documentation links, operational impact) lives in TOML under `scripts/health_check/hc_report/kb/` (`7_1`–`7_9` plus `versions.toml`). `kb_loader.py` loads it at report time. Thresholds, evidence paths, and live `oc`/`jq` validation stay in [`docs/HC_CHECK_RATIONALE.md`](docs/HC_CHECK_RATIONALE.md).
+
+Each `[[checks]]` row is keyed by `check_id`. Typical fields: `title`, `description`, `recommendation`, `impact` / `impact_scope` / `impact_detail`, `[checks.links]`, optional `summary_patterns`, `finding_group`, `include_in_findings`, and `finding_on_info`. Descriptions are mode-neutral (valid without TSR). Empty recommendation or impact renders `[NEEDS REVIEW]`.
+
+#### Sparse rows (`content_from`)
+
+Some `[[checks]]` entries look almost empty on purpose. When two `check_id`s tell the same operational story (a native check plus a TSR catalog twin, or a parent section that duplicates a child), the alias sets `content_from` to the canonical `check_id` and **omits** recommendation, description, impact, and links:
+
+```toml
+[[checks]]
+check_id = "7.6.tsr.6_1_5_1_pod_pruning"
+title = "TSR pod pruning"
+content_from = "7.5.pruning.pods"
+```
+
+`load_kb()` copies those inherited fields from the canonical row in a **single hop**. Title and finding flags (`include_in_findings`, `finding_group`, `finding_on_info`) stay on the alias so chapter 7 can still list every check while Chapter 4 / §6.2 may merge or hide duplicates.
+
+Edit the **canonical** row to change report text. Do not copy inherited fields onto the alias — overlay is rejected. Chains, self-references, missing targets, glob targets, and `pattern = true` aliases also fail closed (`ValueError` at load).
+
 ### KB documentation link review (container)
 
 Produces a suggested-URL table comparing KB TOML links against a local documentation checkout. Does not modify TOMLs. Suggested URLs never invent `#` fragments (existing fragments are kept only when the book is unchanged). Unique suggested **page** URLs are HTTP GET-checked with `curl_cffi` Chrome TLS impersonation inside the toolkit container (same anti-bot approach as the sibling repo’s `validate_links.py`). Fragments are not sent to the server; a 200 means the page exists. After reviewing the CSV, `make hc-link-apply` writes `REPLACE` rows (HTTP 200) into `[checks.links]` only.

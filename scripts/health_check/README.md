@@ -12,3 +12,4 @@ See also:
 - [`../../docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md)
 - [`../../docs/HC_CHECK_RATIONALE.md`](../../docs/HC_CHECK_RATIONALE.md)
 - [`../../docs/HC_Command_Reference.md`](../../docs/HC_Command_Reference.md)
+- [Knowledge Base (KB) for recommendations and notes](../../README.md#knowledge-base-kb-for-recommendations-and-notes) — why some `[[checks]]` rows only set `content_from`

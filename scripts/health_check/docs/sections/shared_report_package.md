@@ -6,13 +6,15 @@ scripts/health_check/hc_report/
   loader.py        — load_results() (manifest or directory scan)
   metadata.py      — derive_metadata() from collected JSON
   registry.py      — check-profile dispatch (core/extended/advisory)
-  evaluators/      — per-category check functions (9 submodules)
+  evaluators/      — per-category check functions (12 modules plus `_common.py` and `_shared_checks.py`)
   parity.py        — TSR/CCX additive parity expansion
   tsr_parser.py    — parse TSR HTML exports into parity status inputs
   catalogs/        — tsr_ccx_crosswalk.json (+ README)
   kb/               — external TOML knowledge base: descriptions, recommendations, impact
-                       metadata, and version-aware doc links, keyed by check_id
-  kb_loader.py      — loads/version-resolves the KB; get_recommendation()/get_links()/get_impact()
+                       metadata, and version-aware doc links, keyed by check_id.
+                       Sparse `content_from` rows are aliases; see root README Knowledge Base.
+  kb_loader.py      — loads/version-resolves the KB (including `content_from` aliases);
+                       get_recommendation()/get_links()/get_impact()
   link_review/      — suggest + HTTP-check KB documentation URLs (does not rewrite TOMLs)
   build_crosswalk_catalog.py — regenerates catalogs/tsr_ccx_crosswalk.json
   findings.py      — derive_findings(); resolves recommendation/impact via kb_loader.py,
