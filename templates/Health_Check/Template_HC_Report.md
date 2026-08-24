@@ -63,6 +63,7 @@ The assessment covers base platform configuration, cluster topology, core compon
 | PASS | {PASS_COUNT} |
 | WARNING | {WARNING_COUNT} |
 | FAIL | {FAIL_COUNT} |
+| INFO | {INFO_COUNT} |
 | NOT APPLICABLE / SKIPPED | {SKIP_COUNT} |
 | Findings (P0–P3) | {FINDING_COUNT} |
 
@@ -88,10 +89,10 @@ The following critical and high-priority findings require immediate or near-term
 
 ### 5.3 Check Summary by Category
 
-| Category | Total | PASS | WARNING | FAIL | N/A / Skipped |
-|----------|-------|------|---------|------|---------------|
+| Category | PASS | WARNING | FAIL | INFO | N/A / Skipped | Total |
+|----------|------|---------|------|------|---------------|-------|
 {STATS_TABLE_ROWS}
-| **Total** | **{TOTAL_CHECKS}** | **{PASS_COUNT}** | **{WARNING_COUNT}** | **{FAIL_COUNT}** | **{SKIP_COUNT}** |
+| **Total** | **{PASS_COUNT}** | **{WARNING_COUNT}** | **{FAIL_COUNT}** | **{INFO_COUNT}** | **{SKIP_COUNT}** | **{TOTAL_CHECKS}** |
 
 ---
 

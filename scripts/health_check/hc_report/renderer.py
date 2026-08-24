@@ -343,9 +343,9 @@ def _build_stats_rows(checks: list[CheckResult]) -> str:
         total = len(category_checks)
         skipped_or_not_applicable = counts.get("NOT_APPLICABLE", 0) + counts.get("SKIPPED", 0)
         rows.append(
-            f"| {category_names.get(category_id, category_id)} | {total} | {counts.get('PASS', 0)} | "
-            f"{counts.get('WARNING', 0)} | {counts.get('FAIL', 0)} | "
-            f"{counts.get('INFO', 0)} | {skipped_or_not_applicable} |"
+            f"| {category_names.get(category_id, category_id)} | {counts.get('PASS', 0)} | "
+            f"{counts.get('WARNING', 0)} | {counts.get('FAIL', 0)} | {counts.get('INFO', 0)} | "
+            f"{skipped_or_not_applicable} | {total} |"
         )
     return "\n".join(rows)
 
