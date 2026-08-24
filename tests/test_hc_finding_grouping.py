@@ -1,7 +1,10 @@
 """Public-contract tests for Chapter 6 finding grouping and suppression."""
 from __future__ import annotations
 
-from hc_report.findings import derive_findings
+from hc_report.findings import (
+    derive_findings,
+    scored_ccx_checks_for_findings,
+)
 from hc_report.models import CheckResult
 
 
@@ -231,3 +234,82 @@ def test_denied_csr_row_still_creates_finding() -> None:
     findings = derive_findings(checks)
     assert len(findings) == 1
     assert findings[0].check_id == check_id
+
+
+# Bug: Scored CCX FAIL/WARNING absent from Chapter 7 never becomes a Chapter 6 finding
+# Mutant: Ignore scored_ccx_checks in derive_findings
+# Contract: public
+def test_unmatched_scored_ccx_fail_becomes_finding() -> None:
+    existing = [_check_result("7.1.identity.channel", "[PASS] channel ok", status="PASS")]
+    extras = scored_ccx_checks_for_findings(
+        [
+            {
+                "source": "ccx",
+                "group": "external",
+                "status": "FAIL",
+                "check_id": "7.7.ccx_external.mcp_set_to_pause",
+                "title": "Mcp Set To Pause",
+                "evidence": "pool master is paused",
+                "tsr_ref": "CCX:external",
+                "category_id": "7.7",
+                "category_name": "Security and Compliance",
+            },
+            {
+                "source": "ccx",
+                "group": "skip",
+                "status": "FAIL",
+                "check_id": "7.7.ccx_skip.ignored_skip_panel",
+                "title": "Ignored Skip Panel",
+                "evidence": "not applicable",
+                "tsr_ref": "CCX:skip",
+            },
+            {
+                "source": "ccx",
+                "group": "internal",
+                "status": "PASS",
+                "check_id": "7.7.ccx_internal.version_check",
+                "title": "Version Check",
+                "evidence": "supported",
+                "tsr_ref": "CCX:internal",
+            },
+        ],
+        existing,
+    )
+    findings = derive_findings(existing, scored_ccx_checks=extras)
+    assert [extra.check_id for extra in extras] == ["7.7.ccx_external.mcp_set_to_pause"]
+    assert len(findings) == 1
+    assert findings[0].check_id == "7.7.ccx_external.mcp_set_to_pause"
+    assert findings[0].priority == "P2"
+    assert "not mapped to a Chapter 7 check" in findings[0].recommendation
+
+
+# Bug: Catalog CCX FAIL already in Chapter 7 is emitted twice in Chapter 6
+# Mutant: Skip the existing-id / existing-title filter
+# Contract: public
+def test_catalog_ccx_fail_is_not_duplicated() -> None:
+    existing = [
+        _check_result(
+            "7.7.ccx_internal.pods_check",
+            "[FAIL] - reason: crashloop",
+            source="ccx",
+            description="Pods Check",
+        )
+    ]
+    extras = scored_ccx_checks_for_findings(
+        [
+            {
+                "source": "ccx",
+                "group": "internal",
+                "status": "FAIL",
+                "check_id": "7.7.ccx_internal.pods_check",
+                "title": "Pods Check",
+                "evidence": "crashloop",
+                "tsr_ref": "CCX:internal",
+            }
+        ],
+        existing,
+    )
+    findings = derive_findings(existing, scored_ccx_checks=extras)
+    assert extras == []
+    assert len(findings) == 1
+    assert findings[0].check_id == "7.7.ccx_internal.pods_check"

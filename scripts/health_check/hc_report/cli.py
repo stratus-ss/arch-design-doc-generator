@@ -18,7 +18,7 @@ from hc_report.evaluators._common import (
     _resource_spec,
     _resource_status,
 )
-from hc_report.findings import derive_findings
+from hc_report.findings import derive_findings_with_tsr
 from hc_report.loader import load_results, resolve_cluster_targets
 from hc_report.metadata import derive_metadata
 from hc_report.parity import discover_tsr_html
@@ -407,7 +407,7 @@ def _generate_single_report(
     print(f"  {len(checks)} checks evaluated")
 
     print("Deriving findings...")
-    findings = derive_findings(checks, ocp_version=ocp_minor)
+    findings = derive_findings_with_tsr(checks, tsr_runtime_path, ocp_version=ocp_minor)
     pcount = Counter(finding.priority for finding in findings)
     print(f"  {len(findings)} findings: P0={pcount.get('P0',0)} P1={pcount.get('P1',0)} "
           f"P2={pcount.get('P2',0)} P3={pcount.get('P3',0)}")

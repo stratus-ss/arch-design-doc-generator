@@ -45,23 +45,22 @@ _render_md_to_html() {
     rm -f "$raw_html"
 }
 
-# Convert a single markdown file to PDF in the given output directory.
+# Convert a single markdown file to a specific PDF destination path.
 _convert_md_to_pdf() {
     local source_path="$1"
-    local pdf_dir="$2"
+    local destination_pdf="$2"
     local css_file="$3"
-    local base preprocessed_html pdf
-    base="$(basename "$source_path" .md)"
+    local preprocessed_html
     preprocessed_html="$(mktemp --suffix=_pp.html)"
-    pdf="${pdf_dir}/${base}.pdf"
 
     _render_md_to_html "$source_path" "$css_file" "/workspace/scripts/shared/rendering/pdf_preprocess.py" "$preprocessed_html" \
         "--resource-path=$(dirname "$source_path")" --metadata "title= "
 
-    weasyprint "$preprocessed_html" "$pdf" 2>/dev/null
-    local size
-    size="$(du -k "$pdf" 2>/dev/null | cut -f1)"
-    echo "  ✓ ${base}.pdf (${size} KiB)"
+    weasyprint "$preprocessed_html" "$destination_pdf" 2>/dev/null
+    local size display_path
+    size="$(du -k "$destination_pdf" 2>/dev/null | cut -f1)"
+    display_path="${destination_pdf##*/PDFs/}"
+    echo "  ✓ ${display_path} (${size} KiB)"
     rm -f "$preprocessed_html"
 }
 
@@ -329,28 +328,30 @@ cmd_hc_html() {
     local report_dir="$WORKSPACE/output/Health_Check_Report"
     local html_dir="${report_dir}/HTML"
 
-    if ! find "$report_dir" -maxdepth 2 -name '*.md' -print -quit | grep -q .; then
-        red "Error: no report markdown found in ${report_dir}/"
-        echo "Run 'make hc-report' first."
+    mkdir -p "$html_dir"
+
+    local css_file mapping_file
+    css_file="$(mktemp --suffix=.css)"
+    mapping_file="$(mktemp)"
+    python3 /workspace/scripts/shared/lib/config.py render-css-html > "$css_file"
+
+    if ! python3 /workspace/scripts/shared/rendering/hc_export_paths.py \
+        "$report_dir" "$html_dir" html > "$mapping_file"; then
+        rm -f "$css_file" "$mapping_file"
         exit 1
     fi
 
-    mkdir -p "$html_dir"
-
-    local css_file
-    css_file="$(mktemp --suffix=.css)"
-    python3 /workspace/scripts/shared/lib/config.py render-css-html > "$css_file"
-
-    local source_markdown base output_html
-    while IFS= read -r -d '' source_markdown; do
+    local source_markdown destination_html base
+    while IFS=$'\t' read -r source_markdown destination_html; do
+        [[ -n "$source_markdown" ]] || continue
         base="$(basename "$source_markdown" .md)"
-        output_html="${html_dir}/${base}.html"
+        mkdir -p "$(dirname "$destination_html")"
         _render_md_to_html "$source_markdown" "$css_file" \
-            "/workspace/scripts/shared/rendering/html_collapsible.py" "$output_html" \
+            "/workspace/scripts/shared/rendering/html_collapsible.py" "$destination_html" \
             --metadata "title=${base}"
-    done < <(find "$report_dir" -maxdepth 2 -name '*.md' -print0)
+    done < "$mapping_file"
 
-    rm -f "$css_file"
+    rm -f "$css_file" "$mapping_file"
     green "HTML report → output/Health_Check_Report/HTML/"
 }
 
@@ -361,24 +362,27 @@ cmd_hc_pdf() {
 
     local report_dir="$WORKSPACE/output/Health_Check_Report"
 
-    if ! find "$report_dir" -maxdepth 2 -name '*.md' -print -quit | grep -q .; then
-        red "Error: no report markdown found in ${report_dir}/"
-        echo "Run 'make hc-report' first."
+    mkdir -p "$report_dir/PDFs"
+
+    local css_file mapping_file
+    css_file="$(mktemp --suffix=.css)"
+    mapping_file="$(mktemp)"
+    python3 /workspace/scripts/shared/lib/config.py render-css --doc-type hc > "$css_file"
+
+    if ! python3 /workspace/scripts/shared/rendering/hc_export_paths.py \
+        "$report_dir" "$report_dir/PDFs" pdf > "$mapping_file"; then
+        rm -f "$css_file" "$mapping_file"
         exit 1
     fi
 
-    mkdir -p "$report_dir/PDFs"
+    local source_markdown destination_pdf
+    while IFS=$'\t' read -r source_markdown destination_pdf; do
+        [[ -n "$source_markdown" ]] || continue
+        mkdir -p "$(dirname "$destination_pdf")"
+        _convert_md_to_pdf "$source_markdown" "$destination_pdf" "$css_file"
+    done < "$mapping_file"
 
-    local css_file
-    css_file="$(mktemp --suffix=.css)"
-    python3 /workspace/scripts/shared/lib/config.py render-css --doc-type hc > "$css_file"
-
-    local source_markdown
-    while IFS= read -r -d '' source_markdown; do
-        _convert_md_to_pdf "$source_markdown" "$report_dir/PDFs" "$css_file"
-    done < <(find "$report_dir" -maxdepth 2 -name '*.md' -print0)
-
-    rm -f "$css_file"
+    rm -f "$css_file" "$mapping_file"
     green "Health Check PDF generation complete."
 }
 

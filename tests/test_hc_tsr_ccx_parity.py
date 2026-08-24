@@ -32,6 +32,10 @@ from pathlib import Path
 # Mutant: Skip _parse_tsr_html_runtime
 # Contract: public
 
+# Bug: Unmapped TSR CCX FAIL never appears in audit findings
+# Mutant: Keep derive_findings(checks) without scored_ccx_checks
+# Contract: public
+
 # Bug: Default/core leak catalog rows into core profile
 # Mutant: Ignore check_profile=="core" early return
 # Contract: public
@@ -266,6 +270,11 @@ def test_hc_report_advisory_cli_writes_tsr_source(
     audit = json.loads(audit_files[0].read_text(encoding="utf-8"))
     assert audit.get("check_profile") == "advisory"
     assert any(row.get("source") == "tsr" for row in audit.get("checks", []))
+    unmapped_ccx_id = "7.7.ccx_external.synthetic_ccx_fail"
+    check_ids = {row.get("id") for row in audit.get("checks", [])}
+    finding_ids = {row.get("check_id") for row in audit.get("findings", [])}
+    assert unmapped_ccx_id not in check_ids
+    assert unmapped_ccx_id in finding_ids
 
 
 def test_hc_report_core_still_has_no_tsr_source(

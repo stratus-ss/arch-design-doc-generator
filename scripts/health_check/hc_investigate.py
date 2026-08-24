@@ -31,7 +31,7 @@ from hc_report.cli import (
 )
 from hc_report.evaluators import evaluate_checks
 from hc_report.evaluators._common import _CATEGORY_MAP, _resource_metadata
-from hc_report.findings import derive_findings
+from hc_report.findings import derive_findings_with_tsr
 from hc_report.loader import load_results
 from hc_report.metadata import derive_metadata
 from hc_report.models import CheckResult, Finding
@@ -318,7 +318,7 @@ def _load_checks_and_findings(
         catalog_path=args.catalog_path,
         tsr_runtime_path=tsr_runtime_path,
     )
-    findings = derive_findings(checks, ocp_version=ocp_version)
+    findings = derive_findings_with_tsr(checks, tsr_runtime_path, ocp_version=ocp_version)
     return checks, findings
 
 

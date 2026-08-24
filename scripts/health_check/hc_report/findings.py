@@ -1,7 +1,11 @@
 """Derive findings from check results with EA-quality recommendations."""
 from __future__ import annotations
 
-from hc_report.kb_loader import load_kb
+import json
+import re
+from pathlib import Path
+
+from hc_report.kb_loader import NEEDS_REVIEW_MARKER, load_kb
 from hc_report.models import CheckResult, Finding
 
 
@@ -18,6 +22,15 @@ _P2_KEYWORDS = ("cpu", "memory", "disk", "upgrade", "update", "version", "warnin
 
 _PRIORITY_PREFIX: dict[str, str] = {"P0": "6.2.1", "P1": "6.2.2", "P2": "6.2.3", "P3": "6.2.4"}
 _VALID_PRIORITY_HINTS = frozenset({"P0", "P1", "P2", "P3"})
+_SCORED_CCX_STATUSES = frozenset({"FAIL", "WARNING"})
+_SKIP_CCX_GROUPS = frozenset({"skip", "skips"})
+_TITLE_KEY_RE = re.compile(r"[^a-z0-9]+")
+_UNMAPPED_CCX_RECOMMENDATION = (
+    "Review this Red Hat Insights (CCX) result from the TSR export. "
+    "It is scored FAIL or WARNING and is not mapped to a Chapter 7 check. "
+    "Confirm the Insights message in Observation, then remediate or document "
+    "why it is accepted."
+)
 
 
 def _include_in_findings(check: CheckResult) -> bool:
@@ -58,7 +71,7 @@ def _make_finding(
         title=title,
         priority=priority,
         description=check.evidence,
-        recommendation=load_kb().get_recommendation(check.check_id, ocp_version=ocp_version),
+        recommendation=_recommendation_for(check, ocp_version),
         impact=impact,
         impact_scope=impact_scope,
         impact_detail=impact_detail,
@@ -104,7 +117,7 @@ def _make_grouped_finding(
         title=title,
         priority=priority,
         description=_join_member_evidence(members),
-        recommendation=load_kb().get_recommendation(primary.check_id, ocp_version=ocp_version),
+        recommendation=_recommendation_for(primary, ocp_version),
         impact=impact,
         impact_scope=impact_scope,
         impact_detail=impact_detail,
@@ -167,21 +180,141 @@ def _collapse_finding_groups(
     return collapsed
 
 
-def derive_findings(checks: list[CheckResult], ocp_version: str = "latest") -> list[Finding]:
+def _title_key(text: str) -> str:
+    return _TITLE_KEY_RE.sub("", text.lower())
+
+
+def _recommendation_for(check: CheckResult, ocp_version: str) -> str:
+    recommendation = load_kb().get_recommendation(check.check_id, ocp_version=ocp_version)
+    if recommendation != NEEDS_REVIEW_MARKER:
+        return recommendation
+    if check.source != "ccx" or load_kb().get_entry(check.check_id) is not None:
+        return recommendation
+    return f"{NEEDS_REVIEW_MARKER}\n\n{_UNMAPPED_CCX_RECOMMENDATION}"
+
+
+def _normalize_ccx_status(raw_status: str) -> str:
+    status = raw_status.strip().upper()
+    if status == "WARN":
+        return "WARNING"
+    return status
+
+
+def _is_scored_ccx_record(record: dict) -> bool:
+    if str(record.get("source", "")).lower() != "ccx":
+        return False
+    group = str(record.get("group", "")).lower()
+    tsr_ref = str(record.get("tsr_ref", "")).lower()
+    if group in _SKIP_CCX_GROUPS or tsr_ref == "ccx:skip":
+        return False
+    return _normalize_ccx_status(str(record.get("status", ""))) in _SCORED_CCX_STATUSES
+
+
+def _check_from_ccx_record(record: dict) -> CheckResult | None:
+    check_id = str(record.get("check_id", "")).strip()
+    title = str(record.get("title", "")).strip()
+    if not check_id or not title:
+        return None
+    evidence = str(record.get("evidence", "")).strip() or title
+    tags = record.get("tags", [])
+    return CheckResult(
+        category_id=str(record.get("category_id", "7.7") or "7.7"),
+        category_name=str(record.get("category_name", "Security and Compliance")),
+        check_id=check_id,
+        description=title,
+        status=_normalize_ccx_status(str(record.get("status", ""))),
+        evidence=evidence,
+        source="ccx",
+        tsr_ref=str(record.get("tsr_ref", "")).strip(),
+        tags=tags if isinstance(tags, list) else [],
+    )
+
+
+def scored_ccx_checks_for_findings(
+    tsr_records: list[dict],
+    existing_checks: list[CheckResult],
+) -> list[CheckResult]:
+    """CCX FAIL/WARNING leaves that are not already Chapter 7 checks.
+
+    Skip-panel rows stay out. Returned checks are for derive_findings only —
+    do not append them to the Chapter 7 check list.
+    """
+    seen_ids = {check.check_id for check in existing_checks}
+    seen_titles = {_title_key(check.description) for check in existing_checks}
+    extras: list[CheckResult] = []
+    for record in tsr_records:
+        if not _is_scored_ccx_record(record):
+            continue
+        extra = _check_from_ccx_record(record)
+        if extra is None:
+            continue
+        if extra.check_id in seen_ids or _title_key(extra.description) in seen_titles:
+            continue
+        extras.append(extra)
+        seen_ids.add(extra.check_id)
+        seen_titles.add(_title_key(extra.description))
+    return extras
+
+
+def _tsr_records_from_path(tsr_runtime_path: Path | None) -> list[dict]:
+    if tsr_runtime_path is None or not tsr_runtime_path.is_file():
+        return []
+    payload = json.loads(tsr_runtime_path.read_text(encoding="utf-8"))
+    if isinstance(payload, list):
+        return [row for row in payload if isinstance(row, dict)]
+    entries = payload.get("checks", []) if isinstance(payload, dict) else []
+    if not isinstance(entries, list):
+        return []
+    return [row for row in entries if isinstance(row, dict)]
+
+
+def derive_findings_with_tsr(
+    checks: list[CheckResult],
+    tsr_runtime_path: Path | None,
+    ocp_version: str = "latest",
+) -> list[Finding]:
+    """Derive Chapter 6 findings, adding scored CCX FAIL/WARNING from TSR runtime."""
+    extras = scored_ccx_checks_for_findings(
+        _tsr_records_from_path(tsr_runtime_path),
+        checks,
+    )
+    return derive_findings(checks, ocp_version=ocp_version, scored_ccx_checks=extras)
+
+
+def derive_findings(
+    checks: list[CheckResult],
+    ocp_version: str = "latest",
+    *,
+    scored_ccx_checks: list[CheckResult] | None = None,
+) -> list[Finding]:
     """Group FAIL, WARNING, and INFO-with-finding_on_info checks into P0–P3 findings.
 
     INFO checks become P3 only when the KB sets finding_on_info; keyword
-    P0/P2 lists are not applied to INFO.
+    P0/P2 lists are not applied to INFO. scored_ccx_checks are findings-only
+    and must not be mixed into the Chapter 7 check list by the caller.
     A non-empty valid KB priority_hint overrides status-and-keyword encoding
     (including FAIL to P1 and WARNING to P2).
     """
+    finding_checks = list(checks)
+    if scored_ccx_checks:
+        finding_checks.extend(scored_ccx_checks)
     finding_counter: dict[str, int] = {"P0": 0, "P1": 0, "P2": 0, "P3": 0}
     pairs: list[tuple[CheckResult, str]] = []
 
-    fail_checks = [check for check in checks if check.status == "FAIL" and check.source != "ccx"]
-    warn_checks = [check for check in checks if check.status == "WARNING" and check.source != "ccx"]
-    ccx_fail_checks = [check for check in checks if check.status == "FAIL" and check.source == "ccx"]
-    ccx_warn_checks = [check for check in checks if check.status == "WARNING" and check.source == "ccx"]
+    fail_checks = [
+        check for check in finding_checks if check.status == "FAIL" and check.source != "ccx"
+    ]
+    warn_checks = [
+        check for check in finding_checks
+        if check.status == "WARNING" and check.source != "ccx"
+    ]
+    ccx_fail_checks = [
+        check for check in finding_checks if check.status == "FAIL" and check.source == "ccx"
+    ]
+    ccx_warn_checks = [
+        check for check in finding_checks
+        if check.status == "WARNING" and check.source == "ccx"
+    ]
 
     _append_keyword_pairs(fail_checks, _P0_KEYWORDS, "P0", pairs)
     _append_remaining_pairs(fail_checks, "P1", pairs)
@@ -190,7 +323,7 @@ def derive_findings(checks: list[CheckResult], ocp_version: str = "latest") -> l
     _append_remaining_pairs(ccx_fail_checks, "P2", pairs)
     _append_remaining_pairs(ccx_warn_checks, "P3", pairs)
     info_finding_checks = [
-        check for check in checks
+        check for check in finding_checks
         if check.status == "INFO" and check.source != "ccx" and _finding_on_info(check)
     ]
     _append_remaining_pairs(info_finding_checks, "P3", pairs)
