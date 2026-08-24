@@ -13,6 +13,7 @@ except ModuleNotFoundError:
 NEEDS_REVIEW_MARKER = "[NEEDS REVIEW]"
 INHERITED_CONTENT_FIELDS = (
     "recommendation",
+    "verification",
     "description",
     "impact",
     "impact_scope",
@@ -22,10 +23,37 @@ INHERITED_CONTENT_FIELDS = (
     "priority_hint",
     "summary_patterns",
 )
+VERIFICATION_JOIN_LABEL = "**Verification:**"
+VERIFICATION_SPLIT_LABELS = frozenset({"Verification:", "**Verification:**"})
 _DEFAULT_LINK_KEY = "default"
 _DEFAULT_KB_DIR = Path(__file__).resolve().parent / "kb"
 _VERSION_PATTERN = re.compile(r"^(\d+\.\d+)")
 _REDHAT_DOCS_PREFIX = "https://docs.redhat.com/en/documentation/"
+
+
+def split_recommendation_blob(blob: str) -> tuple[str, str]:
+    normalized = blob.replace("\r\n", "\n")
+    lines = normalized.split("\n")
+    hit_indexes: list[int] = []
+    for index, line in enumerate(lines):
+        if line.strip() in VERIFICATION_SPLIT_LABELS:
+            hit_indexes.append(index)
+    if len(hit_indexes) > 1:
+        raise ValueError("multiple Verification labels")
+    if not hit_indexes:
+        return normalized.strip(), ""
+    split_at = hit_indexes[0]
+    recommendation = "\n".join(lines[:split_at]).strip()
+    verification = "\n".join(lines[split_at + 1 :]).strip()
+    return recommendation, verification
+
+
+def join_recommendation_parts(recommendation: str, verification: str) -> str:
+    recommendation = recommendation.strip()
+    verification = verification.strip()
+    if not verification:
+        return recommendation
+    return f"{recommendation}\n\n{VERIFICATION_JOIN_LABEL}\n{verification}"
 
 
 @dataclass(frozen=True)
@@ -40,6 +68,7 @@ class KBEntry:
     title: str = ""
     description: str = ""
     recommendation: str = ""
+    verification: str = ""
     recommendation_supported_versions: tuple[str, ...] = field(default_factory=tuple)
     priority_hint: str = ""
     impact: str = ""
@@ -81,7 +110,9 @@ class KnowledgeBase:
         entry = self.get_entry(check_id)
         if entry is None or not entry.recommendation.strip():
             return NEEDS_REVIEW_MARKER
-        recommendation = entry.recommendation.strip()
+        recommendation = join_recommendation_parts(
+            entry.recommendation, entry.verification
+        )
         resolved_version = resolve_version(ocp_version, self.active_versions)
         if (
             entry.recommendation_supported_versions
@@ -227,6 +258,7 @@ def _make_entry(raw_entry: object, source_path: Path) -> KBEntry:
         title=str(raw_entry.get("title", "")).strip(),
         description=str(raw_entry.get("description", "")).strip(),
         recommendation=str(raw_entry.get("recommendation", "")).strip(),
+        verification=str(raw_entry.get("verification", "")).strip(),
         recommendation_supported_versions=_normalize_versions(
             raw_entry.get("recommendation_supported_versions", [])
         ),
@@ -339,6 +371,7 @@ def _copy_inherited_content(alias_entry: KBEntry, target_entry: KBEntry) -> KBEn
     return replace(
         alias_entry,
         recommendation=target_entry.recommendation,
+        verification=target_entry.verification,
         description=target_entry.description,
         impact=target_entry.impact,
         impact_scope=target_entry.impact_scope,

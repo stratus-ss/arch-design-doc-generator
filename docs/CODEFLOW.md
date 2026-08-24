@@ -210,7 +210,7 @@ flowchart TD
 
 Key flow details:
 - Default `HC_CHECK_PROFILE` is `advisory`. `evaluate_checks` expands TSR/CCX catalog rows via `parity.py`. Place exports under `output/tsr_html/` (or set `HC_TSR_HTML`); discovery matches cluster id, then cluster name. Missing HTML or Insights data → SKIPPED.
-- Report prose comes from `hc_report/kb/` via `kb_loader.py` (`content_from` aliases inherit canonical recommendation, description, impact, and links). See [README Knowledge Base](../README.md#knowledge-base-kb-for-recommendations-and-notes).
+- Report prose comes from `hc_report/kb/` via `kb_loader.py` (`content_from` aliases inherit canonical recommendation, verification, description, impact, and links). `get_recommendation` joins optional `verification` with a bold `**Verification:**` line inside the Recommendation block. See [README Knowledge Base](../README.md#knowledge-base-kb-for-recommendations-and-notes).
 - `HC_CHECK_PROFILE=core` runs the deterministic evaluator registry only.
 - Template: `templates/Health_Check/Template_HC_Report.md`.
 - Outputs: markdown report and `*_audit_*.json` under `output/Health_Check_Report/`.

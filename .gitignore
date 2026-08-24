@@ -68,6 +68,14 @@ Thumbs.db
 # ── Generated local-only Health Check artifacts ─────────────────────
 docs/HC_RECOMMENDATION_AUDIT_LOG.md
 
+# ── Local-only HC report compare (summaries / TSR) ──────────────────
+scripts/health_check/hc_compare_summaries.py
+scripts/health_check/hc_compare_tsr.py
+scripts/health_check/hc_report/compare_summaries.py
+scripts/health_check/hc_report/compare_tsr.py
+tests/test_hc_compare_summaries.py
+tests/test_hc_compare_tsr.py
+
 # ── Local planning / scratch (do not commit) ────────────────────────
 # Session execution state never ships — keep this rule even if agent_planning/
 # is later tracked. Listed after agent_planning/ so it remains last-match.

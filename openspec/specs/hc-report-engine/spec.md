@@ -72,6 +72,14 @@ KB lookup SHALL match an exact `check_id` first, then the first glob pattern (`*
 - THEN the recommendation is `[NEEDS REVIEW]`
 - AND no category-level fallback paragraph is substituted
 
+#### Scenario: Recommendation joins optional verification
+- GIVEN a KB row with a recommendation paragraph and a `verification` field
+- WHEN `get_recommendation` runs
+- THEN the returned string is the paragraph, a blank line, a bold `**Verification:**` line (not a markdown heading), then the verification body
+- AND HTML/PDF still render a single **Recommendation:** label
+- AND an empty `verification` omits the Verification line entirely
+- AND an empty recommendation still returns `[NEEDS REVIEW]` even if `verification` is populated
+
 #### Scenario: Version-gated recommendation
 - GIVEN `recommendation_supported_versions` that does not include the requested OCP minor
 - WHEN `get_recommendation` runs
@@ -84,7 +92,7 @@ An alias KB row MAY set `content_from` to an exact canonical `check_id`. `load_k
 #### Scenario: Alias inherits content and keeps local title and flags
 - GIVEN alias `content_from = "canonical.id"` and omitted inherited keys
 - WHEN `load_kb()` runs
-- THEN `get_entry(alias)` recommendation, description, impact, and links equal the canonical row
+- THEN `get_entry(alias)` recommendation, verification, description, impact, and links equal the canonical row
 - AND title stays the alias title
 - AND `include_in_findings` stays the alias value
 
@@ -104,7 +112,7 @@ An alias KB row MAY set `content_from` to an exact canonical `check_id`. `load_k
 - THEN `ValueError` (chain forbidden; this covers cycles)
 
 #### Scenario: Overlay inherited fields fail closed
-- GIVEN alias sets a non-empty `recommendation` (or any other inherited field)
+- GIVEN alias sets a non-empty `recommendation` or `verification` (or any other inherited field)
 - WHEN `load_kb()` runs
 - THEN `ValueError`
 
@@ -280,6 +288,15 @@ Chapter 4 and §6.1 Summary SHALL use KB `summary_patterns` (first `contains` su
 - WHEN §6.2 is rendered
 - THEN **Description** is the KB description string
 - AND Observation, not Description, carries the evidence-derived prose
+
+#### Scenario: Recommendation single newlines become HTML breaks
+- GIVEN a finding whose recommendation contains `**Verification:**` and numbered steps separated by single newlines
+- WHEN §6.2 is rendered to markdown
+- THEN those newlines are emitted as HTML <br> so pandoc does not collapse the steps into one paragraph
+- AND pandoc renders the label as `<strong>Verification:</strong>`
+- AND the report still has exactly one `**Recommendation:**` label
+- AND there is no `##### Verification` heading
+- AND a one-line recommendation does not gain <br>
 
 ### Requirement: Level of Impact
 Empty `impact` SHALL render `[NEEDS REVIEW]`. `impact = "none"` SHALL render a visible **None**.

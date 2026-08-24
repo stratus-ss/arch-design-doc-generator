@@ -708,11 +708,13 @@ scripts/health_check/hc_report/
   parity.py        — TSR/CCX additive parity expansion
   tsr_parser.py    — parse TSR HTML exports into parity status inputs
   catalogs/        — tsr_ccx_crosswalk.json (+ README)
-  kb/               — external TOML knowledge base: descriptions, recommendations, impact
-                       metadata, and version-aware doc links, keyed by check_id.
-                       Sparse `content_from` rows are aliases; see root README Knowledge Base.
+  kb/               — external TOML knowledge base: descriptions, recommendations,
+                       optional verification, impact metadata, and version-aware doc
+                       links, keyed by check_id. Sparse `content_from` rows are aliases
+                       (they inherit verification); see root README Knowledge Base.
   kb_loader.py      — loads/version-resolves the KB (including `content_from` aliases);
-                       get_recommendation()/get_links()/get_impact()
+                       get_recommendation() joins optional verification with a bold
+                       **Verification:** line; get_links()/get_impact()
   link_review/      — suggest + HTTP-check KB documentation URLs (does not rewrite TOMLs)
   build_crosswalk_catalog.py — regenerates catalogs/tsr_ccx_crosswalk.json
   findings.py      — derive_findings(); resolves recommendation/impact via kb_loader.py,

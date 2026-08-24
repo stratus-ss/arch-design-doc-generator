@@ -25,6 +25,7 @@ _STATUS_BADGES = {
     "CORRECTED": "`🔧 CORRECTED`",
     "ENGINEERING-JUDGMENT-CONFIRMED": "`⚠️ ENGINEERING-JUDGMENT-CONFIRMED`",
     "VERIFIED": "`✅ VERIFIED`",
+    "ALIAS": "`↪️ ALIAS`",
 }
 
 _BULLET_START = re.compile(
@@ -38,7 +39,7 @@ _WHY_REC_BLOCK = re.compile(
     re.DOTALL,
 )
 _WHY_REC_COMMENTS = re.compile(
-    r"# why-rec\n(?P<comments>(?:# .*\n)+)recommendation\s*=",
+    r"# why-rec\n(?P<comments>(?:# .*\n)+)",
 )
 
 
@@ -96,6 +97,34 @@ def _blockquote(text: str) -> str:
     return "\n".join(f"> {line}" if line else ">" for line in lines)
 
 
+def _render_alias_section(
+    check_id: str,
+    filename: str,
+    entry: dict,
+    why_rec_lines: list[str],
+) -> str:
+    title = str(entry.get("title", "")).strip()
+    canonical_id = str(entry.get("content_from", "")).strip()
+    why_block = "\n".join(f"- {bullet}" for bullet in _why_rec_bullets(why_rec_lines))
+    return (
+        f'<a id="{check_id}"></a>\n'
+        f"### `{check_id}` — {title}\n"
+        f"\n"
+        f"**File:** `scripts/health_check/hc_report/kb/{filename}`  \n"
+        f"**Status:** {_STATUS_BADGES['ALIAS']}  \n"
+        f"**content_from:** [`{canonical_id}`](#{canonical_id})\n"
+        f"\n"
+        f"Recommendation, description, impact, verification, and links inherit from the canonical row. "
+        f"Audit [`{canonical_id}`](#{canonical_id}).\n"
+        f"\n"
+        f"**Why this rec is correct:**\n"
+        f"\n"
+        f"{why_block}\n"
+        f"\n"
+        f"---\n"
+    )
+
+
 def _render_section(
     check_id: str,
     filename: str,
@@ -105,6 +134,7 @@ def _render_section(
     title = str(entry.get("title", "")).strip()
     description = str(entry.get("description", "")).strip()
     recommendation = str(entry.get("recommendation", "")).strip()
+    verification = str(entry.get("verification", "")).strip() or "_(none)_"
     impact = str(entry.get("impact", "")).strip()
     impact_scope = str(entry.get("impact_scope", "")).strip()
     impact_detail = str(entry.get("impact_detail", "")).strip()
@@ -134,6 +164,12 @@ def _render_section(
         f"\n"
         f"```\n"
         f"{recommendation}\n"
+        f"```\n"
+        f"\n"
+        f"**What `verification` tells the reader to run:**\n"
+        f"\n"
+        f"```\n"
+        f"{verification}\n"
         f"```\n"
         f"\n"
         f"**Why this rec is correct:**\n"
@@ -204,13 +240,15 @@ def _recount_status_table(audit_text: str) -> str:
     corrected = counts["CORRECTED"]
     judgment = counts["ENGINEERING-JUDGMENT-CONFIRMED"]
     verified = counts["VERIFIED"]
-    total = corrected + judgment + verified
+    alias_count = counts["ALIAS"]
+    total = corrected + judgment + verified + alias_count
     table = (
         "| Status | Count |\n"
         "|--------|-------|\n"
         f"| CORRECTED | {corrected} |\n"
         f"| ENGINEERING-JUDGMENT-CONFIRMED | {judgment} |\n"
         f"| VERIFIED | {verified} |\n"
+        f"| ALIAS | {alias_count} |\n"
         f"| Total | {total} |\n"
     )
     return re.sub(
@@ -228,9 +266,15 @@ def update_checks(check_ids: list[str]) -> None:
         why_rec_lines = _why_rec_lines(toml_text, check_id)
         if not why_rec_lines:
             raise ValueError(f"missing why-rec comments for {check_id}")
-        section = _render_section(check_id, path.name, entry, why_rec_lines)
+        canonical_id = str(entry.get("content_from", "")).strip()
+        if canonical_id:
+            section = _render_alias_section(check_id, path.name, entry, why_rec_lines)
+            status_label = "ALIAS"
+        else:
+            section = _render_section(check_id, path.name, entry, why_rec_lines)
+            status_label = _status_from_why_rec(why_rec_lines)
         audit_text = _replace_section(audit_text, check_id, section)
-        badge = _STATUS_BADGES[_status_from_why_rec(why_rec_lines)]
+        badge = _STATUS_BADGES[status_label]
         audit_text = _replace_index_status(audit_text, check_id, badge)
         print(f"updated={check_id} status={badge} file={path.name}")
     audit_text = _recount_status_table(audit_text)

@@ -109,13 +109,13 @@ Rebuild the catalog with `make hc-build-catalog TSR_HTML=path/to/export.html`. O
 
 ### Knowledge Base (KB) for recommendations and notes
 
-Report prose (description, recommendation, documentation links, operational impact) lives in TOML under `scripts/health_check/hc_report/kb/` (`7_1`–`7_9` plus `versions.toml`). `kb_loader.py` loads it at report time. Thresholds, evidence paths, and live `oc`/`jq` validation stay in [`docs/HC_CHECK_RATIONALE.md`](docs/HC_CHECK_RATIONALE.md).
+Report prose (description, recommendation, optional verification, documentation links, operational impact) lives in TOML under `scripts/health_check/hc_report/kb/` (`7_1`–`7_9` plus `versions.toml`). `kb_loader.py` loads it at report time. Thresholds, evidence paths, and live `oc`/`jq` validation stay in [`docs/HC_CHECK_RATIONALE.md`](docs/HC_CHECK_RATIONALE.md). Numbered `oc` commands belong in `verification`; `get_recommendation` joins that field into the Recommendation block at read.
 
-Each `[[checks]]` row is keyed by `check_id`. Typical fields: `title`, `description`, `recommendation`, `impact` / `impact_scope` / `impact_detail`, `[checks.links]`, optional `summary_patterns`, `finding_group`, `include_in_findings`, and `finding_on_info`. Descriptions are mode-neutral (valid without TSR). Empty recommendation or impact renders `[NEEDS REVIEW]`.
+Each `[[checks]]` row is keyed by `check_id`. Typical fields: `title`, `description`, `recommendation`, optional `verification`, `impact` / `impact_scope` / `impact_detail`, `[checks.links]`, optional `summary_patterns`, `finding_group`, `include_in_findings`, and `finding_on_info`. Descriptions are mode-neutral (valid without TSR). Empty recommendation or impact renders `[NEEDS REVIEW]`. `get_recommendation` joins `recommendation` with optional `verification` using a bold `**Verification:**` line inside the Recommendation block; aliases inherit `verification` via `content_from`.
 
 #### Sparse rows (`content_from`)
 
-Some `[[checks]]` entries look almost empty on purpose. When two `check_id`s tell the same operational story (a native check plus a TSR catalog twin, or a parent section that duplicates a child), the alias sets `content_from` to the canonical `check_id` and **omits** recommendation, description, impact, and links:
+Some `[[checks]]` entries look almost empty on purpose. When two `check_id`s tell the same operational story (a native check plus a TSR catalog twin, or a parent section that duplicates a child), the alias sets `content_from` to the canonical `check_id` and **omits** recommendation, verification, description, impact, and links:
 
 ```toml
 [[checks]]

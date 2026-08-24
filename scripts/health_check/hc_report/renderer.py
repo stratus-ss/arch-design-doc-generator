@@ -40,6 +40,16 @@ def _md_table_cell(text: str) -> str:
     return text.replace("|", "\\|").replace("\n", "<br>")
 
 
+def _hard_break_recommendation_lines(text: str) -> str:
+    """Turn remaining newlines into HTML <br> so pandoc does not collapse rec steps."""
+    if not text:
+        return ""
+    normalized = text.replace("\r\n", "\n")
+    if "\n" not in normalized:
+        return normalized
+    return normalized.replace("\n", "<br>\n")
+
+
 _TABLE_SEPARATOR_RE = re.compile(r"^[-| :]+$")
 
 
@@ -425,7 +435,9 @@ def _build_findings_sections(findings: list[Finding], ocp_version: str = "latest
                 f"**Observation:**\n\n{_finding_observation(finding)}\n\n"
                 f"{_build_finding_anchor(finding.id, check_id)}\n"
             )
-            sections.append(f"**Recommendation:**\n\n{finding.recommendation}\n")
+            sections.append(
+                f"**Recommendation:**\n\n{_hard_break_recommendation_lines(finding.recommendation)}\n"
+            )
             impact_block = _format_impact_block(finding)
             if impact_block:
                 sections.append(f"{impact_block}")
