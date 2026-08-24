@@ -58,7 +58,7 @@ description = "ResourceQuotas limit total resource consumption per namespace. Wi
 # Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
 # text is the right response.
 recommendation = "1. Review current namespace consumption:\n   `oc describe quota -n <ns>`\n2. Apply ResourceQuotas to tenant or application namespaces based on expected\n   CPU, memory, storage, and object-count usage.\n3. Use project templates so new namespaces receive quotas automatically.\n"
-priority_hint = ""
+priority_hint = "P3"
 impact = "non-disruptive"
 impact_scope = "namespace admission and capacity guardrails"
 impact_detail = "Quota changes take effect immediately for new creates and scale-outs, but they do not restart nodes or stop already running workloads."
@@ -239,7 +239,7 @@ description = "This check identifies projects with no ResourceQuota or LimitRang
 # Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
 # text is the right response.
 recommendation = "1. List ResourceQuota (first column is the namespace):\n   `oc get resourcequota -A`\n2. List LimitRange:\n   `oc get limitrange -A`\n3. User projects that appear in neither list are FAIL. Skip openshift-* kube-* default and openshift. Empty = PASS none-uncovered:\n   `comm -23 <(oc get ns --no-headers -o custom-columns=NS:.metadata.name | awk '$1 !~ /^(openshift-|kube-)/ && $1 != \"openshift\" && $1 != \"default\"' | sort) <({ oc get resourcequota -A --no-headers; oc get limitrange -A --no-headers; } 2>/dev/null | awk 'NF{print $1}' | sort -u) | awk '{print \"FAIL NS=\"$1} END{if(NR==0) print \"PASS none-uncovered\"}'`\n4. On FAIL, create a ResourceQuota sized to that project (drop --dry-run=client to apply):\n   `oc create quota compute --hard=requests.cpu=8,requests.memory=16Gi,pods=25 -n <ns> --dry-run=client -o name`\n5. Print the project-request template. Missing = INFO n/a-project-request:\n   `oc get template project-request -n openshift-config 2>&1 | awk '/NotFound|No resources found/{print \"INFO n/a-project-request\"; n=1; next} {print} END{if(!n && NR==0) print \"INFO n/a-project-request\"}'`\n"
-priority_hint = ""
+priority_hint = "P3"
 impact = "non-disruptive"
 impact_scope = "namespace admission and capacity guardrails"
 impact_detail = "ResourceQuota changes affect future creates and scale-outs but do not restart nodes or terminate running workloads."
@@ -414,7 +414,7 @@ description = "Evaluates ResourceQuota and LimitRange coverage across namespaces
 # why-rec
 # CORRECTED. Rec prints LimitRange min/max/default as columns, not `-o yaml`.
 recommendation = "1. Audit ResourceQuota coverage:\n   `oc get resourcequota -A`\n2. Print LimitRange defaults:\n   `oc get limitrange -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,DEFAULT_CPU:.spec.limits[0].default.cpu,DEFAULT_MEM:.spec.limits[0].default.memory`\n3. Apply ResourceQuotas to tenant namespaces.\n4. Configure project templates to auto-apply quotas on namespace creation.\n"
-priority_hint = ""
+priority_hint = "P3"
 impact = "non-disruptive"
 impact_scope = "namespace admission and capacity guardrails"
 impact_detail = "Quota changes take effect immediately for new creates and scale-outs but do not restart nodes or stop running workloads."
@@ -435,7 +435,7 @@ description = "Evaluates ClusterResourceQuota objects that apply resource limits
 # CORRECTED. Rec prints ClusterResourceQuota selector and quota keys as columns. `oc
 # describe` stays for consumption. Do not dump `-o yaml`.
 recommendation = "1. Print cluster quota selectors:\n   `oc get clusterresourcequota -o custom-columns=NAME:.metadata.name,SELECTOR:.spec.selector,HARD:.spec.quota.hard`\n2. Check consumption against limits:\n   `oc describe clusterresourcequota <name>`\n"
-priority_hint = ""
+priority_hint = "P3"
 impact = "non-disruptive"
 impact_scope = "cross-namespace resource admission"
 impact_detail = "ClusterResourceQuota changes affect admission for new creates across selected namespaces without restarting nodes."

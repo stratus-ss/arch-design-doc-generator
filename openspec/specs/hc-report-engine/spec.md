@@ -161,12 +161,23 @@ KB `description` SHALL state what the check evaluates and SHALL NOT encode a sin
 - AND keyword P0/P2 lists are not applied to INFO
 
 ### Requirement: Finding priority
-FAIL without a P0 keyword SHALL be P1. WARNING with a P2 keyword SHALL be P2, otherwise P3. CCX FAIL SHALL be P2. CCX WARNING SHALL be P3.
+FAIL without a P0 keyword SHALL be P1 unless a valid KB `priority_hint` overrides. WARNING with a P2 keyword SHALL be P2, otherwise P3, unless a valid hint overrides. CCX FAIL SHALL be P2 and CCX WARNING SHALL be P3 unless a valid hint overrides. A KB `priority_hint` of `P0`/`P1`/`P2`/`P3` SHALL replace the encoded priority. Empty or invalid hints SHALL leave the encoded priority unchanged.
 
 #### Scenario: Ordinary FAIL is P1
 - GIVEN a deterministic FAIL whose description does not match P0 keywords
+- AND the check has an empty `priority_hint`
 - WHEN `derive_findings` runs
 - THEN priority is P1
+
+#### Scenario: Quota and MTV FAIL is P3
+- GIVEN a deterministic FAIL on any of `7.6.rq`, `7.6.tsr.6_1_1_quota_and_resources`, `7.6.tsr.6_1_1_1_quota_resources_project_assignment`, `7.6.tsr.6_1_1_2_cluster_quota_configuration`, `7.4.tsr.4_8_5_1_1_quota_and_resources`, `7.4.tsr.4_12_1_1_1_mtv_installation_and_state`, `7.4.tsr.4_12_1_1_2_operator_subscription_posture`, `7.4.tsr.4_12_1_2_mtv_supported_configuration`
+- WHEN `derive_findings` runs
+- THEN priority is P3
+
+#### Scenario: Hinted WARNING with P2 keyword is P3
+- GIVEN a WARNING on `7.6.rq` whose description matches a P2 keyword
+- WHEN `derive_findings` runs
+- THEN priority is P3
 
 ### Requirement: Finding grouping
 Checks that share a non-empty KB `finding_group` SHALL collapse to one Chapter 4 / §6.2 finding. Chapter 7 SHALL still list every check.

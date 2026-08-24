@@ -17,6 +17,7 @@ _P2_KEYWORDS = ("cpu", "memory", "disk", "upgrade", "update", "version", "warnin
                 "channel", "privileged", "not bound", "not default", "deprecated", "automatic")
 
 _PRIORITY_PREFIX: dict[str, str] = {"P0": "6.2.1", "P1": "6.2.2", "P2": "6.2.3", "P3": "6.2.4"}
+_VALID_PRIORITY_HINTS = frozenset({"P0", "P1", "P2", "P3"})
 
 
 def _include_in_findings(check: CheckResult) -> bool:
@@ -31,6 +32,16 @@ def _finding_on_info(check: CheckResult) -> bool:
     if entry is None:
         return False
     return entry.finding_on_info
+
+
+def _hinted_priority(check: CheckResult, encoded_priority: str) -> str:
+    entry = load_kb().get_entry(check.check_id)
+    if entry is None:
+        return encoded_priority
+    hint = entry.priority_hint
+    if hint in _VALID_PRIORITY_HINTS:
+        return hint
+    return encoded_priority
 
 
 def _make_finding(
@@ -161,6 +172,8 @@ def derive_findings(checks: list[CheckResult], ocp_version: str = "latest") -> l
 
     INFO checks become P3 only when the KB sets finding_on_info; keyword
     P0/P2 lists are not applied to INFO.
+    A non-empty valid KB priority_hint overrides status-and-keyword encoding
+    (including FAIL to P1 and WARNING to P2).
     """
     finding_counter: dict[str, int] = {"P0": 0, "P1": 0, "P2": 0, "P3": 0}
     pairs: list[tuple[CheckResult, str]] = []
@@ -182,8 +195,12 @@ def derive_findings(checks: list[CheckResult], ocp_version: str = "latest") -> l
     ]
     _append_remaining_pairs(info_finding_checks, "P3", pairs)
 
-    included: list[tuple[CheckResult, str]] = []
+    hinted_pairs: list[tuple[CheckResult, str]] = []
     for check, priority in pairs:
+        hinted_pairs.append((check, _hinted_priority(check, priority)))
+
+    included: list[tuple[CheckResult, str]] = []
+    for check, priority in hinted_pairs:
         if _include_in_findings(check):
             included.append((check, priority))
 
