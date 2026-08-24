@@ -594,7 +594,7 @@ This runs inside the project container (same as `make pdfs` for OCP-V), which ha
 The flow is identical to the OCP-V pipeline: markdown → `pandoc` (branded CSS + HTML) → `weasyprint` (PDF).
 
 PDFs are written to:
-- `output/Health_Check_Report/PDFs/` — customer-facing report
+- `output/Health_Check_Report/PDFs/` — customer-facing report (nested reports keep a cluster subdirectory, e.g. `PDFs/<cluster_dir>/…`)
 
 If the container image hasn't been built yet, `make hc-pdf` will build it automatically first.
 
@@ -616,8 +616,8 @@ make hc-report         → output/Health_Check_Report/           (branded markdo
 make workitems         → output/Work_Items/                    (Jira-importable CSV + per-story markdown)
      │
      ▼
-make hc-pdf            → output/Health_Check_Report/PDFs/      (customer report PDF)
-make hc-html           → output/Health_Check_Report/HTML/      (collapsible HTML report)
+make hc-pdf            → output/Health_Check_Report/PDFs/      (customer report PDF; nested reports keep cluster subdirectories)
+make hc-html           → output/Health_Check_Report/HTML/      (collapsible HTML report; nested reports keep cluster subdirectories)
 ```
 
 `make hc-pdf` runs inside the project container (no host weasyprint needed). Container auto-builds on first use.

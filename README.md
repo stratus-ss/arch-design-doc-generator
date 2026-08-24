@@ -87,8 +87,8 @@ A second engagement type (`PROJECT=HC`) collects OpenShift cluster JSON and gene
 | `make hc-report-from-supportshell HC_SSH_HOST=user@host` | Host fetch, then container report | Fetch supportshell results, then run `hc-report` against the dated staging dir |
 | `make hc-merge MERGE_INPUTS="dir1 dir2"` | Host | Merge multiple `hc_results` dirs on the host |
 | `make hc-report` | Container | Generate markdown report + audit JSON from collected data (default profile `advisory`) |
-| `make hc-html` | Container | Collapsible HTML from report markdown under `output/Health_Check_Report/` |
-| `make hc-pdf` | Container | Branded PDF from report markdown under `output/Health_Check_Report/` |
+| `make hc-html` | Container | Collapsible HTML from report markdown under `output/Health_Check_Report/` (nested reports keep cluster subdirs under `HTML/`) |
+| `make hc-pdf` | Container | Branded PDF from report markdown under `output/Health_Check_Report/` (nested reports keep cluster subdirs under `PDFs/`) |
 | `make hc-build-catalog TSR_HTML=<path>` | Host | Rebuild `tsr_ccx_crosswalk.json` from a TSR HTML export |
 | `make hc-investigate RESULTS_DIR=… FINDING_ID=…` | Container | Trace a finding or check back to raw evidence (`CHECK_ID=` / `QUERY=` also work) |
 | `make hc-skip-summary LEDGER=…` | Host | Summarize skipped collection commands from `skipped_commands.jsonl` (`RESULTS_DIR=` also works) |

@@ -173,7 +173,7 @@ Generated during setup/build (gitignored; never commit):
 - PDFs, PNG exports, and work item outputs
 - `output/hc_collect/` — collected Health Check JSON (gitignored via `output/`)
 - `output/Health_Check_Report/` — generated Health Check markdown and audit JSON (gitignored via `output/`)
-  - `HTML/` — collapsible HTML from `make hc-html`
-  - `PDFs/` — branded PDF from `make hc-pdf`
+  - `HTML/` — collapsible HTML from `make hc-html` (may contain per-cluster subdirectories)
+  - `PDFs/` — branded PDF from `make hc-pdf` (may contain per-cluster subdirectories)
 - `output/tsr_html/` — optional TSR HTML drop directory for `make hc-report` discovery
 - `**/kubeconfig`, `**/kubeconfig.*`, `**/.kube/` — kubeconfigs (gitignored)

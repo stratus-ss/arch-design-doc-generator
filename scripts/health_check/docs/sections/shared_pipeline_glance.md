@@ -14,8 +14,8 @@ make hc-report         → output/Health_Check_Report/           (branded markdo
 make workitems         → output/Work_Items/                    (Jira-importable CSV + per-story markdown)
      │
      ▼
-make hc-pdf            → output/Health_Check_Report/PDFs/      (customer report PDF)
-make hc-html           → output/Health_Check_Report/HTML/      (collapsible HTML report)
+make hc-pdf            → output/Health_Check_Report/PDFs/      (customer report PDF; nested reports keep cluster subdirectories)
+make hc-html           → output/Health_Check_Report/HTML/      (collapsible HTML report; nested reports keep cluster subdirectories)
 ```
 
 `make hc-pdf` runs inside the project container (no host weasyprint needed). Container auto-builds on first use.
