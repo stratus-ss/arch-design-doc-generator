@@ -387,7 +387,7 @@ Renders the ledger as `must_gather: category: check: command` YAML, using short 
 
 ```bash
 make hc-investigate RESULTS_DIR=output/hc_collect/<date> FINDING_ID=6.2.3.1
-# or: QUERY="Available Updates"   or: CHECK_ID=7.1.identity.updates
+# or: QUERY="Available Updates"   or: CHECK_ID=7.1.clusterversion.updates
 ```
 
 Traces a finding or check from the generated report back to the exact raw collected JSON file(s) that produced it, and prints any matching `skipped_commands.jsonl` lines for that check.

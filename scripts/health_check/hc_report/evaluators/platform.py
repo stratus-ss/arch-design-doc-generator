@@ -26,11 +26,11 @@ from hc_report.evaluators._shared_checks import node_roles
 from hc_report.models import CheckResult
 
 
-def _evaluate_cluster_identity(cluster_version_raw: dict, category_id: str, category_name: str) -> list[CheckResult]:
-    """Cluster identification: version, channel, lifecycle, upgrade history."""
+def _evaluate_cluster_version(cluster_version_raw: dict, category_id: str, category_name: str) -> list[CheckResult]:
+    """ClusterVersion object: version, channel, lifecycle, upgrade history."""
     cluster_version = _cluster_version_object(cluster_version_raw)
     if _is_missing(cluster_version):
-        return [_not_applicable(f"{category_id}.identity", "Cluster Identity", category_id, category_name)]
+        return [_not_applicable(f"{category_id}.clusterversion", "Cluster Version", category_id, category_name)]
 
     checks = []
     cluster_version_spec = cluster_version.get("spec", {})
@@ -42,25 +42,25 @@ def _evaluate_cluster_identity(cluster_version_raw: dict, category_id: str, cate
     channel = cluster_version_spec.get("channel", "unknown")
 
     checks.append(CheckResult(
-        category_id, category_name, f"{category_id}.identity.id",
-        "7.1.1.1 Cluster Identification", "INFO",
+        category_id, category_name, f"{category_id}.clusterversion.id",
+        "7.1.1.1 Cluster ID and version", "INFO",
         f"Cluster ID: {cluster_id}. OCP {version} on channel {channel}",
         "clusterversion",
     ))
 
     channel_status, channel_evidence = _evaluate_channel(channel)
-    checks.append(CheckResult(category_id, category_name, f"{category_id}.identity.channel",
+    checks.append(CheckResult(category_id, category_name, f"{category_id}.clusterversion.channel",
                               "7.1.1.2 Update Channel", channel_status, channel_evidence, "clusterversion"))
 
     available_updates = cluster_version_status.get("availableUpdates", [])
     if available_updates:
         update_versions = ", ".join(update.get("version", "") for update in available_updates[:3])
-        checks.append(CheckResult(category_id, category_name, f"{category_id}.identity.updates",
+        checks.append(CheckResult(category_id, category_name, f"{category_id}.clusterversion.updates",
                                   "7.1.1.3 Available Updates", "WARNING",
                                   f"{len(available_updates)} update(s) available: {update_versions}",
                                   "clusterversion"))
     else:
-        checks.append(CheckResult(category_id, category_name, f"{category_id}.identity.updates",
+        checks.append(CheckResult(category_id, category_name, f"{category_id}.clusterversion.updates",
                                   "7.1.1.3 Available Updates", "PASS",
                                   "No pending updates — cluster is at latest for channel",
                                   "clusterversion"))
@@ -70,22 +70,22 @@ def _evaluate_cluster_identity(cluster_version_raw: dict, category_id: str, cate
         last = completed[0]
         summary = (f"{len(completed)} completed upgrade(s). "
                    f"Last: {last.get('version')} on {last.get('completionTime', '')[:10]}")
-        checks.append(CheckResult(category_id, category_name, f"{category_id}.identity.history",
+        checks.append(CheckResult(category_id, category_name, f"{category_id}.clusterversion.history",
                                   "7.1.1.4 Upgrade History", "PASS", summary, "clusterversion"))
     else:
-        checks.append(CheckResult(category_id, category_name, f"{category_id}.identity.history",
+        checks.append(CheckResult(category_id, category_name, f"{category_id}.clusterversion.history",
                                   "7.1.1.4 Upgrade History", "NOT_APPLICABLE",
                                   "No completed upgrades in history", "clusterversion"))
 
     conditions = cluster_version_status.get("conditions", [])
     failing = [condition for condition in conditions if condition.get("type") == "Failing" and condition.get("status") == "True"]
     if failing:
-        checks.append(CheckResult(category_id, category_name, f"{category_id}.identity.failing",
+        checks.append(CheckResult(category_id, category_name, f"{category_id}.clusterversion.failing",
                                   "7.1.1.5 ClusterVersion Conditions", "FAIL",
                                   failing[0].get("message", "Failing condition active")[:200],
                                   "clusterversion"))
     else:
-        checks.append(CheckResult(category_id, category_name, f"{category_id}.identity.failing",
+        checks.append(CheckResult(category_id, category_name, f"{category_id}.clusterversion.failing",
                                   "7.1.1.5 ClusterVersion Conditions", "PASS",
                                   "No failing conditions on ClusterVersion", "clusterversion"))
 
@@ -233,7 +233,7 @@ def _evaluate_single_subscription(subscription: dict, cluster_service_version_ph
 def evaluate_base_platform(category_data: dict, results: dict, category_id: str, category_name: str) -> list[CheckResult]:
     """Dispatch evaluators for 7.1 Base Platform Checks."""
     checks: list[CheckResult] = []
-    checks += _evaluate_cluster_identity(category_data.get("clusterversion", {}), category_id, category_name)
+    checks += _evaluate_cluster_version(category_data.get("clusterversion", {}), category_id, category_name)
     checks += _evaluate_infrastructure(category_data.get("infrastructure", {}), category_id, category_name)
     checks += _evaluate_infrastructure_details(category_data, category_id, category_name)
     checks += _evaluate_subscriptions(

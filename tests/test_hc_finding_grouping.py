@@ -240,7 +240,7 @@ def test_denied_csr_row_still_creates_finding() -> None:
 # Mutant: Ignore scored_ccx_checks in derive_findings
 # Contract: public
 def test_unmatched_scored_ccx_fail_becomes_finding() -> None:
-    existing = [_check_result("7.1.identity.channel", "[PASS] channel ok", status="PASS")]
+    existing = [_check_result("7.1.clusterversion.channel", "[PASS] channel ok", status="PASS")]
     extras = scored_ccx_checks_for_findings(
         [
             {

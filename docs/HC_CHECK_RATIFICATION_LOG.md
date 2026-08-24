@@ -50,11 +50,11 @@ directly to `docs/HC_CHECK_RATIONALE.md` and recorded here for traceability.
 
 | Check ID | Condition Type | Citation URL(s) | Status | Evidence / Notes | Date |
 |----------|----------------|-----------------|--------|------------------|------|
-| `7.1.identity.id` | INFO-only | N/A | `⏭️ OUT-OF-SCOPE` | Informational-only row; no `WARNING` or `FAIL` condition to ratify. | 2026-08-10 |
-| `7.1.identity.channel` | WARNING | `https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/updating_clusters/understanding-openshift-updates-1` | `🔧 CORRECTED` | Official docs say `fast` and `stable` differ by promotion delay / soak time, not supportability; row was corrected to cite engineering judgment for warning on `fast`. | 2026-08-10 |
-| `7.1.identity.updates` | WARNING | `https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/updating_clusters/understanding-openshift-updates-1` | `🔧 CORRECTED` | Official docs define `availableUpdates` as recommended update targets maintained by the CVO; presence alone is not a vendor warning, so the row was corrected to engineering judgment. | 2026-08-10 |
-| `7.1.identity.history` | PASS/N-A only | N/A | `⏭️ OUT-OF-SCOPE` | No `WARNING` or `FAIL` condition to ratify. | 2026-08-10 |
-| `7.1.identity.failing` | FAIL | `https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/updating_clusters/understanding-openshift-updates-1` | `🔧 CORRECTED` | Replaced a generic troubleshooting citation with the condition-types page that explicitly states `Failing` means the cluster cannot reach its desired state, is unhealthy, and requires administrator intervention. | 2026-08-10 |
+| `7.1.clusterversion.id` | INFO-only | N/A | `⏭️ OUT-OF-SCOPE` | Informational-only row; no `WARNING` or `FAIL` condition to ratify. | 2026-08-10 |
+| `7.1.clusterversion.channel` | WARNING | `https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/updating_clusters/understanding-openshift-updates-1` | `🔧 CORRECTED` | Official docs say `fast` and `stable` differ by promotion delay / soak time, not supportability; row was corrected to cite engineering judgment for warning on `fast`. | 2026-08-10 |
+| `7.1.clusterversion.updates` | WARNING | `https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/updating_clusters/understanding-openshift-updates-1` | `🔧 CORRECTED` | Official docs define `availableUpdates` as recommended update targets maintained by the CVO; presence alone is not a vendor warning, so the row was corrected to engineering judgment. | 2026-08-10 |
+| `7.1.clusterversion.history` | PASS/N-A only | N/A | `⏭️ OUT-OF-SCOPE` | No `WARNING` or `FAIL` condition to ratify. | 2026-08-10 |
+| `7.1.clusterversion.failing` | FAIL | `https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/updating_clusters/understanding-openshift-updates-1` | `🔧 CORRECTED` | Replaced a generic troubleshooting citation with the condition-types page that explicitly states `Failing` means the cluster cannot reach its desired state, is unhealthy, and requires administrator intervention. | 2026-08-10 |
 | `7.1.infra.platform` | INFO-only | N/A | `⏭️ OUT-OF-SCOPE` | Informational-only row; no `WARNING` or `FAIL` condition to ratify. | 2026-08-10 |
 | `7.1.infra.topology` | WARNING | `https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/installing_on_bare_metal/installer-provisioned-infrastructure` | `🔧 CORRECTED` | Official docs tie `controlPlaneTopology` / `infrastructureTopology` to redundancy but do not classify every non-HA topology as a warning outside topology-specific goals; row was corrected to engineering judgment. | 2026-08-10 |
 | `7.1.infra.apiurl` | INFO-only | N/A | `⏭️ OUT-OF-SCOPE` | Informational-only row; no `WARNING` or `FAIL` condition to ratify. | 2026-08-10 |
@@ -298,7 +298,7 @@ Full re-audit of `docs/HC_CHECK_RATIONALE.md` against local OCP PDFs (`~/git_pro
 - Expectation met: **mostly no-ops** on check logic / thresholds.
 - Citation hygiene: converted version-pinned doc URLs to `latest` where content is version-stable.
 - Deep-link upgrades applied for 15 checks where KB/TOML (or equivalent anchors) were more directly applicable — see `tmp/hc_rationale_toml_url_report_2026-08-13.md`.
-- Behavioral re-check of Engineering-judgment rows: upgraded two rows to **Mixed** (`7.1.identity.channel`, `7.1.sys.auth`) where one branch is clearly doc-backed and another remains judgment.
+- Behavioral re-check of Engineering-judgment rows: upgraded two rows to **Mixed** (`7.1.clusterversion.channel`, `7.1.sys.auth`) where one branch is clearly doc-backed and another remains judgment.
 - Explicit **Reject** list for TOML URLs that are less applicable than the rationale citation (CRD count, upgrade graph lab, etcd.io hardware vs OCP 10ms, etc.).
 
 ### TOML edits

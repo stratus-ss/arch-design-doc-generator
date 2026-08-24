@@ -168,9 +168,9 @@ def test_cli_writes_replace_row(tmp_path: Path) -> None:
 
 def test_proxy_with_same_url_becomes_keep() -> None:
     suggestion = LinkSuggestion(
-        check_id="7.1.identity.channel",
+        check_id="7.1.clusterversion.channel",
         toml_file="7_1_base_platform.toml",
-        title="Identity update channel",
+        title="Update channel",
         version_key="4.20",
         current_url=(
             "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/"

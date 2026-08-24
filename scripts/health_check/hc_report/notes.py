@@ -4,13 +4,13 @@ from __future__ import annotations
 from hc_report.kb_loader import _resolve_default_doc_link, load_kb, resolve_version
 
 _CHECK_NOTES: dict[str, tuple[str, str]] = {
-    "identity.channel": (
+    "clusterversion.channel": (
         "The update channel determines which OCP releases are offered as updates. "
         "For production clusters `stable-X.Y` is recommended. `fast` receives updates 2–4 weeks earlier "
         "but with less soak time. `eus` (Even Update Support) channels allow skipping minor versions.",
         "[Update channels docs](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/updating_clusters/index#fast-stable-channel-strategies_understanding-update-channels-releases)",
     ),
-    "identity.updates": (
+    "clusterversion.updates": (
         "Red Hat recommends keeping OCP within 2 minor versions of the latest release on the selected "
         "channel. Delaying updates increases exposure to security vulnerabilities and reduces supportability.",
         "[Updating OpenShift](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/updating_clusters/index#upgrade-version-paths_understanding-update-channels-releases)",

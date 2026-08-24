@@ -19,8 +19,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/operators/index#olm-status-viewing-cli_olm-troubleshooting-operator-issues"
 
 [[checks]]
-check_id = "7.1.identity.channel"
-title = "Identity update channel"
+check_id = "7.1.clusterversion.channel"
+title = "Update channel"
 description = "The update channel selects which OCP releases the Cluster Version Operator offers.\n`fast` and `stable` are both fully supported; the only documented difference is\npromotion delay (typically a week or two for z-stream, often 45-90 days for a\nnew minor). `eus` channels allow skipping minor versions on supported EUS paths.\n`candidate` is unsupported early access.\n"
 recommendation = "Put production on `stable` or `eus` to match the support policy. Move off `candidate`; it is unsupported. Leave fast only if the shorter promotion delay is an accepted operational choice. Do not patch until the running release exists in the target channel."
 verification = "1. List the current channel and available channels:\n   `oc adm upgrade`\n2. Confirm the running release exists in the target `stable-X.Y` or `eus-X.Y` channel before switching.\n3. Patch the named `ClusterVersion` object (`version`) if a channel change is required:\n   `oc patch clusterversion version --type=merge -p '{\"spec\":{\"channel\":\"stable-<minor>\"}}'`\n4. Re-check `availableUpdates` and `conditionalUpdates`.\nLeave `fast` only if that promotion delay is an accepted operational choice."
@@ -38,8 +38,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/updating_clusters/index#fast-stable-channel-strategies_understanding-update-channels-releases"
 
 [[checks]]
-check_id = "7.1.identity.updates"
-title = "Identity available updates"
+check_id = "7.1.clusterversion.updates"
+title = "Available updates"
 description = "The Cluster Version Operator publishes recommended update targets in\n`status.availableUpdates`. Presence of recommended updates is a lifecycle\nhygiene signal, not a vendor-defined health failure. Plan a supported path\nand apply it when the maintenance window allows.\n"
 recommendation = "Schedule a maintenance window for any recommended update on the upgrade graph. Apply the chosen z-stream or minor when the window allows; defer only as a dated plan. Do not skip versions unless the graph allows it."
 verification = "1. Print version, channel, and recommended updates:\n   `oc get clusterversion version -o jsonpath='{.status.desired.version}{\" \"}{.spec.channel}{\"\\n\"}{range .status.availableUpdates[*]}available={.version}{\"\\n\"}{end}'`\n   `oc adm upgrade`\n2. Plan the upgrade using the OCP Upgrade Graph at https://access.redhat.com/labs/ocpupgradegraph/.\n3. After validating the supported path in non-production, apply the chosen release:\n   `oc adm upgrade --to=<target-version>`\n4. Monitor ClusterVersion conditions until the rollout completes:\n   `oc get clusterversion version -o jsonpath='{range .status.conditions[*]}{.type}={.status}{\"\\n\"}{end}'`"
@@ -194,7 +194,7 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.1.tsr.1_1_identification_and_state"
 title = "1.1. Identification and State"
-description = "This check records cluster identity, version, and support lifecycle. Evidence may show full support or maintenance support; that is a lifecycle class, not a degraded ClusterOperator by itself."
+description = "This check records cluster version and support lifecycle. Evidence may show full support or maintenance support; that is a lifecycle class, not a degraded ClusterOperator by itself."
 recommendation = "If the release is maintenance or EOL, plan an upgrade on a supported path. Full versus maintenance support is not a degraded ClusterOperator. Unhealthy ClusterOperators go to the matching operator check, not this row."
 verification = "1. Read version and channel from the named ClusterVersion object:\n   `oc get clusterversion version -o jsonpath='{.status.desired.version}{\" \"}{.spec.channel}{\"\\n\"}'`\n   `oc adm upgrade`\n2. Compare that version to the OpenShift Container Platform life cycle dates:\n      https://access.redhat.com/support/policy/updates/openshift\n      That page is what classifies the release as fully supported, maintenance, or EOL. `oc get co` does not.\n3. ClusterOperator Degraded/Progressing is a different problem. If you need it, list only the unhealthy rows:\n   `oc get co | grep -v 'True.*False.*False'`"
 priority_hint = ""

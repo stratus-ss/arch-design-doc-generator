@@ -3,7 +3,7 @@
 ## ADDED Requirements
 
 ### Requirement: KB content_from alias
-An alias KB row MAY set `content_from` to an exact canonical `check_id`. `load_kb()` SHALL copy inherited content from that target in a single hop and SHALL keep local identity and finding flags on the alias. Overlay, chains, self-references, missing targets, pattern-row pointers, and glob targets SHALL raise `ValueError`.
+An alias KB row MAY set `content_from` to an exact canonical `check_id`. `load_kb()` SHALL copy inherited content from that target in a single hop and SHALL keep the alias `check_id` and finding flags on the alias. Overlay, chains, self-references, missing targets, pattern-row pointers, and glob targets SHALL raise `ValueError`.
 
 #### Scenario: Alias inherits content and keeps local title and flags
 - GIVEN alias `content_from = "canonical.id"` and omitted inherited keys

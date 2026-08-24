@@ -65,7 +65,7 @@ _TSR_CLUSTER_NAME = re.compile(
 )
 
 
-def _parse_tsr_html_cluster_identity(header_text: str) -> tuple[str, str]:
+def _parse_tsr_html_cluster_header(header_text: str) -> tuple[str, str]:
     """Return (cluster_id, cluster_name) from TSR HTML header fields."""
     id_match = _TSR_CLUSTER_ID.search(header_text)
     name_match = _TSR_CLUSTER_NAME.search(header_text)
@@ -113,7 +113,7 @@ def discover_tsr_html(tsr_dir: Path, cluster_id: str, cluster_name: str) -> Path
                 header_text = handle.read(_TSR_HTML_HEADER_CHARS)
         except OSError:
             continue
-        html_cluster_id, html_cluster_name = _parse_tsr_html_cluster_identity(header_text)
+        html_cluster_id, html_cluster_name = _parse_tsr_html_cluster_header(header_text)
         if cluster_id and html_cluster_id and cluster_id == html_cluster_id:
             id_matches.append(path)
             continue

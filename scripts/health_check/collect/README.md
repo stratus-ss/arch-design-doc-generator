@@ -139,7 +139,7 @@ The account used for collection needs **read access** to cluster-scoped resource
 
 #### `03_base_platform.sh` — Chapter 7.1
 
-Captures the foundational cluster identity and platform configuration.
+Captures the foundational cluster version and platform configuration.
 
 | File                    | Command                         | Purpose                                                    |
 |-------------------------|---------------------------------|------------------------------------------------------------|

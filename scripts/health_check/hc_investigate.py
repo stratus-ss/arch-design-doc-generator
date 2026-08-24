@@ -13,7 +13,7 @@ Usage:
     python3 scripts/health_check/hc_investigate.py --results-dir output/hc_collect/2026-07-28 \
         --query "Available Updates"
     python3 scripts/health_check/hc_investigate.py --results-dir output/hc_collect/2026-07-28 \
-        --check-id 7.1.identity.updates
+        --check-id 7.1.clusterversion.updates
 """
 from __future__ import annotations
 
@@ -77,7 +77,7 @@ def parse_args() -> argparse.Namespace:
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--finding-id", help="Finding id as shown in the report, e.g. 6.2.3.1")
     group.add_argument("--query", help="Substring to match against check/finding description text")
-    group.add_argument("--check-id", help="Internal check id, e.g. 7.1.identity.updates")
+    group.add_argument("--check-id", help="Internal check id, e.g. 7.1.clusterversion.updates")
     return parser.parse_args()
 
 
