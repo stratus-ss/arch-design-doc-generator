@@ -513,14 +513,15 @@ This runs `scripts/health_check/generate_report.py`. It:
 4. Evaluates every check deterministically using rules applied to the collected data — no AI is involved in the check evaluation; every PASS/FAIL/WARNING is computed from the JSON
 5. Derives P0–P3 findings from the check results
 6. Renders the report template (`templates/Health_Check/Template_HC_Report.md`) with all slots filled
-7. Writes two files to `output/Health_Check_Report/`:
-   - `<ClientPrefix>_OpenShift_Health_Check_<cluster>.md` — the customer-facing report
-   - `<ClientPrefix>_HC_audit_<cluster>.json` — machine-readable check and finding data for audit purposes
+7. Writes two files to `output/Health_Check_Report/` (plus an optional pruned sibling):
+   - `<ClientPrefix>_OpenShift_Health_Check_<cluster>.md` — full report (all Chapter 6 findings)
+   - `<ClientPrefix>_HC_audit_<cluster>.json` — machine-readable check and finding data for audit purposes (unfiltered)
+   - `<ClientPrefix>_OpenShift_Health_Check_<cluster>_pruned.md` — only when `HC_OMIT_CHECK_IDS` is a non-empty check-ID list; Chapter 6 omits matched findings, Chapter 7 still lists every check. HTML, PDF, and `HC_SUMMARY_CONCLUSION` prefer this file when it exists.
 
 The report covers:
 - Executive summary with finding counts by priority
 - Summary statistics table (PASS / WARNING / FAIL / N/A by category)
-- Chapter 4: Critical findings (P0 and P1 only, with remediation steps)
+- Chapter 4: Purpose and engagement approach, plus how to interpret check results
 - Chapter 6: Full observations and recommendations by priority (P0–P3)
 - Chapter 7: Raw check tables, one per category — every individual check with its status and evidence string
 
@@ -548,9 +549,26 @@ The report covers:
 
 Priority isn't stored anywhere in the collected data — it's derived at report-generation time from two inputs: the check's status (`FAIL` or `WARNING`; `INFO` becomes a P3 finding only when the KB sets `finding_on_info`; `PASS`, `NOT_APPLICABLE`, and `SKIPPED` never become findings) and a keyword match against that check's plain-English description text. `FAIL` checks whose description mentions a small set of severity-signalling terms (node readiness, cluster operators, critical alerts, etc.) become `P0`; every other `FAIL` becomes `P1`. `WARNING` checks are split the same way into `P2` / `P3` using a different keyword list (resource utilization, upgrades, deprecated features, etc.).
 
-A non-empty KB `priority_hint` (`P0`–`P3`) on a check overrides the keyword heuristic. ResourceQuota, ClusterResourceQuota, and MTV (Migration Toolkit for Virtualization) checks are encoded `P3` because they reflect governance or migration-tool posture, not a degraded cluster. Empty or invalid hints leave the keyword-derived priority unchanged.
-
 This is a best-effort heuristic based on wording, not a guaranteed-correct severity rating — the keyword lists live in `scripts/health_check/hc_report/findings.py` if you want to see exactly what triggers each bucket. If a finding lands in a priority you disagree with for a given engagement, the generated report is just markdown: edit the finding's priority label or move it between chapters directly in `output/Health_Check_Report/<ClientPrefix>_OpenShift_Health_Check_<cluster>.md` before delivering it. The original check status and description are preserved unedited in the companion `<ClientPrefix>_HC_audit_<cluster>.json` file if you need to double-check what drove a classification.
+
+#### Omit Chapter 6 findings by check ID (optional)
+
+Mass-drop Chapter 6 sections by **Check ID** (`**Check ID:**` under each §6.2 heading), not by volatile `6.2.x.y` finding IDs and not by deleting headings by hand. Generate still writes the full markdown and audit JSON. The delivery file is `{stem}_pruned.md`. Re-run generate (or `make hc-summary-conclusion REPORT=…_pruned.md`) after changing the omit list so Chapter 3/8 and HTML/PDF use the pruned file.
+
+Omit file (UTF-8, one check ID per line; `#` comments and blanks skipped):
+
+```
+# Chapter 6 suppressions for this engagement (check IDs, not 6.2.x.y)
+7.4.tsr.4_12_1_2_mtv_supported_configuration
+```
+
+```bash
+make hc-report HC_OMIT_CHECK_IDS=path/to/omit.txt
+make hc-report HC_OMIT_CHECK_IDS=path/to/omit.txt HC_OMIT_STRICT=1
+make hc-report HC_OMIT_CHECK_IDS=path/to/omit.txt HC_SUMMARY_CONCLUSION=1
+```
+
+`HC_OMIT_STRICT=1` exits 1 if any listed ID is not on a derived finding (does not write `{stem}_pruned.md`). An empty omit file or omitting the flag deletes a stale `{stem}_pruned.md` for that cluster.
 
 To supply your own executive summary text:
 
@@ -559,6 +577,28 @@ python3 scripts/health_check/generate_report.py \
   --results-dir output/hc_collect \
   --output-dir output/Health_Check_Report \
   --exec-summary "This cluster is in good health overall. Two P1 findings were identified relating to update channel configuration and missing limit ranges..."
+```
+
+#### Draft Chapter 3 and Chapter 8 (optional, off by default)
+
+Check evaluation and `make hc-report` without `HC_SUMMARY_CONCLUSION` stay deterministic. With `HC_SUMMARY_CONCLUSION=1`, the container drafts Chapter 3 and Chapter 8 **in the report file** after generate succeeds (Cursor only; needs `CURSOR_API_KEY` or `~/.config/arch-doc-gen/cursor_api_key`). Rebuild the toolkit image once so `cursor-sdk` is in the image.
+
+```bash
+make hc-report HC_SUMMARY_CONCLUSION=1
+make hc-report-from-supportshell HC_SSH_HOST=user@host HC_SUMMARY_CONCLUSION=1
+make hc-summary-conclusion REPORT=output/Health_Check_Report/<ClientPrefix>_OpenShift_Health_Check_<cluster>.md
+```
+
+`HC_DRY_RUN=1` is the generate-report placeholder executive summary. It is not the sidecar `--dry-run` prompt dump.
+
+List descriptions from one report, or write the filled prompt without invoking a model:
+
+```bash
+python3 scripts/health_check/extract_finding_descriptions.py \
+  output/Health_Check_Report/<ClientPrefix>_OpenShift_Health_Check_<cluster>.md
+
+python3 scripts/health_check/draft_summary_conclusion.py --dry-run \
+  output/Health_Check_Report/<ClientPrefix>_OpenShift_Health_Check_<cluster>.md
 ```
 
 ## Review the Report
@@ -636,25 +676,26 @@ Each target below runs one discrete step and can be re-run on its own — useful
 
 ###### Individual (atomic) targets
 
-| Target                        | Purpose                                                                                                                 |
-|-------------------------------|-------------------------------------------------------------------------------------------------------------------------|
-| `hc-collect`                  | Collect cluster data via `oc` (live cluster)                                                                            |
-| `hc-push-scripts`             | Push supportshell collection scripts to remote server (`HC_SSH_HOST=user@host`)                                         |
-| `hc-collect-remote`           | Run `hc_collect_multi.sh` on the remote server via SSH (`HC_SSH_HOST=user@host HC_MG_INPUT=<case-or-must-gather-path>`) |
-| `hc-fetch-results`            | Fetch results from remote server — prefers `hc_results.tar.gz`, falls back to raw rsync (`HC_SSH_HOST=user@host`)       |
-| `hc-merge`                    | Merge multiple result dirs (`MERGE_INPUTS="dir1 dir2"`)                                                                 |
-| `hc-report`                   | Generate branded health check report (runs in container; requires `project.yaml`)                                       |
-| `hc-pdf`                      | Export report and execution guide to branded PDF                                                                        |
-| `hc-html`                     | Generate collapsible HTML report                                                                                        |
-| `hc-build-catalog`            | Rebuild TSR/CCX catalog JSON from a TSR HTML export (`TSR_HTML=path`)                                                   |
-| `hc-skip-summary`             | Render `skipped_commands.jsonl` into readable YAML (`LEDGER=path`)                                                      |
-| `hc-investigate`              | Trace a finding/check back to raw evidence (`RESULTS_DIR=...`)                                                          |
-| `hc-command-ref`              | Generate static command reference markdown (`docs/HC_Command_Reference.md`)                                             |
-| `hc-link-review`              | Suggest + HTTP-check KB documentation URLs (does not rewrite TOMLs)                                                     |
-| `hc-docs`                     | Regenerate collect/supportshell READMEs from stitchmd sections                                                          |
-| `hc-report-from-supportshell` | Fetch supportshell results, then generate the deterministic report                                                      |
-| `clean-hc`                    | Remove health check pipeline output                                                                                     |
-| `check-hc-sync`               | Verify `collect/` and `supportshell/` shared scripts 03–09 are in sync                                                  |
+| Target                        | Purpose                                                                                                                                                                                                                                   |
+|-------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `hc-collect`                  | Collect cluster data via `oc` (live cluster)                                                                                                                                                                                              |
+| `hc-push-scripts`             | Push supportshell collection scripts to remote server (`HC_SSH_HOST=user@host`)                                                                                                                                                           |
+| `hc-collect-remote`           | Run `hc_collect_multi.sh` on the remote server via SSH (`HC_SSH_HOST=user@host HC_MG_INPUT=<case-or-must-gather-path>`)                                                                                                                   |
+| `hc-fetch-results`            | Fetch results from remote server — prefers `hc_results.tar.gz`, falls back to raw rsync (`HC_SSH_HOST=user@host`)                                                                                                                         |
+| `hc-merge`                    | Merge multiple result dirs (`MERGE_INPUTS="dir1 dir2"`)                                                                                                                                                                                   |
+| `hc-report`                   | Generate branded health check report (runs in container; requires `project.yaml`). Optional `HC_OMIT_CHECK_IDS` writes `{stem}_pruned.md`. Optional `HC_SUMMARY_CONCLUSION=1` drafts Chapter 3/8 in place after generate (prefers pruned) |
+| `hc-summary-conclusion`       | Cursor-draft Chapter 3/8 into an existing report (`REPORT=path.md`)                                                                                                                                                                       |
+| `hc-pdf`                      | Export report and execution guide to branded PDF                                                                                                                                                                                          |
+| `hc-html`                     | Generate collapsible HTML report                                                                                                                                                                                                          |
+| `hc-build-catalog`            | Rebuild TSR/CCX catalog JSON from a TSR HTML export (`TSR_HTML=path`)                                                                                                                                                                     |
+| `hc-skip-summary`             | Render `skipped_commands.jsonl` into readable YAML (`LEDGER=path`)                                                                                                                                                                        |
+| `hc-investigate`              | Trace a finding/check back to raw evidence (`RESULTS_DIR=...`)                                                                                                                                                                            |
+| `hc-command-ref`              | Generate static command reference markdown (`docs/HC_Command_Reference.md`)                                                                                                                                                               |
+| `hc-link-review`              | Suggest + HTTP-check KB documentation URLs (does not rewrite TOMLs)                                                                                                                                                                       |
+| `hc-docs`                     | Regenerate collect/supportshell READMEs from stitchmd sections                                                                                                                                                                            |
+| `hc-report-from-supportshell` | Fetch supportshell results, then generate the deterministic report                                                                                                                                                                        |
+| `clean-hc`                    | Remove health check pipeline output                                                                                                                                                                                                       |
+| `check-hc-sync`               | Verify `collect/` and `supportshell/` shared scripts 03–09 are in sync                                                                                                                                                                    |
 
 **Report ID conventions:** Finding IDs (`6.2.x.y`) appear in §6.1/§6.2 headings and are used with `FINDING_ID=...`. Machine Check IDs (e.g. `7.3.etcd.log_errors`) appear under each §6.2 heading as `**Check ID:**` and are used with `CHECK_ID=...`. TSR ref (e.g. `3.5.7`) is the human-readable section label for cross-referencing the TSR report.
 
@@ -669,9 +710,9 @@ Each target below runs one discrete step and can be re-run on its own — useful
 
 If one of these fails partway through, find the step that failed in the output and re-run just that individual target from the table above — do not re-run the whole combined target.
 
-| Target                        | Expands to                       | Purpose                                                            |
-|-------------------------------|----------------------------------|--------------------------------------------------------------------|
-| `hc-report-from-supportshell` | `hc-fetch-results` → `hc-report` | Fetch supportshell results, then generate the deterministic report |
+| Target                        | Expands to                       | Purpose                                                                                                            |
+|-------------------------------|----------------------------------|--------------------------------------------------------------------------------------------------------------------|
+| `hc-report-from-supportshell` | `hc-fetch-results` → `hc-report` | Fetch supportshell results, then generate the report (`HC_SUMMARY_CONCLUSION=1` drafts Chapter 3/8 after generate) |
 
 ## Environment Variables
 
@@ -690,6 +731,8 @@ MERGE_INPUTS "dir1 dir2 ..." — inputs for hc-merge
 HC_TSR_HTML /path/to/file.html — explicit TSR HTML path (overrides auto-discovery)
 HC_TSR_HTML_DIR output/tsr_html — directory for TSR HTML auto-discovery (default)
 HC_CHECK_PROFILE advisory — check expansion profile: core | extended | advisory
+HC_OMIT_CHECK_IDS repo-relative path to a check-ID omit list (writes {stem}_pruned.md)
+HC_OMIT_STRICT 1 — fail if an omit ID is not on a Chapter 6 finding
 HC_CCX_RULES_FILE /path/to/ccx_rules.json — optional CCX runtime payload for collection
 HC_DOCS_ROOT local OpenShift docs tree for make hc-link-review
 HC_LINK_REVIEW_OUT output dir for kb_link_review.md / .csv

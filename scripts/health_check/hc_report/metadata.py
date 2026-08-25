@@ -78,6 +78,31 @@ def _derive_from_infrastructure(infra_data: dict, metadata: dict) -> None:
         metadata["install_type"] = f"UPI ({platform_type})"
 
 
+def _format_capture_month_year(capture_date: str) -> str:
+    """Turn an ISO capture date into 'Month YYYY'; leave other values as-is."""
+    if not capture_date or capture_date == "TBD":
+        return "TBD"
+    match = re.fullmatch(r"(\d{4})-(\d{2})-(\d{2})", capture_date)
+    if not match:
+        return capture_date
+    return date(int(match.group(1)), int(match.group(2)), int(match.group(3))).strftime("%B %Y")
+
+
+def extract_cluster_id(results: dict) -> str:
+    """Return ClusterVersion clusterID from collected results, or empty string."""
+    cluster_version = _extract_cluster_version_data(results.get("03_base_platform", {}))
+    if not cluster_version:
+        return ""
+    cluster_version_spec = cluster_version.get("spec", {})
+    cluster_version_status = cluster_version.get("status", {})
+    cluster_id = (
+        cluster_version_spec.get("clusterID")
+        or cluster_version_status.get("clusterID")
+        or ""
+    )
+    return str(cluster_id).strip()
+
+
 def _extract_cluster_version_data(base: dict) -> dict:
     cluster_version_raw = base.get("clusterversion", {})
     cluster_version_items = (
@@ -112,16 +137,20 @@ def derive_metadata(results: dict, config: dict) -> dict:
             else date.today().strftime("%B %Y")
         ),
         "capture_date":  _config_value(health_check, "capture_date"),
+        "cluster_id":    "",
+        "capture_month_year": "TBD",
     }
 
     base = results.get("03_base_platform", {})
     _derive_from_clusterversion(_extract_cluster_version_data(base), metadata)
     _derive_from_infrastructure(base.get("infrastructure", {}), metadata)
+    metadata["cluster_id"] = extract_cluster_id(results)
 
     manifest = results.get("_manifest", {})
     if metadata["capture_date"] == "TBD":
         timestamp = manifest.get("timestamp", "")
         if timestamp:
             metadata["capture_date"] = timestamp[:10]
+    metadata["capture_month_year"] = _format_capture_month_year(metadata["capture_date"])
 
     return metadata

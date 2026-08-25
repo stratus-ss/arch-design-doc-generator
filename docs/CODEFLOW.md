@@ -137,10 +137,13 @@ The report writes `tmp/lld_closeness.md`. Default rendered dir is `output/LLD`.
 | `setup`, `publish`, `build-lld`, `build`, `workitems` | Container (`entrypoint.sh`) | `scripts/hld_lld/build/*`, `scripts/hld_lld/lld_to_workitems.py` |
 | `build-hld-from-adr`, `prepare-hld-ai`, `validate-slots` | Host | `scripts/hld_lld/ai/ai_draft_deterministic.py`, `scripts/hld_lld/ai/deterministic/*` |
 | `lld-closeness` | Host | `scripts/hld_lld/report_lld_closeness.py` |
-| `hc-collect`, `hc-push-scripts`, `hc-collect-remote`, `hc-fetch-results`, `hc-merge`, `hc-skip-summary`, `hc-command-ref`, `check-hc-sync` | Host | `scripts/health_check/collect/*`, `scripts/health_check/supportshell/*` |
+| `hc-collect`, `hc-push-scripts`, `hc-collect-remote`, `hc-fetch-results`, `hc-merge`, `check-hc-sync` | Host | `scripts/health_check/collect/*`, `scripts/health_check/supportshell/*` |
+| `hc-skip-summary` | Host | `scripts/health_check/hc_skip_summary.py` |
+| `hc-command-ref` | Host | `scripts/health_check/generate_command_reference.py` |
+| `clean-hc` | Host | removes `output/hc_collect` and `output/Health_Check_Report` |
 | `hc-report-from-supportshell` | Host fetch, then container report | `hc-fetch-results` then `hc-report` with `HC_COLLECT_OUT=$(HC_FETCH_STAGE)` |
 | `hc-report`, `hc-investigate` | Container (`entrypoint.sh`) | `scripts/health_check/generate_report.py`, `scripts/health_check/hc_investigate.py` |
-| `hc-html`, `hc-pdf` | Container (`entrypoint.sh`) | `scripts/shared/rendering/html_collapsible.py`, `pdf_preprocess.py` |
+| `hc-html`, `hc-pdf` | Container (`entrypoint.sh`) | `scripts/shared/rendering/hc_export_paths.py`, `html_collapsible.py`, `pdf_preprocess.py` |
 | `hc-docs` | Container (stitchmd) | `scripts/health_check/docs/` fragments → collect/supportshell READMEs |
 | `hc-build-catalog` | Host | `scripts/health_check/hc_report/build_crosswalk_catalog.py` |
 | `hc-link-review` | Container (`curl_cffi`) | `scripts/health_check/hc_link_review.py` |
@@ -164,8 +167,8 @@ Operational note:
 flowchart TD
     SetupHC[make setup PROJECT=HC] --> ProjectYaml[project.yaml from project.example.hc.yaml]
     ProjectYaml --> Collect[make hc-collect KUBECONFIG=path]
-    Collect --> HcCollectSh[hc_collect.sh --categories 03..12]
-    HcCollectSh --> Output[output/hc_collect/manifest.json + category JSON]
+    Collect --> HcCollectSh[hc_collect.sh categories 03-12]
+    HcCollectSh --> Output[output/hc_collect/]
 ```
 
 ### Supportshell / must-gather path
@@ -176,7 +179,7 @@ flowchart TD
     Remote --> Yank[operator: yank case-number]
     Yank --> CollectRemote[make hc-collect-remote HC_SSH_HOST=... HC_MG_INPUT=...]
     CollectRemote --> FetchResults[make hc-fetch-results HC_SSH_HOST=...]
-    FetchResults --> Staged[output/hc_collect/YYYY-MM-DD/]
+    FetchResults --> Staged[output/hc_collect/date/ or date/cluster/]
 ```
 
 ### Host merge
@@ -187,7 +190,11 @@ make hc-merge MERGE_INPUTS="output/hc_collect/2026-08-01 output/hc_collect/2026-
 
 Runs `hc_merge.py` on the host (no container). Prefers real JSON over `_hc_error` stubs; unions Kubernetes List items by `metadata.uid`.
 
-AI is not used for health check (company policy).
+Default live collection writes category JSON plus `manifest.json` under `output/hc_collect/` (scripts `03`–`12`, including `12_ccx.sh`). Both `collect/` and `supportshell/` have metrics, hardware, and CCX scripts (`10`–`12`). `make check-hc-sync` diffs only the paired twins `03`–`09`.
+
+Supportshell fetch stages under `output/hc_collect/<date>/`. A single-cluster fetch may place `manifest.json` there; multi-cluster tarballs nest `output/hc_collect/<date>/<cluster>/manifest.json`.
+
+AI is not used for health check **evaluation** (company policy). Optional `HC_SUMMARY_CONCLUSION=1` drafts Chapter 3/8 after `generate_report.py` writes markdown.
 
 ---
 
@@ -197,25 +204,31 @@ AI is not used for health check (company policy).
 
 ```mermaid
 flowchart TD
-    MakeReport[make hc-report] --> Entrypoint[entrypoint.sh cmd_hc_report]
-    Entrypoint --> Generate[generate_report.py]
-    Generate --> CliMain[cli.main]
-    CliMain --> Load[load_results]
-    Load --> Evaluate[evaluate_checks]
-    Evaluate --> Expand[parity.py catalog expand]
-    Expand --> Findings[derive_findings]
+    MakeReport[make hc-report] --> Entrypoint[entrypoint.sh]
+    Entrypoint --> CliMain[cli.main]
+    CliMain --> Load[load_results + derive_metadata]
+    Load --> Evaluate[evaluate_checks + parity.py]
+    Evaluate --> Findings[derive findings]
     Findings --> Render[render_report]
     Render --> Write[markdown + audit JSON]
+    Write --> OptPrune[optional {stem}_pruned.md]
+    OptPrune --> OptDraft[optional draft_summary_conclusion --in-place]
 ```
 
 Key flow details:
-- Default `HC_CHECK_PROFILE` is `advisory`. `evaluate_checks` expands TSR/CCX catalog rows via `parity.py`. Place exports under `output/tsr_html/` (or set `HC_TSR_HTML`); discovery matches cluster id, then cluster name. Missing HTML or Insights data → SKIPPED.
+- `cli.main()` runs the load → evaluate → findings → render path once for a single results dir, or once per cluster when `resolve_cluster_targets` finds multiple children.
+- Check profiles: `core` (native evaluators only), `extended` (core + TSR catalog rows), `advisory` (extended + CCX; default). `evaluate_checks` expands TSR/CCX catalog rows via `parity.py` when the profile requires it. Place exports under `output/tsr_html/` (or set `HC_TSR_HTML` / `HC_TSR_HTML_DIR`); discovery matches cluster id, then cluster name. Missing HTML or Insights data → SKIPPED.
+- Findings: CLI calls `derive_findings_with_tsr()`, which calls `derive_findings()`.
+- Omit: when `HC_OMIT_CHECK_IDS` is a non-empty list, `omit_findings.py` filters those findings and a second `render_report` writes `{stem}_pruned.md` (filter-then-render; checks are not re-evaluated).
 - Report prose comes from `hc_report/kb/` via `kb_loader.py` (`content_from` aliases inherit canonical recommendation, verification, description, impact, and links). `get_recommendation` joins optional `verification` with a bold `**Verification:**` line inside the Recommendation block. See [README Knowledge Base](../README.md#knowledge-base-kb-for-recommendations-and-notes).
-- `HC_CHECK_PROFILE=core` runs the deterministic evaluator registry only.
 - Template: `templates/Health_Check/Template_HC_Report.md`.
-- Outputs: markdown report and `*_audit_*.json` under `output/Health_Check_Report/`.
+- Outputs: markdown report and `*_audit_*.json` under `output/Health_Check_Report/`. Optional `--omit-check-ids` / `HC_OMIT_CHECK_IDS` also writes `{stem}_pruned.md` (Chapter 6 filtered, Chapter 7 full). Multi-cluster inputs write one report per cluster under `output/Health_Check_Report/<cluster>/`.
+- `HC_DRY_RUN=1` on `make hc-report` passes `--dry-run` (placeholder executive summary). `HC_SUMMARY_CONCLUSION=1` runs Cursor in-place Chapter 3/8 after generate (prefers `{stem}_pruned.md` when present). `HC_CATALOG_PATH` overrides the TSR/CCX catalog JSON for `make hc-investigate`.
 - `make hc-build-catalog TSR_HTML=<path>` rebuilds `scripts/health_check/hc_report/catalogs/tsr_ccx_crosswalk.json` on the host.
-- `make hc-investigate RESULTS_DIR=… FINDING_ID=…` re-runs load/evaluate/findings and prints the matching raw JSON evidence (container). `CHECK_ID=` / `QUERY=` also work.
-- `make hc-skip-summary LEDGER=…` and `make hc-command-ref` run on the host.
+- `make hc-investigate RESULTS_DIR=… FINDING_ID=…` re-runs load/evaluate/findings and prints the matching raw JSON evidence (container). `CHECK_ID=` / `QUERY=` also work. When `RESULTS_DIR` points at a dated parent dir with one cluster child, the Makefile resolves the nested `manifest.json` path automatically (fails closed if several cluster children exist).
+- `make hc-skip-summary LEDGER=…` (`RESULTS_DIR=` also works) and `make hc-command-ref` run on the host. Skip-summary uses the same cluster-dir resolution as investigate.
+- `make clean-hc` removes `output/hc_collect` and `output/Health_Check_Report`.
 
-`make hc-html` converts report markdown via pandoc and `scripts/shared/rendering/html_collapsible.py` (collapsible `<details>` sections, Chapter 6↔7 cross-links). Output: `output/Health_Check_Report/HTML/`, preserving any cluster subdirectory. `make hc-pdf` runs pandoc, `scripts/shared/rendering/pdf_preprocess.py`, and weasyprint. Output: `output/Health_Check_Report/PDFs/`, preserving any cluster subdirectory. The same basename in two cluster dirs does not overwrite. Both require existing report markdown and exit non-zero without it.
+`make hc-html` and `make hc-pdf` discover report markdown with `scripts/shared/rendering/hc_export_paths.py` (prefers `{stem}_pruned.md` over the unpruned sibling; unique export paths per source file; collision fails closed), then pandoc plus `html_collapsible.py` (collapsible `<details>` sections, Chapter 6↔7 cross-links) or `pdf_preprocess.py` and weasyprint. Output: `output/Health_Check_Report/HTML/` and `PDFs/`, preserving cluster subdirectories. Both require existing report markdown and exit non-zero without it.
+
+Command-level operator flow: sections 6–7 above. Finding/KB rendering detail: [ARCHITECTURE.md](ARCHITECTURE.md) §Health Check Collection and Report Engine.

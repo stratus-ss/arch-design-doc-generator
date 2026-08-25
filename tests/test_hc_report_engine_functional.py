@@ -8,6 +8,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 # Bug: generate_report.py exits non-zero or writes neither markdown nor audit JSON
 # Mutant: skip _write_outputs or sys.exit(1) after render
 # Contract: public
@@ -158,3 +160,28 @@ def test_hc_evaluator_registry_returns_checks(project_root: Path) -> None:
     assert isinstance(checks, list)
     assert len(checks) > 0
     assert all(isinstance(check, CheckResult) for check in checks)
+
+
+def test_parse_args_accepts_omit_check_ids_and_omit_strict(
+    monkeypatch: pytest.MonkeyPatch, project_root: Path
+) -> None:
+    health_check_path = str(project_root / "scripts" / "health_check")
+    if health_check_path not in sys.path:
+        sys.path.insert(0, health_check_path)
+    from hc_report.cli import parse_args
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "generate_report.py",
+            "--omit-check-ids",
+            "/tmp/x",
+            "--omit-strict",
+            "--dry-run",
+        ],
+    )
+    args = parse_args()
+    assert args.omit_check_ids == Path("/tmp/x")
+    assert args.omit_strict is True
+    assert args.dry_run is True

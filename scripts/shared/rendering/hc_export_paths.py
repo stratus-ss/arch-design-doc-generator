@@ -6,6 +6,30 @@ import sys
 from pathlib import Path
 
 SKIP_DIRECTORY_NAMES: frozenset[str] = frozenset({"HTML", "PDFs"})
+_SIDECAR_SUFFIXES: tuple[str, ...] = (
+    "_exec_sections.md",
+    "_exec_sections.prompt.md",
+    "_summary_conclusion.md",
+    "_summary_conclusion.prompt.md",
+)
+
+
+def _is_sidecar_markdown(filename: str) -> bool:
+    return any(filename.endswith(suffix) for suffix in _SIDECAR_SUFFIXES)
+
+
+def _prefer_pruned_markdown(paths: list[Path]) -> list[Path]:
+    path_set = set(paths)
+    preferred: list[Path] = []
+    for path in paths:
+        if path.name.endswith("_pruned.md"):
+            preferred.append(path)
+            continue
+        pruned_peer = path.with_name(path.stem + "_pruned.md")
+        if pruned_peer in path_set:
+            continue
+        preferred.append(path)
+    return preferred
 
 
 class ExportPathCollision(Exception):
@@ -36,8 +60,10 @@ def discover_report_markdown(report_directory: Path) -> list[Path]:
         relative = candidate.resolve().relative_to(report_root)
         if relative.parts[0] in SKIP_DIRECTORY_NAMES:
             continue
+        if _is_sidecar_markdown(candidate.name):
+            continue
         discovered.append(candidate.resolve())
-    return sorted(discovered, key=str)
+    return sorted(_prefer_pruned_markdown(discovered), key=str)
 
 
 def resolve_export_path(

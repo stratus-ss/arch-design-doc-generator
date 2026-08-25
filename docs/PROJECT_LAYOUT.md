@@ -83,16 +83,18 @@
 ### `scripts/health_check/`
 - Health Check collection, deterministic report engine, and operator tools.
 - `docs/` — stitchmd fragments under `scripts/health_check/docs/`; `make hc-docs` regenerates `collect/README.md` and `supportshell/README.md` (edit fragments, not the generated READMEs).
-- `collect/` — live `oc` collectors (`hc_collect.sh`, `lib/common.sh`, category scripts `03`–`12`). `06_layered.sh` captures `cnv_vm` and `cnv_vmi` after `cnv_pods`.
+- `collect/` — live `oc` collectors (`hc_collect.sh`, `lib/common.sh`, category scripts `03`–`12`). `supportshell/` has the same `10`–`12` scripts. `make check-hc-sync` diffs only the paired twins `03`–`09`. `06_layered.sh` captures `cnv_vm` and `cnv_vmi` after `cnv_pods`.
 - `supportshell/` — offline `omc` collectors, `hc_merge.py`, `hc_collect_multi.sh`. `supportshell/06_layered.sh` is the `omc` twin of collect `06_layered.sh` (`cnv_vm` / `cnv_vmi` included).
 - `hc_report/` — report engine:
   - `evaluators/` — 12 category evaluator modules (`platform`, `topology`, `components` plus `components_infra` / `components_network` / `components_misc`, `layered`, `health`, `day2`, `security`, `metrics`, `hardware`) plus `_common.py` and `_shared_checks.py`.
-  - `kb/` — TOML knowledge base (`7_1`–`7_9` plus `versions.toml`). Optional fields: `verification` (joined at read with a bold `**Verification:**` line inside Recommendation), `summary_patterns` (Chapter 4/§6.1), `finding_group` / `finding_group_title`, `include_in_findings` (default true), `finding_on_info` (default false; INFO → P3 finding), and `content_from` (exact canonical `check_id`; alias omits inherited fields including `verification` so the TOML looks sparse; single hop; `load_kb` fails closed). Full alias rules: [README Knowledge Base](../README.md#knowledge-base-kb-for-recommendations-and-notes). Descriptions are mode-neutral (valid without TSR); do not encode a single cluster's TSR remainder. Recommendations list failure classes as examples.
+  - `kb/` — TOML knowledge base (`7_1`–`7_9` plus `versions.toml`). Optional fields: `verification` (joined at read with a bold `**Verification:**` line inside Recommendation), `summary_patterns` (§6.1), `finding_group` / `finding_group_title`, `include_in_findings` (default true), `finding_on_info` (default false; INFO → P3 finding), and `content_from` (exact canonical `check_id`; alias omits inherited fields including `verification` so the TOML looks sparse; single hop; `load_kb` fails closed). Full alias rules: [README Knowledge Base](../README.md#knowledge-base-kb-for-recommendations-and-notes). Descriptions are mode-neutral (valid without TSR); do not encode a single cluster's TSR remainder. Recommendations list failure classes as examples.
   - `parity.py`, `tsr_parser.py`, `_text.py`, `build_crosswalk_catalog.py` — TSR/CCX catalog expansion, HTML parse, catalog rebuild.
   - `catalogs/` — `tsr_ccx_crosswalk.json`.
-  - `registry.py`, `findings.py`, `notes.py`, `renderer.py`, `cli.py`, `kb_loader.py` — pipeline after load. Observation assembly (`_finding_observation`) and Chapter 4/§6.1 summary logic live in `renderer.py`. Empty recommendation or impact renders `[NEEDS REVIEW]`; `impact = "none"` renders Level of Impact None.
+  - `registry.py`, `findings.py`, `omit_findings.py`, `notes.py`, `renderer.py`, `cli.py`, `kb_loader.py` — pipeline after load. `omit_findings.py` loads a check-ID list, filters Chapter 6 findings, and names `{stem}_pruned.md`. Observation assembly (`_finding_observation`) and §6.1 summary logic live in `renderer.py`. Empty recommendation or impact renders `[NEEDS REVIEW]`; `impact = "none"` renders Level of Impact None.
   - `models.py`, `loader.py`, `metadata.py` — collected JSON models, load, and cluster metadata.
 - `generate_report.py` — thin entrypoint (`from hc_report import main`).
+- `draft_summary_conclusion.py` — optional post-render Cursor draft of Chapter 3/8 (`--in-place`).
+- `extract_finding_descriptions.py` — extract P0–P3 §6.2 descriptions from one report.
 - `split_kb_verification.py` — one-shot migrator that splits a combined recommendation blob into `recommendation` + `verification` keys (`--dry-run` first).
 - `update_recommendation_audit_log.py` — regenerates `docs/HC_RECOMMENDATION_AUDIT_LOG.md` (gitignored) from TOML, including a separate verification block.
 - `hc_link_review.py` — CLI that produces a suggested-URL CSV/markdown from KB TOML links and a local docs tree.
@@ -110,7 +112,7 @@
 - `common.sh` exposes config accessors to bash scripts.
 
 ### `scripts/shared/rendering/`
-- HC HTML/PDF post-processing: `html_utils.py` (colgroup injection), `html_collapsible.py` (collapsible HTML + cross-links), `pdf_preprocess.py` (emoji badges + PDF CSS).
+- HC HTML/PDF post-processing: `hc_export_paths.py` (discover report markdown, skip Chapter 3/8 sidecars, prefer `{stem}_pruned.md`, and map unique export paths under `HTML/` / `PDFs/`), `html_utils.py` (colgroup injection), `html_collapsible.py` (collapsible HTML + cross-links), `pdf_preprocess.py` (emoji badges + PDF CSS).
 
 ### `scripts/hld_lld/ai/`
 - Host-only deterministic extraction and render workflow.

@@ -97,7 +97,7 @@ endef
         combine-drawio sanitize-diagrams sample-schedule check-annotations package \
         force-image \
         hc-collect hc-push-scripts hc-collect-remote hc-fetch-results hc-merge clean-hc \
-        hc-report hc-html hc-pdf hc-investigate hc-skip-summary hc-command-ref hc-build-catalog \
+        hc-report hc-summary-conclusion hc-html hc-pdf hc-investigate hc-skip-summary hc-command-ref hc-build-catalog \
         hc-link-review hc-link-apply hc-report-from-supportshell check-hc-sync hc-docs \
         clean clean-build clean-hld clean-lld clean-pdfs clean-diagrams clean-workitems clean-ai clean-setup push
 
@@ -152,6 +152,7 @@ help: ## Show this help
 	print_target hc-fetch-results; \
 	print_target hc-merge; \
 	print_target hc-report; \
+	print_target hc-summary-conclusion; \
 	print_target hc-html; \
 	print_target hc-pdf; \
 	print_target hc-build-catalog; \
@@ -428,22 +429,57 @@ HC_CHECK_PROFILE  ?= advisory
 # HC_TSR_HTML must be a path relative to the repo root (workspace mount).
 HC_TSR_HTML       ?=
 HC_TSR_HTML_DIR   ?= output/tsr_html
+HC_SUMMARY_CONCLUSION ?=
+HC_OMIT_CHECK_IDS ?=
+HC_OMIT_STRICT    ?=
+AI_TOOL           ?=
 
-hc-report: image ## Generate HC report from collected data (container)
+# Load key into this recipe's environment only. Do not echo CURSOR_API_KEY.
+define hc_export_cursor_key
+	if [ -z "$$CURSOR_API_KEY" ] && [ -f "$$HOME/.config/arch-doc-gen/cursor_api_key" ]; then \
+	  CURSOR_API_KEY=$$(tr -d '\n' < "$$HOME/.config/arch-doc-gen/cursor_api_key"); \
+	  export CURSOR_API_KEY; \
+	fi; \
+	if [ -z "$$CURSOR_API_KEY" ]; then \
+	  echo "Error: CURSOR_API_KEY or ~/.config/arch-doc-gen/cursor_api_key required when HC_SUMMARY_CONCLUSION=1" >&2; \
+	  exit 1; \
+	fi
+endef
+
+hc-report: image ## Generate HC report (container). Optional HC_OMIT_CHECK_IDS=path (repo-relative omit file).
 	@mkdir -p output output/tsr_html
-	@$(ENGINE) run --rm \
+	@if [ "$(HC_SUMMARY_CONCLUSION)" = "1" ]; then $(hc_export_cursor_key); fi; \
+	$(ENGINE) run --rm \
 		-v "$$(pwd)":/workspace:Z \
 		-v "$$(pwd)/output":/output:Z \
 		-e HC_CHECK_PROFILE="$(HC_CHECK_PROFILE)" \
 		-e HC_TSR_HTML_DIR="$(HC_TSR_HTML_DIR)" \
 		$(if $(HC_TSR_HTML),-e HC_TSR_HTML="$(HC_TSR_HTML)") \
+		-e HC_SUMMARY_CONCLUSION="$(HC_SUMMARY_CONCLUSION)" \
+		$(if $(AI_TOOL),-e AI_TOOL="$(AI_TOOL)") \
+		$(if $(filter 1,$(HC_SUMMARY_CONCLUSION)),-e CURSOR_API_KEY -e HC_CURSOR_PYTHON=/usr/bin/python3) \
 		--entrypoint /workspace/scripts/entrypoint.sh $(IMAGE) \
 		hc-report \
 		--results-dir "$(HC_COLLECT_OUT)" \
 		--output-dir "$(HC_REPORT_OUT)" \
 		--check-profile "$(HC_CHECK_PROFILE)" \
 		$(if $(HC_TSR_HTML),--tsr-html "$(HC_TSR_HTML)") \
+		$(if $(HC_OMIT_CHECK_IDS),--omit-check-ids "/workspace/$(HC_OMIT_CHECK_IDS)") \
+		$(if $(filter 1,$(HC_OMIT_STRICT)),--omit-strict) \
 		$(if $(HC_DRY_RUN),--dry-run)
+
+hc-summary-conclusion: image ## Cursor-draft Chapter 3/8 into an existing report (set REPORT=path.md)
+	$(call require,REPORT,Error: set REPORT=path/to/report.md)
+	@if [ ! -f "$(REPORT)" ]; then echo "Error: report not found: $(REPORT)" >&2; exit 1; fi
+	@$(hc_export_cursor_key); \
+	$(ENGINE) run --rm \
+		-v "$$(pwd)":/workspace:Z \
+		-v "$$(pwd)/output":/output:Z \
+		-e CURSOR_API_KEY \
+		-e HC_CURSOR_PYTHON=/usr/bin/python3 \
+		$(if $(AI_TOOL),-e AI_TOOL="$(AI_TOOL)") \
+		--entrypoint /workspace/scripts/entrypoint.sh $(IMAGE) \
+		hc-summary-conclusion "/workspace/$(REPORT)"
 
 hc-html: image ## Collapsible HTML from HC report markdown (container)
 	@$(_RUNOUT) hc-html

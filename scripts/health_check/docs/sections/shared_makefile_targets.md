@@ -15,7 +15,8 @@ Each target below runs one discrete step and can be re-run on its own — useful
 | `hc-collect-remote` | Run `hc_collect_multi.sh` on the remote server via SSH (`HC_SSH_HOST=user@host HC_MG_INPUT=<case-or-must-gather-path>`) |
 | `hc-fetch-results` | Fetch results from remote server — prefers `hc_results.tar.gz`, falls back to raw rsync (`HC_SSH_HOST=user@host`) |
 | `hc-merge` | Merge multiple result dirs (`MERGE_INPUTS="dir1 dir2"`) |
-| `hc-report` | Generate branded health check report (runs in container; requires `project.yaml`) |
+| `hc-report` | Generate branded health check report (runs in container; requires `project.yaml`). Optional `HC_OMIT_CHECK_IDS` writes `{stem}_pruned.md`. Optional `HC_SUMMARY_CONCLUSION=1` drafts Chapter 3/8 in place after generate (prefers pruned) |
+| `hc-summary-conclusion` | Cursor-draft Chapter 3/8 into an existing report (`REPORT=path.md`) |
 | `hc-pdf` | Export report and execution guide to branded PDF |
 | `hc-html` | Generate collapsible HTML report |
 | `hc-build-catalog` | Rebuild TSR/CCX catalog JSON from a TSR HTML export (`TSR_HTML=path`) |
@@ -43,4 +44,4 @@ If one of these fails partway through, find the step that failed in the output a
 
 | Target | Expands to | Purpose |
 |--------|-----------|---------|
-| `hc-report-from-supportshell` | `hc-fetch-results` → `hc-report` | Fetch supportshell results, then generate the deterministic report |
+| `hc-report-from-supportshell` | `hc-fetch-results` → `hc-report` | Fetch supportshell results, then generate the report (`HC_SUMMARY_CONCLUSION=1` drafts Chapter 3/8 after generate) |

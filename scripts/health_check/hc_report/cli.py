@@ -13,14 +13,15 @@ import yaml
 from config import find_project_yaml, get_health_check_config, load_config
 
 from hc_report.evaluators import evaluate_checks
-from hc_report.evaluators._common import (
-    _cluster_version_object,
-    _resource_spec,
-    _resource_status,
-)
 from hc_report.findings import derive_findings_with_tsr
 from hc_report.loader import load_results, resolve_cluster_targets
 from hc_report.metadata import derive_metadata
+from hc_report.omit_findings import (
+    apply_finding_omit,
+    compact_finding_ids,
+    load_omit_check_ids,
+    pruned_report_path,
+)
 from hc_report.parity import discover_tsr_html
 from hc_report.renderer import find_unfilled_slots, render_report
 from hc_report.tsr_parser import parse_tsr_html
@@ -68,6 +69,17 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--dry-run", action="store_true",
                         help="Use placeholder executive summary (edit before delivery)")
+    parser.add_argument(
+        "--omit-check-ids",
+        type=Path,
+        default=None,
+        help="Path to a check-ID list; write {stem}_pruned.md with those Chapter 6 findings removed",
+    )
+    parser.add_argument(
+        "--omit-strict",
+        action="store_true",
+        help="Exit 1 if any omit check ID is not present on a derived finding",
+    )
     return parser.parse_args()
 
 
@@ -92,21 +104,6 @@ def _load_config_paths(
     )
     template_path = args.template or project_root / "templates/Health_Check/Template_HC_Report.md"
     return config, results_dir, output_dir, template_path
-
-
-def _extract_cluster_id(results: dict) -> str:
-    base = results.get("03_base_platform", {})
-    clusterversion_raw = base.get("clusterversion", {})
-    if not isinstance(clusterversion_raw, dict):
-        return ""
-    clusterversion = _cluster_version_object(clusterversion_raw)
-    clusterversion_spec = _resource_spec(clusterversion)
-    clusterversion_status = _resource_status(clusterversion)
-    return str(
-        clusterversion_spec.get("clusterID")
-        or clusterversion_status.get("clusterID")
-        or ""
-    ).strip()
 
 
 def _resolve_tsr_html_dir(project_root: Path, hc_config: dict) -> Path:
@@ -335,12 +332,12 @@ def _resolve_tsr_html_path(
 
 
 def _discover_tsr_html_if_needed(
-    args: argparse.Namespace, project_root: Path, hc_config: dict, results: dict, meta: dict
+    args: argparse.Namespace, project_root: Path, hc_config: dict, meta: dict
 ) -> None:
     """Auto-discover a matching TSR HTML export when none was resolved explicitly."""
     if args.tsr_html is not None:
         return
-    cluster_id = _extract_cluster_id(results)
+    cluster_id = str(meta.get("cluster_id") or "").strip()
     tsr_html_dir = _resolve_tsr_html_dir(project_root, hc_config)
     discovered_tsr = discover_tsr_html(tsr_html_dir, cluster_id, meta["cluster_name"])
     if discovered_tsr is not None:
@@ -392,7 +389,7 @@ def _generate_single_report(
     print(f"  Cluster: {meta['cluster_name']}, OCP: {meta['ocp_version']}, Channel: {meta['channel']}")
     ocp_minor = _extract_minor_version(meta.get("ocp_version", ""))
 
-    _discover_tsr_html_if_needed(args, project_root, hc_config, results, meta)
+    _discover_tsr_html_if_needed(args, project_root, hc_config, meta)
 
     print("Evaluating checks...")
     tsr_runtime_path = _parse_tsr_html_runtime(args, output_dir)
@@ -436,7 +433,72 @@ def _generate_single_report(
 
     output_file = _write_outputs(output_dir, rendered, meta, checks, findings, pcount, args.check_profile)
     print(f"Report written to: {output_file}")
+    _write_pruned_report(
+        args,
+        output_file,
+        template_text,
+        meta,
+        checks,
+        findings,
+        ocp_minor,
+        data_collection_method,
+    )
     return output_file, unfilled
+
+
+def _write_pruned_report(
+    args: argparse.Namespace,
+    output_file: Path,
+    template_text: str,
+    meta: dict,
+    checks: list,
+    findings: list,
+    ocp_minor: str,
+    data_collection_method: str,
+) -> None:
+    pruned_path = pruned_report_path(output_file)
+    if args.omit_check_ids is None:
+        pruned_path.unlink(missing_ok=True)
+        return
+    try:
+        omit_ids = load_omit_check_ids(args.omit_check_ids)
+    except FileNotFoundError:
+        print(
+            f"Error: omit check-id file not found: {args.omit_check_ids}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    if not omit_ids:
+        pruned_path.unlink(missing_ok=True)
+        return
+    result = apply_finding_omit(findings, omit_ids)
+    for unmatched_id in result.unmatched:
+        print(
+            f"Warning: omit check ID not in Chapter 6 findings: {unmatched_id}",
+            file=sys.stderr,
+        )
+    if args.omit_strict and result.unmatched:
+        sys.exit(1)
+    pruned_findings = compact_finding_ids(result.kept)
+    pruned_pcount = Counter(finding.priority for finding in pruned_findings)
+    exec_summary = _make_exec_summary(
+        args, meta, checks, pruned_findings, pruned_pcount
+    )
+    findings_narrative = _make_findings_narrative(
+        args, meta, checks, pruned_findings, pruned_pcount
+    )
+    pruned_rendered = render_report(
+        template_text,
+        meta,
+        checks,
+        pruned_findings,
+        exec_summary,
+        findings_narrative,
+        data_collection_method,
+        ocp_version=ocp_minor,
+    )
+    pruned_path.write_text(pruned_rendered, encoding="utf-8")
+    print(f"Pruned report written to: {pruned_path}")
 
 
 def main() -> None:

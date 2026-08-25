@@ -13,6 +13,8 @@ MERGE_INPUTS        "dir1 dir2 ..."          — inputs for hc-merge
 HC_TSR_HTML         /path/to/file.html       — explicit TSR HTML path (overrides auto-discovery)
 HC_TSR_HTML_DIR     output/tsr_html          — directory for TSR HTML auto-discovery (default)
 HC_CHECK_PROFILE    advisory                 — check expansion profile: core | extended | advisory
+HC_OMIT_CHECK_IDS   repo-relative path to a check-ID omit list (writes {stem}_pruned.md)
+HC_OMIT_STRICT      1                        — fail if an omit ID is not on a Chapter 6 finding
 HC_CCX_RULES_FILE   /path/to/ccx_rules.json — optional CCX runtime payload for collection
 HC_DOCS_ROOT        local OpenShift docs tree for make hc-link-review
 HC_LINK_REVIEW_OUT  output dir for kb_link_review.md / .csv

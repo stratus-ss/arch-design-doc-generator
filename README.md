@@ -75,7 +75,7 @@ Run `make help` or `make status` at any time to see available targets and curren
 
 ## Health Check
 
-A second engagement type (`PROJECT=HC`) collects OpenShift cluster JSON and generates a deterministic markdown report plus audit JSON. Collection runs on the host; report generation runs in the container. AI is not used for health check (company policy). TSR/CCX parity expansion is available: `make hc-report` defaults to `--check-profile advisory` and scores catalog checks from a TSR HTML export (and optional `12_ccx/ccx_rules.json`). Missing HTML or Insights data stays SKIPPED. After the report exists, `make hc-html` and `make hc-pdf` export collapsible HTML and branded PDF from that markdown; both exit non-zero when no report markdown is present. Operator runbooks start at [`scripts/health_check/README.md`](scripts/health_check/README.md); per-check consultant rationale is in [`docs/HC_CHECK_RATIONALE.md`](docs/HC_CHECK_RATIONALE.md).
+A second engagement type (`PROJECT=HC`) collects OpenShift cluster JSON and generates a deterministic markdown report plus audit JSON. Collection runs on the host; report generation runs in the container. AI is not used for check evaluation (company policy). Optional `HC_SUMMARY_CONCLUSION=1` on `make hc-report` (or `make hc-summary-conclusion REPORT=…`) drafts Chapter 3 and Chapter 8 in place via Cursor in the container after generate. TSR/CCX parity expansion is available: `make hc-report` defaults to `--check-profile advisory` and scores catalog checks from a TSR HTML export (and optional `12_ccx/ccx_rules.json`). Missing HTML or Insights data stays SKIPPED. Optional `HC_OMIT_CHECK_IDS` writes `{stem}_pruned.md` with those Chapter 6 findings removed (original markdown and audit stay full). `make hc-html` and `make hc-pdf` export collapsible HTML and branded PDF from that markdown (`hc_export_paths.py` prefers `*_pruned.md` when present and maps each source file to a unique path under `HTML/` or `PDFs/`, preserving cluster subdirs); both exit non-zero when no report markdown is present. Operator runbooks start at [`scripts/health_check/README.md`](scripts/health_check/README.md); per-check consultant rationale is in [`docs/HC_CHECK_RATIONALE.md`](docs/HC_CHECK_RATIONALE.md).
 
 | Target | Runtime | Purpose |
 |---|---|---|
@@ -86,7 +86,8 @@ A second engagement type (`PROJECT=HC`) collects OpenShift cluster JSON and gene
 | `make hc-fetch-results HC_SSH_HOST=...` | Host | Fetch results tarball from remote into `output/hc_collect/<date>` |
 | `make hc-report-from-supportshell HC_SSH_HOST=user@host` | Host fetch, then container report | Fetch supportshell results, then run `hc-report` against the dated staging dir |
 | `make hc-merge MERGE_INPUTS="dir1 dir2"` | Host | Merge multiple `hc_results` dirs on the host |
-| `make hc-report` | Container | Generate markdown report + audit JSON from collected data (default profile `advisory`) |
+| `make hc-report` | Container | Generate markdown report + audit JSON from collected data (default profile `advisory`). Optional `HC_OMIT_CHECK_IDS` writes `{stem}_pruned.md`. Optional `HC_SUMMARY_CONCLUSION=1` drafts Chapter 3/8 in place (prefers pruned) |
+| `make hc-summary-conclusion REPORT=path.md` | Container | Cursor-draft Chapter 3/8 into an existing report |
 | `make hc-html` | Container | Collapsible HTML from report markdown under `output/Health_Check_Report/` (nested reports keep cluster subdirs under `HTML/`) |
 | `make hc-pdf` | Container | Branded PDF from report markdown under `output/Health_Check_Report/` (nested reports keep cluster subdirs under `PDFs/`) |
 | `make hc-build-catalog TSR_HTML=<path>` | Host | Rebuild `tsr_ccx_crosswalk.json` from a TSR HTML export |
@@ -103,13 +104,13 @@ A second engagement type (`PROJECT=HC`) collects OpenShift cluster JSON and gene
 
 `make hc-report` runs `generate_report.py` inside the toolkit container (`HC_CHECK_PROFILE` defaults to `advisory`). Place TSR HTML under `output/tsr_html/` or set `HC_TSR_HTML` to a repo-relative path so catalog rows get real statuses. Without matching HTML, those rows are SKIPPED. `HC_CHECK_PROFILE=core` still runs native evaluators only.
 
-Rebuild the catalog with `make hc-build-catalog TSR_HTML=path/to/export.html`. Outputs land under `output/Health_Check_Report/`. Optional: `HC_DRY_RUN=1` for the same deterministic summary without extra flags.
+Rebuild the catalog with `make hc-build-catalog TSR_HTML=path/to/export.html`. Outputs land under `output/Health_Check_Report/`. Optional: `HC_DRY_RUN=1` for the generate-report placeholder executive summary. Optional: `HC_OMIT_CHECK_IDS=path/to/omit.txt` (repo-relative) to also write `{stem}_pruned.md` with those check IDs dropped from Chapter 6; `HC_OMIT_STRICT=1` exits 1 if an ID is not on any finding. Optional: `HC_SUMMARY_CONCLUSION=1` to Cursor-draft Chapter 3 and Chapter 8 in place after generate (requires `CURSOR_API_KEY` and an image rebuilt with `cursor-sdk`; drafts the pruned file when it exists).
 
 `project.example.hc.yaml` is the HC template; never commit `project.yaml` or kubeconfigs.
 
 ### Knowledge Base (KB) for recommendations and notes
 
-Report prose (description, recommendation, optional verification, documentation links, operational impact) lives in TOML under `scripts/health_check/hc_report/kb/` (`7_1`–`7_9` plus `versions.toml`). `kb_loader.py` loads it at report time. Thresholds, evidence paths, and live `oc`/`jq` validation stay in [`docs/HC_CHECK_RATIONALE.md`](docs/HC_CHECK_RATIONALE.md). Numbered `oc` commands belong in `verification`; `get_recommendation` joins that field into the Recommendation block at read.
+Report prose (description, recommendation, optional verification, documentation links, operational impact) lives in TOML under `scripts/health_check/hc_report/kb/` (`7_1`–`7_9` plus `versions.toml`). `kb_loader.py` loads it at report time. Thresholds, evidence paths, and live `oc`/`jq` validation stay in [`docs/HC_CHECK_RATIONALE.md`](docs/HC_CHECK_RATIONALE.md). Numbered `oc` commands belong in `verification`; `get_recommendation` joins that field into the Recommendation block at read. Verification English tells a non-expert how to read each command (healthy / fail / skip); it does not repeat the recommendation.
 
 Each `[[checks]]` row is keyed by `check_id`. Typical fields: `title`, `description`, `recommendation`, optional `verification`, `impact` / `impact_scope` / `impact_detail`, `[checks.links]`, optional `summary_patterns`, `finding_group`, `include_in_findings`, and `finding_on_info`. Descriptions are mode-neutral (valid without TSR). Empty recommendation or impact renders `[NEEDS REVIEW]`. `get_recommendation` joins `recommendation` with optional `verification` using a bold `**Verification:**` line inside the Recommendation block; aliases inherit `verification` via `content_from`.
 
@@ -168,6 +169,10 @@ REGISTRY            container registry for make push
 HC_CHECK_PROFILE    core | extended | advisory (default: advisory)
 HC_TSR_HTML         repo-relative path to a TSR HTML export (optional)
 HC_TSR_HTML_DIR     directory to auto-discover TSR HTML (default: output/tsr_html)
+HC_DRY_RUN          1 to pass --dry-run to hc-report (placeholder executive summary)
+HC_OMIT_CHECK_IDS   repo-relative omit file (check IDs; writes {stem}_pruned.md)
+HC_OMIT_STRICT      1 to fail if an omit ID is not on a Chapter 6 finding
+HC_CATALOG_PATH     optional TSR/CCX catalog JSON override for hc-investigate
 TSR_HTML            path for `make hc-build-catalog` (required for that target)
 ```
 

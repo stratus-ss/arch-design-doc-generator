@@ -18,6 +18,20 @@ def _load_export_paths():
     return hc_export_paths
 
 
+def test_discover_report_markdown_prefers_pruned_peer(tmp_path: Path) -> None:
+    hc_export_paths = _load_export_paths()
+    report_directory = tmp_path / "Health_Check_Report"
+    report_directory.mkdir()
+    original = report_directory / "Example_OpenShift_Health_Check_x.md"
+    pruned = report_directory / "Example_OpenShift_Health_Check_x_pruned.md"
+    original.write_text("full", encoding="utf-8")
+    pruned.write_text("pruned", encoding="utf-8")
+
+    discovered = hc_export_paths.discover_report_markdown(report_directory)
+
+    assert discovered == [pruned.resolve()]
+
+
 def test_nested_same_basename_maps_to_cluster_subdirectories(tmp_path: Path) -> None:
     hc_export_paths = _load_export_paths()
     report_directory = tmp_path / "Health_Check_Report"
