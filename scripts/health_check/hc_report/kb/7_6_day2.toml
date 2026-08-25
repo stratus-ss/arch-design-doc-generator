@@ -204,15 +204,15 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.6.tsr.6_1_5_5_node_garbage_collection"
 title = "TSR node garbage collection"
-description = "This check verifies that each node is properly cleaning up unused container images. When images accumulate beyond the garbage collection threshold (default: 85% disk usage), the kubelet should automatically remove unused images. A failure here means images are consuming excessive disk space and the automatic cleanup is not keeping pace."
-recommendation = "Keep the node filesystem used for container images below the kubelet image garbage-collection high threshold (85% by default). When usage reaches or exceeds the applied `imageGCHighThresholdPercent`, identify and remove unused images through normal kubelet garbage collection, reduce image churn, or expand the affected node storage; do not raise the threshold merely to suppress the warning. Validate the relevant image filesystem’s actual USED% against the applied kubelet threshold rather than relying on `crictl images` counts. If a threshold change is required, apply it through a targeted `KubeletConfig`, account for Machine Config Pool rollout and node disruption, and verify that the resulting low/high thresholds leave adequate space to avoid DiskPressure and pod eviction."
-verification = "1. Print image filesystem fill against the applied garbage-collection HIGH threshold per node. **FAIL** if USED% >= HIGH; **PASS** otherwise. HIGH defaults to 85 when no `KubeletConfig` overrides it.\n   `oc get nodes --no-headers -o custom-columns=NAME:.metadata.name | while read -r node; do high=$(oc get --raw /api/v1/nodes/${node}/proxy/configz | jq -r '.kubeletconfig.imageGCHighThresholdPercent // 85'); oc get --raw /api/v1/nodes/${node}/proxy/stats/summary | jq -r --arg node \"$node\" --arg high \"$high\" '(.node.runtime.imageFs // .node.fs) as $fs | [$node, $high, $fs.capacityBytes, $fs.availableBytes] | @tsv'; done | awk '{used=int(($3-$4)*100/$3); r=\"PASS\"; if(used>=$2+0) r=\"FAIL\"; print r, \"NODE=\"$1, \"USED=\"used\"%\", \"HIGH=\"$2}'`"
+description = "Kubelet image garbage collection uses cAdvisor disk usage on the image filesystem, not Prometheus. OpenShift nodes docs default `imageGCHighThresholdPercent` to 85 and `imageGCLowThresholdPercent` to 80. The TSR fails or warns when images use more than half of node disk; that is an early warning before kubelet GC starts at the applied HIGH (default 85)."
+recommendation = "Investigate TSR image fill above 50% of node disk: prune unused images, reduce churn, or grow disk. Do not raise `imageGCHighThresholdPercent` to hide the TSR warning. Official kubelet GC still starts at the applied HIGH (default 85); 50% is not the kubelet trigger."
+verification = "1. Print image filesystem fill against the applied garbage-collection HIGH threshold per node. **FAIL** if USED% is at or above HIGH; **PASS** otherwise. HIGH defaults to 85 when no `KubeletConfig` overrides it.\n   `oc get nodes --no-headers -o custom-columns=NAME:.metadata.name | while read -r node; do high=$(oc get --raw /api/v1/nodes/${node}/proxy/configz | jq -r '.kubeletconfig.imageGCHighThresholdPercent // 85'); oc get --raw /api/v1/nodes/${node}/proxy/stats/summary | jq -r --arg node \"$node\" --arg high \"$high\" '(.node.runtime.imageFs // .node.fs) as $fs | [$node, $high, $fs.capacityBytes, $fs.availableBytes] | @tsv'; done | awk '{used=int(($3-$4)*100/$3); r=\"PASS\"; if(used>=$2+0) r=\"FAIL\"; print r, \"NODE=\"$1, \"USED=\"used\"%\", \"HIGH=\"$2}'`\n2. Print the same image filesystem USED% against the TSR early-warning bar. **WARNING** if USED% is at least 50 and still below HIGH; **PASS** if USED% is under 50; **FAIL** if USED% is at or above HIGH.\n   `oc get nodes --no-headers -o custom-columns=NAME:.metadata.name | while read -r node; do high=$(oc get --raw /api/v1/nodes/${node}/proxy/configz | jq -r '.kubeletconfig.imageGCHighThresholdPercent // 85'); oc get --raw /api/v1/nodes/${node}/proxy/stats/summary | jq -r --arg node \"$node\" --arg high \"$high\" '(.node.runtime.imageFs // .node.fs) as $fs | [$node, $high, $fs.capacityBytes, $fs.availableBytes] | @tsv'; done | awk '{used=int(($3-$4)*100/$3); r=\"PASS\"; if(used>=$2+0) r=\"FAIL\"; else if(used>=50) r=\"WARNING\"; print r, \"NODE=\"$1, \"USED=\"used\"%\", \"HIGH=\"$2, \"TSR50=50\"}'`"
 priority_hint = ""
 impact = "rolling-restart"
 impact_scope = "nodes in the targeted MachineConfigPool"
 impact_detail = "Changing kubelet garbage-collection settings through `KubeletConfig` or MachineConfig drains and reboots affected nodes one at a time."
 summary_patterns = [
-  { contains = "more than half of the total disk", text = "Node image storage uses more than half of disk; garbage collection is not keeping up." },
+  { contains = "more than half of the total disk", text = "TSR: images already use more than half of node disk (early warning; kubelet GC default is 85%)." },
 ]
 
 [checks.links]
@@ -372,7 +372,21 @@ content_from = "7.6.tsr.6_1_3_1_current_node_load"
 [[checks]]
 check_id = "7.6.tsr.6_1_3_2_node_expected_resource_consumption"
 title = "6.1.3.2. Node Expected Resource Consumption"
-content_from = "7.5.tsr.5_11_3_overcommit_alerts"
+description = "The TSR compares current pod requests to a per-node expected max-usage (Limits) percent it computed. Those percents differ by node (examples 2%/1% or 10%/2% in other dumps). This is not the request/allocatable overcommit check (> 1.0)."
+recommendation = "On TSR FAIL or WARNING, right-size requests and limits or add capacity on that node. Do not use `oc adm top` as the TSR bar. Do not apply a single cluster-wide percent."
+verification = "1. The scored bar is in the TSR Result text (`expected is cpu:… ram:… while currently requests …`). Read that remainder; this step does not invent a PASS/FAIL percent.\n2. Optional live context only: print Allocated resources on a named node. This is **INFO**, not PASS/FAIL against TSR percents.\n   `oc describe node <name>`"
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/nodes/index#nodes-cluster-overcommit-reserving-resources_nodes-cluster-overcommit"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/nodes/index#nodes-cluster-overcommit-reserving-resources_nodes-cluster-overcommit"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/nodes/index#nodes-cluster-overcommit-reserving-resources_nodes-cluster-overcommit"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/nodes/index#nodes-cluster-overcommit-reserving-resources_nodes-cluster-overcommit"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/nodes/index#nodes-cluster-overcommit-reserving-resources_nodes-cluster-overcommit"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/nodes/index#nodes-cluster-overcommit-reserving-resources_nodes-cluster-overcommit"
 
 [[checks]]
 check_id = "7.6.tsr.6_1_4_persistent_volume_usage"

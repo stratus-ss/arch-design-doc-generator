@@ -421,9 +421,9 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.1.tsr.1_4_1_3_master_memory"
 title = "1.4.1.3. Master Memory"
-description = "Control-plane nodes require minimum 16 GiB RAM (32+ recommended for\nproduction). Insufficient memory causes OOM kills of critical components\nlike etcd and the API server.\n"
-recommendation = "Resize or replace any control-plane node whose `status.capacity.memory` is below 16 GiB. The 32+ figure in the description is a production preference and does not change this threshold."
-verification = "1. Check memory capacity (`status.capacity.memory`, in Ki) on each control-plane node. **PASS** is 16 GiB (16777216 Ki) or more:\n   `oc get nodes -l node-role.kubernetes.io/master --no-headers -o custom-columns=NAME:.metadata.name,MEM:.status.capacity.memory | awk '{print ($2+0>=16777216?\"PASS\":\"FAIL\"), $1, $2}'`"
+description = "Control-plane nodes require minimum 16 GiB RAM (32+ recommended for\nproduction). Insufficient memory causes OOM kills of critical components\nlike etcd and the API server. The TSR also warns when kubelet\n`systemReserved.memory` is below its size-based expectation (for example\n3 GiB reserved on a ~32 GiB node), even if capacity already meets 16 GiB.\n"
+recommendation = "Resize or replace any control-plane node whose `status.capacity.memory` is below 16 GiB. When TSR flags `systemReserved.memory` below its size-based expectation, set `spec.kubeletConfig.systemReserved.memory` via `KubeletConfig` (`spec.autoSizingReserved: false` if overriding auto-size); do not treat that reserved WARNING as a 16 GiB FAIL."
+verification = "1. Check memory capacity (`status.capacity.memory`, in Ki) on each control-plane node. **PASS** is 16 GiB (16777216 Ki) or more:\n   `oc get nodes -l node-role.kubernetes.io/master --no-headers -o custom-columns=NAME:.metadata.name,MEM:.status.capacity.memory | awk '{print ($2+0>=16777216?\"PASS\":\"FAIL\"), $1, $2}'`\n2. Print kubelet `systemReserved.memory` from each control-plane node's `configz`. This step confirms reservation and does not FAIL on the 16 GiB capacity bar. **INFO** if `systemReserved.memory` is missing.\n   `oc get nodes -l node-role.kubernetes.io/master --no-headers -o custom-columns=NAME:.metadata.name | while read -r node; do reserved=$(oc get --raw /api/v1/nodes/${node}/proxy/configz | jq -r '.kubeletconfig.systemReserved.memory // empty'); if [ -z \"$reserved\" ]; then echo \"INFO NODE=${node} systemReserved.memory missing\"; else echo \"INFO NODE=${node} systemReserved.memory=${reserved}\"; fi; done`"
 priority_hint = ""
 impact = "none"
 impact_scope = ""
@@ -823,7 +823,7 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.1.tsr.1_5_7_2_chrony"
 title = "1.5.7.2. Chrony"
-description = "Chrony is the default NTP implementation on RHCOS. It must be configured with\nreachable time sources and maintaining synchronization within acceptable\nskew thresholds.\n"
+description = "Chrony is the default NTP implementation on RHCOS. It must be configured with\nreachable time sources. This check's verification bar is clock offset under 100 ms.\n"
 recommendation = "Keep a reachable chrony source and offset under 100ms. If offset is high or sources are unreachable, fix chrony config via MachineConfig. PTP is only in scope when the design uses it. Firing clock alerts mean the node is already skewing."
 verification = "1. Print chrony tracking on each node:\n   `oc debug node/<name> -- chroot /host chronyc tracking`\n2. List the chrony sources:\n   `oc debug node/<name> -- chroot /host chronyc sources -v`\n3. **PASS** when the reported offset is under 100 ms (`< 100ms`) and at least one source is reachable."
 priority_hint = ""

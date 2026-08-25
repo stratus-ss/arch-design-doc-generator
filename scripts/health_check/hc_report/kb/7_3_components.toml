@@ -318,15 +318,15 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.3.tsr.3_5_5_etcd_compaction"
 title = "TSR etcd compaction"
-description = "This check measures how long etcd takes to compact (clean up) its internal database on each control plane node. The reported percentile value (e.g. \"95% quantile: 816ms\") means that 95 out of 100 compaction operations completed within that time. High values indicate the etcd database is under stress — usually from slow disks, a large database, or heavy API traffic — and the cluster's API responsiveness may be degraded."
-recommendation = "Defrag if DB SIZE is bloated (typically over 8 GB), performing it one control-plane member at a time and allowing recovery between members. Because the 95th-percentile compaction latency is 5.6 seconds (up to 9.5 seconds), also investigate control-plane disk latency, disk contention, database growth, and high API traffic; persistent latency after defrag points to an underlying storage or workload issue rather than fragmentation alone."
+description = "This check measures how long etcd takes to compact (clean up) its internal database on each control plane node. The reported percentile value (e.g. \"95% quantile: 816ms\") means that 95 out of 100 compaction operations completed within that time. The TSR NOTE (KCS 6271341) is about 200 ms on a small cluster and no more than 800–900 ms on a large cluster (20+ workers); that is not an OCP HTML SLA. Values above that usually mean slow disks, a large database, or heavy API traffic, and API responsiveness may be degraded."
+recommendation = "Defrag if DB SIZE is bloated (typically over 8 GB), performing it one control-plane member at a time and allowing recovery between members. Treat 95th-percentile compaction above about 200 ms on a small cluster, or above 800–900 ms on a large cluster (20+ workers), as a storage or load problem: investigate control-plane disk latency, disk contention, database growth, and high API traffic. Persistent latency after defrag points to an underlying storage or workload issue rather than fragmentation alone."
 verification = "1. Check the current etcd database size on every member:\n   `oc -n openshift-etcd exec -c etcd etcd-<member> -- etcdctl endpoint status --cluster -w table`\n      Look at the DB SIZE column — healthy clusters are typically under 8 GB.\n2. If the database is large, schedule a defragmentation during a maintenance window:\n   `oc -n openshift-etcd exec -c etcd etcd-<member> -- etcdctl defrag --cluster`\n3. After defragmentation, verify that DB SIZE dropped and compaction latency improved.\n4. If compaction latency remains high, investigate disk I/O on the control plane nodes — slow storage is the most common root cause."
 priority_hint = ""
 impact = "maintenance-window"
 impact_scope = "control plane and etcd members"
 impact_detail = "Manual etcd defragmentation or backend recovery work affects the control plane and should be done in a planned window with etcd backup protection."
 summary_patterns = [
-  { contains = "95% quantile", text = "etcd compaction latency is above the expected range." },
+  { contains = "95% quantile", text = "etcd compaction p95 exceeds ~200 ms (small cluster) or 800–900 ms (20+ workers)." },
 ]
 
 [checks.links]
@@ -362,8 +362,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.3.tsr.3_5_8_1_etcd_disk_performance"
 title = "TSR etcd disk performance"
-description = "This check measures how quickly the control plane disks can write data durably (called \"fsync\"). The reported value (e.g. \"99% quantile: 31ms\") means that 99 out of 100 write operations completed within that time. Red Hat requires the 99th percentile WAL fsync to stay below 10ms. When disks are too slow, etcd cannot keep up with cluster changes, causing API timeouts, leader elections, and potential cluster instability."
-recommendation = "Move etcd onto dedicated NVMe or enterprise SSD when WAL fsync p99 exceeds 10 ms. BareMetal IPI needs high-IOPS storage for the control plane. Do not tune etcd to hide slow disks."
+description = "This check measures how quickly the control plane disks can write data durably. The reported value (e.g. \"99% quantile: 31ms\") means that 99 out of 100 operations completed within that time. Red Hat requires WAL fsync p99 below 10 ms. The TSR also requires backend commit p99 below 25 ms. When disks are too slow, etcd cannot keep up with cluster changes, causing API timeouts, leader elections, and potential cluster instability."
+recommendation = "Move etcd onto dedicated NVMe or enterprise SSD when WAL fsync p99 exceeds 10 ms or backend commit p99 exceeds 25 ms. BareMetal IPI needs high-IOPS storage for the control plane. Do not tune etcd to hide slow disks."
 verification = "1. Validate control plane storage with fio on each etcd node:\n   `sudo podman run --volume /var/lib/etcd:/var/lib/etcd:Z quay.io/cloud-bulldozer/etcd-perf`\n2. Check if control plane nodes are under CPU or memory pressure:\n   `oc adm top nodes -l node-role.kubernetes.io/master=`\n3. Review etcd latency metrics in Prometheus:\n      - `histogram_quantile(0.99, rate(etcd_disk_wal_fsync_duration_seconds_bucket[5m]))`\n      - `histogram_quantile(0.99, rate(etcd_disk_backend_commit_duration_seconds_bucket[5m]))`\n      - `histogram_quantile(0.99, rate(etcd_network_peer_round_trip_time_seconds_bucket[2m]))`\n4. If disk latency exceeds 10ms at the 99th percentile:\n      - On bare metal: move /var/lib/etcd to a dedicated NVMe or SSD partition\n      - On virtualized platforms: check for noisy-neighbor conditions, ensure storage is not shared with high-I/O workloads, and verify the backing datastore meets latency requirements\n5. Keep the 99th percentile WAL fsync under 10ms and peer RTT under 50ms."
 recommendation_supported_versions = [
     "4.18",
@@ -377,7 +377,8 @@ impact = "maintenance-window"
 impact_scope = "control plane nodes and etcd storage path"
 impact_detail = "Fixing etcd disk-performance problems usually requires control-plane infrastructure or storage changes that can reduce API capacity while nodes are remediated."
 summary_patterns = [
-  { contains = "less than 10ms", text = "etcd WAL fsync latency exceeds the 10ms Red Hat threshold." },
+  { contains = "less than 10ms", text = "etcd WAL fsync p99 exceeds the 10 ms Red Hat threshold." },
+  { contains = "less than 25ms", text = "etcd backend commit p99 exceeds the 25 ms TSR threshold." },
 ]
 
 [checks.links]
@@ -682,7 +683,7 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.3.tsr.3_5_8_2_etcd_network_performance"
 title = "3.5.8.2. ETCD Network Performance"
-description = "Measures network round-trip latency between etcd members. High inter-member\nlatency causes heartbeat timeouts, leader elections, and request failures\nthat propagate to the API server.\n"
+description = "Measures network round-trip latency between etcd members. OpenShift etcd\npractices require the 99th percentile of `etcd_network_peer_round_trip_time`\nto stay below 50 ms. Higher latency causes heartbeat timeouts, leader\nelections, and request failures that propagate to the API server.\n"
 recommendation = "Keep peer RTT under 50 ms. High latency causes heartbeat timeouts and elections. Fix control-plane network placement; do not chase an etcd flag."
 verification = "1. Test network latency between control plane nodes hosting etcd.\n2. Review etcd logs for peer connectivity warnings:\n   `oc -n openshift-etcd logs etcd-<node> -c etcd | grep -i 'overloaded network\\|dial timeout\\|peer'`\n3. Ensure control plane nodes are on a low-latency network segment."
 priority_hint = ""
@@ -700,7 +701,7 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.3.tsr.3_5_8_3_etcd_cpu_performance"
 title = "3.5.8.3. ETCD CPU Performance"
-description = "Checks CPU utilization on control plane nodes running etcd. CPU starvation\ncauses etcd request timeouts, slow commits, and can trigger leader elections\nthat affect the entire cluster.\n"
+description = "Checks CPU pressure on control plane nodes running etcd. The TSR scores\netcd `cpu_iowait` and expects it below 4.0 seconds. CPU starvation causes\netcd request timeouts, slow commits, and can trigger leader elections that\naffect the entire cluster.\n"
 recommendation = "Move customer pods off masters or add CPU when `oc adm top` shows high steal on masters or etcd pods. etcd is latency-sensitive to CPU steal, especially if masters are schedulable."
 verification = "1. Review CPU usage on control plane nodes:\n   `oc adm top nodes -l node-role.kubernetes.io/master=`\n2. Check etcd container CPU usage:\n   `oc adm top pods -n openshift-etcd`\n3. Investigate noisy-neighbor workloads if control plane nodes are schedulable."
 priority_hint = ""
@@ -1059,7 +1060,7 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.3.tsr.3_10_2_ovnkube"
 title = "3.10.2. OVNKube"
-description = "Validates OVN-Kubernetes network plugin health, pod status, and configuration.\nOVN-Kubernetes provides the cluster networking data plane and any degradation\naffects pod-to-pod and service communication.\n"
+description = "Validates OVN-Kubernetes health. The TSR scores ovnkube node CNI request\nduration and expects the 95th percentile below 5 seconds. OVN-Kubernetes\nprovides the cluster networking data plane; slow CNI or a degraded operator\naffects pod-to-pod and service communication.\n"
 recommendation = "Bring the network ClusterOperator to `Available=True`, `Progressing=False`, `Degraded=False` with ovnkube-node `READY=DESIRED`. If the operator or DS is degraded, east-west traffic and Services fail. IPsec is a separate network row."
 verification = "1. Confirm ClusterOperator network (`Available=True`, `Progressing=False`, `Degraded=False`):\n   `oc get co network | awk 'NR==1{print \"RESULT\",$0; next} {print ($3==\"True\" && $4==\"False\" && $5==\"False\"?\"PASS\":\"FAIL\"), $0}'`\n2. Confirm ovnkube-node (`READY=DESIRED`) and ovnkube-control-plane (`READY=SPEC`):\n   `oc get ds -n openshift-ovn-kubernetes -o custom-columns=NAME:.metadata.name,DESIRED:.status.desiredNumberScheduled,READY:.status.numberReady | awk 'NR==1{print \"RESULT\",$0; next} {print ($2==$3?\"PASS\":\"FAIL\"), $0}'`\n   `oc get deploy -n openshift-ovn-kubernetes -o custom-columns=NAME:.metadata.name,READY:.status.readyReplicas,SPEC:.spec.replicas | awk 'NR==1{print \"RESULT\",$0; next} {print ($2==$3?\"PASS\":\"FAIL\"), $0}'`\n3.\n4. https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#about-ovn-kubernetes"
 priority_hint = ""
