@@ -285,3 +285,29 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#configuring-ingress-cluster-traffic-ingress-controller"
 "4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#configuring-ingress-cluster-traffic-ingress-controller"
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#configuring-ingress-cluster-traffic-ingress-controller"
+[[checks]]
+check_id = "7.2.mcp.*"
+pattern = true
+title = "MachineConfigPool"
+description = "This check is the named `MachineConfigPool` degraded, updating, paused, and machine-count posture. `Updated=False` with matching `updatedMachineCount` and `readyMachineCount` and `spec.paused=true` is a pause hold, not a missing node count. Degraded or mismatched counts are a rollout defect."
+recommendation = "Bring the named `MachineConfigPool` to a stable rollout: `Degraded=False`, not stuck `Updating`, and `spec.paused=false` unless a documented canary or change window requires a short pause. A paused pool with matching machine counts is an intentional hold, not a missing update. Unpause only after that window; the Machine Config Operator then drains and often reboots remaining nodes, and a long pause can block kube-apiserver-to-kubelet CA rotation so `oc debug` and `oc exec` fail. If machine counts do not match or `Degraded` is True, inspect pool conditions and Machine Config Daemon logs on the affected nodes before changing `paused` or `maxUnavailable`."
+verification = """1. List each pool name, paused flag, and machine counts. Paused true with matching counts is the pause case. Mismatched counts or Degraded need investigation.
+   `oc get mcp`
+2. Print paused on each pool. True needs a documented window or unpause.
+   `oc get mcp -o custom-columns=NAME:.metadata.name,PAUSED:.spec.paused`
+3. If Degraded is True, print the condition reason and message.
+   `oc describe mcp <pool>`"""
+priority_hint = ""
+impact = "rolling-restart"
+impact_scope = "nodes in the named MachineConfigPool"
+impact_detail = "Unpausing or repairing a pool lets the MCO drain and reboot nodes in that pool."
+finding_group = "mcp-paused"
+finding_group_title = "MachineConfigPool paused"
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/machine_configuration/index#understanding-the-machine-config-operator"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/machine_configuration/index#understanding-the-machine-config-operator"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/postinstallation_configuration/index#understanding-the-machine-config-operator"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/postinstallation_configuration/index#understanding-the-machine-config-operator"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/machine_configuration/index#understanding-the-machine-config-operator"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/machine_configuration/index#understanding-the-machine-config-operator"

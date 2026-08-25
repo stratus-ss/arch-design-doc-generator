@@ -2,16 +2,16 @@
 
 > **Canonical spec:** this file (`openspec/specs/hc-report-engine/spec.md`). Do not recreate `agent_planning/openspec/specs/`.
 >
-> **Baseline date:** 2026-08-21 (landed Chunks A–G). Chunk H deltas live in `openspec/changes/hc-feedback-chunk-h/` until archived.
+> **Baseline date:** 2026-08-21 (landed Chunks A–G). Chunk H deltas live in `openspec/changes/hc-feedback-chunk-h/` until archived. `hc-omit-findings` is archived here (2026-08-25).
 
 ## Purpose
 
-`make hc-report` turns collected OpenShift cluster JSON (and optional TSR HTML / CCX runtime) into a consultant-facing markdown report. The engine evaluates checks, derives P0–P3 findings from a TOML knowledge base, and fills `{SLOT}` placeholders in `templates/Health_Check/Template_HC_Report.md`. AI is excluded from this path.
+`make hc-report` turns collected OpenShift cluster JSON (and optional TSR HTML / CCX runtime) into a consultant-facing markdown report. The engine evaluates checks, derives P0–P3 findings from a TOML knowledge base, and fills `{SLOT}` placeholders in `templates/Health_Check/Template_HC_Report.md`. AI is excluded from check evaluation. An optional post-render Cursor step may rewrite Chapter 3 and Chapter 8 when `HC_SUMMARY_CONCLUSION=1`.
 
 ## Requirements
 
 ### Requirement: No AI on the Health Check path
-The Health Check CLI SHALL NOT import or invoke the HLD/LLD AI stack.
+The Health Check **engine** CLI (`scripts/health_check/hc_report/cli.py`) SHALL NOT import or invoke the HLD/LLD AI stack. An optional **post-render** process MAY draft Chapter 3 and Chapter 8 after `generate_report.py` has written markdown.
 
 #### Scenario: CLI source has no AI tokens
 - GIVEN `scripts/health_check/hc_report/cli.py`
@@ -30,8 +30,40 @@ The Health Check CLI SHALL NOT import or invoke the HLD/LLD AI stack.
 #### Scenario: Public flags stay stable
 - GIVEN `parse_args()`
 - WHEN the CLI is invoked
-- THEN it accepts `--results-dir`, `--output-dir`, `--config`, `--template`, `--exec-summary`, `--check-profile` (`core` | `extended` | `advisory`), `--ccx-baseline-status`, `--catalog-path`, `--tsr-html`, and `--dry-run`
-- AND those flag names are not renamed
+- THEN it accepts `--results-dir`, `--output-dir`, `--config`, `--template`, `--exec-summary`, `--check-profile` (`core` | `extended` | `advisory`), `--ccx-baseline-status`, `--catalog-path`, `--tsr-html`, `--dry-run`, `--omit-check-ids`, and `--omit-strict`
+- AND those existing flag names are not renamed
+
+### Requirement: Optional Chapter 6 omit by check ID
+When `--omit-check-ids` is omitted or the loaded list is empty, generate SHALL write only the unpruned Health Check markdown and full audit JSON and SHALL remove that cluster's `{stem}_pruned.md` if it exists. When the omit list is non-empty, generate SHALL also write `{stem}_pruned.md` whose Chapter 6 omits matched findings. Chapter 7 SHALL still list every check. Audit JSON SHALL keep the unfiltered findings with original IDs.
+
+#### Scenario: No omit flag leaves a single report
+- GIVEN no `--omit-check-ids`
+- WHEN generate runs
+- THEN only the unpruned Health Check markdown and full audit JSON are written
+- AND any previous `{stem}_pruned.md` for that cluster is removed if it existed
+
+#### Scenario: Non-empty omit writes pruned Chapter 6
+- GIVEN a non-empty omit file
+- WHEN generate runs
+- THEN original markdown and audit JSON still contain all findings
+- AND `{stem}_pruned.md` Chapter 6 omits matched findings
+- AND Chapter 7 tables still include those checks
+
+#### Scenario: Grouped finding drops on any member
+- GIVEN a grouped finding
+- WHEN any member check ID is listed
+- THEN the whole finding is absent from pruned Chapter 6
+
+#### Scenario: Strict unmatched does not write pruned
+- GIVEN `--omit-strict` and an ID not on any finding
+- WHEN generate runs
+- THEN exit code is 1
+- AND `{stem}_pruned.md` is not written
+
+#### Scenario: Discover prefers pruned peer
+- GIVEN `discover_report_markdown` and both `Foo.md` and `Foo_pruned.md`
+- WHEN discover runs
+- THEN only `Foo_pruned.md` is returned (same directory)
 
 ### Requirement: Template slot names
 `render_report` SHALL substitute the named `{SLOT}` tokens from `templates/Health_Check/Template_HC_Report.md` and SHALL NOT rename them.
@@ -39,7 +71,8 @@ The Health Check CLI SHALL NOT import or invoke the HLD/LLD AI stack.
 #### Scenario: Critical-finding slots exist
 - GIVEN the Health Check report template
 - WHEN it is filled
-- THEN `{CRITICAL_FINDINGS_SUMMARY}` is Chapter 4
+- THEN Chapter 4 is Purpose and Engagement Approach and the result-legend table
+- AND `{CLIENT}`, `{CLUSTER_ID}`, and `{CAPTURE_MONTH_YEAR}` appear in Chapter 4
 - AND `{CRITICAL_FINDINGS}` is §6.1
 - AND `{FINDINGS_SECTIONS}` is §6.2
 
@@ -87,7 +120,7 @@ KB lookup SHALL match an exact `check_id` first, then the first glob pattern (`*
 - AND it still includes the candidate guidance
 
 ### Requirement: KB content_from alias
-An alias KB row MAY set `content_from` to an exact canonical `check_id`. `load_kb()` SHALL copy inherited content from that target in a single hop and SHALL keep local identity and finding flags on the alias. Overlay, chains, self-references, missing targets, pattern-row pointers, and glob targets SHALL raise `ValueError`.
+An alias KB row MAY set `content_from` to an exact canonical `check_id`. `load_kb()` SHALL copy inherited content from that target in a single hop and SHALL keep the alias `check_id` and finding flags on the alias. Overlay, chains, self-references, missing targets, pattern-row pointers, and glob targets SHALL raise `ValueError`.
 
 #### Scenario: Alias inherits content and keeps local title and flags
 - GIVEN alias `content_from = "canonical.id"` and omitted inherited keys
@@ -188,7 +221,7 @@ FAIL without a P0 keyword SHALL be P1 unless a valid KB `priority_hint` override
 - THEN priority is P3
 
 ### Requirement: Finding grouping
-Checks that share a non-empty KB `finding_group` SHALL collapse to one Chapter 4 / §6.2 finding. Chapter 7 SHALL still list every check.
+Checks that share a non-empty KB `finding_group` SHALL collapse to one §6.2 finding. Chapter 7 SHALL still list every check.
 
 #### Scenario: Logging not-configured is one finding
 - GIVEN FAIL rows for `7.4.tsr.4_1_2_logging_storage_type`, `7.4.tsr.4_1_4_logging_pod_status`, and `7.4.tsr.4_1_5_2_loki_health`
@@ -210,40 +243,41 @@ Checks that share a non-empty KB `finding_group` SHALL collapse to one Chapter 4
 - AND it contains both node names
 - AND chapter 7 remains per-node
 
-### Requirement: Chapter 4 and §6.1 summary text
-Chapter 4 and §6.1 Summary SHALL use KB `summary_patterns` (first `contains` substring match on finding evidence) then the cleaned first FAIL or WARNING reason. They SHALL NOT use KB `description`. Unusable text (`n/a`, `none`, `unknown`, `na`, too short, no letters) SHALL be omitted. Prose SHALL cap at 220 characters, preferring a sentence end then a word boundary.
+### Requirement: §6.1 summary text
+§6.1 Summary (and the `{CRITICAL_FINDINGS_SUMMARY}` helper) SHALL use KB `summary_patterns` (first `contains` substring match on finding evidence) then the cleaned first FAIL or WARNING reason. They SHALL NOT use KB `description`. Unusable text (`n/a`, `none`, `unknown`, `na`, too short, no letters) SHALL be omitted. Prose SHALL cap at 220 characters, preferring a sentence end then a word boundary.
 
 #### Scenario: Pattern wins over emptyDir KB description
 - GIVEN a P1 finding for `7.3.tsr.3_7_2_monitoring_storage_type` whose evidence mentions RWX/file storage
-- WHEN Chapter 4 and §6.1 are rendered
+- WHEN §6.1 and the critical-findings summary helper are rendered
 - THEN the summary mentions block storage or RWX/file storage
 - AND the summary does not contain `emptyDir`
 - AND the summary does not contain the generic Prometheus/Alertmanager KB description sentence
 
 #### Scenario: FAIL reason used when no pattern matches
 - GIVEN a synthetic check with no `summary_patterns` and evidence `widget check: [FAIL] - reason: widgets are on fire`
-- WHEN Chapter 4 and §6.1 are rendered
+- WHEN §6.1 and the critical-findings summary helper are rendered
 - THEN the summary contains `Widgets are on fire`
 - AND it does not dump preceding INFO noise
 
 #### Scenario: Unusable reason is omitted
 - GIVEN evidence `[FAIL] - reason: n/a`
-- WHEN Chapter 4 and §6.1 are rendered
+- WHEN §6.1 and the critical-findings summary helper are rendered
 - THEN the finding id and title still appear
 - AND `n/a` is not used as the summary body
 
 #### Scenario: Truncation prefers a sentence end
 - GIVEN a FAIL reason whose first sentence is under 220 characters and a long second sentence
-- WHEN Chapter 4 and §6.1 are rendered
+- WHEN §6.1 and the critical-findings summary helper are rendered
 - THEN the first sentence is kept
 - AND the distinctive tail of the second sentence is dropped
 
-#### Scenario: Chapter 4 is a bullet list and §6.1 is a table
+#### Scenario: Critical summary helper is a bullet list and §6.1 is a table
 - GIVEN one or more P0/P1 findings
 - WHEN the report is rendered
 - THEN `{CRITICAL_FINDINGS_SUMMARY}` contains markdown bullets of the form `- **{id} — {title}**`
 - AND `{CRITICAL_FINDINGS}` contains a table with columns Priority, Finding, Summary
 - AND P2/P3 findings are not in that table
+- AND Chapter 4 does not contain `{CRITICAL_FINDINGS_SUMMARY}`
 
 ### Requirement: §6.2 Observation assembly
 §6.2 Observation SHALL be the status-count sentence when square-bracket status tags exist, then the KB `summary_patterns` sentence if matched, then the cleaned first FAIL or WARNING reason. Each prose block SHALL cap at 220 characters. Identical pattern and reason SHALL not be printed twice. Unusable extracted text SHALL be omitted. `[LIMITATION]` and `[SUPPORT LIMITATION]` SHALL NOT be treated as extractable status tags.
@@ -322,12 +356,18 @@ Empty `impact` SHALL render `[NEEDS REVIEW]`. `impact = "none"` SHALL render a v
 - AND they do not keep a TSR HTML "Node Disk" heading in preference to the KB title
 
 ### Requirement: TSR Result length
-TSR Result HTML SHALL NOT be sliced at 2000 characters. An absurd-input guard of 1_000_000 bytes MAY apply.
+TSR Result HTML SHALL NOT be sliced at 2000 characters. Parsed evidence SHALL be clipped at 32_000 characters with a truncation marker.
 
 #### Scenario: Text past 2000 characters is kept
-- GIVEN TSR HTML whose Result cell exceeds 2000 characters
+- GIVEN TSR HTML whose Result cell exceeds 2000 characters and is under 32_000
 - WHEN it is parsed
 - THEN characters after offset 2000 remain in evidence
+
+#### Scenario: Oversized Result is clipped
+- GIVEN TSR HTML whose Result cell exceeds 32_000 characters
+- WHEN it is parsed
+- THEN evidence length is at most 32_000
+- AND the evidence ends with the truncation marker
 
 ### Requirement: Parity keeps FAIL/WARNING beside native titles
 When a TSR catalog row is FAIL or WARNING, parity SHALL keep that row even if a native check already uses the same normalized title.
@@ -390,3 +430,33 @@ This capability SHALL NOT require rewriting existing KB `[checks.links]` URLs. L
 - WHEN `make hc-report` runs
 - THEN it may append a Reference line from `get_doc_link`
 - AND it does not fetch or rewrite those URLs
+
+### Requirement: Optional post-render Chapter 3/8 draft
+When `HC_SUMMARY_CONCLUSION=1`, the container SHALL run `draft_summary_conclusion.py --in-place` on each generated Health Check markdown report **after** `generate_report.py` succeeds. When `HC_SUMMARY_CONCLUSION` is unset, empty, or `0`, no model SHALL be invoked during `make hc-report`.
+
+#### Scenario: Opt-in draft runs after generate
+- GIVEN `HC_SUMMARY_CONCLUSION=1` and a written Health Check markdown report
+- WHEN `cmd_hc_report` finishes `generate_report.py` successfully
+- THEN `draft_summary_conclusion.py --in-place` runs as a separate process
+- AND `hc_report/cli.py` is not the process that calls `invoke_ai`
+
+#### Scenario: Default report is deterministic
+- GIVEN `HC_SUMMARY_CONCLUSION` unset
+- WHEN `make hc-report` runs
+- THEN no model is invoked
+- AND Chapter 3 remains the engine placeholder unless `--exec-summary` was passed to generate
+
+#### Scenario: Unsupported container tool fails closed
+- GIVEN `--in-place` and `AI_TOOL=claude` (or `codex`) while that tool is not in `CONTAINER_DRAFT_TOOLS`
+- WHEN `draft_summary_conclusion.py` runs
+- THEN it exits 2 without rewriting the report
+
+### Requirement: MachineConfigPool engine scoring
+`_evaluate_mcp` SHALL treat a paused pool with matching machine counts as a pause warning, not an incomplete rollout.
+
+#### Scenario: Paused pool with matching counts is not incomplete rollout
+- GIVEN a `MachineConfigPool` with `spec.paused=true`, `Degraded=False`, `Updating=False`, `Updated=False`, and `updatedMachineCount == readyMachineCount == machineCount > 0`
+- WHEN `_evaluate_mcp` / `evaluate_topology` scores that pool
+- THEN status is `WARNING`
+- AND evidence includes that the pool is paused
+- AND evidence does not say `not fully updated`

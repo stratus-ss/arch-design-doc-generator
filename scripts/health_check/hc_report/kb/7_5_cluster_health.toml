@@ -37,6 +37,30 @@ default = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat
 "4.22" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.22/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
 
 [[checks]]
+check_id = "7.5.pods.failed"
+title = "Pod Health"
+description = "This check lists pods in phase Failed or Unknown. Failed often includes completed Jobs and leftover debug pods. Unknown means the kubelet did not report status. It is not the CrashLoopBackOff check."
+recommendation = "Classify each Failed or Unknown pod before deleting it. Treat Job and `*-debug-*` pods as leftover work unless they belong to a required pipeline. Treat application pods as a workload failure: events, then logs. Do not use CrashLoopBackOff-only queries to close this finding. Delete a Failed Job pod only after the Job owner is understood; Unknown pods need node/kubelet investigation."
+verification = """1. List Failed pods. Empty output means none in Failed.
+   `oc get pods -A --field-selector=status.phase=Failed`
+2. List Unknown pods. Empty output means none in Unknown.
+   `oc get pods -A --field-selector=status.phase=Unknown`
+3. For each remaining application pod, print events.
+   `oc describe pod <pod> -n <namespace>`"""
+priority_hint = ""
+impact = "none"
+impact_scope = ""
+impact_detail = ""
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/support/index#understanding-pod-error-states_investigating-pod-issues"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/support/index#understanding-pod-error-states_investigating-pod-issues"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/support/index#understanding-pod-error-states_investigating-pod-issues"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/support/index#understanding-pod-error-states_investigating-pod-issues"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/support/index#understanding-pod-error-states_investigating-pod-issues"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/support/index#understanding-pod-error-states_investigating-pod-issues"
+
+[[checks]]
 check_id = "7.5.pods.crashloop"
 title = "CrashLoopBackOff pods"
 description = "This check identifies containers currently in the Waiting state with the reason `CrashLoopBackOff`, which means the container is repeatedly starting, terminating, and being restarted with an increasing delay between attempts. The output captures the waiting reason, last termination reason, exit code, and restart count to support root-cause analysis. Any container in `CrashLoopBackOff` is reported as **FAIL**.\n"
@@ -303,6 +327,8 @@ priority_hint = ""
 impact = "rolling-restart"
 impact_scope = "nodes in the degraded or updating MachineConfigPool"
 impact_detail = "Resolving MCP degradation may require the MCO to drain and reboot stuck nodes to complete configuration rollout."
+finding_group = "mcp-pool-health"
+finding_group_title = "MachineConfigPool degraded or updating"
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/machine_configuration/index#understanding-the-machine-config-operator"

@@ -667,3 +667,83 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/updating_clusters/index#understanding-openshift-updates"
 "4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/updating_clusters/index#understanding-openshift-updates"
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/updating_clusters/index#understanding-openshift-updates"
+[[checks]]
+check_id = "7.7.ccx_external.mcp_set_to_pause"
+title = "MCP Set To Pause"
+description = "This check is the named `MachineConfigPool` degraded, updating, paused, and machine-count posture. `Updated=False` with matching `updatedMachineCount` and `readyMachineCount` and `spec.paused=true` is a pause hold, not a missing node count. Degraded or mismatched counts are a rollout defect."
+recommendation = "Bring the named `MachineConfigPool` to a stable rollout: `Degraded=False`, not stuck `Updating`, and `spec.paused=false` unless a documented canary or change window requires a short pause. A paused pool with matching machine counts is an intentional hold, not a missing update. Unpause only after that window; the Machine Config Operator then drains and often reboots remaining nodes, and a long pause can block kube-apiserver-to-kubelet CA rotation so `oc debug` and `oc exec` fail. If machine counts do not match or `Degraded` is True, inspect pool conditions and Machine Config Daemon logs on the affected nodes before changing `paused` or `maxUnavailable`."
+verification = """1. List each pool name, paused flag, and machine counts. Paused true with matching counts is the pause case. Mismatched counts or Degraded need investigation.
+   `oc get mcp`
+2. Print paused on each pool. True needs a documented window or unpause.
+   `oc get mcp -o custom-columns=NAME:.metadata.name,PAUSED:.spec.paused`
+3. If Degraded is True, print the condition reason and message.
+   `oc describe mcp <pool>`"""
+priority_hint = ""
+impact = "rolling-restart"
+impact_scope = "nodes in the named MachineConfigPool"
+impact_detail = "Unpausing or repairing a pool lets the MCO drain and reboot nodes in that pool."
+finding_group = "mcp-paused"
+finding_group_title = "MachineConfigPool paused"
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/machine_configuration/index#understanding-the-machine-config-operator"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/machine_configuration/index#understanding-the-machine-config-operator"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/postinstallation_configuration/index#understanding-the-machine-config-operator"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/postinstallation_configuration/index#understanding-the-machine-config-operator"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/machine_configuration/index#understanding-the-machine-config-operator"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/machine_configuration/index#understanding-the-machine-config-operator"
+
+[[checks]]
+check_id = "7.7.ccx_internal.machine_pool_check"
+title = "Machine Pool Check"
+content_from = "7.5.tsr.5_7_machine_config_pool"
+finding_group = "mcp-pool-health"
+finding_group_title = "MachineConfigPool degraded or updating"
+
+[[checks]]
+check_id = "7.7.ccx_external.cluster_does_not_support_olm_operators_network_policies"
+title = "Cluster Does Not Support OLM Operators Network Policies"
+description = "Red Hat Insights reports this OpenShift z-stream cannot let Operator Lifecycle Manager manage `NetworkPolicy` objects for OLM components. The defect is platform OLM support (Insights Fixed Version), not a missing customer NetworkPolicy."
+recommendation = "Upgrade the cluster to the Insights **Fixed Version** or a later z-stream on the same minor so OLM can manage its own `NetworkPolicy` objects. Do not create or edit NetworkPolicies for OLM namespaces to clear this finding; those objects are platform-managed after the z-stream. Use `oc adm upgrade` to pick an approved target that is at least the Fixed Version."
+verification = """1. Print the current ClusterVersion. Compare it to the Fixed Version in Observation. Below that z-stream needs an upgrade.
+   `oc get clusterversion version -o jsonpath='{.status.desired.version}{\"\\n\"}'`
+2. List eligible updates. Pick a target at or above the Fixed Version.
+   `oc adm upgrade`"""
+priority_hint = ""
+impact = "rolling-restart"
+impact_scope = "control plane and worker nodes in unpaused MachineConfigPools"
+impact_detail = "The z-stream upgrade rolls operators and typically reboots nodes through the MCO."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/updating_clusters/index#understanding-openshift-updates"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/updating_clusters/index#understanding-openshift-updates"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/updating_clusters/index#understanding-openshift-updates"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/updating_clusters/index#understanding-openshift-updates"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/updating_clusters/index#understanding-openshift-updates"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/updating_clusters/index#understanding-openshift-updates"
+
+[[checks]]
+check_id = "7.7.ccx_external.ocp_version_end_of_life"
+title = "OCP Version End Of Life"
+description = "Insights `OCP4X_EOL_IMMINENT` (or past EOL) compares ClusterVersion to the OpenShift life-cycle calendar. Even-numbered minors are EUS releases; Maintenance end is not the same as “no EUS remaining.”"
+recommendation = "Confirm whether the subscription includes Extended Update Support for this even-numbered minor. After Maintenance ends, Full/Maintenance patches stop; EUS Term 1 (when entitled) continues Critical/Important and urgent fixes only. Plan an EUS-to-EUS or supported minor upgrade off the assessed z-stream. A same-minor z-stream after Maintenance end does not restore Full/Maintenance. Do not stay on an unelected Standard-tier minor past Maintenance without an EUS add-on."
+verification = """1. Print desired version and channel.
+   `oc get clusterversion version -o jsonpath='{.status.desired.version}{\" \"}{.spec.channel}{\"\\n\"}'`
+2. Compare the minor to the life-cycle page (Maintenance vs EUS dates). Open https://access.redhat.com/support/policy/updates/openshift"""
+priority_hint = ""
+impact = "maintenance-window"
+impact_scope = "entire cluster"
+impact_detail = "Leaving Maintenance without EUS or an upgrade path leaves the cluster without standard errata; the upgrade itself reboots nodes."
+
+[checks.links]
+default = "https://access.redhat.com/support/policy/updates/openshift"
+"4.18" = "https://access.redhat.com/support/policy/updates/openshift"
+"4.19" = "https://access.redhat.com/support/policy/updates/openshift"
+"4.20" = "https://access.redhat.com/support/policy/updates/openshift"
+"4.21" = "https://access.redhat.com/support/policy/updates/openshift"
+"4.22" = "https://access.redhat.com/support/policy/updates/openshift"
+
+[[checks]]
+check_id = "7.7.ccx_internal.pods_crash_loop_check"
+title = "Pods Crash Loop Check"
+content_from = "7.5.pods.crashloop"

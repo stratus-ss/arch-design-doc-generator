@@ -293,6 +293,13 @@ def _evaluate_mcp(mcp_data: dict, category_id: str, category_name: str) -> list[
         is_degraded = _find_condition(conditions, "Degraded").get("status") == "True"
         is_updated = _find_condition(conditions, "Updated").get("status") == "True"
         is_updating = _find_condition(conditions, "Updating").get("status") == "True"
+        paused = pool.get("spec", {}).get("paused") is True
+        counts_match = (
+            total > 0
+            and updated == total
+            and ready == total
+            and degraded == 0
+        )
 
         if is_degraded or degraded > 0:
             status = "FAIL"
@@ -300,6 +307,12 @@ def _evaluate_mcp(mcp_data: dict, category_id: str, category_name: str) -> list[
         elif is_updating:
             status = "WARNING"
             evidence = f"Pool '{name}' updating: {updated}/{total} updated, {ready}/{total} ready"
+        elif paused and counts_match:
+            status = "WARNING"
+            evidence = (
+                f"Pool '{name}' is paused (spec.paused=true): "
+                f"{updated}/{total} updated, {ready}/{total} ready"
+            )
         elif not is_updated and total > 0:
             status = "WARNING"
             evidence = f"Pool '{name}' not fully updated: {updated}/{total} updated"

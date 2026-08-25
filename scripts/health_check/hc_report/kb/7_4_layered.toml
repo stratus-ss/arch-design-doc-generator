@@ -297,6 +297,51 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/scalability_and_performance/index#custom-tuning-specification_node-tuning-operator"
 
 [[checks]]
+check_id = "7.4.tsr.4_8_1_4_1_cpu_physical_resource_overhead_requirements"
+title = "4.8.1.4.1. CPU Physical Resource Overhead Requirements"
+description = "This check collects node CPU overhead versus allocatable CPU, HyperConverged `vmiCPUAllocationRatio`, optional dedicated CPU placement, and Node Tuning Operator health. A WARNING on CSV not fully healthy is an operator-health finding. Missing PerformanceProfile is informational. Nodes that already report overhead are not the defect by themselves."
+recommendation = "If node CPU overhead collection passed, do not change `vmiCPUAllocationRatio` or add a PerformanceProfile only to clear this check. Investigate the Node Tuning Operator CSV that is not Succeeded (or not fully healthy): CSV phase, operator pod, and InstallPlan. Dedicated CPU and PerformanceProfile stay optional unless the design requires low-latency VMs."
+verification = """1. Print Node Tuning Operator CSVs. Succeeded is healthy.
+   `oc get csv -n openshift-cluster-node-tuning-operator`
+2. Print HyperConverged `vmiCPUAllocationRatio`. A set ratio is expected when Virtualization is installed.
+   `oc get hyperconverged kubevirt-hyperconverged -n openshift-cnv -o jsonpath='{.spec.vmiCPUAllocationRatio}{"\\n"}'`
+3. If Virtualization is not installed, the hyperconverged command prints not found — INFO, skip."""
+priority_hint = ""
+impact = "non-disruptive"
+impact_scope = "openshift-cluster-node-tuning-operator"
+impact_detail = "Repairing the CSV rolls NTO operator pods; it does not by itself apply a PerformanceProfile."
+
+[checks.links]
+default = "https://access.redhat.com/support/policy/updates/openshift_operators"
+"4.18" = "https://access.redhat.com/support/policy/updates/openshift_operators"
+"4.19" = "https://access.redhat.com/support/policy/updates/openshift_operators"
+"4.20" = "https://access.redhat.com/support/policy/updates/openshift_operators"
+"4.21" = "https://access.redhat.com/support/policy/updates/openshift_operators"
+"4.22" = "https://access.redhat.com/support/policy/updates/openshift_operators"
+
+[[checks]]
+check_id = "7.4.tsr.4_8_4_9_smbios_baseboard_serial_posture"
+title = "4.8.4.9. SMBIOS Baseboard Serial Posture"
+description = "KubeVirt does not copy the worker node's SMBIOS baseboard serial into the guest by default. Some Windows activation and ISV license tools read firmware serial and UUID. Missing `spec.template.spec.domain.firmware.serial` and `uuid` on a VirtualMachine is a guest-identity gap only when those tools require it."
+recommendation = "Set `spec.template.spec.domain.firmware.serial` and `spec.template.spec.domain.firmware.uuid` on a Windows VirtualMachine only when licensing or activation needs a stable firmware identity. Do not mass-edit every VM to clear the check. Do not expect the hypervisor host baseboard serial to appear in the guest (KCS 7144584). If no Windows VMs exist, this check is informational."
+verification = """1. List VirtualMachines and firmware serial and uuid. Empty VM list is INFO.
+   `oc get vm -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,SERIAL:.spec.template.spec.domain.firmware.serial,UUID:.spec.template.spec.domain.firmware.uuid`
+2. If a licensing tool still fails after serial/uuid are set, check the guest SMBIOS from inside the VM; host `dmidecode` on the worker is not the guest identity."""
+priority_hint = ""
+finding_on_info = false
+impact = "non-disruptive"
+impact_scope = "selected VirtualMachine firmware fields"
+impact_detail = "Changing firmware serial or uuid can require a VM reboot for the guest to see the new identity."
+
+[checks.links]
+default = "https://access.redhat.com/solutions/7144584"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/virtualization/index"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/virtualization/index"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/virtualization/index"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/virtualization/index"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index"
+
+[[checks]]
 check_id = "7.4.tsr.4_8_5_1_1_quota_and_resources"
 title = "TSR CNV quota and resources"
 description = "ResourceQuotas and LimitRanges in namespaces running VMs must account for\nvirt-launcher pod overhead. Insufficient quotas prevent VM starts and live\nmigrations.\n"
@@ -393,6 +438,30 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/virtualization/index"
 "4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/virtualization/index"
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index"
+
+[[checks]]
+check_id = "7.4.tsr.4_1_1_logging_supported_configuration"
+title = "4.1.1. Logging Supported Configuration"
+description = "This check is whether the cluster-logging operator is a supported combination for this OpenShift minor: common channel, operator life-cycle phase, and currency vs the channel head. Absence of the operator is N/A. A ClusterLogForwarder without a ClusterLogging CR is forwarding-only and is still a supported logging mode. LokiStack presence is a different check."
+recommendation = "Keep the cluster-logging operator on the common channel for this OpenShift minor. If Insights or TSR reports Maintenance support for that Logging minor, treat it like platform Maintenance: plan the next supported Logging or OCP pairing. If installed CSV lags the channel head and `installPlanApproval` is Manual, review and approve the `InstallPlan` only after compatibility with the cluster. Do not install a LokiStack only to satisfy this check when forwarding-only is the designed mode."
+verification = """1. List logging operator subscriptions in `openshift-logging`. Missing namespace is INFO — logging operator not installed.
+   `oc get subscription -n openshift-logging 2>&1`
+2. Print CSV phase and version. Succeeded is healthy; other phases need investigation.
+   `oc get csv -n openshift-logging`
+3. If Manual approval left a pending plan, print InstallPlans that are not Complete.
+   `oc get installplan -n openshift-logging`"""
+priority_hint = ""
+impact = "non-disruptive"
+impact_scope = "openshift-logging operator"
+impact_detail = "Approving an InstallPlan rolls operator pods; it does not reboot nodes."
+
+[checks.links]
+default = "https://access.redhat.com/support/policy/updates/openshift_operators"
+"4.18" = "https://access.redhat.com/support/policy/updates/openshift_operators"
+"4.19" = "https://access.redhat.com/support/policy/updates/openshift_operators"
+"4.20" = "https://access.redhat.com/support/policy/updates/openshift_operators"
+"4.21" = "https://access.redhat.com/support/policy/updates/openshift_operators"
+"4.22" = "https://access.redhat.com/support/policy/updates/openshift_operators"
 
 [[checks]]
 check_id = "7.4.tsr.4_1_2_logging_storage_type"
