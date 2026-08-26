@@ -306,12 +306,67 @@ cmd_status() {
     python3 "/toolkit/setup_project.py" "$WORKSPACE" --status
 }
 
+_hc_output_dir_from_args() {
+    local output_dir="output/Health_Check_Report"
+    local previous=""
+    local argument
+    for argument in "$@"; do
+        if [[ "$previous" == "--output-dir" ]]; then
+            output_dir="$argument"
+        fi
+        previous="$argument"
+    done
+    printf '%s\n' "$output_dir"
+}
+
+_hc_draft_each_report() {
+    local output_dir="$1"
+    export HC_CURSOR_PYTHON="${HC_CURSOR_PYTHON:-/usr/bin/python3}"
+    export PYTHONPATH="$WORKSPACE/scripts/shared/rendering:$WORKSPACE/scripts/health_check:$WORKSPACE/scripts/shared/lib:/toolkit/health_check:/toolkit/shared/lib:${PYTHONPATH:-}"
+    local report_path
+    while IFS= read -r report_path; do
+        [[ -n "$report_path" ]] || continue
+        python3 "$WORKSPACE/scripts/health_check/draft_summary_conclusion.py" \
+            --in-place "$report_path" \
+            --tool "${AI_TOOL:-cursor}"
+    done < <(
+        python3 -c "
+from pathlib import Path
+import sys
+sys.path.insert(0, '/workspace/scripts/shared/rendering')
+from hc_export_paths import discover_report_markdown
+for path in discover_report_markdown(Path(sys.argv[1])):
+    print(path)
+" "$output_dir"
+    )
+}
+
 cmd_hc_report() {
     bold "=== Generating Health Check Report ==="
     export PYTHONPATH="$WORKSPACE/scripts/health_check:$WORKSPACE/scripts/shared/lib:/toolkit/health_check:/toolkit/shared/lib:${PYTHONPATH:-}"
     python3 /toolkit/health_check/generate_report.py "$@"
+    if [[ "${HC_SUMMARY_CONCLUSION:-}" == "1" ]]; then
+        bold "=== Drafting Chapter 3 and Chapter 8 (opt-in) ==="
+        _hc_draft_each_report "$(_hc_output_dir_from_args "$@")"
+    fi
     collect_outputs
     green "Health Check report complete."
+}
+
+cmd_hc_summary_conclusion() {
+    local report_path="${1:-}"
+    if [[ -z "$report_path" || ! -f "$report_path" ]]; then
+        red "Error: report markdown not found: ${report_path:-<missing>}"
+        echo "Usage: hc-summary-conclusion /workspace/output/Health_Check_Report/<report>.md"
+        exit 1
+    fi
+    bold "=== Drafting Chapter 3 and Chapter 8 in place ==="
+    export HC_CURSOR_PYTHON="${HC_CURSOR_PYTHON:-/usr/bin/python3}"
+    export PYTHONPATH="$WORKSPACE/scripts/health_check:$WORKSPACE/scripts/shared/lib:/toolkit/health_check:/toolkit/shared/lib:${PYTHONPATH:-}"
+    python3 "$WORKSPACE/scripts/health_check/draft_summary_conclusion.py" \
+        --in-place "$report_path" \
+        --tool "${AI_TOOL:-cursor}"
+    green "In-place draft complete."
 }
 
 cmd_hc_investigate() {
@@ -398,6 +453,7 @@ cmd_help() {
     echo "  workitems         Create sprint work items from LLD"
     echo "  rvtools <files>   Process RVTools XLSX into migration schedule"
     echo "  hc-report         Generate Health Check report from collected data"
+    echo "  hc-summary-conclusion  Opt-in Cursor draft of Chapter 3/8 into an existing report"
     echo "  hc-html           Generate collapsible HTML from Health Check report markdown"
     echo "  hc-pdf            Generate branded PDF from Health Check report markdown"
     echo "  hc-investigate    Trace a Health Check finding to raw evidence"
@@ -424,6 +480,7 @@ case "${1:-help}" in
     workitems)  cmd_workitems ;;
     rvtools)    shift; cmd_rvtools "$@" ;;
     hc-report)  shift; cmd_hc_report "$@" ;;
+    hc-summary-conclusion) shift; cmd_hc_summary_conclusion "$@" ;;
     hc-html)    shift; cmd_hc_html "$@" ;;
     hc-pdf)     shift; cmd_hc_pdf "$@" ;;
     hc-investigate) shift; cmd_hc_investigate "$@" ;;

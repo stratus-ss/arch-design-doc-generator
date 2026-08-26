@@ -58,7 +58,7 @@ It runs `scripts/health_check/generate_report.py`, which:
 The report covers:
 - Executive summary with finding counts by priority
 - Summary statistics table (PASS / WARNING / FAIL / N/A by category)
-- Chapter 4: Critical findings (P0 and P1 only, with remediation steps)
+- Chapter 4: Purpose and engagement approach, plus how to interpret check results
 - Chapter 6: Full observations and recommendations by priority (P0–P3)
 - Chapter 7: Raw check tables, one per category — every individual check with its status and evidence string
 
@@ -95,4 +95,26 @@ python3 scripts/health_check/generate_report.py \
   --results-dir output/hc_collect \
   --output-dir output/Health_Check_Report \
   --exec-summary "This cluster is in good health overall. Two P1 findings were identified relating to update channel configuration and missing limit ranges..."
+```
+
+### Draft Chapter 3 and Chapter 8 (optional, off by default)
+
+Check evaluation and `make hc-report` without `HC_SUMMARY_CONCLUSION` stay deterministic. With `HC_SUMMARY_CONCLUSION=1`, the container drafts Chapter 3 and Chapter 8 **in the report file** after generate succeeds (Cursor only; needs `CURSOR_API_KEY` or `~/.config/arch-doc-gen/cursor_api_key`). Rebuild the toolkit image once so `cursor-sdk` is in the image.
+
+```bash
+make hc-report HC_SUMMARY_CONCLUSION=1
+make hc-report-from-supportshell HC_SSH_HOST=user@host HC_SUMMARY_CONCLUSION=1
+make hc-summary-conclusion REPORT=output/Health_Check_Report/<ClientPrefix>_OpenShift_Health_Check_<cluster>.md
+```
+
+`HC_DRY_RUN=1` is the generate-report placeholder executive summary. It is not the sidecar `--dry-run` prompt dump.
+
+List descriptions from one report, or write the filled prompt without invoking a model:
+
+```bash
+python3 scripts/health_check/extract_finding_descriptions.py \
+  output/Health_Check_Report/<ClientPrefix>_OpenShift_Health_Check_<cluster>.md
+
+python3 scripts/health_check/draft_summary_conclusion.py --dry-run \
+  output/Health_Check_Report/<ClientPrefix>_OpenShift_Health_Check_<cluster>.md
 ```
