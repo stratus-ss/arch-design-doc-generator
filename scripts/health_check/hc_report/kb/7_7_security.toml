@@ -729,7 +729,7 @@ description = "Insights `OCP4X_EOL_IMMINENT` (or past EOL) compares ClusterVersi
 recommendation = "Confirm whether the subscription includes Extended Update Support for this even-numbered minor. After Maintenance ends, Full/Maintenance patches stop; EUS Term 1 (when entitled) continues Critical/Important and urgent fixes only. Plan an EUS-to-EUS or supported minor upgrade off the assessed z-stream. A same-minor z-stream after Maintenance end does not restore Full/Maintenance. Do not stay on an unelected Standard-tier minor past Maintenance without an EUS add-on."
 verification = """1. Print desired version and channel.
    `oc get clusterversion version -o jsonpath='{.status.desired.version}{\" \"}{.spec.channel}{\"\\n\"}'`
-2. Compare the minor to the life-cycle page (Maintenance vs EUS dates). Open https://access.redhat.com/support/policy/updates/openshift"""
+2. Compare the minor to the OpenShift Container Platform life-cycle page in the reference for this check (Maintenance vs EUS dates)."""
 priority_hint = ""
 impact = "maintenance-window"
 impact_scope = "entire cluster"
