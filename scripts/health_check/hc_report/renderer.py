@@ -378,10 +378,15 @@ def _build_check_results_table(
         result_cell = _md_table_cell(_clean_evidence_for_cell(check.evidence))
         anchor = _build_evidence_anchor(check.check_id, finding_ids_by_check.get(check.check_id, []))
         display_title = load_kb().get_title(check.check_id) or check.description
+        scoring_row = ""
+        if check.status in ("FAIL", "WARNING"):
+            scoring_label = "Doc-backed" if check.scoring_basis == "doc_backed" else "Engine policy"
+            scoring_row = f"| **Scoring** | {scoring_label} |\n"
         rows = (
             f"| **Check** | **{_md_table_cell(display_title)}** |\n"
             f"|:---|:---|\n"
             f"| **Status** | {badge} |\n"
+            f"{scoring_row}"
             f"| **Result** | {result_cell} |"
         )
         if check.source and check.source != "deterministic":
@@ -509,14 +514,17 @@ def render_report(
         "CLIENT":                     meta["client_name"],
         "CLIENT_PREFIX":              meta["client_prefix"],
         "CLUSTER_NAME":               meta["cluster_name"],
+        "CLUSTER_ID":                 meta.get("cluster_id") or "TBD",
         "OCP_VERSION":                meta["ocp_version"],
         "CAPTURE_DATE":               meta["capture_date"],
+        "CAPTURE_MONTH_YEAR":         meta.get("capture_month_year") or "TBD",
         "REPORT_DATE":                meta["report_date"],
         "CASE_NUMBER":                meta["case_number"],
         "AUTHOR":                     meta["author"],
         "INSTALL_TYPE":               meta["install_type"],
         "CHANNEL":                    meta["channel"],
         "EXEC_SUMMARY":               exec_summary,
+        "TECH_SUMMARY":               "",
         "TOTAL_CHECKS":               str(total),
         "PASS_COUNT":                 str(status_counts.get("PASS", 0)),
         "WARNING_COUNT":              str(status_counts.get("WARNING", 0)),
