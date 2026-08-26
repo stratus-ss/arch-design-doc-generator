@@ -91,3 +91,82 @@ def inject_colgroups(html: str) -> str:
         else:
             fragments.append(_inject_colgroups_in_fragment(part))
     return "".join(fragments)
+
+
+NARRATIVE_CHAPTER_CLASS = "hc-narrative-chapter"
+
+NARRATIVE_PARAGRAPH_CSS = """\n.hc-narrative-chapter p {
+  margin-top: 0;
+  margin-bottom: 1em;
+}
+"""
+
+
+def _heading_plain_text(heading_html: str) -> str:
+    """Strip tags, collapse whitespace, and casefold for keyword matching."""
+    text = re.sub(r"<[^>]+>", "", heading_html)
+    return " ".join(text.split()).casefold()
+
+
+def is_narrative_chapter_heading(heading_html: str) -> bool:
+    text = _heading_plain_text(heading_html)
+    chapter_three = "chapter 3" in text and "executive summary" in text
+    chapter_eight = "chapter 8" in text and "conclusions" in text
+    return chapter_three or chapter_eight
+
+
+def is_report_chapter_heading(heading_html: str) -> bool:
+    text = _heading_plain_text(heading_html)
+    return bool(re.match(r"chapter\s+\d", text))
+
+
+_PRIORITY_LEAK_HEADING = re.compile(r"^(p[0-3]\b|6\.2\.)")
+
+
+def _is_priority_leak_heading(heading_html: str) -> bool:
+    return bool(_PRIORITY_LEAK_HEADING.match(_heading_plain_text(heading_html)))
+
+
+def demote_priority_leak_headings(html: str) -> str:
+    """Rewrite stray P0–P3 / 6.2. h2 headings to h4 so they are not chapters."""
+
+    def replace_heading(match: re.Match[str]) -> str:
+        heading_html = match.group(0)
+        if not _is_priority_leak_heading(heading_html):
+            return heading_html
+        opening = re.sub(r"<h2\b", "<h4", heading_html, count=1, flags=re.IGNORECASE)
+        return re.sub(r"</h2>", "</h4>", opening, count=1, flags=re.IGNORECASE)
+
+    return re.sub(
+        r"<h2\b[^>]*>.*?</h2>",
+        replace_heading,
+        html,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+
+
+def wrap_narrative_chapters(html: str) -> str:
+    """Wrap Chapter 3 and Chapter 8 h2 ranges for PDF paragraph spacing."""
+    heading_pattern = re.compile(r"<h2\b[^>]*>.*?</h2>", re.IGNORECASE | re.DOTALL)
+    matches = list(heading_pattern.finditer(html))
+    if not matches:
+        return html
+    for index in range(len(matches) - 1, -1, -1):
+        match = matches[index]
+        if not is_narrative_chapter_heading(match.group(0)):
+            continue
+        start = match.start()
+        if index + 1 < len(matches):
+            end = matches[index + 1].start()
+        else:
+            body_close = re.search(r"</body>", html, re.IGNORECASE)
+            end = body_close.start() if body_close else len(html)
+        inner = html[start:end]
+        html = (
+            html[:start]
+            + f'<div class="{NARRATIVE_CHAPTER_CLASS}">'
+            + inner
+            + "</div>"
+            + html[end:]
+        )
+    return html

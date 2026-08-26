@@ -11,7 +11,12 @@ Usage:
 import sys
 from pathlib import Path
 
-from html_utils import inject_colgroups
+from html_utils import (
+    NARRATIVE_PARAGRAPH_CSS,
+    demote_priority_leak_headings,
+    inject_colgroups,
+    wrap_narrative_chapters,
+)
 
 # ── Emoji → badge mappings ────────────────────────────────────────────────────
 
@@ -76,6 +81,7 @@ div.cover-meta td:last-child {
   overflow-wrap: break-word;
   word-break: break-word;
 }
+""" + NARRATIVE_PARAGRAPH_CSS + """
 </style>
 """
 
@@ -103,6 +109,8 @@ def process(source_path: Path, destination_path: Path) -> None:
     html = source_path.read_text(encoding="utf-8")
     html = replace_emoji(html)
     html = inject_colgroups(html)
+    html = demote_priority_leak_headings(html)
+    html = wrap_narrative_chapters(html)
     html = inject_css(html)
     destination_path.parent.mkdir(parents=True, exist_ok=True)
     destination_path.write_text(html, encoding="utf-8")

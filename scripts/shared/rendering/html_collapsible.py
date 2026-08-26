@@ -13,7 +13,14 @@ import argparse
 import re
 from pathlib import Path
 
-from html_utils import inject_colgroups
+from html_utils import (
+    NARRATIVE_CHAPTER_CLASS,
+    NARRATIVE_PARAGRAPH_CSS,
+    demote_priority_leak_headings,
+    inject_colgroups,
+    is_narrative_chapter_heading,
+    is_report_chapter_heading,
+)
 
 _FINDING_SPAN_RE = re.compile(
     r'(<span\b[^>]*\bid="finding-[^"]+"[^>]*></span>)',
@@ -78,7 +85,7 @@ def _inject_anchor_open_js(html: str) -> str:
 <script>
 function openAnchorTarget() {
   if (!window.location.hash) { return; }
-  const target = document.getElementById(window.location.hash.slice(1));
+  const target = document.getElementById(decodeURIComponent(window.location.hash.slice(1)));
   if (!target) { return; }
   let node = target.parentElement;
   while (node) {
@@ -87,8 +94,22 @@ function openAnchorTarget() {
     }
     node = node.parentElement;
   }
-  target.scrollIntoView({ block: 'start' });
+  window.requestAnimationFrame(function () {
+    target.scrollIntoView({ block: 'start' });
+  });
 }
+document.addEventListener('click', function (event) {
+  const link = event.target.closest('a.hc-xref-link');
+  if (!link) { return; }
+  const href = link.getAttribute('href') || '';
+  if (href.charAt(0) !== '#' || href.length < 2) { return; }
+  event.preventDefault();
+  if (window.location.hash !== href) {
+    window.location.hash = href;
+  } else {
+    openAnchorTarget();
+  }
+});
 window.addEventListener('hashchange', openAnchorTarget);
 window.addEventListener('DOMContentLoaded', function () {
   window.setTimeout(openAnchorTarget, 0);
@@ -119,16 +140,36 @@ def _split_sections(html: str, tag: str) -> list[tuple[str, str]]:
     return sections
 
 
+def _merge_non_chapter_h2_sections(
+    sections: list[tuple[str, str]],
+) -> list[tuple[str, str]]:
+    """Keep only Chapter N h2s as split points; append other h2s to the prior body."""
+    merged: list[tuple[str, str]] = [sections[0]]
+    for heading_html, body_html in sections[1:]:
+        if is_report_chapter_heading(heading_html):
+            merged.append((heading_html, body_html))
+            continue
+        last_heading, last_body = merged[-1]
+        merged[-1] = (last_heading, last_body + heading_html + body_html)
+    return merged
+
+
 def _heading_text(heading_html: str) -> str:
     """Strip tags to get plain text for the summary element."""
     return re.sub(r'<[^>]+>', '', heading_html).strip()
 
 
-def _wrap_in_details(heading_html: str, body_html: str, open_by_default: bool) -> str:
+def _wrap_in_details(
+    heading_html: str,
+    body_html: str,
+    open_by_default: bool,
+    extra_class: str = "",
+) -> str:
     text = _heading_text(heading_html)
     open_attr = " open" if open_by_default else ""
+    class_attr = f' class="{extra_class}"' if extra_class else ""
     return (
-        f'<details{open_attr}>\n'
+        f'<details{open_attr}{class_attr}>\n'
         f'<summary>{text}</summary>\n'
         f'{heading_html}\n'
         f'{body_html}'
@@ -144,7 +185,7 @@ def collapsify(html: str, open_chapters: bool = False) -> str:
        a nested <details>, collapsed by default.
     """
     # ---- Step 1: wrap h2 chapters ----------------------------------------
-    ch_sections = _split_sections(html, "h2")
+    ch_sections = _merge_non_chapter_h2_sections(_split_sections(html, "h2"))
     chapter_blocks = []
 
     preamble_heading, preamble_body = ch_sections[0]
@@ -161,8 +202,16 @@ def collapsify(html: str, open_chapters: bool = False) -> str:
             )
 
         wrapped_body = "".join(inner_parts)
+        narrative_class = (
+            NARRATIVE_CHAPTER_CLASS if is_narrative_chapter_heading(heading_html) else ""
+        )
         chapter_blocks.append(
-            _wrap_in_details(heading_html, wrapped_body, open_by_default=open_chapters)
+            _wrap_in_details(
+                heading_html,
+                wrapped_body,
+                open_by_default=open_chapters,
+                extra_class=narrative_class,
+            )
         )
 
     return "".join(chapter_blocks)
@@ -258,6 +307,10 @@ details details > summary {
   gap: 0.5rem;
   margin-left: 0.25rem;
 }
+[id^="finding-"], [id^="evidence-"] {
+  scroll-margin-top: 3rem;
+}
+""" + NARRATIVE_PARAGRAPH_CSS + """
 </style>
 <script>
 function expandAll()  { document.querySelectorAll('details').forEach(d => d.open = true);  }
@@ -288,9 +341,11 @@ def process(source_path: Path, destination_path: Path, open_chapters: bool = Fal
         html_before_body = html[:body_match.start(2)]
         body = body_match.group(2)
         html_after_body = html[body_match.end(2):]
+        body = demote_priority_leak_headings(body)
         body = collapsify(body, open_chapters=open_chapters)
         html = html_before_body + body + html_after_body
     else:
+        html = demote_priority_leak_headings(html)
         html = collapsify(html, open_chapters=open_chapters)
 
     html = _inject_crosslinks(html)

@@ -452,14 +452,14 @@ cmd_hc_html() {
         exit 1
     fi
 
-    local source_markdown destination_html base
+    local source_markdown destination_html
     while IFS=$'\t' read -r source_markdown destination_html; do
         [[ -n "$source_markdown" ]] || continue
-        base="$(basename "$source_markdown" .md)"
         mkdir -p "$(dirname "$destination_html")"
+        # Blank title matches PDF: do not emit the markdown stem as a page heading.
         _render_md_to_html "$source_markdown" "$css_file" \
             "/workspace/scripts/shared/rendering/html_collapsible.py" "$destination_html" \
-            --metadata "title=${base}"
+            --metadata "title= "
     done < "$mapping_file"
 
     rm -f "$css_file" "$mapping_file"
