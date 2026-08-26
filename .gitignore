@@ -4,6 +4,7 @@
 .env
 .env.*
 !.env.example
+.pii_forbidden.txt
 
 # ── Filled slot maps (any directory, including repo root) ───────────
 **/slot_map.json
@@ -67,6 +68,7 @@ Thumbs.db
 
 # ── Generated local-only Health Check artifacts ─────────────────────
 docs/HC_RECOMMENDATION_AUDIT_LOG.md
+docs/HC_RECOMMENDATION_AUDIT_LOG_ORIG.md
 
 # ── Local-only HC report compare (summaries / TSR) ──────────────────
 scripts/health_check/hc_compare_summaries.py

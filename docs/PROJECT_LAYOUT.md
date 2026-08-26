@@ -36,7 +36,7 @@
 │   │   └── generate_command_reference.py
 │   ├── shared/
 │   │   ├── lib/
-│   │   └── tools/
+│   │   └── tools/                      # sanitize_diagrams, check_pii, package_release
 │   ├── rvtools/
 │   ├── entrypoint.sh
 │   └── setup_project.py
@@ -97,6 +97,7 @@
 - `generate_report.py` — thin entrypoint (`from hc_report import main`).
 - `draft_summary_conclusion.py` — optional post-render Cursor draft of Chapter 3/8 (`--in-place`).
 - `extract_finding_descriptions.py` — extract P0–P3 §6.2 descriptions from one report.
+- `renumber_finding_sections.py` — after moving §6.2 blocks between P0–P3 bands, rewrite finding numbers, §6.1, and `finding-*` anchors.
 - `split_kb_verification.py` — one-shot migrator that splits a combined recommendation blob into `recommendation` + `verification` keys (`--dry-run` first).
 - `update_recommendation_audit_log.py` — regenerates `docs/HC_RECOMMENDATION_AUDIT_LOG.md` (gitignored) from TOML, including a separate verification block.
 - `hc_link_review.py` — CLI that produces a suggested-URL CSV/markdown from KB TOML links and a local docs tree.
@@ -138,7 +139,7 @@
 - RVTools conversion and sample schedule generation.
 
 ### `scripts/shared/tools/`
-- Diagram sanitization, drawio merge, and release packaging.
+- Diagram sanitization, drawio merge, release packaging, and `check_pii.py` (client PII / credential scan for `make check-pii` and the pre-commit hook in `.githooks/`).
 
 ### `openspec/`
 - Living behavioral specs for this toolkit. Slot-pipeline contract: `specs/hld-lld-slot-pipeline/spec.md`. Health Check report engine: `specs/hc-report-engine/spec.md`.

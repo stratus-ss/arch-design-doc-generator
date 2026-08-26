@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Scan staged files for client PII and credential material.
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+exec python3 "${repo_root}/scripts/shared/tools/check_pii.py" --staged --repo-root "${repo_root}"

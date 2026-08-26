@@ -96,6 +96,7 @@ endef
         inspect-slots inspect-chunks validate-slots \
         combine-drawio sanitize-diagrams sample-schedule check-annotations package \
         force-image \
+        install-git-hooks check-pii \
         hc-collect hc-push-scripts hc-collect-remote hc-fetch-results hc-merge clean-hc \
         hc-report hc-summary-conclusion hc-html hc-pdf hc-investigate hc-skip-summary hc-command-ref hc-build-catalog \
         hc-link-review hc-link-apply hc-report-from-supportshell check-hc-sync hc-docs \
@@ -143,6 +144,8 @@ help: ## Show this help
 	print_target combine-drawio; \
 	print_target sanitize-diagrams; \
 	print_target check-annotations; \
+	print_target check-pii; \
+	print_target install-git-hooks; \
 	print_target package; \
 	echo ""; \
 	echo "  Health Check:"; \
@@ -343,6 +346,15 @@ combine-drawio: ## Combine .drawio files by prefix group
 
 sanitize-diagrams: ## Sanitize client-specific drawio examples
 	@$(PYTHON) scripts/shared/tools/sanitize_diagrams.py
+
+check-pii: ## Scan git-tracked files for client PII and credential material
+	@$(PYTHON) scripts/shared/tools/check_pii.py --repo-root .
+
+install-git-hooks: ## Install pre-commit hook that runs check-pii on staged files
+	@mkdir -p .git/hooks
+	@cp .githooks/pre-commit .git/hooks/pre-commit
+	@chmod +x .git/hooks/pre-commit
+	@echo "Installed .git/hooks/pre-commit"
 
 sample-schedule: ## Generate sample migration schedule workbook
 	@mkdir -p "$(OUTPUT_ROOT)"

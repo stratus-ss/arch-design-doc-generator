@@ -24,8 +24,8 @@ yank 01234567
 /home/remote/<username>/01234567/
   0010-must-gather-console.log
   0020-must-gather-20260724132027.tar.gz/       ← extracted in-place as a directory
-    must-gather.local.3101912616506361300/       ← one must-gather type per subdir
-    must-gather.local.8139364098167362569/
+    must-gather.local.1000000000000000001/       ← one must-gather type per subdir
+    must-gather.local.1000000000000000002/
       quay-io-openshift-release-dev-ocp-v4-0-art-dev-.../
       quay-io-pg-next-pg-must-gather-.../
       registry-redhat-io-container-native-virtualization-cnv-.../

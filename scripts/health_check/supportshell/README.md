@@ -78,8 +78,8 @@ yank 01234567
 /home/remote/<username>/01234567/
   0010-must-gather-console.log
   0020-must-gather-20260724132027.tar.gz/       ← extracted in-place as a directory
-    must-gather.local.3101912616506361300/       ← one must-gather type per subdir
-    must-gather.local.8139364098167362569/
+    must-gather.local.1000000000000000001/       ← one must-gather type per subdir
+    must-gather.local.1000000000000000002/
       quay-io-openshift-release-dev-ocp-v4-0-art-dev-.../
       quay-io-pg-next-pg-must-gather-.../
       registry-redhat-io-container-native-virtualization-cnv-.../
@@ -262,7 +262,7 @@ The report covers:
 
 Priority isn't stored anywhere in the collected data — it's derived at report-generation time from two inputs: the check's status (`FAIL` or `WARNING`; `INFO` becomes a P3 finding only when the KB sets `finding_on_info`; `PASS`, `NOT_APPLICABLE`, and `SKIPPED` never become findings) and a keyword match against that check's plain-English description text. `FAIL` checks whose description mentions a small set of severity-signalling terms (node readiness, cluster operators, critical alerts, etc.) become `P0`; every other `FAIL` becomes `P1`. `WARNING` checks are split the same way into `P2` / `P3` using a different keyword list (resource utilization, upgrades, deprecated features, etc.).
 
-This is a best-effort heuristic based on wording, not a guaranteed-correct severity rating — the keyword lists live in `scripts/health_check/hc_report/findings.py` if you want to see exactly what triggers each bucket. If a finding lands in a priority you disagree with for a given engagement, the generated report is just markdown: edit the finding's priority label or move it between chapters directly in `output/Health_Check_Report/<ClientPrefix>_OpenShift_Health_Check_<cluster>.md` before delivering it. The original check status and description are preserved unedited in the companion `<ClientPrefix>_HC_audit_<cluster>.json` file if you need to double-check what drove a classification.
+This is a best-effort heuristic based on wording, not a guaranteed-correct severity rating — the keyword lists live in `scripts/health_check/hc_report/findings.py` if you want to see exactly what triggers each bucket. If a finding lands in a priority you disagree with for a given engagement, the generated report is just markdown: cut the `####` block under a different `### P0`–`### P3` heading in `output/Health_Check_Report/<ClientPrefix>_OpenShift_Health_Check_<cluster>.md` (or the `_pruned.md` sibling), then run `python3 scripts/health_check/renumber_finding_sections.py <that-file>` so §6.2 numbers, §6.1, and `finding-*` anchors match the new order. `--dry-run` prints the mapping without writing. The original check status and description are preserved unedited in the companion `<ClientPrefix>_HC_audit_<cluster>.json` file if you need to double-check what drove a classification.
 
 To supply your own executive summary text:
 
@@ -289,6 +289,9 @@ List descriptions from one report, or write the filled prompt without invoking a
 
 ```bash
 python3 scripts/health_check/extract_finding_descriptions.py \
+  output/Health_Check_Report/<ClientPrefix>_OpenShift_Health_Check_<cluster>.md
+
+python3 scripts/health_check/renumber_finding_sections.py \
   output/Health_Check_Report/<ClientPrefix>_OpenShift_Health_Check_<cluster>.md
 
 python3 scripts/health_check/draft_summary_conclusion.py --dry-run \

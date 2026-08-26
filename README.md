@@ -19,6 +19,8 @@ Podman is auto-detected; override with `ENGINE=docker` if needed.
 
 `project.yaml` and `slot_map.json` are gitignored at any path — never commit them. `project.example.yaml` is the committed template. Repo-root `ADR/` (filled engagement ADRs) and `output/` (and `output-*/`) are gitignored. ADR **templates** live in `templates/ADR/` (`ADR_template.md`, `ADR_EXAMPLE.md`, `Agenda_template.md`). Copy or let `make setup` place a filled ADR under `ADR/`. From the repo root, `python3 -m pytest tests` collects without setting `PYTHONPATH`.
 
+`make check-pii` scans tracked files for non-example emails and credential material, plus optional local substrings from gitignored `.pii_forbidden.txt` (copy `.pii_forbidden.example.txt`). `make install-git-hooks` copies `.githooks/pre-commit` into `.git/hooks` so that check runs on staged files.
+
 ## Container Image
 
 Most pipeline targets run inside a container built from the `Containerfile`. The image (`arch-doc-gen`) bundles everything the pipeline needs so the host only requires a container engine:

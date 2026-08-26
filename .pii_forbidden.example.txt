@@ -1,0 +1,5 @@
+# Copy to .pii_forbidden.txt (gitignored) and add one substring per line.
+# Lines starting with # are ignored. Matching is case-insensitive.
+#
+# Do not put real client names in this example file.
+client-canary-host
