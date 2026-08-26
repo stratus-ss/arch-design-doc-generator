@@ -5,9 +5,9 @@ description = "Critical alerts indicate conditions that require immediate attent
 recommendation = "Resolve the firing critical alert immediately using the console runbook for that alert name. Empty Prometheus output is healthy. Do not silence or inhibit a critical alert to clear the finding."
 verification = "1. List firing critical alerts, showing `state`, `alertname`, and `severity`. Empty output means no critical alerts are firing:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -s http://localhost:9090/api/v1/alerts | jq '.data.alerts[] | select(.labels.severity==\"critical\") | {state, alertname: .labels.alertname, severity: .labels.severity}'`\n2. Look up runbooks in the OpenShift console under `Observe -> Alerting`."
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "maintenance-window"
+impact_scope = "whatever the alertname names, often control plane"
+impact_detail = "Clearing a firing critical alert follows that alert's runbook. Do not silence it. The remediating change is usually planned control-plane or node work."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/latest/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
@@ -24,9 +24,9 @@ description = "Warning alerts indicate conditions that may become critical if no
 recommendation = "Classify each firing warning as accepted risk, tuning debt, or an incident. Do not treat the warning list as a page-now queue. Use the console runbook before changing thresholds or silences."
 verification = "1. List firing warning alerts, showing `state`, `alertname`, and `severity`:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -s http://localhost:9090/api/v1/alerts | jq '.data.alerts[] | select(.labels.severity==\"warning\") | {state, alertname: .labels.alertname, severity: .labels.severity}'`\n2. Classify each row as accepted risk, tuning debt, or a real incident. Look up runbooks under `Observe -> Alerting`."
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "non-disruptive"
+impact_scope = "alert routing or the named component"
+impact_detail = "Classifying a warning as accepted risk or tuning changes monitoring config and does not reboot nodes. The underlying fix follows the runbook."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/latest/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
@@ -48,9 +48,9 @@ verification = """1. List Failed pods. Empty output means none in Failed.
 3. For each remaining application pod, print events.
    `oc describe pod <pod> -n <namespace>`"""
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "workload-shift"
+impact_scope = "Failed or Unknown application pods"
+impact_detail = "Fixing or replacing a failed application pod restarts that workload. Unknown pods can require node or kubelet recovery in a maintenance window."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/support/index#understanding-pod-error-states_investigating-pod-issues"
@@ -67,9 +67,9 @@ description = "This check identifies containers currently in the Waiting state w
 recommendation = "Investigate and remediate each `CrashLoopBackOff` container before deleting or restarting the pod. Review the container's waiting reason, previous termination reason, exit code, pod events, and prior container logs. Treat OOMKilled as termination evidence that requires memory-limit, workload-demand, or node-memory-pressure analysis; it is not a log message and should be correlated with events and container logs."
 verification = "1. List containers in `CrashLoopBackOff` with their wait reason, exit reason, exit code, and restart count. Any row in the output needs investigation. If none are in `CrashLoopBackOff` the command reports that:\n   `oc get pods -A -o json | jq -r '.items[] | . as $p | (($p.status.containerStatuses // []) + ($p.status.initContainerStatuses // []))[] | [$p.metadata.namespace, $p.metadata.name, .name, (.state.waiting.reason // \"-\"), (.lastState.terminated.reason // \"-\"), ((.lastState.terminated.exitCode // \"-\")|tostring), (.restartCount|tostring)] | @tsv' | awk -F'\\t' '$4==\"CrashLoopBackOff\"{print \"FAIL\", \"NS=\"$1, \"NAME=\"$2, \"CONTAINER=\"$3, \"WAIT=\"$4, \"EXIT=\"$5, \"EXITCODE=\"$6, \"RESTARTS=\"$7; n=1} END{if(!n) print \"INFO n/a-crashloop\"}'`"
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "workload-shift"
+impact_scope = "CrashLoopBackOff containers"
+impact_detail = "Correcting image, configuration, or memory limits restarts those pods. OOMKilled can also mean node memory pressure that needs capacity work."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/support/index#understanding-pod-error-states_investigating-pod-issues"
@@ -186,9 +186,9 @@ description = "This check identifies pods with a combined container restart coun
 recommendation = "Investigate pods with the highest restart totals first, using pod events and previous container logs to identify causes such as OOMKilled, failing probes, application errors, or invalid configuration. Correct the underlying issue and confirm that restart counts stop increasing."
 verification = "1. List pods sorted by total restart count across all containers. Any pod with more than 10 restarts needs investigation. If no pods exist the command reports it:\n   `oc get pods -A -o json | jq -r '.items[] | [((.status.containerStatuses // []) | map(.restartCount) | add // 0), .metadata.name, .metadata.namespace] | @tsv' | sort -n | awk -F'\\t' '{r=\"PASS\"; if($1+0>10) r=\"WARNING\"; print r, \"RESTARTS=\"$1, \"NAME=\"$2, \"NS=\"$3} END{if(NR==0) print \"INFO n/a-pod\"}'`"
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "workload-shift"
+impact_scope = "pods with rising restart counts"
+impact_detail = "Correcting image, configuration, or memory limits restarts those pods. OOMKilled can also mean node memory pressure that needs capacity work."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/support/index#reviewing-pod-status_investigating-pod-issues"
@@ -227,9 +227,9 @@ description = "This check validates the Kubernetes node Ready condition. A node 
 recommendation = "Restore every node to `Ready=True` before relying on it for workload placement or VM operations. For each non-ready node, inspect its condition reason, recent events, kubelet and CRI-O status, node networking, certificate state, and Machine Config Operator status; cordon the node and migrate or drain workloads safely where appropriate before remediation."
 verification = "1. List each node and its STATUS. Ready is healthy; any other status needs action. If no nodes exist the command reports it:\n   `oc get nodes --no-headers | awk '{r=\"PASS\"; if($2!=\"Ready\") r=\"FAIL\"; print r, \"NAME=\"$1, \"STATUS=\"$2} END{if(NR==0) print \"INFO n/a-node\"}'`"
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "maintenance-window"
+impact_scope = "NotReady nodes and their workloads"
+impact_detail = "Cordon, drain, then repair kubelet, CRI-O, or Machine Config. Node recovery can reboot that node and shift its workloads."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/nodes/index#nodes-nodes-viewing-listing_nodes-nodes-viewing"
@@ -265,9 +265,9 @@ description = "This check is ClusterOperator AVAILABLE, PROGRESSING, and DEGRADE
 recommendation = "Restore ClusterOperators to `Available=True`, `Progressing=False`, `Degraded=False`. Read conditions on the degraded operator next; do not start from a cluster-wide `oc get co` dump."
 verification = "1. List each ClusterOperator with AVAILABLE, PROGRESSING, and DEGRADED columns. `AVAILABLE=True`, `PROGRESSING=False`, `DEGRADED=False` is healthy; any other combination needs action. If no operators exist the command reports it:\n   `oc get co --no-headers | awk '{r=\"PASS\"; if($3!=\"True\" || $4!=\"False\" || $5!=\"False\") r=\"FAIL\"; print r, \"NAME=\"$1, \"AVAILABLE=\"$3, \"PROGRESSING=\"$4, \"DEGRADED=\"$5} END{if(NR==0) print \"INFO n/a-co\"}'`"
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "workload-shift"
+impact_scope = "the degraded ClusterOperator's operands"
+impact_detail = "Fixing the named dependency then reconciling the operator rolls its pods. It does not reboot nodes by itself; Machine Config, etcd, and network children can require a heavier window."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/support/index#troubleshooting-operator-issues"
@@ -284,9 +284,9 @@ description = "Validates internal image registry pod health, storage backend ava
 recommendation = "Restore registry pods and the image-registry ClusterOperator, and configure storage if it is missing. A degraded registry blocks builds and ImageStream imports. Operator managementState is ownership of the registry, not the storage backend."
 verification = "1. Check the image-registry ClusterOperator status. A healthy operator shows `AVAILABLE=True`, `PROGRESSING=False`, `DEGRADED=False`:\n   `oc get co image-registry --no-headers | awk '{print ($3==\"True\" && $4==\"False\" && $5==\"False\"?\"PASS\":\"FAIL\"), $0}'`\n2. Verify registry pods are running:\n   `oc get pods -n openshift-image-registry`\n3. Show the managementState and storage backend configuration:\n   `oc get configs.imageregistry.operator.openshift.io cluster -o custom-columns=STATE:.spec.managementState,REPLICAS:.spec.replicas,EMPTYDIR:.spec.storage.emptyDir,PVC:.spec.storage.pvc.claim`"
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "workload-shift"
+impact_scope = "image-registry pods and internal image workflows"
+impact_detail = "Changing registry state or storage rolls registry pods and can briefly interrupt builds or internal image pulls/pushes."
 finding_group = "registry-health-pods"
 finding_group_title = "Image registry health (pods and ClusterOperator)"
 
@@ -305,9 +305,9 @@ description = "This check identifies pods with a combined container restart coun
 recommendation = "Investigate pods with the highest restart totals first, using pod events and previous container logs to identify causes such as OOMKilled, failing probes, application errors, or invalid configuration. Correct the underlying issue and confirm that restart counts stop increasing."
 verification = "1. List pods sorted by total restart count across all containers. Any pod with more than 10 restarts needs investigation. If no pods exist the command reports it:\n   `oc get pods -A -o json | jq -r '.items[] | [((.status.containerStatuses // []) | map(.restartCount) | add // 0), .metadata.name, .metadata.namespace] | @tsv' | sort -n | awk -F'\\t' '{r=\"PASS\"; if($1+0>10) r=\"WARNING\"; print r, \"RESTARTS=\"$1, \"NAME=\"$2, \"NS=\"$3} END{if(NR==0) print \"INFO n/a-pod\"}'`"
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "workload-shift"
+impact_scope = "pods with rising restart counts"
+impact_detail = "Correcting image, configuration, or memory limits restarts those pods. OOMKilled can also mean node memory pressure that needs capacity work."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/support/index#reviewing-pod-status_investigating-pod-issues"
@@ -345,9 +345,9 @@ description = "Validates MachineSet desired vs actual replica counts and machine
 recommendation = "Bring MachineSet available count to desired, or treat empty as n/a on bare-metal UPI. Stuck machines are an infrastructure-provider problem (quota, PXE, BMC), not a scheduler problem."
 verification = "1. List MachineSets across all namespaces:\n   `oc get machineset -A`\n2. Compare desired versus available replica counts.\n3. Inspect any failed machines for provisioning errors:\n   `oc get machines -A`\n   `oc describe machine <name> -n openshift-machine-api`\n4. Check the underlying infrastructure provider for provisioning failures."
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "maintenance-window"
+impact_scope = "infrastructure provider (quota, PXE, BMC)"
+impact_detail = "Bringing MachineSet available count to desired is provisioner work, not the scheduler. Empty MachineSets on UPI are often not applicable."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/machine_management/index#machine-mgmt-intro-managing-compute_overview-of-machine-management"
@@ -383,9 +383,9 @@ description = "This check identifies slow or failed PVC attach and mount operati
 recommendation = "Treat recurring attach or mount failures as a storage availability issue. Review the affected pod events, PVC/PV, and `VolumeAttachment`, then check CSI controller and node-plugin health, storage-backend status, node-to-storage connectivity, access-mode compatibility, and whether the volume is still attached to a prior node. Do not delete `VolumeAttachment` objects, restart CSI components, resize volumes, or migrate workloads as a default fix. Force-detach only after confirming the previous node no longer uses the volume and the action is safe for the workload. After remediation, confirm the pod starts and the volume attaches and mounts within the required recovery time."
 verification = "1. List `FailedMount` and `FailedAttachVolume` events that indicate slow or stuck volume operations:\n   `oc get events -A --field-selector reason=FailedMount`\n   `oc get events -A --field-selector reason=FailedAttachVolume`\n2. Verify CSI driver pods are running in the storage namespace and that the storage backend is responsive.\n3. Check for `VolumeAttachment` objects stuck in an attaching state:\n   `oc get volumeattachment`"
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "workload-shift"
+impact_scope = "pods stuck on attach or mount"
+impact_detail = "Online expansion may be transparent, but storage migration or cutover can require pod restart, rescheduling, or temporary workload movement."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/storage/index#persistent-storage-csi"
@@ -421,9 +421,9 @@ description = "Evaluates alerts specific to control plane components — API ser
 recommendation = "Resolve firing alerts from openshift-etcd and openshift-kube-* using the alertname runbook. A firing critical here is cluster-wide; next reads are etcd health and API latency."
 verification = "1. List alerts from control-plane namespaces (openshift-etcd, openshift-kube-*), showing state, alertname, and severity:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -s http://localhost:9090/api/v1/alerts | jq '.data.alerts[] | select(.labels.namespace != null and (.labels.namespace | test(\"openshift-etcd|openshift-kube\"))) | {state, alertname: .labels.alertname, severity: .labels.severity}'`\n2. Cross-reference firing alerts with etcd health, API server latency, and scheduler queue depth."
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "maintenance-window"
+impact_scope = "openshift-etcd and openshift-kube-*"
+impact_detail = "Fixing etcd disk-performance problems usually requires control-plane infrastructure or storage changes that can reduce API capacity while nodes are remediated."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/latest/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
@@ -440,9 +440,9 @@ description = "This check is node READY and MEMORY/DISK/PID pressure. `READY=Tru
 recommendation = "Restore `Ready=True` and MEMORY/DISK/PID pressure False on every node. Pressure True means the kubelet is protecting the node — find the consumer before you add more workload."
 verification = "1. List each node with READY, MEMORY pressure, DISK pressure, and PID pressure. `READY=True` with all pressures False is healthy; any other combination needs action. If no nodes exist the command reports it. Quote the custom-columns value so bash does not parse the jsonpath:\n   `oc get nodes -o 'custom-columns=NAME:.metadata.name,READY:.status.conditions[?(@.type==\"Ready\")].status,MEMORY:.status.conditions[?(@.type==\"MemoryPressure\")].status,DISK:.status.conditions[?(@.type==\"DiskPressure\")].status,PID:.status.conditions[?(@.type==\"PIDPressure\")].status' --no-headers | awk '{r=\"PASS\"; if($2!=\"True\" || $3!=\"False\" || $4!=\"False\" || $5!=\"False\") r=\"FAIL\"; print r, \"NAME=\"$1, \"READY=\"$2, \"MEMORY=\"$3, \"DISK=\"$4, \"PID=\"$5} END{if(NR==0) print \"INFO n/a-node\"}'`"
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "maintenance-window"
+impact_scope = "nodes with Ready false or MEMORY, DISK, or PID pressure"
+impact_detail = "Pressure True means the kubelet is protecting the node. Finding the consumer or adding capacity can require a drain or node replacement."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/nodes/index#nodes-nodes-viewing-listing_nodes-nodes-viewing"
@@ -459,9 +459,9 @@ description = "This check evaluates CPU and memory request overcommit using Over
 recommendation = "Review workloads scheduled to node pools where CPU or memory requests exceed available allocatable capacity, then right-size requests based on sustained demand or add node capacity. Do not rely on `oc adm top` to assess this condition, as it reports current usage rather than scheduler reservations and can show idle nodes even when the cluster is overcommitted. Avoid increasing allocatable values solely to suppress the alert."
 verification = "1. List firing Overcommit or Quota alerts by state, alertname, and severity. If none are firing the command reports it:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -s http://localhost:9090/api/v1/alerts | jq -r '.data.alerts[] | select(.labels.alertname | test(\"Overcommit|Quota\"; \"i\")) | [.state, .labels.alertname, .labels.severity] | @tsv' | awk -F'\\t' '{print \"WARNING\", \"STATE=\"$1, \"ALERT=\"$2, \"SEVERITY=\"$3} END{if(NR==0) print \"INFO n/a-overcommit-alert\"}'`\n2. Show CPU request-to-allocatable ratio per node. A ratio above 1 means CPU requests exceed allocatable capacity. If no data is returned the command reports it:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -sG http://localhost:9090/api/v1/query --data-urlencode 'query=sum by (node) (kube_pod_container_resource_requests{resource=\"cpu\"}) / sum by (node) (kube_node_status_allocatable{resource=\"cpu\"})' | jq -r '.data.result[] | [.metric.node, .value[1]] | @tsv' | awk -F'\\t' '{r=\"PASS\"; if($2+0>1) r=\"WARNING\"; printf \"%s NODE=%s CPU_REQ_RATIO=%.2f\\n\", r, $1, $2} END{if(NR==0) print \"INFO n/a-cpu-overcommit\"}'`\n3. Show memory request-to-allocatable ratio per node. A ratio above 1 means memory requests exceed allocatable capacity. If no data is returned the command reports it:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -sG http://localhost:9090/api/v1/query --data-urlencode 'query=sum by (node) (kube_pod_container_resource_requests{resource=\"memory\"}) / sum by (node) (kube_node_status_allocatable{resource=\"memory\"})' | jq -r '.data.result[] | [.metric.node, .value[1]] | @tsv' | awk -F'\\t' '{r=\"PASS\"; if($2+0>1) r=\"WARNING\"; printf \"%s NODE=%s MEM_REQ_RATIO=%.2f\\n\", r, $1, $2} END{if(NR==0) print \"INFO n/a-mem-overcommit\"}'`"
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "workload-shift"
+impact_scope = "workloads whose requests exceed allocatable"
+impact_detail = "Right-sizing requests from sustained demand reschedules or rolls those workloads. Adding nodes is a maintenance window. Do not raise allocatable to hide the alert."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/nodes/index#nodes-cluster-overcommit-reserving-resources_nodes-cluster-overcommit"
@@ -478,9 +478,9 @@ description = "Validates CoreDNS pod health, DNS resolution latency, and DNS ope
 recommendation = "Keep dns.operator default `Available=True`, `Progressing=False`, `Degraded=False`. DNS failures cascade into service discovery, probes, and operators. SERVFAIL in CoreDNS logs is the usual next read after a degraded operator."
 verification = "1. Check `dns.operator default` status. Healthy means `Available=True`, `Progressing=False`, `Degraded=False`:\n   `oc get dns.operator default -o jsonpath='{range .status.conditions[*]}{.type}={.status}{\"\\n\"}{end}' | awk -F= '$1==\"Available\"{a=$2} $1==\"Progressing\"{p=$2} $1==\"Degraded\"{d=$2} END{print (a==\"True\" && p==\"False\" && d==\"False\"?\"PASS\":\"FAIL\"), \"Available=\"a, \"Progressing=\"p, \"Degraded=\"d}'`\n2. If the operator is not healthy, list its conditions for details:\n   `oc get dns.operator default -o jsonpath='{range .status.conditions[*]}{.type}={.status} reason={.reason}{\"\\n\"}{end}'`\n3. Verify DNS pods are running:\n   `oc get pods -n openshift-dns`\n4. Check CoreDNS logs for SERVFAIL entries:\n   `oc -n openshift-dns logs -l dns.operator.openshift.io/daemonset-dns --tail=100`"
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "workload-shift"
+impact_scope = "dns.operator and CoreDNS"
+impact_detail = "Restoring dns.operator default rolls CoreDNS and can briefly break name resolution. It does not reboot nodes."
 finding_group = "dns-operator-health"
 finding_group_title = "DNS Operator / CoreDNS health"
 

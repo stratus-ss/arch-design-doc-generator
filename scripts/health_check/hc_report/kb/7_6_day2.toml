@@ -249,9 +249,9 @@ description = "Sustained high CPU or memory utilization on nodes indicates capac
 recommendation = "Add workers, spread load, or right-size requests when `oc adm top` shows nodes consistently above about 80% CPU or memory. That is usage, not requests."
 verification = "1. Print node CPU and memory utilization. Nodes consistently above 80% need attention.\n   `oc adm top nodes`\n2. Scale by adding workers, rebalance with pod anti-affinity or topology-spread constraints, or right-size pod resource requests."
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "workload-shift"
+impact_scope = "workloads on nodes above about 80% CPU or memory"
+impact_detail = "Spreading load or right-sizing requests reschedules those pods. Adding workers is a maintenance window."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/nodes/index#nodes-nodes-viewing-memory_nodes-nodes-viewing"
@@ -376,9 +376,9 @@ description = "The TSR compares current pod requests to a per-node expected max-
 recommendation = "On TSR FAIL or WARNING, right-size requests and limits or add capacity on that node. Do not use `oc adm top` as the TSR bar. Do not apply a single cluster-wide percent."
 verification = "1. The scored bar is in the TSR Result text (`expected is cpu:… ram:… while currently requests …`). Read that remainder; this step does not invent a PASS/FAIL percent.\n2. Optional live context only: print Allocated resources on a named node. This is **INFO**, not PASS/FAIL against TSR percents.\n   `oc describe node <name>`"
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "workload-shift"
+impact_scope = "workloads on the FAIL or WARNING node"
+impact_detail = "Right-sizing requests and limits or adding capacity reschedules those pods. Do not use oc adm top as the TSR bar."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/nodes/index#nodes-cluster-overcommit-reserving-resources_nodes-cluster-overcommit"
@@ -395,9 +395,9 @@ description = "Monitors PersistentVolume capacity utilization and identifies vol
 recommendation = "Grow or replace volumes before kubelet USED% and KubePersistentVolumeFillingUp cross about 90% used, and plan ahead once they pass 75%. This is filesystem fill, not `oc adm top`. `EXPAND=true` can grow in place; `EXPAND=false` needs a larger volume or a new PVC."
 verification = "1. Print PVC USED% from kubelet volume stats via Prometheus. **FAIL** if above 90%; **WARNING** if above 75%; **PASS** otherwise. If no PVCs report data, the command prints **INFO**.\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -sG http://localhost:9090/api/v1/query --data-urlencode 'query=kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes * 100' | jq -r '.data.result[] | [.metric.namespace, .metric.persistentvolumeclaim, .value[1]] | @tsv' | awk -F'\\t' '{pct=$3+0; r=\"PASS\"; if(pct>90) r=\"FAIL\"; else if(pct>75) r=\"WARNING\"; print r, \"NS=\"$1, \"PVC=\"$2, \"USED=\"int(pct)\"%\"} END{if(NR==0) print \"INFO n/a-pvc-util\"}'`\n2. Print firing KubePersistentVolumeFillingUp alerts. **FAIL** for each listed row. If no alerts are firing, the command prints **INFO**.\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -s http://localhost:9090/api/v1/alerts | jq -r '.data.alerts[] | select(.labels.alertname==\"KubePersistentVolumeFillingUp\") | [.state, .labels.namespace, .labels.persistentvolumeclaim, .labels.severity] | @tsv' | awk -F'\\t' '{print \"FAIL\", \"STATE=\"$1, \"NS=\"$2, \"PVC=\"$3, \"SEVERITY=\"$4} END{if(NR==0) print \"INFO n/a-fillingup-alert\"}'`\n3. Print StorageClass volume expansion support. **FAIL** or **WARNING** PVCs with `EXPAND=true` can grow in place; `EXPAND=false` needs a new, larger volume.\n   `oc get sc -o custom-columns=NAME:.metadata.name,EXPAND:.allowVolumeExpansion --no-headers | awk '{print \"NAME=\"$1, \"EXPAND=\"$2}'`"
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "workload-shift"
+impact_scope = "workloads mounted to the affected PVC"
+impact_detail = "Online expansion may be transparent, but storage migration or cutover can require pod restart, rescheduling, or temporary workload movement."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/storage/index#expanding-pvc_expanding-persistent-volumes"
@@ -481,9 +481,9 @@ description = "Evaluates liveness probe configuration across workloads. Missing 
 recommendation = "Maintain liveness probes for workloads where a running but hung container must be restarted automatically. Tune probe paths, commands, timeouts, failure thresholds, and startup delays to reflect actual application behavior. Use a `startupProbe` for slow-starting applications so liveness checks do not cause restart loops."
 verification = "1. List pods whose LIVENESS column is <none>, meaning no liveness probe is configured.\n   `oc get pods -A --no-headers -o custom-columns=NS:.metadata.namespace,POD:.metadata.name,LIVENESS:.spec.containers[*].livenessProbe | awk '$3==\"<none>\" {print}'`\n2. Review probe timeouts and thresholds on frequently restarting pods.\n3. Ensure probes are not too aggressive for the application startup time."
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "workload-shift"
+impact_scope = "workloads whose probe spec changes"
+impact_detail = "Adding or retuning liveness or startup probes rolls those containers if the probe fails during rollout."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/building_applications/index#application-health"
@@ -519,9 +519,9 @@ description = "This check is user-namespace Deployments with `REPLICAS=1`. Those
 recommendation = "Raise replicas or add a PDB that still allows a drain on user-namespace Deployments with `REPLICAS=1`. Leaving `REPLICAS=1` is accepted risk only if that downtime is documented."
 verification = "1. List user-namespace Deployments with `REPLICAS=1`, skipping openshift-*, kube-*, default, and openshift. **WARNING** for each single-replica Deployment; **PASS** if none are found.\n   `oc get deploy -A --no-headers -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,REPLICAS:.spec.replicas | awk '$1 ~ /^(openshift-|kube-)/ || $1==\"openshift\" || $1==\"default\" {next} $3==\"1\"{print \"WARNING\", \"NS=\"$1, \"NAME=\"$2, \"REPLICAS=\"$3; c++} END{if(!c) print \"PASS none-single-replica\"}'`"
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "workload-shift"
+impact_scope = "user-namespace Deployments with REPLICAS=1"
+impact_detail = "Raising replicas rolls a second pod. A PDB that still allows drain changes eviction behavior without stopping already-running pods."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/updating_clusters/index#understanding-openshift-updates"
@@ -538,9 +538,9 @@ description = "This check reviews the cluster Image configuration’s `registryS
 recommendation = "Keep registry-source settings aligned with the approved image supply chain policy. Use an allowlist where registry access must be tightly controlled, or a blocklist for specific prohibited sources—never configure both. When using an allowlist, include all registries required for platform updates, Operators, workloads, and the internal registry as applicable. Avoid `insecureRegistries` whenever possible."
 verification = "1. Print allowed registries from image.config. An empty list is **INFO** (the connected-cluster default).\n   `oc get image.config cluster -o json | jq -r '(.spec.registrySources.allowedRegistries | if type==\"array\" then . else [] end)[]' | awk 'NF{print \"INFO\", \"ALLOWED=\"$0; c++} END{if(!c) print \"INFO none-allowed\"}'`\n2. Print blocked registries. An empty list is **INFO**.\n   `oc get image.config cluster -o json | jq -r '(.spec.registrySources.blockedRegistries | if type==\"array\" then . else [] end)[]' | awk 'NF{print \"INFO\", \"BLOCKED=\"$0; c++} END{if(!c) print \"INFO none-blocked\"}'`\n3. Print insecure registries. **WARNING** for each listed row; **PASS** if the list is empty.\n   `oc get image.config cluster -o json | jq -r '(.spec.registrySources.insecureRegistries | if type==\"array\" then . else [] end)[]' | awk 'NF{print \"WARNING\", \"INSECURE=\"$0; c++} END{if(!c) print \"PASS none-insecure\"}'`"
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "rolling-restart"
+impact_scope = "nodes via image.config and CRI-O policy"
+impact_detail = "allowedRegistries or a blocklist on the cluster Image CR typically rolls kubelet and CRI-O through the Machine Config Operator."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/images/index#images-configuration-registry-mirror-images-configuration"
@@ -595,9 +595,9 @@ description = "Checks whether the cluster can retrieve available update informat
 recommendation = "Restore CVO `RetrievedUpdates=False` by fixing proxy, firewall, or disconnected mirroring. Egress must reach `api.openshift.com` and the Red Hat CDN unless this cluster is offline by design."
 verification = "1. Print the RetrievedUpdates condition from ClusterVersion. **PASS** if `Status=True`; investigate if False.\n   `oc get clusterversion version -o jsonpath='{range .status.conditions[?(@.type==\"RetrievedUpdates\")]}{.type}={.status} reason={.reason}{\"\\n\"}{end}'`\n2. If RetrievedUpdates is False, print proxy endpoints to check for egress issues.\n   `oc get proxy cluster -o jsonpath='{.spec.httpProxy}{\"\\t\"}{.spec.httpsProxy}{\"\\t\"}{.spec.noProxy}{\"\\n\"}'`\n3. Ensure egress allows access to `api.openshift.com` and Red Hat CDN endpoints."
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "rolling-restart"
+impact_scope = "cluster-wide nodes and system egress"
+impact_detail = "Changing the Proxy object causes the Machine Config Operator to roll and reboot nodes so system components inherit the new proxy settings."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/updating_clusters/index#understanding-openshift-updates"
@@ -626,7 +626,7 @@ verification = "1. Print the ingress certificate expiration date. **FAIL** if it
 priority_hint = ""
 impact = "workload-shift"
 impact_scope = "affected ingress or API endpoints"
-impact_detail = "Renewing certificates rolls the components that mount those secrets and can briefly reset TLS sessions."
+impact_detail = "Renewing certificates rolls the components that mount those TLS resources and can briefly reset TLS sessions."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/security_and_compliance/index#security-platform-certificates_security-platform"

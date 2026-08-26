@@ -5,9 +5,9 @@ description = "Frequent etcd leader elections indicate instability, often caused
 recommendation = "Fix the disk or network causing etcd leader elections; do not restart etcd. Zero in the last hour is healthy. One to three is worth a look; more than three is unstable leadership. Check WAL fsync first."
 verification = "1. Leader change count (etcd_server_leader_changes_seen_total) summed over one hour. Zero is **PASS**, 1-3 is **INFO**, above 3 is **WARNING**. An empty result means the metric is not scraped:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -sG http://localhost:9090/api/v1/query --data-urlencode 'query=sum(increase(etcd_server_leader_changes_seen_total[1h]))' | jq -r 'if (.data.result|length)==0 then \"n/a\" else .data.result[0].value[1] end' | awk '{if($1==\"n/a\") print \"INFO n/a-leader-changes\"; else {c=$1+0; r=\"PASS\"; if(c>3) r=\"WARNING\"; else if(c>0) r=\"INFO\"; printf \"%s CHANGES=%.0f\\n\", r, c}}'`\n2. Per-member leader changes showing which pod saw the election:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -sG http://localhost:9090/api/v1/query --data-urlencode 'query=increase(etcd_server_leader_changes_seen_total[1h])' | jq -r '.data.result[] | [.metric.pod // \"-\", .value[1]] | @tsv' | awk '{printf \"POD=%s CHANGES=%.0f\\n\", $1, $2+0} END{if(NR==0) print \"INFO n/a-leader-changes\"}'`\n3. If step 1 printed **INFO** or **WARNING**, check etcd member logs for election entries:\n   `oc -n openshift-etcd logs etcd-<member> -c etcd --since=1h | grep 'elected leader'`"
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "maintenance-window"
+impact_scope = "control plane nodes and etcd storage path"
+impact_detail = "Fixing etcd disk-performance problems usually requires control-plane infrastructure or storage changes that can reduce API capacity while nodes are remediated."
 
 [checks.links]
 default = "https://access.redhat.com/solutions/4885641"
@@ -25,9 +25,9 @@ description = "etcd WAL fsync latency directly impacts write throughput and lead
 recommendation = "Move etcd onto NVMe or enterprise SSD when WAL fsync P99 is above 10 ms. Do not retune etcd to hide slow disks. A missing metric means WAL latency was not scraped. Backend commit and peer RTT are correlation only."
 verification = "1. WAL fsync P99 latency per etcd member (etcd_disk_wal_fsync_duration_seconds). At or below 10 ms is **PASS**, above 10 ms is **FAIL**. An empty result means the metric is not scraped:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -sG http://localhost:9090/api/v1/query --data-urlencode 'query=histogram_quantile(0.99, rate(etcd_disk_wal_fsync_duration_seconds_bucket[5m]))' | jq -r '.data.result[] | [.metric.pod // \"-\", .value[1]] | @tsv' | awk '{if($2==\"NaN\"||$2==\"+Inf\"||$2==\"-Inf\"){print \"INFO\", \"POD=\"$1, \"P99=n/a-nan\"; next} ms=$2*1000; r=\"PASS\"; if(ms>10) r=\"FAIL\"; printf \"%s POD=%s P99=%.1fms\\n\", r, $1, ms} END{if(NR==0) print \"INFO n/a-wal\"}'`\n2. Backend commit latency and peer round-trip time for correlation only:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -sG http://localhost:9090/api/v1/query --data-urlencode 'query=histogram_quantile(0.99, rate(etcd_disk_backend_commit_duration_seconds_bucket[5m]))' | jq -r '.data.result[] | [.metric.pod // \"-\", .value[1]] | @tsv' | awk '{if($2==\"NaN\"||$2==\"+Inf\"||$2==\"-Inf\"){print \"INFO\", \"POD=\"$1, \"BACKEND_P99=n/a-nan\"; next} printf \"POD=%s BACKEND_P99=%.1fms\\n\", $1, $2*1000} END{if(NR==0) print \"INFO n/a-backend\"}'`\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -sG http://localhost:9090/api/v1/query --data-urlencode 'query=histogram_quantile(0.99, rate(etcd_network_peer_round_trip_time_seconds_bucket[2m]))' | jq -r '.data.result[] | [.metric.pod // \"-\", .value[1]] | @tsv' | awk '{if(!seen[$1]++) printf \"POD=%s RTT=%.1fms\\n\", $1, $2*1000} END{if(NR==0) print \"INFO n/a-rtt\"}'`\n3. Etcd member endpoint status across the cluster:\n   `oc -n openshift-etcd exec -c etcd etcd-<member> -- etcdctl endpoint status --cluster -w table`\n4. Ensure etcd nodes use NVMe or enterprise SSD and dedicate a partition for `/var/lib/etcd` on bare metal.\n5. If latency stays elevated, validate the storage subsystem with `quay.io/cloud-bulldozer/etcd-perf` before planning remediation."
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "maintenance-window"
+impact_scope = "control plane nodes and etcd storage path"
+impact_detail = "Fixing etcd disk-performance problems usually requires control-plane infrastructure or storage changes that can reduce API capacity while nodes are remediated."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/etcd/index"
@@ -44,9 +44,9 @@ description = "Failed raft proposals indicate that some write requests could not
 recommendation = "Fix the slow member or disk causing failed raft proposals; do not restart etcd. Zero is healthy. Any failed proposal is a write-path problem. Check WAL fsync before treating a member as dead."
 verification = "1. Failed proposal count (etcd_server_proposals_failed_total) summed over one hour. Zero is **PASS**, above zero is **WARNING**. An empty result means the metric is not scraped:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -sG http://localhost:9090/api/v1/query --data-urlencode 'query=sum(increase(etcd_server_proposals_failed_total[1h]))' | jq -r 'if (.data.result|length)==0 then \"n/a\" else .data.result[0].value[1] end' | awk '{if($1==\"n/a\") print \"INFO n/a-proposals\"; else {c=$1+0; r=\"PASS\"; if(c>0) r=\"WARNING\"; printf \"%s FAILED=%.0f\\n\", r, c}}'`\n2. Per-member failed proposals showing which pod dropped writes:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -sG http://localhost:9090/api/v1/query --data-urlencode 'query=increase(etcd_server_proposals_failed_total[1h])' | jq -r '.data.result[] | [.metric.pod // \"-\", .value[1]] | @tsv' | awk '{printf \"POD=%s FAILED=%.0f\\n\", $1, $2+0} END{if(NR==0) print \"INFO n/a-proposals\"}'`\n3. If step 1 printed **WARNING**, list firing etcd leader-change and gRPC-slow alerts. An empty result means no relevant alerts are active:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -sG http://localhost:9090/api/v1/query --data-urlencode 'query=ALERTS{alertname=~\"etcdHighNumberOfLeaderChanges|etcdGRPCRequestsSlow\"}' | jq -r '.data.result[] | [.metric.alertname // \"-\", .metric.pod // \"-\", .metric.alertstate // \"-\"] | @tsv' | awk '{print \"WARNING\", \"ALERT=\"$1, \"POD=\"$2, \"STATE=\"$3} END{if(NR==0) print \"PASS none-firing\"}'`"
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "maintenance-window"
+impact_scope = "control plane nodes and etcd storage path"
+impact_detail = "Fixing etcd disk-performance problems usually requires control-plane infrastructure or storage changes that can reduce API capacity while nodes are remediated."
 
 [checks.links]
 default = "https://etcd.io/docs/latest/tuning/"
@@ -63,9 +63,9 @@ description = "This check's verification bar treats API server P99 latency above
 recommendation = "Fix etcd disk or webhook timeouts when API server P99 is over 500 ms; do not change API flags first. The finding is the slowest RESOURCE/VERB pair; WATCH and CONNECT are excluded. Over 500 ms is slow; over 1000 ms is an API incident. Skip the follow-up command when P99 is already healthy."
 verification = "1. Slowest API resource/verb pair by P99 latency (`topk(1, … > 0)`). At or below 500 ms is **PASS**, above 500 ms is **WARNING**, above 1000 ms is **FAIL**. An empty result means no resource latency is available:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -sG http://localhost:9090/api/v1/query --data-urlencode 'query=topk(1, histogram_quantile(0.99, sum(rate(apiserver_request_duration_seconds_bucket{scope=\"resource\",verb!~\"WATCH|CONNECT\"}[5m])) by (le, resource, verb)) > 0)' | jq -r '.data.result[] | [.metric.resource, .metric.verb, .value[1]] | @tsv' | awk '{ms=$3*1000; r=\"PASS\"; if(ms>1000) r=\"FAIL\"; else if(ms>500) r=\"WARNING\"; print r, \"RESOURCE=\"$1, \"VERB=\"$2, \"P99=\"int(ms+0.5)\"ms\"} END{if(NR==0) print \"INFO n/a-apiserver-latency\"}'`\n2. Only if step 1 printed **WARNING** or **FAIL**, list remaining pairs above 500 ms (`… > 0.5`). An empty result means only the top pair was slow:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -sG http://localhost:9090/api/v1/query --data-urlencode 'query=histogram_quantile(0.99, sum(rate(apiserver_request_duration_seconds_bucket{scope=\"resource\",verb!~\"WATCH|CONNECT\"}[5m])) by (le, resource, verb)) > 0.5' | jq -r '.data.result[] | [.metric.resource, .metric.verb, .value[1]] | @tsv' | awk '{ms=$3*1000; r=\"WARNING\"; if(ms>1000) r=\"FAIL\"; print r, \"RESOURCE=\"$1, \"VERB=\"$2, \"P99=\"int(ms+0.5)\"ms\"} END{if(NR==0) print \"PASS none-slow\"}'`"
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "maintenance-window"
+impact_scope = "etcd disk or admission webhooks"
+impact_detail = "Fixing etcd disk-performance problems usually requires control-plane infrastructure or storage changes that can reduce API capacity while nodes are remediated. Webhook timeout or Fail policy is an API-object change and does not reboot nodes."
 
 [checks.links]
 default = "https://raw.githubusercontent.com/kubernetes/community/master/sig-scalability/slos/api_call_latency.md"

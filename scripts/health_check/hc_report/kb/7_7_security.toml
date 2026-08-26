@@ -143,9 +143,9 @@ description = "Indicates firing Prometheus alerts with severity critical or warn
 recommendation = "Investigate and resolve all firing Prometheus alerts according to their severity. Treat critical alerts as active incidents requiring immediate triage and remediation. Warnings still need to be remediated even when it does not require immediate intervention. An empty result confirms that no high-severity alerts are currently firing."
 verification = "1. Print firing Prometheus alerts with severity critical or warning. A critical alert needs immediate action; a warning needs review. An empty result means no high-severity alerts are firing.\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -s http://localhost:9090/api/v1/alerts | jq -r '.data.alerts[] | select(.state==\"firing\" and (.labels.severity==\"critical\" or .labels.severity==\"warning\")) | [.state, .labels.alertname, .labels.severity] | @tsv' | awk -F'\\t' '{r=\"FAIL\"; if($3==\"warning\") r=\"WARNING\"; print r, \"STATE=\"$1, \"ALERT=\"$2, \"SEVERITY=\"$3} END{if(NR==0) print \"PASS none-high-severity\"}'`"
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "maintenance-window"
+impact_scope = "whatever the alertname names, often control plane"
+impact_detail = "Clearing a firing critical alert follows that alert's runbook. Do not silence it. The remediating change is usually planned control-plane or node work."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/latest/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
@@ -169,7 +169,7 @@ verification = "1. Check whether the default IngressController uses a custom cer
 priority_hint = ""
 impact = "workload-shift"
 impact_scope = "affected ingress, API, or authentication endpoints"
-impact_detail = "Renewing user-provided certificates rolls the components that mount those secrets and can briefly reset TLS sessions while new certs are loaded."
+impact_detail = "Renewing user-provided certificates rolls the components that mount those TLS resources and can briefly reset TLS sessions while new certs are loaded."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/security_and_compliance/index#security-platform-certificates_security-platform"
@@ -210,9 +210,9 @@ description = "One or more pods have containers that are repeatedly crashing (`C
 recommendation = "Treat `CrashLoopBackOff`, ImagePullBackOff, and container Error states as active pod failures and diagnose the cause before deleting or restarting the affected pod. Review the pod events and container logs to identify application failures, invalid configuration, missing secrets or ConfigMaps, image-reference or registry-authentication issues, dependency failures, or resource constraints. Investigate high restart counts separately when the pod is not in `CrashLoopBackOff`, because that represents a restart-frequency issue rather than this specific failure-state finding."
 verification = "1. List pods in `CrashLoopBackOff`, Error, or ImagePullBackOff state.\n   `oc get pods -A | grep -E 'CrashLoop|Error|ImagePull'`\n2. For `CrashLoopBackOff` pods, check the previous container log and pod events for the crash reason.\n   `oc logs <pod> -n <ns> --previous`\n   `oc describe pod <pod> -n <ns>`\n3. For ImagePullBackOff pods, verify the image reference is correct, pull secrets are configured, and network connectivity to the registry is working."
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "workload-shift"
+impact_scope = "CrashLoopBackOff, ImagePullBackOff, and Error containers"
+impact_detail = "Correcting image, configuration, or memory limits restarts those pods. OOMKilled can also mean node memory pressure that needs capacity work."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/support/index#investigating-pod-issues"
@@ -297,9 +297,9 @@ description = "Evaluates container security context constraints usage, privilege
 recommendation = "Pods on `privileged` or `anyuid` SCC widen blast radius. List those pods, then see whether they can move to `restricted-v2`. SCC privilege flags are the policy; the annotation on the pod is what actually applied."
 verification = "1. List pods running under the privileged or anyuid SCC.\n   `oc get pods -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,SCC:.metadata.annotations.openshift\\.io/scc --no-headers | awk '$3==\"privileged\" || $3==\"anyuid\" {print}'`\n2. Evaluate whether those pods can move to `restricted-v2`.\n3. Print the privilege flags for each SCC.\n   `oc get scc -o custom-columns=NAME:.metadata.name,PRIV:.allowPrivilegedContainer,ALLOWPRIVESC:.allowPrivilegeEscalation,RUNAS:.runAsUser.type`"
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "workload-shift"
+impact_scope = "workloads using the privileged SCC"
+impact_detail = "Revoking privileged SCC access often requires pod rollout or manifest changes so workloads can start under a less-privileged policy."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/authentication_and_authorization/index#security-context-constraints-about_configuring-internal-oauth"
@@ -325,7 +325,7 @@ verification = "1. Print the API server encryption configuration.\n   `oc get ap
 priority_hint = ""
 impact = "rolling-restart"
 impact_scope = "API server and etcd encryption migration"
-impact_detail = "Enabling etcd encryption triggers API server rollout and a background migration to encrypt all existing secrets, which takes time proportional to secret count."
+impact_detail = "Enabling etcd encryption triggers API server rollout and a background migration to encrypt all existing Secret objects, which takes time proportional to object count."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/security_and_compliance/index#encrypting-etcd_encrypting-etcd"
@@ -342,9 +342,9 @@ description = "Checks whether container image vulnerability scanning is configur
 recommendation = "Without image scanning, CVEs in running containers stay invisible. Confirm a scanner is actually running (internal or external). Mirror/ICSP objects are how disconnected clusters still pull scanned content, not a scanner by themselves."
 verification = "1. Check for image-mirror configuration (ImageDigestMirrorSet, ImageTagMirrorSet, ImageContentSourcePolicy). Their presence indicates a disconnected or mirrored setup.\n   `oc get imagedigestmirrorset,imagetagmirrorset,imagecontentsourcepolicy`\n2. If using an external scanner, confirm scanning pods are running.\n3. List unique container images running in the cluster.\n   `oc get pods -A -o jsonpath='{range .items[*]}{range .spec.containers[*]}{.image}{\"\\n\"}{end}{end}' | sort -u`"
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "non-disruptive"
+impact_scope = "image scanner (internal or external)"
+impact_detail = "Standing up a scanner adds scan load. It does not reboot nodes. Mirror and ICSP are not a scanner."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/registry/index#images-allow-pods-to-reference-images-from-secure-registries_using-image-pull-secrets"
@@ -406,9 +406,9 @@ description = "Evaluates whether the Compliance Operator is installed and active
 recommendation = "No ScanSetting and no scheduled ComplianceSuite means scanning is not actually on. A running operator CSV is not enough — confirm a suite against CIS, NIST, or STIG."
 verification = "1. Confirm the Compliance Operator pods are running.\n   `oc get pods -n openshift-compliance`\n2. List the configured `ScanSettings`.\n   `oc get scansettings -n openshift-compliance`\n3. Confirm at least one `ComplianceSuite` is scheduled against a relevant profile (`CIS`, `NIST`, or `STIG`)."
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "non-disruptive"
+impact_scope = "Compliance Operator ScanSetting and suite"
+impact_detail = "Deploying the Compliance Operator and running scans adds cluster load and creates scan pods, but it does not reboot nodes by itself."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/security_and_compliance/index#compliance-operator-scan-management"
@@ -425,9 +425,9 @@ description = "Checks ComplianceScan execution status and schedule. Scans that a
 recommendation = "Scans should be DONE or RUNNING. Stale or failed PHASE means the pipeline is broken. Check scanner pod logs before you re-create the suite."
 verification = "1. List ComplianceScans and verify each shows phase `DONE` or `RUNNING`.\n   `oc get compliancescan -n openshift-compliance -o custom-columns=NAME:.metadata.name,PHASE:.status.phase`\n2. Print the ComplianceSuite schedule and phase.\n   `oc get compliancesuite -n openshift-compliance -o custom-columns=NAME:.metadata.name,PHASE:.status.phase,SCHEDULE:.spec.schedule`\n3. Investigate any failed or stale scans by checking the scanner pod logs."
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "non-disruptive"
+impact_scope = "scanner pods"
+impact_detail = "Deploying the Compliance Operator and running scans adds cluster load and creates scan pods, but it does not reboot nodes by itself."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/security_and_compliance/index#compliance-operator-scan-management"
@@ -444,9 +444,9 @@ description = "Evaluates ComplianceCheckResult objects for **FAIL** and INCONSIS
 recommendation = "Failed and inconsistent ComplianceCheckResults are drift from the chosen profile. Read the rule, then the remediation — applying a remediation can roll nodes."
 verification = "1. List ComplianceCheckResults with a **FAIL** status.\n   `oc get compliancecheckresults -n openshift-compliance -o custom-columns=NAME:.metadata.name,STATUS:.status --no-headers | awk '$2==\"FAIL\" {print}'`\n2. List available ComplianceRemediations for the failed rules.\n   `oc get complianceremediations -n openshift-compliance`\n3. Apply remediations only after reviewing their impact; some roll nodes."
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "rolling-restart"
+impact_scope = "nodes targeted by the remediation"
+impact_detail = "Applying a Compliance remediation can drain and reboot targeted nodes. Read the rule before you apply it."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/security_and_compliance/index#compliance-operator-remediation"
@@ -463,9 +463,9 @@ description = "Evaluates File Integrity Operator deployment and monitoring statu
 recommendation = "File Integrity Operator watches host paths for unexpected change. FAILED FileIntegrityNodeStatus is the finding. Confirm FIO covers `/etc`, `/boot`, and `/usr/lib/systemd` before you treat silence as clean."
 verification = "1. List File Integrity Operator resources.\n   `oc get fileintegrity -A`\n2. Print FileIntegrityNodeStatus across all namespaces.\n   `oc get fileintegritynodestatuses -A`\n3. Investigate nodes showing `FAILED` status by reviewing the list of changed files.\n4. Confirm FIO is monitoring critical paths including `/etc`, `/boot`, and `/usr/lib/systemd`."
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "non-disruptive"
+impact_scope = "File Integrity Operator node status"
+impact_detail = "FAILED FileIntegrityNodeStatus is investigation first. Reverting host files through MachineConfig drains and reboots that pool."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/security_and_compliance/index#file-integrity-operator"
@@ -482,9 +482,9 @@ description = "Cluster network provider TYPE. OVNKubernetes is **PASS**. OpenShi
 recommendation = "Supported CNI is OVNKubernetes on both spec and status. OpenShiftSDN was removed in 4.17 and must not remain. Anything else is unsupported."
 verification = "1. Print the network type from spec and status (network.config cluster). Both showing OVNKubernetes is healthy; OpenShiftSDN or any other type needs action.\n   `oc get network.config cluster --no-headers -o custom-columns=SPEC:.spec.networkType,STATUS:.status.networkType | awk '{r=\"FAIL\"; if($1==\"OVNKubernetes\" && $2==\"OVNKubernetes\") r=\"PASS\"; print r, \"SPEC=\"$1, \"STATUS=\"$2}'`\n2. Print the operator defaultNetwork type (network.operator cluster). It must match the spec; OVNKubernetes is healthy.\n   `oc get network.operator cluster --no-headers -o custom-columns=TYPE:.spec.defaultNetwork.type | awk '{r=\"FAIL\"; if($1==\"OVNKubernetes\") r=\"PASS\"; print r, \"TYPE=\"$1}'`"
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "maintenance-window"
+impact_scope = "cluster networking"
+impact_detail = "Supported CNI is OVNKubernetes. Changing networkType in place is a rebuild, not a day-2 patch."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#about-ovn-kubernetes"
@@ -520,9 +520,9 @@ description = "Insights detected machine-level issues including failed provision
 recommendation = "Machines not Running are a provisioner/BMC/quota problem, not the scheduler. Empty MachineSets on UPI are often N/A. Inspect PHASE and machine-api logs before you scale the MachineSet."
 verification = "1. List all Machines and their phase.\n   `oc get machines -A`\n2. Filter for Machines not in Running phase. Any listed row needs investigation.\n   `oc get machines -A --no-headers -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,PHASE:.status.phase | awk '$3!=\"Running\" {print}'`\n3. Investigate reported Machines by checking machine-api operator logs."
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "maintenance-window"
+impact_scope = "infrastructure provider (quota, PXE, BMC)"
+impact_detail = "Bringing MachineSet available count to desired is provisioner work, not the scheduler. Empty MachineSets on UPI are often not applicable."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/machine_management/index#machine-mgmt-intro-managing-compute_overview-of-machine-management"
@@ -539,9 +539,9 @@ description = "Insights detected networking configuration issues or degraded net
 recommendation = "Degraded `co/network` or a non-OVN type is cluster-wide connectivity risk. Print the operator, the networkType, then OVN pods."
 verification = "1. Check the network ClusterOperator health. Available True with Degraded and Progressing False is healthy.\n   `oc get co network --no-headers | awk '{print ($3==\"True\" && $4==\"False\" && $5==\"False\"?\"PASS\":\"FAIL\"), $0}'`\n2. Print the network type.\n   `oc get network.config cluster -o jsonpath='{.spec.networkType}'`\n3. List OVN-Kubernetes pods.\n   `oc get pods -n openshift-ovn-kubernetes`"
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "workload-shift"
+impact_scope = "OVN-Kubernetes pods and cluster networking"
+impact_detail = "Restoring the network ClusterOperator rolls OVN pods and can interrupt east-west traffic. Do not change networkType in place."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#about-openshift-sdn"
@@ -558,9 +558,9 @@ description = "Insights detected issues with node readiness or `MachineConfigPoo
 recommendation = "NotReady nodes cannot schedule; a degraded MCP blocks MachineConfig and upgrades. Describe the node or pool before you unpause or drain."
 verification = "1. List nodes and `MachineConfigPool`s.\n   `oc get nodes`\n   `oc get mcp`\n2. Investigate any `NotReady` nodes.\n   `oc describe node <node>`\n3. For degraded MCPs, inspect the pool details and MCO logs.\n   `oc describe mcp <pool>`\n4. Common causes include failed kubelet restarts, disk pressure, or stalled MachineConfig rendering."
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "rolling-restart"
+impact_scope = "nodes in the degraded or updating MachineConfigPool"
+impact_detail = "Resolving MCP degradation may require the MCO to drain and reboot stuck nodes to complete configuration rollout."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/postinstallation_configuration/index#understanding-the-machine-config-operator"
@@ -594,9 +594,9 @@ description = "Node InternalIP vs install-config machineNetwork. Inside a MACHIN
 recommendation = "Each node InternalIP should sit in install-config `machineNetwork`. An address outside that CIDR is a day-0 addressing problem. Missing install-config or CIDRs means you cannot prove the match from this capture."
 verification = "1. Confirm the install-config ConfigMap exists. If not found, the machine network cannot be verified from this source.\n   `oc get cm cluster-config-v1 -n kube-system`\n2. Print each node name and InternalIP. If the list is empty, no node IPs were found.\n   `oc get nodes --no-headers -o custom-columns='NAME:.metadata.name,INTERNALIP:.status.addresses[?(@.type==\"InternalIP\")].address' | awk 'NF{print \"INFO\", \"NAME=\"$1, \"INTERNALIP=\"$2} END{if(NR==0) print \"INFO n/a-node-ip\"}'`\n3. Print machineNetwork CIDRs from the install-config. If the list is empty, no machine network is configured.\n   `oc get cm cluster-config-v1 -n kube-system -o jsonpath='{.data.install-config}' | awk '$1==\"machineNetwork:\"{in_block=1; next} in_block && /cidr:/{print \"INFO\", \"MACHINE=\"$NF; n++; next} in_block && $1 ~ /^[a-zA-Z]/{in_block=0} END{if(!n) print \"INFO n/a-machine-network\"}'`\n4. For each node IP, compare it against a machineNetwork CIDR from step 3. Inside the range is healthy; outside needs action.\n   `python3 -c 'import ipaddress,sys; ip=sys.argv[1]; cidr=sys.argv[2]; print(\"PASS\" if ipaddress.ip_address(ip) in ipaddress.ip_network(cidr, strict=False) else \"FAIL\")' <INTERNALIP> <MACHINE>`"
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "maintenance-window"
+impact_scope = "node addressing versus install-config machineNetwork"
+impact_detail = "Node IPs outside the CIDR are a day-0 addressing problem. Do not patch Infrastructure to hide it."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-network-connectivity-user-infra_installing-platform-agnostic"
@@ -613,9 +613,9 @@ description = "Documented node floors: control-plane 4 vCPU and 16 GiB, worker 2
 recommendation = "Documented floors: control-plane 4 vCPU / 16 GiB, worker 2 vCPU / 8 GiB. Score each field separately. On compact clusters the worker-role nodes are the masters — use the master floors."
 verification = "1. Print control-plane node CPU count. 4 or more is healthy. If the list is empty, no master-role nodes exist.\n   `oc get nodes -l node-role.kubernetes.io/master --no-headers -o custom-columns=NAME:.metadata.name,CPU:.status.capacity.cpu | awk '{print ($2+0>=4?\"PASS\":\"FAIL\"), \"NAME=\"$1, \"CPU=\"$2} END{if(NR==0) print \"INFO n/a-master-cpu\"}'`\n2. Print control-plane node memory. 16 GiB (16777216 Ki) or more is healthy. If the list is empty, no master-role nodes exist.\n   `oc get nodes -l node-role.kubernetes.io/master --no-headers -o custom-columns=NAME:.metadata.name,MEM:.status.capacity.memory | awk '{print ($2+0>=16777216?\"PASS\":\"FAIL\"), \"NAME=\"$1, \"MEM=\"$2} END{if(NR==0) print \"INFO n/a-master-mem\"}'`\n3. Print worker-role node CPU count. 2 or more is healthy. If the list is empty, no worker-role nodes exist.\n   `oc get nodes -l node-role.kubernetes.io/worker --no-headers -o custom-columns=NAME:.metadata.name,CPU:.status.capacity.cpu | awk '{print ($2+0>=2?\"PASS\":\"FAIL\"), \"NAME=\"$1, \"CPU=\"$2} END{if(NR==0) print \"INFO n/a-worker-cpu\"}'`\n4. Print worker-role node memory. 8 GiB (8388608 Ki) or more is healthy. If the list is empty, no worker-role nodes exist.\n   `oc get nodes -l node-role.kubernetes.io/worker --no-headers -o custom-columns=NAME:.metadata.name,MEM:.status.capacity.memory | awk '{print ($2+0>=8388608?\"PASS\":\"FAIL\"), \"NAME=\"$1, \"MEM=\"$2} END{if(NR==0) print \"INFO n/a-worker-mem\"}'`"
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "maintenance-window"
+impact_scope = "undersized control-plane or worker nodes"
+impact_detail = "Resize or replace any undersized control-plane node. That work requires a maintenance window and can reduce API capacity while a master is remediated."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
@@ -632,9 +632,9 @@ description = "Red Hat Insights found pods that are not in a healthy Running or 
 recommendation = "Treat pods that are not Running or successfully Completed as an active workload-health finding and investigate the underlying cause before deleting or restarting them. Start with pod events, then review current logs to identify the failure reason. Resolve Pending pods by validating scheduling constraints, namespace quotas, PVC binding, image pulls, node capacity and pressure, and required configuration or secrets. Resolve `CrashLoopBackOff` and Error states by correcting the application, configuration, dependency, or resource issue identified in the logs. Delete a pod only after collecting evidence and fixing the root cause, as deletion alone commonly recreates the same failure."
 verification = "1. List pods not in Running or Completed state.\n   `oc get pods -A | grep -Ev 'Running|Completed'`\n2. For each problem pod, check events and the previous container log for the failure reason.\n   `oc describe pod <pod> -n <ns>`\n   `oc logs <pod> -n <ns> --previous`\n3. Common causes include OOMKilled (resource limits too low), missing ConfigMaps or Secrets, image pull failures, or node resource exhaustion."
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "workload-shift"
+impact_scope = "pods that are not Running or successfully Completed"
+impact_detail = "Fixing scheduling, quota, PVC, image pull, or application config starts or restarts those pods."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/support/index#investigating-pod-issues"

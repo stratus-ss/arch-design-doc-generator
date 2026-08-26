@@ -22,9 +22,9 @@ description = "CPU model and core count determine the node's compute capacity. C
 recommendation = "Resize or replace the node if you need more cores. This is live CPU capacity, not the 4 vCPU install floor. On metal, `BareMetalHost` `status.hardware.cpu` is the live object — do not dump the BMH YAML. No BMH means this is not a metal cluster; then read `/proc` via `oc debug`. `oc adm top` is usage, not capacity."
 verification = "1. CPU details from `BareMetalHost` (status.hardware.cpu). Each row prints **INFO** with model, core count, and architecture. An empty result means the CRD is absent or this is not bare metal:\n   `oc get bmh -A -o json 2>/dev/null | jq -r '.items[]? | [.metadata.name, (.status.hardware.cpu.model // \"-\"), (.status.hardware.cpu.count // \"-\"), (.status.hardware.cpu.arch // \"-\")] | @tsv' | awk -F'\\t' '{print \"INFO\", \"NAME=\"$1, \"MODEL=\"$2, \"CORES=\"$3, \"ARCH=\"$4} END{if(NR==0) print \"INFO n/a-bmh\"}'`\n2. If step 1 returned no results, read CPU model and logical core count on the node:\n   `oc debug node/<name> --quiet -- chroot /host grep -m1 'model name' /proc/cpuinfo`\n   `oc debug node/<name> --quiet -- chroot /host grep -c ^processor /proc/cpuinfo`"
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "maintenance-window"
+impact_scope = "the node being resized or replaced"
+impact_detail = "Resizing or replacing a node to add CPU requires a maintenance window and may involve node drain, reinstallation, or host replacement."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_bare_metal/index#installation-requirements-user-infra_installing-bare-metal"
@@ -40,9 +40,9 @@ description = "Physical RAM determines the node's memory capacity. Control plane
 recommendation = "Resize or replace the node if you need more RAM. This is live memory capacity, not the 16 GiB install floor. On metal, `BareMetalHost` `status.hardware.ramMebibytes` is the live object — do not dump the BMH YAML. No BMH means this is not a metal cluster; then read MemTotal via `oc debug`. `oc adm top` is usage, not capacity."
 verification = "1. RAM from `BareMetalHost` (status.hardware.ramMebibytes). Each row prints **INFO** with total memory in GiB. An empty result means the CRD is absent or this is not bare metal:\n   `oc get bmh -A -o json 2>/dev/null | jq -r '.items[]? | [.metadata.name, (.status.hardware.ramMebibytes // 0)] | @tsv' | awk -F'\\t' '{printf \"INFO NAME=%s RAM_GIB=%.1f\\n\", $1, $2/1024} END{if(NR==0) print \"INFO n/a-bmh\"}'`\n2. If step 1 returned no results, read MemTotal on the node:\n   `oc debug node/<name> --quiet -- chroot /host awk '/MemTotal/{printf \"RAM_GIB=%.1f\\n\", $2/1024/1024}' /proc/meminfo`"
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "maintenance-window"
+impact_scope = "the node being resized or replaced"
+impact_detail = "Resizing or replacing a node to add memory requires a maintenance window and may involve node drain, reinstallation, or host replacement."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_bare_metal/index#installation-requirements-user-infra_installing-bare-metal"

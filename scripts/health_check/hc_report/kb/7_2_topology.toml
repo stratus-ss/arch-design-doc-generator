@@ -122,9 +122,9 @@ description = "All nodes should run the same RHCOS (or RHEL) version. OS-level s
 recommendation = "Bring every node to one OS-image column. Mixed RHCOS/RHEL workers or mixed kernels complicate cgroup and runtime troubleshooting; treat OS skew as a stalled MCP rollout."
 verification = "1. List OS image and kernel per node:\n   `oc get nodes -o custom-columns=NAME:.metadata.name,OS:.status.nodeInfo.osImage,KERNEL:.status.nodeInfo.kernelVersion`\n2. If OS versions differ, check `MachineConfigPool` rollout state:\n   `oc get machineconfigpool -o wide`\n3. A paused or degraded pool blocks the OS update."
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "rolling-restart"
+impact_scope = "nodes in the drifted MachineConfigPool"
+impact_detail = "Completing a stalled kubelet or machine-config rollout drains and reboots lagging nodes one at a time. On compact 3-node clusters where all nodes serve as both control-plane and worker, this affects 100% of cluster capacity."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#architecture-platform-introduction_architecture-rhcos"
@@ -160,9 +160,9 @@ description = "A production OpenShift cluster requires 3 control plane nodes to 
 recommendation = "Run production HA with three control-plane nodes (five is the documented bare-metal maximum). Document SNO and compact if that topology was chosen on purpose rather than treating a count of 1, or a 3-node compact cluster, as a defect."
 verification = "1. Count master nodes:\n   `oc get nodes -l node-role.kubernetes.io/master --no-headers | wc -l`\n2. If the count is not 3 (or 5 on bare metal), confirm the intended topology before flagging it.\n3. Verify etcd member placement matches the master count:\n   `oc get pods -n openshift-etcd -o wide`"
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "maintenance-window"
+impact_scope = "control-plane membership"
+impact_detail = "Growing to three or five masters is planned control-plane work. Documented SNO or compact stays none and is not treated as a defect."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#about-control-planes_architecture-overview"
@@ -198,9 +198,9 @@ description = "The API and ingress load balancers (commonly HAProxy) must be hig
 recommendation = "Ensure the API and ingress entry points have a tested high-availability design with no single load-balancer host or appliance that can interrupt cluster access. For externally managed load balancers, verify redundant instances for API traffic on 6443 and ingress traffic on 80/443. For bare-metal IPI and similar on-premises IPI deployments, do not infer a single point of failure from a SingleReplica value alone: OpenShift commonly provides API and ingress VIP failover through keepalived/VRRP, with HAProxy serving traffic on the current VIP owner. Validate the actual keepalived and HAProxy static-pod health."
 verification = "1. Print IngressController replica counts:\n   `oc get ingresscontroller default -n openshift-ingress-operator -o custom-columns=NAME:.metadata.name,SPEC:.spec.replicas,AVAILABLE:.status.availableReplicas`\n2. Both columns at 2 or above means HA. `1` is SingleReplica. `<none>` in AVAILABLE means the operator has not reported status yet.\n3. List router pods:\n   `oc get pods -n openshift-ingress`\n4. Check the platform load-balancer implementation: bare-metal IPI uses keepalived/HAProxy in openshift-kni-infra; vSphere IPI uses openshift-vsphere-infra; external LBs need out-of-cluster validation.\n   `oc get pods -n openshift-kni-infra`\n   `oc get pods -n openshift-vsphere-infra`"
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "maintenance-window"
+impact_scope = "API and ingress load-balancer infrastructure"
+impact_detail = "Adding redundant load balancers or VIPs can interrupt 6443, 80, and 443 until failover is proven."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#configuring-ingress-cluster-traffic-ingress-controller"
@@ -236,9 +236,9 @@ description = "The software-defined network plugin has tested scalability limits
 recommendation = "Stay at or below the OVN-Kubernetes tested limit of 2,000 nodes. Crossing that is API load, flow-table pressure, and network-programming delay. OpenShift SDN was removed in 4.17 and does not apply to current releases."
 verification = "1. Count cluster nodes:\n   `oc get nodes --no-headers | wc -l`\n2. Identify the active network plugin:\n   `oc get network.config cluster -o jsonpath='{.spec.networkType}'`\n3. Compare the node count to published scalability limits for that plugin. If approaching the limit, plan scale-out rather than adding more nodes."
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "maintenance-window"
+impact_scope = "cluster scale or split"
+impact_detail = "Staying at or below 2,000 OVN nodes may mean not adding more, or splitting the estate. That is capacity planning, not a kubelet tweak."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/scalability_and_performance/index#recommended-performance-scale-practices_recommended-performance-scale-practices"
@@ -255,9 +255,9 @@ description = "Each node has a maximum pod capacity (default 250) and the cluste
 recommendation = "Keep bound-pod counts at or below each node's allocatable PODS column (kubelet default 250). Scheduling past it fails; running near it stresses OVS flow tables. Compare per node, not to a cluster-wide total."
 verification = "1. Show allocatable pods per node:\n   `oc get nodes -o custom-columns=NAME:.metadata.name,PODS:.status.allocatable.pods`\n2. Count running pods per node:\n   `oc get pods -A --no-headers -o custom-columns=NODE:.spec.nodeName | awk '$1 != \"\" && $1 != \"<none>\"' | sort | uniq -c | sort -rn`\n   Rows showing `<none>` are Pending or unschedulable pods.\n3. Check `maxPods` in `KubeletConfig`. `No resources found` means the default of 250 applies:\n   `oc get kubeletconfig -o custom-columns=NAME:.metadata.name,MAXPODS:.spec.kubeletConfig.maxPods`"
 priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+impact = "workload-shift"
+impact_scope = "pods on nodes near allocatable PODS"
+impact_detail = "Reducing density or spreading pods reschedules those workloads. Adding nodes is a maintenance window."
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/scalability_and_performance/index#recommended-performance-scale-practices_recommended-performance-scale-practices"
