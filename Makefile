@@ -493,11 +493,22 @@ hc-summary-conclusion: image ## Cursor-draft Chapter 3/8 into an existing report
 		--entrypoint /workspace/scripts/entrypoint.sh $(IMAGE) \
 		hc-summary-conclusion "/workspace/$(REPORT)"
 
-hc-html: image ## Collapsible HTML from HC report markdown (container)
-	@$(_RUNOUT) hc-html
+define hc_export_run
+	@if [ -n "$(REPORT)" ] && [ ! -f "$(REPORT)" ]; then echo "Error: report not found: $(REPORT)" >&2; exit 1; fi; \
+	if [ -t 0 ]; then tty_flags=-it; else tty_flags=; fi; \
+	$(ENGINE) run --rm $$tty_flags \
+		-v "$$(pwd)":/workspace:Z \
+		-v "$$(pwd)/output":/output:Z \
+		$(if $(_FORCE_ON),-e HC_EXPORT_FORCE=1) \
+		--entrypoint /workspace/scripts/entrypoint.sh $(IMAGE) \
+		$(1)$(if $(REPORT), "/workspace/$(REPORT)")
+endef
 
-hc-pdf: image ## Branded PDF from HC report markdown (container)
-	@$(_RUNOUT) hc-pdf
+hc-html: image ## Collapsible HTML from HC report markdown (optional REPORT=path.md; FORCE=1 overwrites basename dest)
+	$(call hc_export_run,hc-html)
+
+hc-pdf: image ## Branded PDF from HC report markdown (optional REPORT=path.md; FORCE=1 overwrites basename dest)
+	$(call hc_export_run,hc-pdf)
 
 hc-build-catalog: ## Rebuild TSR/CCX catalog JSON from a TSR HTML export (set TSR_HTML=path)
 	$(call require,TSR_HTML,Error: set TSR_HTML=path/to/export.html)

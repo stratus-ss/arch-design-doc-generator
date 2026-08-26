@@ -2,7 +2,9 @@
 # via Makefile (preferred):
 make hc-report
 make hc-html
+make hc-html REPORT=output/Health_Check_Report/<report>.md
 make hc-pdf
+make hc-pdf REPORT=output/Health_Check_Report/<report>.md FORCE=1
 make hc-investigate RESULTS_DIR=output/hc_collect/<date> FINDING_ID=6.2.3.1
 
 # container entrypoint subcommands (scripts/entrypoint.sh):

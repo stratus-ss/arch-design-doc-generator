@@ -38,6 +38,8 @@ make hc-pdf              → output/Health_Check_Report/PDFs/      (customer rep
 make hc-html             → output/Health_Check_Report/HTML/      (collapsible HTML report)
 ```
 
+Optional `REPORT=path.md` on `hc-html`/`hc-pdf` exports that one markdown file. `FORCE=1` overwrites an existing basename dest (out-of-tree only).
+
 `make hc-pdf` runs inside the project container (no host weasyprint needed). Container auto-builds on first use.
 
 ## Set Up project.yaml
@@ -106,8 +108,6 @@ bash /home/remote/<username>/hc_supportshell/hc_collect_multi.sh --input /home/r
 ```
 
 This produces `/home/remote/<username>/hc_results/<cluster_name>/` for each selected cluster, plus `/home/remote/<username>/hc_results.tar.gz` as an aggregate tarball when `--tar` is used.
-
-Each run deletes the previous results directory (`--output-dir`) and its sibling tarball (`<output-dir>.tar.gz`) before writing new output, so leftover cluster directories cannot mix into a later fetch. Re-run `make hc-push-scripts` after updating collection scripts so the support shell has this behavior.
 
 Each cluster output directory contains its own `skipped_commands.jsonl`, tagged with which must-gather subdirectory was active. This is useful for confirming a skip was expected rather than a collection bug. See [Skipped Commands Ledger (Debugging)](#skipped-commands-ledger-debugging) in Reference below for the full ledger format and readable-summary/investigation commands.
 
@@ -326,6 +326,8 @@ To import into Jira: **Issues → Import Issues from CSV**, select the CSV, map 
 
 ```bash
 make hc-pdf
+make hc-pdf REPORT=output/Health_Check_Report/<report>.md
+make hc-html REPORT=path.md FORCE=1   # overwrite existing basename dest only
 ```
 
 This runs inside the project container (same as `make pdfs` for OCP-V), which has `pandoc` and `weasyprint` already installed. No host dependencies needed beyond `podman` or `docker`.
@@ -334,6 +336,8 @@ The flow is identical to the OCP-V pipeline: markdown → `pandoc` (branded CSS 
 
 PDFs are written to:
 - `output/Health_Check_Report/PDFs/` — customer-facing report (nested reports keep a cluster subdirectory, e.g. `PDFs/<cluster_dir>/…`)
+
+Unset `REPORT` discovers all report markdown (prefers `_pruned.md`). `REPORT=path.md` exports that one file. A source outside the report tree maps by basename. `FORCE=1` overwrites an existing basename dest.
 
 If the container image hasn't been built yet, `make hc-pdf` will build it automatically first.
 
@@ -450,8 +454,8 @@ Each target below runs one discrete step and can be re-run on its own — useful
 | `hc-merge`                    | Merge multiple result dirs (`MERGE_INPUTS="dir1 dir2"`)                                                                                                                                                                                   |
 | `hc-report`                   | Generate branded health check report (runs in container; requires `project.yaml`). Optional `HC_OMIT_CHECK_IDS` writes `{stem}_pruned.md`. Optional `HC_SUMMARY_CONCLUSION=1` drafts Chapter 3/8 in place after generate (prefers pruned) |
 | `hc-summary-conclusion`       | Cursor-draft Chapter 3/8 into an existing report (`REPORT=path.md`)                                                                                                                                                                       |
-| `hc-pdf`                      | Export report and execution guide to branded PDF                                                                                                                                                                                          |
-| `hc-html`                     | Generate collapsible HTML report                                                                                                                                                                                                          |
+| `hc-pdf`                      | Branded PDF from report markdown (optional `REPORT=path.md`; `FORCE=1` overwrites an existing basename dest)                                                                                                                              |
+| `hc-html`                     | Collapsible HTML from report markdown (optional `REPORT=path.md`; `FORCE=1` overwrites an existing basename dest)                                                                                                                         |
 | `hc-build-catalog`            | Rebuild TSR/CCX catalog JSON from a TSR HTML export (`TSR_HTML=path`)                                                                                                                                                                     |
 | `hc-skip-summary`             | Render `skipped_commands.jsonl` into readable YAML (`LEDGER=path`)                                                                                                                                                                        |
 | `hc-investigate`              | Trace a finding/check back to raw evidence (`RESULTS_DIR=...`)                                                                                                                                                                            |
@@ -541,7 +545,9 @@ Code quality is enforced via `ruff.toml` (C901 ≤ 15, max-branches ≤ 15, max-
 # via Makefile (preferred):
 make hc-report
 make hc-html
+make hc-html REPORT=output/Health_Check_Report/<report>.md
 make hc-pdf
+make hc-pdf REPORT=output/Health_Check_Report/<report>.md FORCE=1
 make hc-investigate RESULTS_DIR=output/hc_collect/<date> FINDING_ID=6.2.3.1
 
 # container entrypoint subcommands (scripts/entrypoint.sh):

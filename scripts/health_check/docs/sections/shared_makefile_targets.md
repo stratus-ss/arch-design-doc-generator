@@ -17,8 +17,8 @@ Each target below runs one discrete step and can be re-run on its own — useful
 | `hc-merge` | Merge multiple result dirs (`MERGE_INPUTS="dir1 dir2"`) |
 | `hc-report` | Generate branded health check report (runs in container; requires `project.yaml`). Optional `HC_OMIT_CHECK_IDS` writes `{stem}_pruned.md`. Optional `HC_SUMMARY_CONCLUSION=1` drafts Chapter 3/8 in place after generate (prefers pruned) |
 | `hc-summary-conclusion` | Cursor-draft Chapter 3/8 into an existing report (`REPORT=path.md`) |
-| `hc-pdf` | Export report and execution guide to branded PDF |
-| `hc-html` | Generate collapsible HTML report |
+| `hc-pdf` | Branded PDF from report markdown (optional `REPORT=path.md`; `FORCE=1` overwrites an existing basename dest) |
+| `hc-html` | Collapsible HTML from report markdown (optional `REPORT=path.md`; `FORCE=1` overwrites an existing basename dest) |
 | `hc-build-catalog` | Rebuild TSR/CCX catalog JSON from a TSR HTML export (`TSR_HTML=path`) |
 | `hc-skip-summary` | Render `skipped_commands.jsonl` into readable YAML (`LEDGER=path`) |
 | `hc-investigate` | Trace a finding/check back to raw evidence (`RESULTS_DIR=...`) |

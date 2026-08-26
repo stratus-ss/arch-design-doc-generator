@@ -18,4 +18,6 @@ make hc-pdf            → output/Health_Check_Report/PDFs/      (customer repor
 make hc-html           → output/Health_Check_Report/HTML/      (collapsible HTML report; nested reports keep cluster subdirectories)
 ```
 
+Optional `REPORT=path.md` on `hc-html`/`hc-pdf` exports that one markdown file. `FORCE=1` overwrites an existing basename dest (out-of-tree only). Unset `REPORT` still discovers all reports (prefers `_pruned.md`).
+
 `make hc-pdf` runs inside the project container (no host weasyprint needed). Container auto-builds on first use.

@@ -194,3 +194,181 @@ def test_cli_exits_nonzero_when_no_exportable_markdown(
 
     assert status == 1
     assert "no report markdown found" in captured.err
+
+
+def test_named_source_exports_exact_file_and_warns_if_pruned_sibling(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Bug: in-tree REPORT=Foo.md silently exports Foo_pruned.md or omits banner
+    # Mutant: _prefer_pruned_markdown on named export, skip banner, or warn only out-of-tree
+    hc_export_paths = _load_export_paths()
+    report_directory = tmp_path / "Health_Check_Report"
+    report_directory.mkdir()
+    named = report_directory / "Foo.md"
+    pruned = report_directory / "Foo_pruned.md"
+    named.write_text("full", encoding="utf-8")
+    pruned.write_text("pruned", encoding="utf-8")
+    export_root = tmp_path / "PDFs"
+
+    status = hc_export_paths.main(
+        [str(report_directory), str(export_root), "pdf", "--source", str(named)]
+    )
+    captured = capsys.readouterr()
+    lines = [line for line in captured.out.splitlines() if line]
+    source_text, destination_text = lines[0].split("\t")
+
+    assert status == 0
+    assert Path(source_text).resolve() == named.resolve()
+    assert Path(destination_text).name == "Foo.pdf"
+    assert "WARNING: PRUNED SIBLING IGNORED" in captured.err
+
+
+def test_out_of_tree_source_maps_basename_and_warns(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Bug: out-of-tree source raises, is refused, or keeps a cluster prefix
+    # Mutant: relative_to(report_directory) without is_relative_to; skip location banner
+    hc_export_paths = _load_export_paths()
+    report_directory = tmp_path / "Health_Check_Report"
+    report_directory.mkdir()
+    outside = tmp_path / "scratch" / "Outside.md"
+    outside.parent.mkdir()
+    outside.write_text("outside", encoding="utf-8")
+    export_root = tmp_path / "PDFs"
+
+    status = hc_export_paths.main(
+        [
+            str(report_directory),
+            str(export_root),
+            "pdf",
+            "--source",
+            str(outside),
+        ]
+    )
+    captured = capsys.readouterr()
+    lines = [line for line in captured.out.splitlines() if line]
+    _source_text, destination_text = lines[0].split("\t")
+
+    assert status == 0
+    assert Path(destination_text).resolve() == (export_root / "Outside.pdf").resolve()
+    assert "WARNING: SOURCE OUTSIDE REPORT TREE" in captured.err
+
+
+def test_in_tree_regenerate_does_not_require_overwrite_consent(
+    tmp_path: Path,
+) -> None:
+    # Bug: in-tree re-export exits 4 whenever dest exists
+    # Mutant: destination.exists() always requires consent
+    hc_export_paths = _load_export_paths()
+    report_directory = tmp_path / "Health_Check_Report"
+    report_directory.mkdir()
+    named = report_directory / "Regen.md"
+    named.write_text("report", encoding="utf-8")
+    export_root = tmp_path / "PDFs"
+    export_root.mkdir()
+    existing = export_root / "Regen.pdf"
+    existing.write_bytes(b"old-pdf")
+
+    status = hc_export_paths.main(
+        [str(report_directory), str(export_root), "pdf", "--source", str(named)]
+    )
+
+    assert status == 0
+    assert existing.read_bytes() == b"old-pdf"
+
+
+def test_out_of_tree_existing_destination_requires_allow_overwrite(
+    tmp_path: Path,
+) -> None:
+    # Bug: basename dest silently overwrites; or --allow-overwrite ignored
+    # Mutant: skip dest-exists for out-of-tree; ignore --allow-overwrite
+    hc_export_paths = _load_export_paths()
+    report_directory = tmp_path / "Health_Check_Report"
+    report_directory.mkdir()
+    outside = tmp_path / "scratch" / "Clash.md"
+    outside.parent.mkdir()
+    outside.write_text("outside", encoding="utf-8")
+    export_root = tmp_path / "PDFs"
+    export_root.mkdir()
+    existing = export_root / "Clash.pdf"
+    existing.write_bytes(b"keep-me")
+
+    refused = hc_export_paths.main(
+        [
+            str(report_directory),
+            str(export_root),
+            "pdf",
+            "--source",
+            str(outside),
+        ]
+    )
+    allowed = hc_export_paths.main(
+        [
+            str(report_directory),
+            str(export_root),
+            "pdf",
+            "--source",
+            str(outside),
+            "--allow-overwrite",
+        ]
+    )
+
+    assert refused == 4
+    assert existing.read_bytes() == b"keep-me"
+    assert allowed == 0
+
+
+def test_cli_named_source_missing_exits_nonzero_without_discovering(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Bug: missing --source falls through to discover-all
+    # Mutant: empty/missing source ignored; run build_export_mapping
+    hc_export_paths = _load_export_paths()
+    report_directory = tmp_path / "Health_Check_Report"
+    report_directory.mkdir()
+    other = report_directory / "Other.md"
+    other.write_text("other", encoding="utf-8")
+    missing = report_directory / "Missing.md"
+    export_root = tmp_path / "PDFs"
+
+    status = hc_export_paths.main(
+        [
+            str(report_directory),
+            str(export_root),
+            "pdf",
+            "--source",
+            str(missing),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert status == 1
+    assert "Other.md" not in captured.out
+    assert "report not found" in captured.err
+
+
+def test_named_source_sidecar_exits_nonzero(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Bug: --source exports _summary_conclusion.md
+    # Mutant: skip _is_sidecar_markdown for --source
+    hc_export_paths = _load_export_paths()
+    report_directory = tmp_path / "Health_Check_Report"
+    report_directory.mkdir()
+    sidecar = report_directory / "Foo_summary_conclusion.md"
+    sidecar.write_text("sidecar", encoding="utf-8")
+    export_root = tmp_path / "PDFs"
+
+    status = hc_export_paths.main(
+        [
+            str(report_directory),
+            str(export_root),
+            "pdf",
+            "--source",
+            str(sidecar),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert status == 1
+    assert "sidecar" in captured.err.lower()

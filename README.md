@@ -77,7 +77,7 @@ Run `make help` or `make status` at any time to see available targets and curren
 
 ## Health Check
 
-A second engagement type (`PROJECT=HC`) collects OpenShift cluster JSON and generates a deterministic markdown report plus audit JSON. Collection runs on the host; report generation runs in the container. AI is not used for check evaluation (company policy). Optional `HC_SUMMARY_CONCLUSION=1` on `make hc-report` (or `make hc-summary-conclusion REPORT=…`) drafts Chapter 3 and Chapter 8 in place via Cursor in the container after generate. TSR/CCX parity expansion is available: `make hc-report` defaults to `--check-profile advisory` and scores catalog checks from a TSR HTML export (and optional `12_ccx/ccx_rules.json`). Missing HTML or Insights data stays SKIPPED. Optional `HC_OMIT_CHECK_IDS` writes `{stem}_pruned.md` with those Chapter 6 findings removed (original markdown and audit stay full). `make hc-html` and `make hc-pdf` export collapsible HTML and branded PDF from that markdown (`hc_export_paths.py` prefers `*_pruned.md` when present and maps each source file to a unique path under `HTML/` or `PDFs/`, preserving cluster subdirs); both exit non-zero when no report markdown is present. Operator runbooks start at [`scripts/health_check/README.md`](scripts/health_check/README.md); per-check consultant rationale is in [`docs/HC_CHECK_RATIONALE.md`](docs/HC_CHECK_RATIONALE.md).
+A second engagement type (`PROJECT=HC`) collects OpenShift cluster JSON and generates a deterministic markdown report plus audit JSON. Collection runs on the host; report generation runs in the container. AI is not used for check evaluation (company policy). Optional `HC_SUMMARY_CONCLUSION=1` on `make hc-report` (or `make hc-summary-conclusion REPORT=…`) drafts Chapter 3 and Chapter 8 in place via Cursor in the container after generate. TSR/CCX parity expansion is available: `make hc-report` defaults to `--check-profile advisory` and scores catalog checks from a TSR HTML export (and optional `12_ccx/ccx_rules.json`). Missing HTML or Insights data stays SKIPPED. Optional `HC_OMIT_CHECK_IDS` writes `{stem}_pruned.md` with those Chapter 6 findings removed (original markdown and audit stay full). `make hc-html` and `make hc-pdf` export collapsible HTML and branded PDF from that markdown. With `REPORT` unset they discover under `output/Health_Check_Report/` (`hc_export_paths.py` prefers `*_pruned.md` when present and maps each source to a unique path under `HTML/` or `PDFs/`, preserving cluster subdirs). Optional `REPORT=path.md` exports that one file (exact path; loud warning if a pruned sibling exists). A source outside the report tree maps by basename under `HTML/` or `PDFs/` (loud warning; `FORCE=1` only if that dest already exists). Both exit non-zero when no report markdown is present. Operator runbooks start at [`scripts/health_check/README.md`](scripts/health_check/README.md); per-check consultant rationale is in [`docs/HC_CHECK_RATIONALE.md`](docs/HC_CHECK_RATIONALE.md).
 
 | Target | Runtime | Purpose |
 |---|---|---|
@@ -90,8 +90,8 @@ A second engagement type (`PROJECT=HC`) collects OpenShift cluster JSON and gene
 | `make hc-merge MERGE_INPUTS="dir1 dir2"` | Host | Merge multiple `hc_results` dirs on the host |
 | `make hc-report` | Container | Generate markdown report + audit JSON from collected data (default profile `advisory`). Optional `HC_OMIT_CHECK_IDS` writes `{stem}_pruned.md`. Optional `HC_SUMMARY_CONCLUSION=1` drafts Chapter 3/8 in place (prefers pruned) |
 | `make hc-summary-conclusion REPORT=path.md` | Container | Cursor-draft Chapter 3/8 into an existing report |
-| `make hc-html` | Container | Collapsible HTML from report markdown under `output/Health_Check_Report/` (nested reports keep cluster subdirs under `HTML/`) |
-| `make hc-pdf` | Container | Branded PDF from report markdown under `output/Health_Check_Report/` (nested reports keep cluster subdirs under `PDFs/`) |
+| `make hc-html` | Container | Collapsible HTML from report markdown (unset `REPORT` = discover-all; optional `REPORT=path.md`; `FORCE=1` overwrites an existing basename dest) |
+| `make hc-pdf` | Container | Branded PDF from report markdown (same `REPORT=` / `FORCE=1` as `hc-html`) |
 | `make hc-build-catalog TSR_HTML=<path>` | Host | Rebuild `tsr_ccx_crosswalk.json` from a TSR HTML export |
 | `make hc-investigate RESULTS_DIR=… FINDING_ID=…` | Container | Trace a finding or check back to raw evidence (`CHECK_ID=` / `QUERY=` also work) |
 | `make hc-skip-summary LEDGER=…` | Host | Summarize skipped collection commands from `skipped_commands.jsonl` (`RESULTS_DIR=` also works) |
@@ -160,7 +160,8 @@ AI_TIMEOUT          per-call timeout seconds (default: 900)
 ADR_MODE            auto | chunked (default: auto = one full-ADR Prompt A, then 8x12k fallback)
 REFINE_PHASES       1 to opt in to Prompt B per-phase refine (off by default)
 OUTPUT_ROOT         output
-FORCE               1 (setup: overwrite working copies; AI: re-extract even if inputs are unchanged)
+FORCE               1 (setup: overwrite working copies; AI: re-extract even if inputs are unchanged;
+                    hc-html/hc-pdf: overwrite an existing basename dest for an out-of-tree REPORT=)
                     GNU make does not accept --force; use FORCE=1 or `make <target> force`
 RUNS                repeatability test iterations (default: 3)
 AI_MAX_CHARS        max chars per ADR chunk in chunked mode (default: 12000)

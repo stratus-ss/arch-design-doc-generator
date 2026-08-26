@@ -374,6 +374,62 @@ cmd_hc_investigate() {
     python3 /toolkit/health_check/hc_investigate.py "$@"
 }
 
+_hc_overwrite_is_allowed() {
+    if [[ "${HC_EXPORT_FORCE:-}" == "1" ]]; then
+        return 0
+    fi
+    if [[ ! -t 0 ]]; then
+        return 1
+    fi
+    local overwrite_reply=""
+    echo "========================================================================" >&2
+    echo "WARNING: OVERWRITE EXISTING EXPORT" >&2
+    echo "========================================================================" >&2
+    echo "The destination HTML or PDF already exists." >&2
+    echo "Overwrite existing export? [y/N]" >&2
+    set +e
+    read -r overwrite_reply
+    set -e
+    overwrite_reply="$(printf '%s' "${overwrite_reply:-}" | tr '[:upper:]' '[:lower:]')"
+    [[ "$overwrite_reply" == "y" || "$overwrite_reply" == "yes" ]]
+}
+
+run_hc_export_mapping() {
+    local report_dir="$1"
+    local export_root="$2"
+    local extension="$3"
+    local named_source="$4"
+    local mapping_file="$5"
+    local extra=()
+    local mapping_status
+    if [[ -n "$named_source" ]]; then
+        extra+=(--source "$named_source")
+    fi
+
+    _run_export_paths() {
+        python3 /workspace/scripts/shared/rendering/hc_export_paths.py \
+            "$report_dir" "$export_root" "$extension" "${extra[@]}" \
+            > "$mapping_file"
+    }
+
+    set +e
+    _run_export_paths
+    mapping_status=$?
+    set -e
+    if [[ "$mapping_status" -eq 0 ]]; then
+        return 0
+    fi
+    if [[ "$mapping_status" -ne 4 ]]; then
+        return "$mapping_status"
+    fi
+    if ! _hc_overwrite_is_allowed; then
+        red "Error: destination exists. Re-run with FORCE=1 to overwrite."
+        return 1
+    fi
+    extra+=(--allow-overwrite)
+    _run_export_paths
+}
+
 cmd_hc_html() {
     require_project_yaml
     bold "=== Generating Health Check HTML Report ==="
@@ -381,6 +437,7 @@ cmd_hc_html() {
 
     local report_dir="$WORKSPACE/output/Health_Check_Report"
     local html_dir="${report_dir}/HTML"
+    local named_source="${1:-}"
 
     mkdir -p "$html_dir"
 
@@ -389,8 +446,8 @@ cmd_hc_html() {
     mapping_file="$(mktemp)"
     python3 /workspace/scripts/shared/lib/config.py render-css-html > "$css_file"
 
-    if ! python3 /workspace/scripts/shared/rendering/hc_export_paths.py \
-        "$report_dir" "$html_dir" html > "$mapping_file"; then
+    if ! run_hc_export_mapping "$report_dir" "$html_dir" html \
+        "$named_source" "$mapping_file"; then
         rm -f "$css_file" "$mapping_file"
         exit 1
     fi
@@ -415,6 +472,7 @@ cmd_hc_pdf() {
     echo ""
 
     local report_dir="$WORKSPACE/output/Health_Check_Report"
+    local named_source="${1:-}"
 
     mkdir -p "$report_dir/PDFs"
 
@@ -423,8 +481,8 @@ cmd_hc_pdf() {
     mapping_file="$(mktemp)"
     python3 /workspace/scripts/shared/lib/config.py render-css --doc-type hc > "$css_file"
 
-    if ! python3 /workspace/scripts/shared/rendering/hc_export_paths.py \
-        "$report_dir" "$report_dir/PDFs" pdf > "$mapping_file"; then
+    if ! run_hc_export_mapping "$report_dir" "$report_dir/PDFs" pdf \
+        "$named_source" "$mapping_file"; then
         rm -f "$css_file" "$mapping_file"
         exit 1
     fi
@@ -453,8 +511,8 @@ cmd_help() {
     echo "  rvtools <files>   Process RVTools XLSX into migration schedule"
     echo "  hc-report         Generate Health Check report from collected data"
     echo "  hc-summary-conclusion  Opt-in Cursor draft of Chapter 3/8 into an existing report"
-    echo "  hc-html           Generate collapsible HTML from Health Check report markdown"
-    echo "  hc-pdf            Generate branded PDF from Health Check report markdown"
+    echo "  hc-html [path]    Generate collapsible HTML (optional named markdown path)"
+    echo "  hc-pdf [path]     Generate branded PDF (optional named markdown path)"
     echo "  hc-investigate    Trace a Health Check finding to raw evidence"
     echo "  status            Show project health and readiness"
     echo "  help              Show this message"
