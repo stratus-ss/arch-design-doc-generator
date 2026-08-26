@@ -2,7 +2,7 @@
 
 > **Canonical spec:** this file (`openspec/specs/hc-report-engine/spec.md`). Do not recreate `agent_planning/openspec/specs/`.
 >
-> **Baseline date:** 2026-08-21 (landed Chunks A–G). Chunk H deltas live in `openspec/changes/hc-feedback-chunk-h/` until archived. `hc-omit-findings` is archived here (2026-08-25). Scoring veracity (`scoring_basis`, native FAIL/WARNING honesty vs OCP 4.22) is archived here (2026-08-25). `hc-html-pdf-report-file` is archived here (2026-08-26).
+> **Baseline date:** 2026-08-21 (landed Chunks A–G). Chunk H deltas live in `openspec/changes/hc-feedback-chunk-h/` until archived. `hc-omit-findings` is archived here (2026-08-25). Scoring veracity (`scoring_basis`, native FAIL/WARNING honesty vs OCP 4.22) is archived here (2026-08-25). `hc-html-pdf-report-file` is archived here (2026-08-26). `hc-narrative-paragraph-spacing` is archived here (2026-08-26).
 
 ## Purpose
 
@@ -64,6 +64,29 @@ When `--omit-check-ids` is omitted or the loaded list is empty, generate SHALL w
 - GIVEN `discover_report_markdown` and both `Foo.md` and `Foo_pruned.md`
 - WHEN discover runs
 - THEN only `Foo_pruned.md` is returned (same directory)
+
+### Requirement: Chapter 3 and 8 paragraph spacing in HTML/PDF
+Chapters 3 (Executive Summary) and 8 (Conclusions) SHALL render with visible whitespace between consecutive paragraphs in both `make hc-html` and `make hc-pdf` exports. Other chapters SHALL keep the global tight paragraph margins unchanged.
+
+#### Scenario: PDF wraps narrative chapters in a spacing div
+- GIVEN pandoc HTML containing `<h2>Chapter 3. Executive Summary</h2>` and `<h2>Chapter 8. Conclusions</h2>`
+- WHEN `pdf_preprocess.process` runs
+- THEN those two chapter ranges are wrapped in `<div class="hc-narrative-chapter">`
+- AND the injected CSS contains `.hc-narrative-chapter p { margin-bottom: 1em; }`
+- AND Chapter 6 is not wrapped
+
+#### Scenario: HTML collapsible adds narrative class on matching chapters
+- GIVEN pandoc HTML with Chapter 3 and Chapter 8 headings
+- WHEN `html_collapsible.collapsify` runs
+- THEN the `<details>` element for Chapter 3 has `class="hc-narrative-chapter"`
+- AND the `<details>` element for Chapter 8 has `class="hc-narrative-chapter"`
+- AND Chapter 6 `<details>` does not have that class
+- AND the injected collapsible CSS contains the `.hc-narrative-chapter p` rule
+
+#### Scenario: Other chapters keep tight margins
+- GIVEN any chapter not matching "Chapter 3.*Executive Summary" or "Chapter 8.*Conclusions"
+- WHEN either export pipeline runs
+- THEN the chapter's paragraphs use the global `p` margin (5–6px)
 
 ### Requirement: Named REPORT file for HTML/PDF export
 When `hc_export_paths.py` is invoked without `--source`, discover-all SHALL keep preferring `{stem}_pruned.md` over the unpruned sibling. When `--source` is set, the process SHALL export that file only and SHALL NOT apply pruned-peer preference. Sidecar markdown and missing paths SHALL exit 1 without discovering other reports. Out-of-tree sources SHALL map to `export_root / {stem}.{extension}`. In-tree regenerate (canonical dest already present) SHALL exit 0 without `--allow-overwrite`. Out-of-tree dest that already exists SHALL exit 4 unless `--allow-overwrite`.
