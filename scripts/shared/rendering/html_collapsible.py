@@ -20,6 +20,7 @@ from html_utils import (
     inject_colgroups,
     is_narrative_chapter_heading,
     is_report_chapter_heading,
+    linkify_chapter_toc,
 )
 
 _FINDING_SPAN_RE = re.compile(
@@ -99,7 +100,7 @@ function openAnchorTarget() {
   });
 }
 document.addEventListener('click', function (event) {
-  const link = event.target.closest('a.hc-xref-link');
+  const link = event.target.closest('a.hc-xref-link, a.hc-toc-link');
   if (!link) { return; }
   const href = link.getAttribute('href') || '';
   if (href.charAt(0) !== '#' || href.length < 2) { return; }
@@ -301,6 +302,12 @@ details details > summary {
 .hc-xref-link:hover {
   text-decoration: underline;
 }
+.hc-toc-link {
+  text-decoration: underline;
+}
+h2[id], h3[id] {
+  scroll-margin-top: 3rem;
+}
 .hc-xref-group {
   display: inline-flex;
   flex-wrap: wrap;
@@ -342,10 +349,12 @@ def process(source_path: Path, destination_path: Path, open_chapters: bool = Fal
         body = body_match.group(2)
         html_after_body = html[body_match.end(2):]
         body = demote_priority_leak_headings(body)
+        body = linkify_chapter_toc(body)
         body = collapsify(body, open_chapters=open_chapters)
         html = html_before_body + body + html_after_body
     else:
         html = demote_priority_leak_headings(html)
+        html = linkify_chapter_toc(html)
         html = collapsify(html, open_chapters=open_chapters)
 
     html = _inject_crosslinks(html)

@@ -15,6 +15,7 @@ from html_utils import (
     NARRATIVE_PARAGRAPH_CSS,
     demote_priority_leak_headings,
     inject_colgroups,
+    linkify_chapter_toc,
     wrap_narrative_chapters,
 )
 
@@ -110,6 +111,7 @@ def process(source_path: Path, destination_path: Path) -> None:
     html = replace_emoji(html)
     html = inject_colgroups(html)
     html = demote_priority_leak_headings(html)
+    html = linkify_chapter_toc(html)
     html = wrap_narrative_chapters(html)
     html = inject_css(html)
     destination_path.parent.mkdir(parents=True, exist_ok=True)

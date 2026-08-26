@@ -115,7 +115,7 @@
 - `common.sh` exposes config accessors to bash scripts.
 
 ### `scripts/shared/rendering/`
-- HC HTML/PDF post-processing: `hc_export_paths.py` (discover report markdown, skip Chapter 3/8 sidecars, prefer `{stem}_pruned.md`, and map unique export paths under `HTML/` / `PDFs/`), `html_utils.py` (colgroup injection), `html_collapsible.py` (collapsible HTML + cross-links), `pdf_preprocess.py` (emoji badges + PDF CSS).
+- HC HTML/PDF post-processing: `hc_export_paths.py` (discover report markdown, skip Chapter 3/8 sidecars, prefer `{stem}_pruned.md`, and map unique export paths under `HTML/` / `PDFs/`), `html_utils.py` (colgroup injection, Chapter 2 TOC `hc-toc-link` fragments to chapter h2 ids), `html_collapsible.py` (collapsible HTML + cross-links; TOC/xref clicks open `<details>`), `pdf_preprocess.py` (emoji badges + PDF CSS + the same TOC links).
 
 ### `scripts/hld_lld/ai/`
 - Host-only deterministic extraction and render workflow.

@@ -210,6 +210,68 @@ def test_wrap_narrative_chapters_keeps_body_after_demoted_p1() -> None:
     assert chapter_four > narrative_end
 
 
+_TOC_FIXTURE_HTML = """<html><head></head><body>
+<h2 id="chapter-1.-introduction">Chapter 1. Introduction</h2>
+<p>Intro body.</p>
+<h2 id="chapter-2.-table-of-contents">Chapter 2. Table of Contents</h2>
+<ol type="1">
+<li>Introduction<br />
+</li>
+<li>Table of Contents<br />
+</li>
+<li>Executive Summary<br />
+</li>
+</ol>
+<h2 id="chapter-3.-executive-summary">Chapter 3. Executive Summary</h2>
+<p>Summary body.</p>
+<h2 id="chapter-7.-raw-check-report">Chapter 7. Raw Check Report</h2>
+<p>1. Confirm each pool from the stock table.</p>
+<p><span id="finding-6-2-2-3" data-evidence-id="evidence-7-3-etcd-log-errors"></span></p>
+<p><span id="evidence-7-3-etcd-log-errors" data-finding-ids="finding-6-2-2-3"></span></p>
+</body></html>
+"""
+
+
+def test_linkify_chapter_toc_wraps_only_chapter_two_lines() -> None:
+    html_utils = _load_html_utils()
+    rendered = html_utils.linkify_chapter_toc(_TOC_FIXTURE_HTML)
+    assert (
+        '<a class="hc-toc-link" href="#chapter-1.-introduction">Introduction</a>'
+        in rendered
+    )
+    assert (
+        '<a class="hc-toc-link" href="#chapter-3.-executive-summary">Executive Summary</a>'
+        in rendered
+    )
+    assert 'href="#chapter-2.-table-of-contents"' in rendered
+    confirm_start = rendered.index("1. Confirm each pool from the stock table.")
+    confirm_line = rendered[confirm_start : confirm_start + 80]
+    assert "hc-toc-link" not in confirm_line
+
+
+def test_process_toc_links_use_heading_ids_and_click_script(tmp_path: Path) -> None:
+    html_collapsible = _load_html_collapsible()
+    source = tmp_path / "input.html"
+    target = tmp_path / "output.html"
+    source.write_text(_TOC_FIXTURE_HTML, encoding="utf-8")
+    html_collapsible.process(source, target)
+    rendered = target.read_text(encoding="utf-8")
+    assert (
+        '<a class="hc-toc-link" href="#chapter-1.-introduction">Introduction</a>'
+        in rendered
+    )
+    assert (
+        '<a class="hc-toc-link" href="#chapter-3.-executive-summary">Executive Summary</a>'
+        in rendered
+    )
+    confirm_start = rendered.index("1. Confirm each pool from the stock table.")
+    confirm_line = rendered[confirm_start : confirm_start + 80]
+    assert "hc-toc-link" not in confirm_line
+    assert "function openAnchorTarget()" in rendered
+    assert "a.hc-xref-link, a.hc-toc-link" in rendered
+    assert "addEventListener('click'" in rendered
+
+
 def test_process_xref_script_listens_for_link_clicks(tmp_path: Path) -> None:
     html_collapsible = _load_html_collapsible()
     source = tmp_path / "input.html"

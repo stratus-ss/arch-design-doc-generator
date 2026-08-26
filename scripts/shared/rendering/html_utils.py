@@ -145,10 +145,119 @@ def demote_priority_leak_headings(html: str) -> str:
     )
 
 
+_H2_HEADING = re.compile(r"<h2\b[^>]*>.*?</h2>", re.IGNORECASE | re.DOTALL)
+_CHAPTER_NUMBER = re.compile(r"chapter\s+(\d+)")
+_HEADING_ID = re.compile(r'\bid="([^"]+)"', re.IGNORECASE)
+_TOC_LINE = re.compile(
+    r"(?P<number>\d+)\.\s+(?P<title>[^<]+?)(?=(?P<ending><br\s*/?>|</p>|</li>|$))",
+    re.IGNORECASE,
+)
+_TOC_LIST_ITEM = re.compile(
+    r"<li\b[^>]*>(?P<inner>.*?)</li>",
+    re.IGNORECASE | re.DOTALL,
+)
+_TRAILING_BREAK = re.compile(r"<br\s*/?>\s*$", re.IGNORECASE)
+
+
+def _heading_chapter_number(heading_html: str) -> int | None:
+    if not is_report_chapter_heading(heading_html):
+        return None
+    number_match = _CHAPTER_NUMBER.search(_heading_plain_text(heading_html))
+    if not number_match:
+        return None
+    return int(number_match.group(1))
+
+
+def _chapter_heading_ids(html: str) -> tuple[dict[int, str], list[re.Match[str]]]:
+    matches = list(_H2_HEADING.finditer(html))
+    chapter_ids: dict[int, str] = {}
+    for match in matches:
+        heading_html = match.group(0)
+        chapter_number = _heading_chapter_number(heading_html)
+        if chapter_number is None:
+            continue
+        id_match = _HEADING_ID.search(heading_html)
+        if not id_match:
+            continue
+        chapter_ids[chapter_number] = id_match.group(1)
+    return chapter_ids, matches
+
+
+def _wrap_toc_list_items(chapter_two_body: str, chapter_ids: dict[int, str]) -> str:
+    """Wrap pandoc <ol><li> Chapter 2 rows (numbers live in the list, not the text)."""
+    chapter_number = 0
+
+    def replace_item(match: re.Match[str]) -> str:
+        nonlocal chapter_number
+        inner = match.group("inner")
+        if re.search(r"<a\b", inner, re.IGNORECASE):
+            return match.group(0)
+        chapter_number += 1
+        heading_id = chapter_ids.get(chapter_number)
+        if not heading_id:
+            return match.group(0)
+        title = _TRAILING_BREAK.sub("", inner).strip()
+        return (
+            f'<li><a class="hc-toc-link" href="#{heading_id}">'
+            f"{title}</a></li>"
+        )
+
+    return _TOC_LIST_ITEM.sub(replace_item, chapter_two_body)
+
+
+def _wrap_numbered_toc_lines(chapter_two_body: str, chapter_ids: dict[int, str]) -> str:
+    def replace_line(match: re.Match[str]) -> str:
+        start = match.start()
+        preceding = chapter_two_body[max(0, start - 32) : start]
+        last_anchor = preceding.casefold().rfind("<a")
+        still_open = last_anchor != -1 and ">" not in preceding[last_anchor:]
+        if still_open:
+            return match.group(0)
+        chapter_number = int(match.group("number"))
+        heading_id = chapter_ids.get(chapter_number)
+        if not heading_id:
+            return match.group(0)
+        title = match.group("title")
+        ending = match.group("ending") or ""
+        return (
+            f'<a class="hc-toc-link" href="#{heading_id}">'
+            f"{chapter_number}. {title}</a>{ending}"
+        )
+
+    return _TOC_LINE.sub(replace_line, chapter_two_body)
+
+
+def _wrap_toc_lines(chapter_two_body: str, chapter_ids: dict[int, str]) -> str:
+    listed = _wrap_toc_list_items(chapter_two_body, chapter_ids)
+    return _wrap_numbered_toc_lines(listed, chapter_ids)
+
+
+def linkify_chapter_toc(html: str) -> str:
+    """Turn Chapter 2 numbered lines into fragment links to chapter heading ids."""
+    chapter_ids, matches = _chapter_heading_ids(html)
+    if not chapter_ids or not matches:
+        return html
+    chapter_two_match = None
+    for match in matches:
+        if _heading_chapter_number(match.group(0)) == 2:
+            chapter_two_match = match
+            break
+    if chapter_two_match is None:
+        return html
+    chapter_two_index = matches.index(chapter_two_match)
+    body_start = chapter_two_match.end()
+    if chapter_two_index + 1 < len(matches):
+        body_end = matches[chapter_two_index + 1].start()
+    else:
+        body_close = re.search(r"</body>", html, re.IGNORECASE)
+        body_end = body_close.start() if body_close else len(html)
+    rewritten = _wrap_toc_lines(html[body_start:body_end], chapter_ids)
+    return html[:body_start] + rewritten + html[body_end:]
+
+
 def wrap_narrative_chapters(html: str) -> str:
     """Wrap Chapter 3 and Chapter 8 h2 ranges for PDF paragraph spacing."""
-    heading_pattern = re.compile(r"<h2\b[^>]*>.*?</h2>", re.IGNORECASE | re.DOTALL)
-    matches = list(heading_pattern.finditer(html))
+    matches = list(_H2_HEADING.finditer(html))
     if not matches:
         return html
     for index in range(len(matches) - 1, -1, -1):

@@ -2,7 +2,7 @@
 
 > **Canonical spec:** this file (`openspec/specs/hc-report-engine/spec.md`). Do not recreate `agent_planning/openspec/specs/`.
 >
-> **Baseline date:** 2026-08-21 (landed Chunks A–G). Chunk H deltas live in `openspec/changes/hc-feedback-chunk-h/` until archived. `hc-omit-findings` is archived here (2026-08-25). Scoring veracity (`scoring_basis`, native FAIL/WARNING honesty vs OCP 4.22) is archived here (2026-08-25). `hc-tsr-pass-host-condense` is archived here (2026-08-26). `hc-tsr-inventory-condense` is archived here (2026-08-26). `hc-html-pdf-report-file` is archived here (2026-08-26). `hc-narrative-paragraph-spacing` is archived here (2026-08-26).
+> **Baseline date:** 2026-08-21 (landed Chunks A–G). Chunk H deltas live in `openspec/changes/hc-feedback-chunk-h/` until archived. `hc-omit-findings` is archived here (2026-08-25). Scoring veracity (`scoring_basis`, native FAIL/WARNING honesty vs OCP 4.22) is archived here (2026-08-25). `hc-tsr-pass-host-condense` is archived here (2026-08-26). `hc-tsr-inventory-condense` is archived here (2026-08-26). `hc-html-pdf-report-file` is archived here (2026-08-26). `hc-narrative-paragraph-spacing` is archived here (2026-08-26). `hc-toc-chapter-links` is archived here (2026-08-26).
 
 ## Purpose
 
@@ -87,6 +87,20 @@ Chapters 3 (Executive Summary) and 8 (Conclusions) SHALL render with visible whi
 - GIVEN any chapter not matching "Chapter 3.*Executive Summary" or "Chapter 8.*Conclusions"
 - WHEN either export pipeline runs
 - THEN the chapter's paragraphs use the global `p` margin (5–6px)
+
+### Requirement: Chapter 2 TOC is in-document links
+HTML and PDF export SHALL turn Chapter 2 numbered chapter lines into fragment links (`a.hc-toc-link`) whose `href` matches the corresponding report-chapter `h2` `id`. Numbered steps outside Chapter 2 SHALL stay unlinked. HTML SHALL open ancestor `<details>` when a TOC link is activated.
+
+#### Scenario: TOC lines link to chapter heading ids
+- GIVEN pandoc HTML with Chapter 1–3 headings that have `id`s, a Chapter 2 body of `1. Introduction<br />2. Table of Contents<br />3. Executive Summary`, and a later `1. Confirm…` paragraph
+- WHEN `linkify_chapter_toc` runs (HTML `process` and PDF `process`)
+- THEN the Chapter 2 Introduction and Executive Summary lines are `a.hc-toc-link` pointing at those heading ids
+- AND the later `1. Confirm` line is not a TOC link
+
+#### Scenario: HTML TOC click opens collapsed chapters
+- GIVEN exported HTML from `html_collapsible.process`
+- WHEN the user activates `a.hc-toc-link`
+- THEN ancestor `<details>` are opened and the heading target is scrolled into view (script: click on `a.hc-xref-link, a.hc-toc-link` plus existing hashchange)
 
 ### Requirement: Named REPORT file for HTML/PDF export
 When `hc_export_paths.py` is invoked without `--source`, discover-all SHALL keep preferring `{stem}_pruned.md` over the unpruned sibling. When `--source` is set, the process SHALL export that file only and SHALL NOT apply pruned-peer preference. Sidecar markdown and missing paths SHALL exit 1 without discovering other reports. Out-of-tree sources SHALL map to `export_root / {stem}.{extension}`. In-tree regenerate (canonical dest already present) SHALL exit 0 without `--allow-overwrite`. Out-of-tree dest that already exists SHALL exit 4 unless `--allow-overwrite`.
