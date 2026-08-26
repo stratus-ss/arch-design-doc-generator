@@ -465,6 +465,13 @@ When `HC_SUMMARY_CONCLUSION=1`, the container SHALL run `draft_summary_conclusio
 - THEN `draft_summary_conclusion.py --in-place` runs as a separate process
 - AND `hc_report/cli.py` is not the process that calls `invoke_ai`
 
+#### Scenario: Opt-in draft targets only this generate run
+- GIVEN `HC_SUMMARY_CONCLUSION=1` and `output/Health_Check_Report` already contains markdown from prior clusters or dates
+- WHEN `generate_report.py` writes one report (and optional `{stem}_pruned.md`) this run
+- THEN `draft_summary_conclusion.py --in-place` runs only on that newly written report
+- AND it prefers `{stem}_pruned.md` when this run also wrote it
+- AND it does not rewrite other markdown already in the output directory
+
 #### Scenario: Default report is deterministic
 - GIVEN `HC_SUMMARY_CONCLUSION` unset
 - WHEN `make hc-report` runs

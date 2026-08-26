@@ -18,6 +18,52 @@ def _load_export_paths():
     return hc_export_paths
 
 
+def test_draft_targets_from_generate_log_uses_only_written_reports() -> None:
+    # Bug: hc-report drafted every markdown under output/Health_Check_Report
+    # Mutant: treat any path mentioned in generate stdout as a draft target
+    hc_export_paths = _load_export_paths()
+    log_text = (
+        "Loading results from: output/hc_collect/2026-08-10/04502902\n"
+        "Report written to: /workspace/output/Health_Check_Report/new_cluster.md\n"
+        "Also see leftover: /workspace/output/Health_Check_Report/old_cluster.md\n"
+    )
+
+    targets = hc_export_paths.draft_targets_from_generate_log(log_text)
+
+    assert targets == [
+        Path("/workspace/output/Health_Check_Report/new_cluster.md")
+    ]
+
+
+def test_draft_targets_from_generate_log_prefers_pruned_peer() -> None:
+    # Bug: this-run full and pruned reports were both drafted
+    # Mutant: skip _prefer_pruned_markdown on generate-log paths
+    hc_export_paths = _load_export_paths()
+    log_text = (
+        "Report written to: /workspace/output/Health_Check_Report/Example.md\n"
+        "Pruned report written to: "
+        "/workspace/output/Health_Check_Report/Example_pruned.md\n"
+    )
+
+    targets = hc_export_paths.draft_targets_from_generate_log(log_text)
+
+    assert targets == [
+        Path("/workspace/output/Health_Check_Report/Example_pruned.md")
+    ]
+
+
+def test_draft_targets_from_generate_log_empty_when_no_written_lines() -> None:
+    # Bug: empty parse fell back to globbing every report markdown
+    # Mutant: return a default report path when no written-to lines exist
+    hc_export_paths = _load_export_paths()
+
+    targets = hc_export_paths.draft_targets_from_generate_log(
+        "Deriving cluster metadata...\n"
+    )
+
+    assert targets == []
+
+
 def test_discover_report_markdown_prefers_pruned_peer(tmp_path: Path) -> None:
     hc_export_paths = _load_export_paths()
     report_directory = tmp_path / "Health_Check_Report"

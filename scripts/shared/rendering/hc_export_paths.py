@@ -12,6 +12,10 @@ _SIDECAR_SUFFIXES: tuple[str, ...] = (
     "_summary_conclusion.md",
     "_summary_conclusion.prompt.md",
 )
+_WRITTEN_REPORT_PREFIXES: tuple[str, ...] = (
+    "Report written to: ",
+    "Pruned report written to: ",
+)
 
 
 def _is_sidecar_markdown(filename: str) -> bool:
@@ -64,6 +68,21 @@ def discover_report_markdown(report_directory: Path) -> list[Path]:
             continue
         discovered.append(candidate.resolve())
     return sorted(_prefer_pruned_markdown(discovered), key=str)
+
+
+def draft_targets_from_generate_log(log_text: str) -> list[Path]:
+    """Return markdown paths this generate_report run wrote.
+
+    Parses stdout lines from hc_report/cli.py. Does not scan the report
+    directory, so prior-run markdown is not drafted.
+    """
+    written: list[Path] = []
+    for line in log_text.splitlines():
+        for prefix in _WRITTEN_REPORT_PREFIXES:
+            if line.startswith(prefix):
+                written.append(Path(line[len(prefix):].strip()))
+                break
+    return sorted(_prefer_pruned_markdown(written), key=str)
 
 
 def resolve_export_path(

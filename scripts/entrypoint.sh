@@ -306,26 +306,15 @@ cmd_status() {
     python3 "/toolkit/setup_project.py" "$WORKSPACE" --status
 }
 
-_hc_output_dir_from_args() {
-    local output_dir="output/Health_Check_Report"
-    local previous=""
-    local argument
-    for argument in "$@"; do
-        if [[ "$previous" == "--output-dir" ]]; then
-            output_dir="$argument"
-        fi
-        previous="$argument"
-    done
-    printf '%s\n' "$output_dir"
-}
-
 _hc_draft_each_report() {
-    local output_dir="$1"
+    local generate_log="$1"
     export HC_CURSOR_PYTHON="${HC_CURSOR_PYTHON:-/usr/bin/python3}"
     export PYTHONPATH="$WORKSPACE/scripts/shared/rendering:$WORKSPACE/scripts/health_check:$WORKSPACE/scripts/shared/lib:/toolkit/health_check:/toolkit/shared/lib:${PYTHONPATH:-}"
     local report_path
+    local found=0
     while IFS= read -r report_path; do
         [[ -n "$report_path" ]] || continue
+        found=1
         python3 "$WORKSPACE/scripts/health_check/draft_summary_conclusion.py" \
             --in-place "$report_path" \
             --tool "${AI_TOOL:-cursor}"
@@ -334,21 +323,31 @@ _hc_draft_each_report() {
 from pathlib import Path
 import sys
 sys.path.insert(0, '/workspace/scripts/shared/rendering')
-from hc_export_paths import discover_report_markdown
-for path in discover_report_markdown(Path(sys.argv[1])):
+from hc_export_paths import draft_targets_from_generate_log
+for path in draft_targets_from_generate_log(Path(sys.argv[1]).read_text(encoding='utf-8')):
     print(path)
-" "$output_dir"
+" "$generate_log"
     )
+    if [[ "$found" -eq 0 ]]; then
+        red "Error: generate_report wrote no report markdown this run; refusing to draft other files."
+        exit 1
+    fi
 }
 
 cmd_hc_report() {
     bold "=== Generating Health Check Report ==="
     export PYTHONPATH="$WORKSPACE/scripts/health_check:$WORKSPACE/scripts/shared/lib:/toolkit/health_check:/toolkit/shared/lib:${PYTHONPATH:-}"
-    python3 /toolkit/health_check/generate_report.py "$@"
+    local generate_log
+    generate_log="$(mktemp)"
+    if ! python3 -u /toolkit/health_check/generate_report.py "$@" | tee "$generate_log"; then
+        rm -f "$generate_log"
+        exit 1
+    fi
     if [[ "${HC_SUMMARY_CONCLUSION:-}" == "1" ]]; then
         bold "=== Drafting Chapter 3 and Chapter 8 (opt-in) ==="
-        _hc_draft_each_report "$(_hc_output_dir_from_args "$@")"
+        _hc_draft_each_report "$generate_log"
     fi
+    rm -f "$generate_log"
     collect_outputs
     green "Health Check report complete."
 }
