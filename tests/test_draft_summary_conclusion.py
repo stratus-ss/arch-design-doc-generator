@@ -7,19 +7,20 @@ import pytest
 
 from draft_summary_conclusion import (
     apply_summary_conclusion,
+    build_p0p1_dump,
     default_summary_conclusion_path,
     default_prompt_output_path,
+    default_p2_prompt_output_path,
+    default_p3_prompt_output_path,
     fill_prompt,
     load_prompt_template,
     main,
     split_draft_chapters,
+    stitch_conclusions,
     EXECUTIVE_SUMMARY_HEADING,
     TECHNICAL_SUMMARY_HEADING,
 )
-from extract_finding_descriptions import (
-    extract_finding_descriptions,
-    format_finding_descriptions,
-)
+from extract_finding_descriptions import extract_finding_descriptions
 
 # Bug: Cluster path or Observation text sent to the model
 # Mutant: Always pass include_source_path=True; concatenate raw report markdown
@@ -61,6 +62,10 @@ from extract_finding_descriptions import (
 # Mutant: Ignore --in-place flag
 # Contract: public
 
+# Bug: P2 model pass skipped when P2 findings exist
+# Mutant: always stub P2 without invoke_ai
+# Contract: public
+
 _FIXTURE = """## Chapter 1. Introduction
 
 Findings are classified P0–P3.
@@ -99,25 +104,22 @@ An update is listed.
 """
 
 
-def test_prompt_omits_source_path_and_observation(tmp_path: Path) -> None:
-    findings = extract_finding_descriptions(_FIXTURE)
-    dump = format_finding_descriptions(
-        findings,
-        tmp_path / "Example_OpenShift_Health_Check_one-6x489.md",
-        include_source_path=False,
-    )
+def test_prompt_omits_source_path_and_observation() -> None:
+    dump = build_p0p1_dump(extract_finding_descriptions(_FIXTURE))
     assert "one-6x489" not in dump
     assert "Finding descriptions from:" not in dump
     assert "volumeClaimTemplate" not in dump
     assert "temporary storage" in dump
+    assert "Identity provider updates" not in dump
+    assert "7.3.monitoring.config" not in dump
     template = load_prompt_template(
         Path("scripts/health_check/prompts/draft_summary_conclusion.md")
     )
     filled = fill_prompt(template, dump)
-    assert "one-6x489" not in filled
     assert "volumeClaimTemplate" not in filled
     assert "{{FINDING_DUMP}}" not in filled
     assert "temporary storage" in filled
+    assert "P2=1" in filled
 
 
 def test_summary_conclusion_output_path_beside_report(tmp_path: Path) -> None:
@@ -144,8 +146,10 @@ def test_dry_run_writes_prompt_without_invoke(
     )
     main()
     assert calls == []
-    prompt_path = tmp_path / "report_summary_conclusion.prompt.md"
+    prompt_path = tmp_path / "report_summary_conclusion.p0p1.prompt.md"
     assert prompt_path.is_file()
+    assert (tmp_path / "report_summary_conclusion.p2.prompt.md").is_file()
+    assert (tmp_path / "report_summary_conclusion.p3.prompt.md").is_file()
 
 
 def test_missing_report_exits_nonzero(
@@ -175,10 +179,19 @@ def test_dry_run_end_to_end_from_fixture(
     filled = prompt_path.read_text(encoding="utf-8")
     assert "## Chapter 3. Executive Summary" in filled
     assert "## Chapter 8. Conclusions" in filled
+    assert "### 8.1 Close and cost of inaction" in filled
     assert "temporary storage" in filled
-    assert "7.3.monitoring.config" in filled
+    assert "6.2.2.1. Monitoring configuration" in filled
+    assert "7.3.monitoring.config" not in filled
     assert "volumeClaimTemplate" not in filled
+    assert "Identity provider updates" not in filled
     assert "{{FINDING_DUMP}}" not in filled
+    p2_filled = default_p2_prompt_output_path(report).read_text(encoding="utf-8")
+    assert "Identity provider updates" in p2_filled
+    assert "volumeClaimTemplate" not in p2_filled
+    assert "6.2.2.1. Monitoring configuration" in p2_filled
+    p3_filled = default_p3_prompt_output_path(report).read_text(encoding="utf-8")
+    assert "No findings in this band" in p3_filled
 
 
 _APPLY_REPORT = """## Chapter 3. Executive Summary
@@ -225,7 +238,17 @@ Control-plane etcd storage does not meet latency requirements (`7.3.etcd.fsync`)
 
 ## Chapter 8. Conclusions
 
-Drafted conclusions paragraph.
+### 8.1 Close and cost of inaction
+
+Leaving P0 unresolved keeps affected workloads offline.
+
+### 8.2 Priority remediation
+
+Walk of P0 and P1.
+
+### 8.3 Sequence and disruption
+
+Stabilize crashloops before upgrades.
 """
 
 
@@ -329,10 +352,49 @@ def test_in_place_mocked_invoke_rewrites_file(
     main()
     rewritten = report.read_text(encoding="utf-8")
     assert "elevated risk" in rewritten
-    assert "Drafted conclusions paragraph." in rewritten
+    assert "Leaving P0 unresolved" in rewritten
+    assert "### 8.4 Remaining work" in rewritten
+    assert "No P2 findings were raised." in rewritten
+    assert "No P3 findings were raised." in rewritten
+    assert "### 8.5 Engagement bounds" in rewritten
+    assert "Sizing, capacity planning" in rewritten
     assert "PLACEHOLDER EXECUTIVE SUMMARY" not in rewritten
     assert "PLACEHOLDER TECHNICAL SUMMARY" not in rewritten
     assert not report.with_name(report.name + ".tmp").exists()
+
+
+def test_in_place_invokes_p2_when_findings_exist(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    chapter_six = _FIXTURE.split("## Chapter 6. Observations and Recommendations", 1)[1]
+    report_markdown = _APPLY_REPORT.replace(
+        "## Chapter 4. Scope\n\nIn scope.\n",
+        "## Chapter 4. Scope\n\nIn scope.\n\n"
+        "## Chapter 6. Observations and Recommendations"
+        + chapter_six,
+    )
+    report = tmp_path / "report.md"
+    report.write_text(report_markdown, encoding="utf-8")
+    prompts: list[str] = []
+
+    def fake_invoke(prompt: str, *_args, **_kwargs) -> str:
+        prompts.append(prompt)
+        if "pass 2 of 3" in prompt:
+            return "#### P2 work units\n\nIdentity updates as a P2 backlog.\n"
+        return _MODEL_CHAPTERS
+
+    monkeypatch.setenv("HC_CURSOR_PYTHON", "/opt/container-python")
+    monkeypatch.setattr("draft_summary_conclusion.invoke_ai", fake_invoke)
+    monkeypatch.setattr("draft_summary_conclusion.ensure_cursor_key", lambda: "key")
+    monkeypatch.setattr(
+        "sys.argv",
+        ["draft_summary_conclusion.py", "--in-place", str(report)],
+    )
+    main()
+    assert len(prompts) == 2
+    rewritten = report.read_text(encoding="utf-8")
+    assert "Identity updates as a P2 backlog" in rewritten
+    assert "No P3 findings were raised." in rewritten
 
 
 def test_split_draft_chapters_missing_heading_raises() -> None:
@@ -361,4 +423,15 @@ def test_split_draft_chapters_valid_output() -> None:
     assert "elevated risk" in executive
     assert "7.3.etcd.fsync" in technical
     assert "P0" in technical
-    assert "Drafted conclusions paragraph." in conclusions
+    assert "8.1 Close and cost of inaction" in conclusions
+    assert "8.4" not in conclusions
+    stitched = stitch_conclusions(
+        conclusions,
+        "#### P2 work units\n\nP2 prose.\n",
+        "#### P3 work units\n\nP3 prose.\n",
+    )
+    assert "### 8.4 Remaining work" in stitched
+    assert "P2 prose" in stitched
+    assert "P3 prose" in stitched
+    assert "### 8.5 Engagement bounds" in stitched
+    assert "Sizing, capacity planning" in stitched

@@ -23,6 +23,21 @@ _CHECK_ID_LINE = re.compile(r"^\*\*Check ID:\*\*\s+(.*)$")
 _BACKTICK_VALUE = re.compile(r"`([^`]+)`")
 _CHAPTER_HEADING = re.compile(r"^## Chapter (\d+)")
 
+CHECK_FAMILY_LABELS = {
+    "7.1": "Base platform",
+    "7.2": "Topology",
+    "7.3": "Components",
+    "7.4": "Layered products",
+    "7.5": "Cluster health",
+    "7.6": "Day-2 operations",
+    "7.7": "Security",
+    "7.8": "Metrics",
+    "7.9": "Hardware",
+    "other": "Other",
+}
+GROUP_EXPAND_LIMIT = 8
+GROUP_EXAMPLE_LIMIT = 3
+
 
 @dataclass
 class FindingDescription:
@@ -148,6 +163,107 @@ def extract_finding_descriptions(markdown: str) -> list[FindingDescription]:
 
     _flush_finding(current, description_lines, findings)
     return findings
+
+
+def count_priorities(findings: list[FindingDescription]) -> dict[str, int]:
+    counts = {priority: 0 for priority in ("P0", "P1", "P2", "P3")}
+    for finding in findings:
+        if finding.priority in counts:
+            counts[finding.priority] += 1
+    return counts
+
+
+def format_count_line(findings: list[FindingDescription]) -> str:
+    counts = count_priorities(findings)
+    total = len(findings)
+    return (
+        f"Counts: P0={counts['P0']} P1={counts['P1']} "
+        f"P2={counts['P2']} P3={counts['P3']} (total {total})"
+    )
+
+
+def check_family_key(check_ids: list[str]) -> str:
+    if not check_ids:
+        return "other"
+    parts = check_ids[0].split(".")
+    if len(parts) >= 2 and parts[0].isdigit() and parts[1].isdigit():
+        return f"{parts[0]}.{parts[1]}"
+    return "other"
+
+
+def first_description_sentence(description: str) -> str:
+    stripped = " ".join(description.split())
+    if not stripped:
+        return ""
+    period_at = stripped.find(". ")
+    if period_at == -1:
+        return stripped
+    return stripped[: period_at + 1]
+
+
+def format_high_priority_dump(
+    all_findings: list[FindingDescription],
+    high_priority: list[FindingDescription],
+    impact_by_finding_id: dict[str, str],
+) -> str:
+    lines = [
+        format_count_line(all_findings),
+        "",
+        "Description bodies are P0 and P1 only. P2 and P3 item names are not listed here.",
+        "",
+    ]
+    last_priority = ""
+    for finding in high_priority:
+        if finding.priority != last_priority:
+            lines.append(f"## {finding.priority}")
+            lines.append("")
+            last_priority = finding.priority
+        lines.append(f"### {finding.finding_id}. {finding.title}")
+        impact_text = impact_by_finding_id.get(finding.finding_id, "Impact: unavailable")
+        lines.append(impact_text)
+        lines.append("")
+        if finding.description:
+            lines.append(finding.description)
+            lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def format_grouped_title_dump(
+    findings: list[FindingDescription],
+    include_first_sentence: bool,
+) -> str:
+    groups: dict[str, list[FindingDescription]] = {}
+    family_order: list[str] = []
+    for finding in findings:
+        family = check_family_key(finding.check_ids)
+        if family not in groups:
+            family_order.append(family)
+            groups[family] = []
+        groups[family].append(finding)
+    lines: list[str] = []
+    for family in family_order:
+        members = groups[family]
+        label = CHECK_FAMILY_LABELS.get(family, CHECK_FAMILY_LABELS["other"])
+        lines.append(f"## {label} ({len(members)} findings)")
+        if len(members) > GROUP_EXPAND_LIMIT:
+            shown = members[:GROUP_EXAMPLE_LIMIT]
+            omitted = len(members) - GROUP_EXAMPLE_LIMIT
+        else:
+            shown = members
+            omitted = 0
+        for finding in shown:
+            lines.append(f"- {finding.finding_id}. {finding.title}")
+            if include_first_sentence:
+                sentence = first_description_sentence(finding.description)
+                if sentence:
+                    lines.append(f"  {sentence}")
+        if omitted:
+            lines.append(f"- … and {omitted} more in this group")
+        lines.append("")
+    if not findings:
+        lines.append("No findings in this band.")
+        lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
 
 
 def format_finding_descriptions(
