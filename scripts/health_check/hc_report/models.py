@@ -17,6 +17,7 @@ class CheckResult:
     tsr_ref: str = ""              # e.g. 3.10.2, CCX:internal
     tags: list[str] = field(default_factory=list)
     doc_ref: str = ""              # URL citing official docs proving/contradicting status
+    scoring_basis: str = ""        # doc_backed, engine_policy, or empty
 
 
 @dataclass

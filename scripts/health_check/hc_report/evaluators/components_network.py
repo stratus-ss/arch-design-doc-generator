@@ -51,17 +51,12 @@ def _evaluate_net_plugin_type(net_type: str, category_id: str, category_name: st
 
 def _evaluate_net_config(category_data: dict, category_id: str, category_name: str) -> list[CheckResult]:
     checks: list[CheckResult] = []
-    cluster_operator_data = category_data.get("cluster_operators", category_data.get("clusteroperators", {}))
-    if _is_missing(cluster_operator_data):
-        checks.append(CheckResult(category_id, category_name, f"{category_id}.net.featuregates",
-                                  "3.10.3 Featuregates", "SKIPPED",
-                                  "Cluster operator data unavailable for featuregate detection",
-                                  "network"))
-    else:
-        checks.append(CheckResult(category_id, category_name, f"{category_id}.net.featuregates",
-                                  "3.10.3 Featuregates", "PASS",
-                                  "FeatureGate evaluation: standard (TechPreviewNoUpgrade not detected)",
-                                  "network"))
+    checks.append(CheckResult(
+        category_id, category_name, f"{category_id}.net.featuregates",
+        "3.10.3 Featuregates", "SKIPPED",
+        "FeatureGate status not collected — clusteroperators are not a TechPreview detector",
+        "network",
+    ))
     machine_config_pool_data = category_data.get("machineconfig", {})
     if _is_missing(machine_config_pool_data):
         checks.append(_not_applicable(f"{category_id}.net.kubelet_config", "3.10.4 Kubelet-Config", category_id, category_name))

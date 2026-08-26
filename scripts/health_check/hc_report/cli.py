@@ -288,7 +288,7 @@ def _write_outputs(
             {"id": check.check_id, "desc": check.description, "status": check.status,
              "evidence": check.evidence, "resource_name": check.resource_name,
              "source": check.source, "tsr_ref": check.tsr_ref, "tags": check.tags,
-             "doc_ref": check.doc_ref}
+             "doc_ref": check.doc_ref, "scoring_basis": check.scoring_basis}
             for check in checks
         ],
         "findings": [

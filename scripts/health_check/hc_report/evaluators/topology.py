@@ -122,7 +122,9 @@ def _check_node_cpu(capacity: dict, node_context: _NodeContext, min_cpu: float, 
               if cpu_status == "FAIL"
               else f"{cpu_cores:.0f} cores (minimum {min_cpu} required for {role_label})")
     return CheckResult(node_context.category_id, node_context.category_name, f"{node_context.category_id}.node.{node_context.short_name}.cpu",
-                        f"{node_context.role_prefix}.3 CPU: {node_context.short_name}", cpu_status, cpu_evidence, node_context.name)
+                        f"{node_context.role_prefix}.3 CPU: {node_context.short_name}", cpu_status, cpu_evidence, node_context.name,
+                        scoring_basis="doc_backed" if cpu_status == "FAIL" else "",
+                        doc_ref=_MIN_DISK_DOCUMENTATION_URL if cpu_status == "FAIL" else "")
 
 
 def _check_node_memory(capacity: dict, node_context: _NodeContext, min_memory: float, role_label: str) -> tuple[CheckResult, float]:
@@ -132,7 +134,9 @@ def _check_node_memory(capacity: dict, node_context: _NodeContext, min_memory: f
               if memory_status == "FAIL"
               else f"{memory_gib:.1f} GiB (minimum {min_memory} GiB required)")
     result = CheckResult(node_context.category_id, node_context.category_name, f"{node_context.category_id}.node.{node_context.short_name}.memory",
-                          f"{node_context.role_prefix}.4 Memory: {node_context.short_name}", memory_status, memory_evidence, node_context.name)
+                          f"{node_context.role_prefix}.4 Memory: {node_context.short_name}", memory_status, memory_evidence, node_context.name,
+                          scoring_basis="doc_backed" if memory_status == "FAIL" else "",
+                          doc_ref=_MIN_DISK_DOCUMENTATION_URL if memory_status == "FAIL" else "")
     return result, memory_gib
 
 
@@ -156,13 +160,14 @@ def _check_node_disk(capacity: dict, node_context: _NodeContext, hardware_data: 
     else:
         disk_gib = _parse_quantity_gib(capacity.get("ephemeral-storage", "0"))
         signal_source = "ephemeral-storage capacity"
-    disk_status = "WARNING" if disk_gib < _MIN_DISK_GIB else "PASS"
-    disk_evidence = (f"{disk_gib:.1f} GiB ({signal_source}) — below recommended {_MIN_DISK_GIB} GiB minimum"
-               if disk_status == "WARNING"
+    disk_status = "FAIL" if disk_gib < _MIN_DISK_GIB else "PASS"
+    disk_evidence = (f"{disk_gib:.1f} GiB ({signal_source}) — below documented minimum {_MIN_DISK_GIB} GiB"
+               if disk_status == "FAIL"
                else f"{disk_gib:.1f} GiB ({signal_source}), meets {_MIN_DISK_GIB} GiB minimum")
     return CheckResult(node_context.category_id, node_context.category_name, f"{node_context.category_id}.node.{node_context.short_name}.disk",
                         f"{node_context.role_prefix}.5 Disk: {node_context.short_name}", disk_status, disk_evidence, node_context.name,
-                        doc_ref=_MIN_DISK_DOCUMENTATION_URL)
+                        doc_ref=_MIN_DISK_DOCUMENTATION_URL,
+                        scoring_basis="doc_backed" if disk_status == "FAIL" else "")
 
 
 def _check_node_kubelet(node_info: dict, node_context: _NodeContext) -> CheckResult:

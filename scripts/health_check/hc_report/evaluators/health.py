@@ -14,7 +14,12 @@ from hc_report.evaluators._common import (
     _resource_metadata,
     _resource_status,
 )
-from hc_report.evaluators._shared_checks import check_mcp_degraded, find_degraded_operators, node_roles
+from hc_report.evaluators._shared_checks import (
+    check_mcp_degraded,
+    find_degraded_operators,
+    is_compact_cluster,
+    node_roles,
+)
 from hc_report.models import CheckResult
 
 _COMPACT_CLUSTER_DOC_REF = (
@@ -196,16 +201,6 @@ def _parse_top_node_line(parts: list[str], category_id: str, category_name: str)
                        node_name)
 
 
-def _is_compact_cluster(items: list[dict], masters: list[dict]) -> bool:
-    """True when every node is a master and every master also carries the
-    'worker' role label — the supported 3-node compact/SNO-style topology
-    where schedulable control-plane nodes are expected, not a misconfiguration.
-    """
-    if not masters or len(masters) != len(items):
-        return False
-    return all("worker" in node_roles(_resource_labels(node)) for node in masters)
-
-
 def _evaluate_master_taints(nodes_data: dict, category_id: str, category_name: str) -> list[CheckResult]:
     """Control plane nodes should have NoSchedule taint, unless this is a
     supported compact cluster (masters are also workers by design)."""
@@ -235,7 +230,7 @@ def _evaluate_master_taints(nodes_data: dict, category_id: str, category_name: s
                             "7.5.8 Master Node NoSchedule Taints", "PASS",
                             f"All {len(masters)} control plane node(s) have NoSchedule taint",
                             "nodes")]
-    if _is_compact_cluster(items, masters):
+    if is_compact_cluster(items, masters):
         return [CheckResult(category_id, category_name, f"{category_id}.master_taints",
                             "7.5.8 Master Node NoSchedule Taints", "INFO",
                             f"{len(missing_taint)} control plane node(s) missing NoSchedule taint, but this is a "

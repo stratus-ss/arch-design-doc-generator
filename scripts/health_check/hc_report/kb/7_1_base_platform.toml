@@ -79,7 +79,7 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.1.subs.approval"
 title = "Subscription approval policy"
 description = "Automatic `installPlanApproval` causes operators to upgrade automatically when\nnew versions are available in the channel. This can introduce breaking changes\nwithout notice. Use Manual approval and review release notes before upgrades.\n"
-recommendation = "Set production subscriptions to Manual unless the install method requires Automatic (STS or workload identity). Patch Automatic subscriptions to Manual and approve pending `InstallPlan`s only in planned windows. Leave Automatic only as documented accepted risk."
+recommendation = "Set production subscriptions to Manual unless the install method requires Automatic (STS or workload identity). OpenShift Virtualization `kubevirt-hyperconverged` Automatic is not a WARNING. Patch other Automatic subscriptions to Manual and approve pending `InstallPlan`s only in planned windows."
 verification = "1. List the Subscription approval policy per namespace:\n   `oc get subscription -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,APPROVAL:.spec.installPlanApproval,STATE:.status.state`\n2. To switch a subscription to `Manual` approval:\n   `oc patch subscription <name> -n <ns> --type=merge -p '{\"spec\":{\"installPlanApproval\":\"Manual\"}}'`\n3. Automatic is also a supported policy, required in some cases such as STS or workload-identity installs.\n4. List pending `InstallPlan`s:\n   `oc get installplan -A`"
 priority_hint = ""
 impact = "non-disruptive"
@@ -944,6 +944,7 @@ priority_hint = ""
 impact = "none"
 impact_scope = ""
 impact_detail = ""
+finding_on_info = false
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-fips_installing-platform-agnostic"

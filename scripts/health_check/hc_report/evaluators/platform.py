@@ -22,7 +22,7 @@ from hc_report.evaluators._common import (
     _resource_name,
     _resource_status,
 )
-from hc_report.evaluators._shared_checks import node_roles
+from hc_report.evaluators._shared_checks import is_compact_cluster, node_roles
 from hc_report.models import CheckResult
 
 
@@ -343,8 +343,9 @@ def _evaluate_master_cpu(masters: list[dict], category_id: str, category_name: s
     ]
     if cpu_issues:
         return [CheckResult(category_id, category_name, f"{category_id}.nodes.master_cpu",
-                            "1.4.1.2 Master CPUs", "WARNING",
-                            f"{len(cpu_issues)} master(s) below {_MASTER_MIN_CPU} CPU minimum: {', '.join(cpu_issues[:3])}")]
+                            "1.4.1.2 Master CPUs", "FAIL",
+                            f"{len(cpu_issues)} master(s) below {_MASTER_MIN_CPU} CPU minimum: {', '.join(cpu_issues[:3])}",
+                            scoring_basis="doc_backed", doc_ref=_MIN_DISK_DOCUMENTATION_URL)]
     sample_cpu = _parse_cpu_cores(masters[0].get("status", {}).get("capacity", {}).get("cpu", "0"))
     return [CheckResult(category_id, category_name, f"{category_id}.nodes.master_cpu",
                         "1.4.1.2 Master CPUs", "PASS",
@@ -361,8 +362,9 @@ def _evaluate_master_memory(masters: list[dict], category_id: str, category_name
     ]
     if memory_issues:
         return [CheckResult(category_id, category_name, f"{category_id}.nodes.master_mem",
-                            "1.4.1.3 Master Memory", "WARNING",
-                            f"{len(memory_issues)} master(s) below {_MASTER_MIN_MEM_GIB} GiB minimum: {', '.join(memory_issues[:3])}")]
+                            "1.4.1.3 Master Memory", "FAIL",
+                            f"{len(memory_issues)} master(s) below {_MASTER_MIN_MEM_GIB} GiB minimum: {', '.join(memory_issues[:3])}",
+                            scoring_basis="doc_backed", doc_ref=_MIN_DISK_DOCUMENTATION_URL)]
     sample_mem = _parse_quantity_gib(masters[0].get("status", {}).get("capacity", {}).get("memory", "0"))
     return [CheckResult(category_id, category_name, f"{category_id}.nodes.master_mem",
                         "1.4.1.3 Master Memory", "PASS",
@@ -396,9 +398,9 @@ def _evaluate_master_disk(masters: list[dict], category_id: str, category_name: 
     ]
     if disk_issues:
         return [CheckResult(category_id, category_name, f"{category_id}.nodes.master_disk",
-                            "1.4.1.4 Master Disk", "WARNING",
+                            "1.4.1.4 Master Disk", "FAIL",
                             f"{len(disk_issues)} master(s) below {_MIN_DISK_GIB} GiB disk",
-                            doc_ref=_MIN_DISK_DOCUMENTATION_URL)]
+                            doc_ref=_MIN_DISK_DOCUMENTATION_URL, scoring_basis="doc_backed")]
     sample_disk, source = _get_node_disk_gib(masters[0], node_hardware)
     return [CheckResult(category_id, category_name, f"{category_id}.nodes.master_disk",
                         "1.4.1.4 Master Disk", "PASS",
@@ -406,14 +408,44 @@ def _evaluate_master_disk(masters: list[dict], category_id: str, category_name: 
                         doc_ref=_MIN_DISK_DOCUMENTATION_URL)]
 
 
-def _evaluate_master_schedulable(scheduler_data: dict, category_id: str, category_name: str) -> list[CheckResult]:
-    schedulable = scheduler_data.get("spec", {}).get("mastersSchedulable", True) if scheduler_data and not _is_missing(scheduler_data) else True
-    evidence = (
-        "Masters are schedulable (workloads can run on control plane)"
-        if schedulable else "Masters are NOT schedulable (dedicated control plane — recommended for production)"
-    )
-    return [CheckResult(category_id, category_name, f"{category_id}.nodes.master_sched",
-                        "1.4.1.5 Master Schedulable", "PASS", evidence)]
+def _evaluate_master_schedulable(
+    scheduler_data: dict,
+    items: list[dict],
+    masters: list[dict],
+    category_id: str,
+    category_name: str,
+) -> list[CheckResult]:
+    check_id = f"{category_id}.nodes.master_sched"
+    title = "1.4.1.5 Master Schedulable"
+    if not scheduler_data or _is_missing(scheduler_data):
+        return [CheckResult(
+            category_id, category_name, check_id, title, "SKIPPED",
+            "Scheduler object not collected",
+        )]
+    schedulable = scheduler_data.get("spec", {}).get("mastersSchedulable", True)
+    compact = is_compact_cluster(items, masters)
+    if compact and schedulable:
+        return [CheckResult(
+            category_id, category_name, check_id, title, "INFO",
+            "Masters are schedulable — expected on compact or SNO topology",
+        )]
+    if compact and not schedulable:
+        return [CheckResult(
+            category_id, category_name, check_id, title, "WARNING",
+            "Masters are NOT schedulable on compact or SNO — control-plane nodes must run workloads",
+            scoring_basis="doc_backed",
+        )]
+    if schedulable:
+        return [CheckResult(
+            category_id, category_name, check_id, title, "WARNING",
+            "Masters are schedulable (workloads can run on control plane)",
+            scoring_basis="doc_backed",
+        )]
+    return [CheckResult(
+        category_id, category_name, check_id, title, "PASS",
+        "Masters are NOT schedulable (dedicated control plane — recommended for production)",
+        scoring_basis="doc_backed",
+    )]
 
 
 def _evaluate_master_kubelet(masters: list[dict], category_id: str, category_name: str) -> list[CheckResult]:
@@ -440,8 +472,9 @@ def _evaluate_worker_disk(workers: list[dict], category_id: str, category_name: 
     ]
     if disk_issues:
         return [CheckResult(category_id, category_name, f"{category_id}.nodes.worker_disk",
-                            "1.4.2.4 Node Disk", "INFO",
-                            f"{len(disk_issues)}/{len(workers)} worker(s) below {_MIN_DISK_GIB} GiB")]
+                            "1.4.2.4 Node Disk", "FAIL",
+                            f"{len(disk_issues)}/{len(workers)} worker(s) below {_MIN_DISK_GIB} GiB",
+                            scoring_basis="doc_backed", doc_ref=_MIN_DISK_DOCUMENTATION_URL)]
     return [CheckResult(category_id, category_name, f"{category_id}.nodes.worker_disk",
                         "1.4.2.4 Node Disk", "PASS",
                         f"All {len(workers)} worker(s) meet {_MIN_DISK_GIB} GiB disk minimum")]
@@ -474,7 +507,7 @@ def _evaluate_node_requirements(
     checks += _evaluate_master_cpu(masters, category_id, category_name)
     checks += _evaluate_master_memory(masters, category_id, category_name)
     checks += _evaluate_master_disk(masters, category_id, category_name, hardware_data)
-    checks += _evaluate_master_schedulable(scheduler_data, category_id, category_name)
+    checks += _evaluate_master_schedulable(scheduler_data, items, masters, category_id, category_name)
     checks += _evaluate_master_kubelet(masters, category_id, category_name)
     checks += _evaluate_worker_disk(workers, category_id, category_name, hardware_data)
     checks += _evaluate_node_architecture(items, category_id, category_name)
@@ -651,10 +684,14 @@ def _evaluate_system_time(items: list[dict], category_id: str, category_name: st
 
 def _evaluate_system_security(category_data: dict, install_config_yaml: str, category_id: str, category_name: str) -> list[CheckResult]:
     checks: list[CheckResult] = []
-    checks.append(CheckResult(category_id, category_name, f"{category_id}.sys.fips",
-                              "1.5.11 FIPS", "PASS",
-                              "FIPS mode enabled at install time" if re.search(r"fips:\s*true", install_config_yaml, re.I)
-                              else "FIPS mode not enabled (standard configuration)"))
+    fips_enabled = bool(re.search(r"fips:\s*true", install_config_yaml, re.I))
+    checks.append(CheckResult(
+        category_id, category_name, f"{category_id}.sys.fips",
+        "1.5.11 FIPS",
+        "PASS" if fips_enabled else "INFO",
+        "FIPS mode enabled at install time" if fips_enabled
+        else "FIPS mode not enabled (standard configuration)",
+    ))
     oauth_data = category_data.get("oauth", {})
     if _is_missing(oauth_data):
         checks.append(CheckResult(category_id, category_name, f"{category_id}.sys.auth",

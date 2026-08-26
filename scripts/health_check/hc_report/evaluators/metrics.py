@@ -94,14 +94,15 @@ def _evaluate_etcd_wal_fsync(wal_fsync: dict, category_id: str, category_name: s
             latency_ms = float(item.get("value", [0, 0])[1]) * 1000
         except (TypeError, ValueError, IndexError):
             continue
-        if latency_ms > 50:
-            status, note = "FAIL", f"CRITICAL: {latency_ms:.1f}ms P99 WAL fsync (threshold 50ms)"
-        elif latency_ms > 10:
-            status, note = "WARNING", f"{latency_ms:.1f}ms P99 WAL fsync latency (recommended <10ms)"
+        if latency_ms > 10:
+            status, note = "FAIL", f"{latency_ms:.1f}ms P99 WAL fsync (documented FAIL bar 10ms)"
         else:
             status, note = "PASS", f"{latency_ms:.2f}ms P99 WAL fsync — within healthy range (<10ms)"
-        checks.append(CheckResult(category_id, category_name, f"{category_id}.etcd.wal.{pod}",
-                                  f"7.8.2 Etcd WAL fsync P99: {pod}", status, note, pod))
+        checks.append(CheckResult(
+            category_id, category_name, f"{category_id}.etcd.wal.{pod}",
+            f"7.8.2 Etcd WAL fsync P99: {pod}", status, note, pod,
+            scoring_basis="doc_backed" if status == "FAIL" else "",
+        ))
     return checks
 
 
@@ -116,10 +117,11 @@ def _evaluate_etcd_backend_commit(backend_commit: dict, category_id: str, catego
             latency_ms = float(item.get("value", [0, 0])[1]) * 1000
         except (TypeError, ValueError, IndexError):
             continue
-        if latency_ms > 50:
-            status, note = "FAIL", f"CRITICAL: {latency_ms:.1f}ms P99 backend commit (threshold 50ms)"
-        elif latency_ms > 25:
-            status, note = "WARNING", f"{latency_ms:.1f}ms P99 backend commit (recommended <25ms)"
+        if latency_ms > 25:
+            status, note = (
+                "INFO",
+                f"{latency_ms:.1f}ms P99 backend commit — 4.22 HTML does not give a FAIL bar for backend commit P99",
+            )
         else:
             status, note = "PASS", f"{latency_ms:.2f}ms P99 backend commit — within healthy range (<25ms)"
         checks.append(CheckResult(category_id, category_name, f"{category_id}.etcd.backend.{pod}",

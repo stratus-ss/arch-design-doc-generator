@@ -85,25 +85,6 @@ def _evaluate_etcd_health(output: str, exit_code: int, category_id: str, categor
                         "All etcd pods Running", "etcd")]
 
 
-def _evaluate_etcd_metrics_placeholders(category_id: str, category_name: str) -> list[CheckResult]:
-    checks: list[CheckResult] = []
-    for section_id, title in [
-        ("3.5.4", "3.5.4 ETCD Database Size"),
-        ("3.5.5", "3.5.5 ETCD Compaction"),
-        ("3.5.6", "3.5.6 ETCD Defragmentation"),
-        ("3.5.7", "3.5.7 ETCD Log Errors"),
-        ("3.5.8.1", "3.5.8.1 ETCD Disk Performance"),
-        ("3.5.8.2", "3.5.8.2 ETCD Network Performance"),
-        ("3.5.8.3", "3.5.8.3 ETCD CPU Performance"),
-        ("3.5.9", "3.5.9 ETCD Alerts"),
-    ]:
-        checks.append(CheckResult(category_id, category_name, f"{category_id}.etcd.{section_id.replace('.', '_')}",
-                                  title, "SKIPPED",
-                                  "Requires etcdctl metrics/prometheus data not in standard collection",
-                                  "etcd", tsr_ref=section_id))
-    return checks
-
-
 def _evaluate_etcd_aggregate(category_data: dict, results: dict, category_id: str, category_name: str) -> list[CheckResult]:
     """TSR 3.5.x: ETCD checks from etcd_status and etcd_pods."""
     etcd_status = category_data.get("etcd_status", {})
@@ -114,7 +95,6 @@ def _evaluate_etcd_aggregate(category_data: dict, results: dict, category_id: st
     checks += _evaluate_etcd_endpoints(output, category_id, category_name)
     checks += _evaluate_etcd_leader(results, category_id, category_name)
     checks += _evaluate_etcd_health(output, exit_code, category_id, category_name)
-    checks += _evaluate_etcd_metrics_placeholders(category_id, category_name)
     return checks
 
 

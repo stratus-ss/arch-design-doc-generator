@@ -1079,7 +1079,7 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.3.tsr.3_10_3_featuregates"
 title = "3.10.3. Featuregates"
-description = "Checks enabled feature gates on the cluster. Non-default feature gates may\nenable tech-preview features that affect supportability or introduce\nbehavior changes that complicate upgrades.\n"
+description = "Native scoring does not inspect the FeatureGate CR (always SKIPPED). Manual check: non-default feature gates may enable tech-preview features that affect supportability or introduce behavior changes that complicate upgrades.\n"
 recommendation = "Keep featureSet at Default (empty) unless a non-default set was chosen on purpose. TechPreviewNoUpgrade and CustomNoUpgrade are irreversible and block upgrades."
 verification = "1. Print the configured feature set. Empty means Default:\n   `oc get featuregate cluster -o jsonpath='{.spec.featureSet}{\"\\n\"}'`\n2. `TechPreviewNoUpgrade` and `CustomNoUpgrade` are irreversible and block upgrades. Confirm they are intentional."
 priority_hint = ""

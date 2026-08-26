@@ -209,6 +209,13 @@ def _prometheus_value(item: dict, default: float = 0.0) -> float:
 # evaluators so both report identical wording/status for the same data)
 # ---------------------------------------------------------------------------
 
+def subscription_is_virtualization(subscription: dict) -> bool:
+    """True for the OpenShift Virtualization hyperconverged subscription."""
+    metadata_name = subscription.get("metadata", {}).get("name", "")
+    spec_name = subscription.get("spec", {}).get("name", "")
+    return metadata_name == "kubevirt-hyperconverged" or spec_name == "kubevirt-hyperconverged"
+
+
 def _evaluate_approval_strategy(
     subscriptions: list, category_id: str, category_name: str, check_id: str, section_title: str,
 ) -> CheckResult:
@@ -217,6 +224,8 @@ def _evaluate_approval_strategy(
     for subscription in subscriptions:
         spec = subscription.get("spec", {})
         if spec.get("installPlanApproval") != "Automatic":
+            continue
+        if subscription_is_virtualization(subscription):
             continue
         metadata = subscription.get("metadata", {})
         automatic_names.append(metadata.get("name", "unknown"))
@@ -233,6 +242,7 @@ def _evaluate_approval_strategy(
                 "Manual approval recommended to prevent unplanned upgrades in production"
             ),
             resource_name="subscriptions",
+            scoring_basis="engine_policy",
         )
     return CheckResult(
         category_id=category_id,

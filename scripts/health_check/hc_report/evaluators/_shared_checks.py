@@ -1,7 +1,12 @@
 """Shared evaluator helpers for reused check patterns."""
 from __future__ import annotations
 
-from hc_report.evaluators._common import _find_condition, _get_items, _is_missing
+from hc_report.evaluators._common import (
+    _find_condition,
+    _get_items,
+    _is_missing,
+    _resource_labels,
+)
 
 
 def node_roles(labels: dict) -> set[str]:
@@ -11,6 +16,16 @@ def node_roles(labels: dict) -> set[str]:
         for key in labels
         if key.startswith("node-role.kubernetes.io/")
     }
+
+
+def is_compact_cluster(items: list[dict], masters: list[dict]) -> bool:
+    """True when every node is a master and every master also carries the
+    'worker' role label — the supported 3-node compact/SNO-style topology
+    where schedulable control-plane nodes are expected, not a misconfiguration.
+    """
+    if not masters or len(masters) != len(items):
+        return False
+    return all("worker" in node_roles(_resource_labels(node)) for node in masters)
 
 
 def check_mcp_degraded(machine_config_pool_data: dict) -> tuple[list[str], list[str]]:

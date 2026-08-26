@@ -255,14 +255,14 @@ _CHECK_NOTES: dict[str, tuple[str, str]] = {
     ),
     "etcd.wal": (
         "etcd WAL fsync latency directly impacts write throughput and leader elections. "
-        "P99 latency above 10ms indicates slow disk I/O. Above 50ms, etcd may begin "
-        "losing leadership and causing cluster instability. Use NVMe/SSD storage for etcd. "
+        "P99 latency above 10ms is a documented FAIL. Use NVMe/SSD storage for etcd. "
         "On baremetal, dedicate a partition for /var/lib/etcd.",
         "[etcd hardware recommendations](https://etcd.io/docs/latest/op-guide/hardware/)",
     ),
     "etcd.backend": (
-        "Backend commit latency reflects boltdb write performance. High latency (>25ms P99) "
-        "combined with high WAL fsync indicates an I/O bottleneck. Consider running "
+        "Backend commit latency reflects boltdb write performance. High latency is reported "
+        "as INFO; 4.22 HTML does not give a FAIL bar for backend commit P99. Combined with "
+        "high WAL fsync it still suggests an I/O bottleneck. Consider running "
         "`etcdctl defrag` during a maintenance window to reclaim space and improve performance.",
         "[etcd performance](https://etcd.io/docs/latest/op-guide/performance/)",
     ),
