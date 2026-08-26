@@ -247,3 +247,374 @@ def test_pod_restart_gap_when_tsr_pod_missing_from_collection() -> None:
     annotate_pod_restart_collection_gap([engine_check, tsr_check], results)
     assert "collect gap" in engine_check.evidence
     assert "1" in engine_check.evidence
+
+
+def tsr_leaf_html(result_text: str) -> str:
+    """Minimal TSR leaf HTML wrapping a Result cell (public parse_tsr_html tests)."""
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<body>
+  <div id="1. Basic Checks-panel">
+    <div class="leaf-extra">
+      <div>
+        <table>
+          <tbody>
+            <tr><td>Check</td><td>1.5.7.2. Chrony</td></tr>
+            <tr><td>Status</td><td><b>WARNING</b></td></tr>
+            <tr><td>Result</td><td>{result_text}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+"""
+
+
+_PASS_BODY = (
+    "status check:   [PASS]   - reason: chrony leap status is Normal<br>"
+    "current config check:   [PASS]   - reason: same as reference"
+)
+_WORKER_ONE = "examplehost061.cl1.cluster.example.com"
+_WORKER_TWO = "examplehost062.cl1.cluster.example.com"
+_WORKER_THREE = "examplehost063.cl1.cluster.example.com"
+_WORKER_FOUR = "examplehost064.cl1.cluster.example.com"
+_MASTER_LIMITED = "examplehost058.cl1.cluster.example.com"
+
+
+def _first_evidence(html: str) -> str:
+    records = parse_tsr_html(html)
+    assert records
+    return str(records[0].get("evidence", ""))
+
+
+def test_identical_pass_hosts_collapse_to_all_nodes() -> None:
+    # Bug: Identical worker PASS blocks stay expanded
+    # Mutant: Skip condense call
+    # Contract: public
+    result_text = (
+        f"RHCOS NODES:::<br>"
+        f"{_WORKER_ONE}:<br>{_PASS_BODY}<br>"
+        f"{_WORKER_TWO}:<br>{_PASS_BODY}"
+    )
+    evidence = _first_evidence(tsr_leaf_html(result_text))
+    assert "RHCOS NODES::>ALL NODES:" in evidence
+    assert evidence.count("chrony leap status is Normal") == 1
+    assert _WORKER_ONE not in evidence
+    assert _WORKER_TWO not in evidence
+
+
+def test_non_pass_hosts_remain_named_when_siblings_collapse() -> None:
+    # Bug: SUPPORT LIMITATION host dropped or collapsed
+    # Mutant: Treat LIMITATION as ok
+    # Contract: public
+    result_text = (
+        f"MASTER NODES:::<br>"
+        f"{_MASTER_LIMITED}:<br>"
+        "number of time-servers:   [SUPPORT LIMITATION]   - reason: two entries<br>"
+        f"RHCOS NODES:::<br>"
+        f"{_WORKER_ONE}:<br>{_PASS_BODY}<br>"
+        f"{_WORKER_TWO}:<br>{_PASS_BODY}"
+    )
+    evidence = _first_evidence(tsr_leaf_html(result_text))
+    assert _MASTER_LIMITED in evidence
+    assert "[SUPPORT LIMITATION]" in evidence
+    assert "RHCOS NODES::>ALL NODES:" in evidence
+    assert _WORKER_ONE not in evidence
+    assert _WORKER_TWO not in evidence
+
+
+def test_mixed_group_does_not_emit_all_nodes() -> None:
+    # Bug: PASS siblings become ALL NODES while WARNING hosts remain
+    # Mutant: Label mixed ok hosts ALL NODES
+    # Contract: public
+    result_text = (
+        f"RHCOS NODES:::<br>"
+        f"{_WORKER_ONE}:<br>"
+        "high availability:   [WARNING]   - reason: single NIC<br>"
+        f"{_WORKER_TWO}:<br>{_PASS_BODY}<br>"
+        f"{_WORKER_THREE}:<br>{_PASS_BODY}"
+    )
+    evidence = _first_evidence(tsr_leaf_html(result_text))
+    assert "RHCOS NODES::>ALL NODES:" not in evidence
+    assert "PASS NODES" in evidence
+    assert _WORKER_ONE in evidence
+    assert _WORKER_TWO not in evidence
+    assert _WORKER_THREE not in evidence
+
+
+def test_unique_pass_bodies_are_not_collapsed() -> None:
+    # Bug: Different PASS reasons merged
+    # Mutant: Collapse without body equality
+    # Contract: public
+    # When every host is ok, hostnames are purged even if reasons differ.
+    result_text = (
+        f"RHCOS NODES:::<br>"
+        f"{_WORKER_ONE}:<br>"
+        "status check:   [PASS]   - reason: offset under 100ms<br>"
+        f"{_WORKER_TWO}:<br>"
+        "status check:   [PASS]   - reason: leap status is Normal"
+    )
+    evidence = _first_evidence(tsr_leaf_html(result_text))
+    assert "RHCOS NODES::>ALL NODES:" in evidence
+    assert _WORKER_ONE not in evidence
+    assert _WORKER_TWO not in evidence
+
+
+def test_heterogeneous_ok_bodies_keep_all_hosts_named() -> None:
+    # Bug: Two distinct ok bodies produce two ALL NODES blocks
+    # Mutant: Collapse per-body instead of per-group
+    # Contract: public
+    body_a = "status check:   [PASS]   - reason: body-alpha"
+    body_b = "status check:   [PASS]   - reason: body-beta"
+    result_text = (
+        f"RHCOS NODES:::<br>"
+        f"{_WORKER_ONE}:<br>{body_a}<br>"
+        f"{_WORKER_TWO}:<br>{body_a}<br>"
+        f"{_WORKER_THREE}:<br>{body_b}<br>"
+        f"{_WORKER_FOUR}:<br>{body_b}"
+    )
+    evidence = _first_evidence(tsr_leaf_html(result_text))
+    assert "RHCOS NODES::>ALL NODES:" in evidence
+    assert _WORKER_ONE not in evidence
+    assert _WORKER_FOUR not in evidence
+
+
+def test_existing_all_nodes_group_is_left_unchanged() -> None:
+    # Bug: Double-collapse of TSR-native ALL NODES
+    # Mutant: Always rewrite ALL NODES groups
+    # Contract: public
+    native_line = "RHCOS NODES::>ALL NODES:   [PASS]   - reason: fixture"
+    evidence = _first_evidence(tsr_leaf_html(native_line))
+    assert native_line in evidence
+    assert "examplehost" not in evidence
+
+
+def test_inline_pass_hosts_collapse_to_all_nodes() -> None:
+    # Bug: hostname: [PASS] on one line stays expanded
+    # Mutant: Require a hostname-only line (no remainder after colon)
+    # Contract: public
+    result_text = (
+        f"RHCOS NODES:::<br>"
+        f'{_WORKER_ONE}:   [PASS]   - reason: "up" matches reference<br>'
+        f'{_WORKER_TWO}:   [PASS]   - reason: "up" matches reference'
+    )
+    evidence = _first_evidence(tsr_leaf_html(result_text))
+    assert 'RHCOS NODES::>ALL NODES:   [PASS]   - reason: "up" matches reference' in evidence
+    assert _WORKER_ONE not in evidence
+    assert _WORKER_TWO not in evidence
+
+
+def test_repeated_field_groups_collapse_without_swallowing_labels() -> None:
+    # Bug: mtu / ipv4.enabled after hosts is eaten into the last host body
+    # Mutant: End a node group only on ::/::: headers
+    # Contract: public
+    result_text = (
+        "state<br>"
+        f"MASTER NODES:::<br>"
+        f'{_MASTER_LIMITED}:   [PASS]   - reason: "up" matches reference<br>'
+        f'{_WORKER_ONE}:   [PASS]   - reason: "up" matches reference<br>'
+        f"RHCOS NODES:::<br>"
+        f'{_WORKER_TWO}:   [PASS]   - reason: "up" matches reference<br>'
+        f'{_WORKER_THREE}:   [PASS]   - reason: "up" matches reference<br>'
+        "mtu<br>"
+        f"MASTER NODES:::<br>"
+        f'{_MASTER_LIMITED}:   [PASS]   - reason: "9000" matches reference<br>'
+        f'{_WORKER_ONE}:   [PASS]   - reason: "9000" matches reference<br>'
+        f"RHCOS NODES:::<br>"
+        f'{_WORKER_TWO}:   [PASS]   - reason: "9000" matches reference<br>'
+        f'{_WORKER_THREE}:   [PASS]   - reason: "9000" matches reference'
+    )
+    evidence = _first_evidence(tsr_leaf_html(result_text))
+    assert evidence.count("mtu") == 1
+    assert evidence.count("state") == 1
+    assert '"up" matches reference' in evidence
+    assert '"9000" matches reference' in evidence
+    assert _WORKER_TWO not in evidence
+    assert _WORKER_THREE not in evidence
+    assert "RHCOS NODES::>ALL NODES:" in evidence
+
+
+def test_interface_names_are_not_treated_as_hosts() -> None:
+    # Bug: bond0: / bond0.1709: counted as hosts so real nodes never collapse
+    # Mutant: Treat any name with a digit or a dot as a host
+    # Contract: public
+    result_text = (
+        f"MASTER NODES::<br>"
+        f"{_MASTER_LIMITED}:<br>"
+        "bond0:   [PASS]   - reason: multiple ports<br>"
+        f"{_WORKER_ONE}:<br>"
+        "bond0:   [PASS]   - reason: multiple ports"
+    )
+    evidence = _first_evidence(tsr_leaf_html(result_text))
+    assert "MASTER NODES::>ALL NODES:" in evidence
+    assert _MASTER_LIMITED not in evidence
+    assert "bond0:" in evidence
+
+
+def test_bare_fqdn_hosts_collapse_without_nodes_header() -> None:
+    # Bug: FQDN lines without a trailing colon are left expanded
+    # Mutant: Require hostname:
+    # Contract: public
+    result_text = (
+        f"{_WORKER_ONE}<br>"
+        "KubeletReady:   [PASS]   - kubelet is posting ready status<br>"
+        f"{_WORKER_TWO}<br>"
+        "KubeletReady:   [PASS]   - kubelet is posting ready status"
+    )
+    evidence = _first_evidence(tsr_leaf_html(result_text))
+    assert "ALL NODES::>ALL NODES:" in evidence
+    assert _WORKER_ONE not in evidence
+    assert _WORKER_TWO not in evidence
+
+
+def test_dot_table_collapses_identical_remainders() -> None:
+    # Bug: Identical VMI table rows stay expanded
+    # Mutant: Skip table helper
+    # Contract: public
+    result_text = (
+        "NAMESPACE · VMI · LIVEMIGRATABLE<br>"
+        "examplens · examplevm-a · true<br>"
+        "examplens · examplevm-b · true<br>"
+        "examplens · examplevm-c · true"
+    )
+    evidence = _first_evidence(tsr_leaf_html(result_text))
+    assert "NAMESPACE · VMI · LIVEMIGRATABLE" in evidence
+    assert "(2 more)" in evidence
+    assert "examplevm-a" in evidence
+    assert "examplevm-b" not in evidence
+    assert "examplevm-c" not in evidence
+
+
+def test_dot_table_keeps_distinct_remainders() -> None:
+    # Bug: Two remainder signatures merged
+    # Mutant: Collapse without grouping by remainder
+    # Contract: public
+    result_text = (
+        "NAMESPACE · NAME · TYPE<br>"
+        "examplens · vlan10 · bridge<br>"
+        "examplens · vlan11 · bridge<br>"
+        "examplens · bond0 · bond"
+    )
+    evidence = _first_evidence(tsr_leaf_html(result_text))
+    assert "(1 more)" in evidence
+    assert "vlan10 · bridge" in evidence
+    assert "vlan11" not in evidence
+    assert "bond0 · bond" in evidence
+
+
+def test_headerless_dot_rows_collapse_by_remainder() -> None:
+    # Bug: Inventory dump without ALL-CAPS header stays expanded
+    # Mutant: Require a header before grouping data rows
+    # Contract: public
+    result_text = (
+        "examplens · examplepvc-a · ReadWriteMany · Bound · yes<br>"
+        "examplens · examplepvc-b · ReadWriteMany · Bound · yes<br>"
+        "examplens · examplepvc-c · ReadWriteMany · Bound · yes"
+    )
+    evidence = _first_evidence(tsr_leaf_html(result_text))
+    assert "(2 more)" in evidence
+    assert "examplepvc-a" in evidence
+    assert "examplepvc-b" not in evidence
+    assert "examplepvc-c" not in evidence
+
+
+def test_dot_table_resumes_after_broken_row() -> None:
+    # Bug: A non-dot line stops the rest of the table from collapsing
+    # Mutant: End the table on any non-data line and never regroup
+    # Contract: public
+    result_text = (
+        "NAMESPACE · PVC · PHASE · STORAGECLASS<br>"
+        "examplens · examplepvc-a · Bound · px-rwx-vm<br>"
+        "examplens · examplepvc-b · Bound · px-rwx-vm<br>"
+        "broken-row-without-dots<br>"
+        "examplens · examplepvc-c · Bound · px-rwx-vm<br>"
+        "examplens · examplepvc-d · Bound · px-rwx-vm"
+    )
+    evidence = _first_evidence(tsr_leaf_html(result_text))
+    assert evidence.count("(1 more)") == 2
+    assert "broken-row-without-dots" in evidence
+    assert "examplepvc-a" in evidence
+    assert "examplepvc-c" in evidence
+    assert "examplepvc-b" not in evidence
+    assert "examplepvc-d" not in evidence
+
+
+def test_nfs_nconnect_lines_collapse_by_token() -> None:
+    # Bug: Identical nconnect mounts stay expanded
+    # Mutant: Skip nconnect helper
+    # Contract: public
+    result_text = (
+        f"{_WORKER_ONE}: server:/share /mnt nfs4 (nconnect=default/1)<br>"
+        f"{_WORKER_TWO}: server:/share /mnt nfs4 (nconnect=default/1)"
+    )
+    evidence = _first_evidence(tsr_leaf_html(result_text))
+    assert _WORKER_ONE in evidence
+    assert _WORKER_TWO not in evidence
+    assert "(1 more NFS mounts with (nconnect=default/1))" in evidence
+
+
+def test_repeated_node_warnings_collapse_without_all_nodes() -> None:
+    # Bug: Identical node WARNING lines stay; or labelled ALL NODES
+    # Mutant: Skip node helper or emit ALL NODES
+    # Contract: public
+    reason = "[WARNING]   - reason: max_session_slots=64"
+    result_text = (
+        f"node {_WORKER_ONE}:   {reason}<br>"
+        f"node {_WORKER_TWO}:   {reason}"
+    )
+    evidence = _first_evidence(tsr_leaf_html(result_text))
+    assert "(2 nodes):   [WARNING]   - reason: max_session_slots=64" in evidence
+    assert "ALL NODES" not in evidence
+    assert _WORKER_ONE not in evidence
+
+
+def test_qualified_node_status_lines_collapse() -> None:
+    # Bug: "node host qualifier: [STATUS]" lines left expanded
+    # Mutant: Regex only matches "node host:" without qualifier
+    # Contract: public
+    reason = "[INFO]   - reason: no nfs.max_session_slots in cmdline"
+    result_text = (
+        f"node {_WORKER_ONE} cmdline:   {reason}<br>"
+        f"node {_WORKER_TWO} cmdline:   {reason}<br>"
+        f"node {_WORKER_THREE} cmdline:   {reason}"
+    )
+    evidence = _first_evidence(tsr_leaf_html(result_text))
+    assert "(3 nodes) cmdline:   [INFO]   - reason: no nfs.max_session_slots in cmdline" in evidence
+    assert _WORKER_ONE not in evidence
+    assert _WORKER_TWO not in evidence
+
+
+def test_mixed_host_group_emits_pass_nodes_not_all_nodes() -> None:
+    # Bug: Mixed group keeps all PASS hostnames or uses ALL NODES
+    # Mutant: Keep old mixed no-collapse, or label ALL NODES
+    # Contract: public
+    result_text = (
+        f"{_WORKER_ONE}<br>"
+        "KubeletReady:   [WARNING]   - kubelet is not ready<br>"
+        f"{_WORKER_TWO}<br>"
+        "KubeletReady:   [PASS]   - kubelet is posting ready status<br>"
+        f"{_WORKER_THREE}<br>"
+        "KubeletReady:   [PASS]   - kubelet is posting ready status"
+    )
+    evidence = _first_evidence(tsr_leaf_html(result_text))
+    assert "PASS NODES" in evidence
+    assert "ALL NODES::>ALL NODES:" not in evidence
+    assert _WORKER_ONE in evidence
+    assert _WORKER_TWO not in evidence
+    assert _WORKER_THREE not in evidence
+
+
+def test_unhealthy_pods_collapse_by_workload() -> None:
+    # Bug: Replica WARNING pods stay expanded
+    # Mutant: Skip pod helper
+    # Contract: public
+    result_text = (
+        "examplens:app-85f858f84f-26gvp   [WARNING]   - looks unhealthy, as it has 22 restarts<br>"
+        "examplens:app-cfcfd6486-5n9mb   [WARNING]   - looks unhealthy, as it has 23 restarts"
+    )
+    evidence = _first_evidence(tsr_leaf_html(result_text))
+    assert evidence.count("[WARNING]") == 1
+    assert "(1 more pods)" in evidence
+    assert "app-cfcfd6486-5n9mb" not in evidence
