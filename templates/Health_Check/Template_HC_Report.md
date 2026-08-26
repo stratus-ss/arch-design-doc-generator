@@ -10,22 +10,6 @@
 
 </div>
 
-<div class="cover-meta">
-
-| | |
-|---|---|
-| **Customer** | {CLIENT} |
-| **Cluster** | {CLUSTER_NAME} |
-| **OCP Version** | {OCP_VERSION} |
-| **Data Capture Date** | {CAPTURE_DATE} |
-| **Report Date** | {REPORT_DATE} |
-| **Case Number** | {CASE_NUMBER} |
-| **Author** | {AUTHOR} |
-| **Install Type** | {INSTALL_TYPE} |
-| **Update Channel** | {CHANNEL} |
-
-</div>
-
 ---
 
 ## Chapter 1. Introduction
@@ -43,7 +27,7 @@ The assessment covers base platform configuration, cluster topology, core compon
 1. Introduction  
 2. Table of Contents  
 3. Executive Summary  
-4. Critical Findings  
+4. Purpose and Engagement Approach  
 5. Health Check Overview  
 6. Observations and Recommendations  
 7. Raw Check Report (7.1–7.9)  
@@ -53,7 +37,13 @@ The assessment covers base platform configuration, cluster topology, core compon
 
 ## Chapter 3. Executive Summary
 
+### 3.1 Executive Summary
+
 {EXEC_SUMMARY}
+
+### 3.2 Technical Summary
+
+{TECH_SUMMARY}
 
 ### Summary Statistics
 
@@ -69,11 +59,29 @@ The assessment covers base platform configuration, cluster topology, core compon
 
 ---
 
-## Chapter 4. Critical Findings
+## Chapter 4. Purpose and Engagement Approach
 
-The following critical and high-priority findings require immediate or near-term attention.
+Red Hat Consulting was engaged by {CLIENT} to assist with an OpenShift Health Check which seeks to assess the state and health of the OpenShift cluster. This report details the architecture and supportability review performed for the OpenShift cluster `{CLUSTER_ID}`, with data collected in {CAPTURE_MONTH_YEAR}.
 
-{CRITICAL_FINDINGS_SUMMARY}
+The assessment criteria and results are based on the data provided by the customer ({CLIENT}). {CLIENT} may change their configuration at any time, and Red Hat's products, versions, and associated life cycles also evolve over time; therefore this report is a snapshot assessment and is subject to change.
+
+The goal of the assessment is to give the customer feedback on the supportability of their current configuration with respect to Red Hat's current products, certification ecosystem, and support services.
+
+### 4.1 How to Interpret the Health Check Results
+
+The following are the types of key responses when executing a check or rule:
+
+| Result | Meaning |
+|--------|---------|
+| 🟢 PASS | The check result matches the expected or documented configuration. |
+| 🔵 INFO | The rule does not assert a pass/fail outcome; it surfaces data such as cluster ID or version. Some INFO results still need a manual follow-up that cannot be automated yet. |
+| 🟡 WARNING | A finding that needs attention so you can draw a conclusion. For example, an Ingress HA check may be unable to prove HA from the collected data, so it warns and further judgement is yours. |
+| 🟡 LIMITATION | Same class of attention as WARNING: the check could not fully prove the expected state from available data or known product limits. |
+| 🔴 FAIL | Not as expected or documented; this configuration may not be generally supported or recommended. |
+| ⚪ SKIPPED | The data required to perform the check is not available. Confirm whether that is expected. |
+| ⚪ NOT APPLICABLE | The check was not executed for a reason. For example, if a sub-check shows OpenShift Logging is not installed, further Logging-related checks are N/A. |
+| ⚫ NONE | The rule returned no result. Phased_Gates rules should not return ⚫ NONE. |
+| ⚪ EXCEPTION | There is an issue or error in the rule with the given data. File a bug that references the error message and the data (for example the SFDC case attachment) this occurred with. |
 
 ---
 
