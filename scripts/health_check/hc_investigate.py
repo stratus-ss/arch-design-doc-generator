@@ -300,7 +300,7 @@ def _resolve_runtime_options(
     _resolve_check_expansion_options(args, hc_config, project_root)
     _resolve_tsr_html_path(args, hc_config, project_root)
     meta = derive_metadata(results, config)
-    _discover_tsr_html_if_needed(args, project_root, hc_config, results, meta)
+    _discover_tsr_html_if_needed(args, project_root, hc_config, meta)
     output_dir = project_root / hc_config.get("output_report_path", "output/Health_Check_Report/")
     return output_dir, _parse_tsr_html_runtime(args, output_dir), str(meta.get("ocp_version", ""))
 
