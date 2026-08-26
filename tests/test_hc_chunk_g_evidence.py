@@ -13,7 +13,12 @@ from hc_report.findings import derive_findings
 from hc_report.models import CheckResult
 from hc_report.parity import expand_with_parity_checks
 from hc_report.renderer import _build_check_results_table
-from hc_report.tsr_parser import parse_tsr_html
+from hc_report.tsr_parser import (
+    _EVIDENCE_MAX_CHARS,
+    _EVIDENCE_TRUNCATION_MARK,
+    _clip_evidence,
+    parse_tsr_html,
+)
 
 
 def test_tsr_html_result_keeps_text_past_2000_characters() -> None:
@@ -43,6 +48,17 @@ def test_tsr_html_result_keeps_text_past_2000_characters() -> None:
     records = parse_tsr_html(html)
     matching = [record for record in records if "UNIQUE_TAIL_TOKEN" in str(record.get("evidence", ""))]
     assert matching
+
+
+def test_tsr_html_result_clips_at_evidence_max_chars() -> None:
+    # Bug: 1_000_000-char Result cells hang WeasyPrint
+    # Mutant: Keep slicing at 1_000_000 or restore [:2000]
+    # Contract: public
+    clipped = _clip_evidence(("B" * (_EVIDENCE_MAX_CHARS + 5000)) + "SHOULD_NOT_SURVIVE")
+    assert len(clipped) <= _EVIDENCE_MAX_CHARS
+    assert clipped.endswith(_EVIDENCE_TRUNCATION_MARK)
+    assert "SHOULD_NOT_SURVIVE" not in clipped
+    assert "UNIQUE_TAIL_TOKEN" in _clip_evidence(("A" * 2500) + "UNIQUE_TAIL_TOKEN")
 
 
 def test_absent_logging_does_not_emit_pascalcase_stubs() -> None:

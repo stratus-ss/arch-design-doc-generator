@@ -28,8 +28,10 @@ _SECTION_MAP = [
     ("7. Security and Compliance-panel", "ccx-checks-section-btn", "7.7", "Security and Compliance", "7"),
 ]
 
-# Absurd-input guard only — not a content-length policy for TSR Result text.
-_EVIDENCE_ABSURD_LIMIT = 1_000_000
+# Per-check Result cap. 2000 chars cut real tables; 1_000_000 hung WeasyPrint
+# on production TSR dumps (hundreds of KB in one table cell).
+_EVIDENCE_MAX_CHARS = 32_000
+_EVIDENCE_TRUNCATION_MARK = "\n… [truncated]"
 
 _ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-9;]*[a-zA-Z]")
 
@@ -50,7 +52,7 @@ def _strip_html(text: str) -> str:
     # <table> markup. A bare `[ \t]+ -> " "` collapse would destroy that
     # alignment (renderer.py needs a 3+ space run to detect column
     # boundaries), but preserving the full original padding width verbatim
-    # wastes the evidence buffer (_EVIDENCE_ABSURD_LIMIT) on cosmetic
+    # wastes the evidence buffer (_EVIDENCE_MAX_CHARS) on cosmetic
     # terminal-alignment spaces, which previously pushed real table rows
     # past the truncation cutoff. Normalize any wide gap down to a fixed
     # 3-space marker: the column-boundary signal survives, incidental 1-2
@@ -59,6 +61,14 @@ def _strip_html(text: str) -> str:
     text = re.sub(r" {3,}", "   ", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
+
+
+def _clip_evidence(text: str) -> str:
+    """Keep Result text under the report/PDF budget; mark when truncated."""
+    if len(text) <= _EVIDENCE_MAX_CHARS:
+        return text
+    keep = _EVIDENCE_MAX_CHARS - len(_EVIDENCE_TRUNCATION_MARK)
+    return text[:keep] + _EVIDENCE_TRUNCATION_MARK
 
 
 def _normalize_status(raw: str) -> str:
@@ -102,7 +112,7 @@ def _extract_leaf_check(
     evidence = ""
     result_match = re.search(r">Result</td>\s*<td[^>]*>(.*?)</td>", leaf_html, re.S | re.I)
     if result_match:
-        evidence = _strip_html(result_match.group(1))[:_EVIDENCE_ABSURD_LIMIT]
+        evidence = _clip_evidence(_strip_html(result_match.group(1)))
 
     ref_match = re.match(r"^(\d+(?:\.\d+)*)", title)
     tsr_ref = ref_match.group(1) if ref_match else section_number
@@ -207,7 +217,7 @@ def _extract_ccx_check(chunk: str, group: str) -> dict | None:
     evidence = ""
     message_match = re.search(r"<b>Message:</b>\s*(.*?)(?:</td>|$)", chunk, re.S)
     if message_match:
-        evidence = _strip_html(message_match.group(1))[:_EVIDENCE_ABSURD_LIMIT]
+        evidence = _clip_evidence(_strip_html(message_match.group(1)))
 
     check_id = f"7.7.ccx_{group}.{_slugify(title)}"
     return {
