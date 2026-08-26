@@ -167,6 +167,23 @@ class KnowledgeBase:
         )
 
 
+def format_impact_line(impact: str, impact_scope: str, impact_detail: str) -> str:
+    """Render a **Level of Impact:** markdown line from raw KB fields.
+
+    Mirrors the canonical rendering in renderer._format_impact_block so
+    both generation and post-hoc update produce identical output.
+    """
+    if not impact:
+        return f"**Level of Impact:** {NEEDS_REVIEW_MARKER}"
+    if impact == "none":
+        label = "None"
+    else:
+        label = impact.replace("-", " ").title()
+    scope = f" ({impact_scope})" if impact_scope else ""
+    detail = f" — {impact_detail}" if impact_detail else ""
+    return f"**Level of Impact:** {label}{scope}{detail}"
+
+
 _KB_CACHE: KnowledgeBase | None = None
 _KB_CACHE_DIR: Path | None = None
 

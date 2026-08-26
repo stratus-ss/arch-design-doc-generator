@@ -121,3 +121,12 @@ python3 scripts/health_check/renumber_finding_sections.py \
 python3 scripts/health_check/draft_summary_conclusion.py --dry-run \
   output/Health_Check_Report/<ClientPrefix>_OpenShift_Health_Check_<cluster>.md
 ```
+
+After KB Level of Impact edits, refresh Chapter 6 on a **single** customized report without regenerating:
+
+```bash
+make hc-update-loi REPORT=output/Health_Check_Report/<ClientPrefix>_OpenShift_Health_Check_<cluster>.md
+make hc-update-loi REPORT=output/Health_Check_Report/<ClientPrefix>_OpenShift_Health_Check_<cluster>.md DRY_RUN=1
+python3 scripts/health_check/update_finding_loi.py --output UPDATED.md \
+  output/Health_Check_Report/<ClientPrefix>_OpenShift_Health_Check_<cluster>.md
+```

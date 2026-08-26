@@ -6,7 +6,7 @@ from collections import Counter, defaultdict
 from html import escape
 
 from hc_report.evaluators._common import _CATEGORY_MAP
-from hc_report.kb_loader import NEEDS_REVIEW_MARKER, load_kb
+from hc_report.kb_loader import NEEDS_REVIEW_MARKER, format_impact_line, load_kb
 from hc_report.models import CheckResult, Finding
 from hc_report.notes import get_note
 
@@ -450,15 +450,7 @@ def _build_findings_sections(findings: list[Finding], ocp_version: str = "latest
 
 
 def _format_impact_block(finding: Finding) -> str:
-    if not finding.impact:
-        return f"**Level of Impact:** {NEEDS_REVIEW_MARKER}\n"
-    if finding.impact == "none":
-        label = "None"
-    else:
-        label = finding.impact.replace("-", " ").title()
-    scope = f" ({finding.impact_scope})" if finding.impact_scope else ""
-    detail = f" — {finding.impact_detail}" if finding.impact_detail else ""
-    return f"**Level of Impact:** {label}{scope}{detail}\n"
+    return format_impact_line(finding.impact, finding.impact_scope, finding.impact_detail) + "\n"
 
 
 def _build_critical_findings(findings: list[Finding]) -> str:

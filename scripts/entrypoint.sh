@@ -368,6 +368,23 @@ cmd_hc_summary_conclusion() {
     green "In-place draft complete."
 }
 
+cmd_hc_update_loi() {
+    local report_path="${1:-}"
+    local dry_run_flag="${2:-}"
+    if [[ -z "$report_path" || ! -f "$report_path" ]]; then
+        red "Error: report markdown not found: ${report_path:-<missing>}"
+        echo "Usage: hc-update-loi /workspace/output/Health_Check_Report/<report>.md [--dry-run]"
+        exit 1
+    fi
+    export PYTHONPATH="$WORKSPACE/scripts/health_check:$WORKSPACE/scripts/shared/lib:/toolkit/health_check:/toolkit/shared/lib:${PYTHONPATH:-}"
+    bold "=== Refreshing Chapter 6 Level of Impact from KB ==="
+    if [[ "$dry_run_flag" == "--dry-run" ]]; then
+        python3 "$WORKSPACE/scripts/health_check/update_finding_loi.py" --dry-run "$report_path"
+    else
+        python3 "$WORKSPACE/scripts/health_check/update_finding_loi.py" --in-place "$report_path"
+    fi
+}
+
 cmd_hc_investigate() {
     bold "=== Investigating Health Check finding ==="
     export PYTHONPATH="$WORKSPACE/scripts/health_check:$WORKSPACE/scripts/shared/lib:/toolkit/health_check:/toolkit/shared/lib:${PYTHONPATH:-}"
@@ -511,6 +528,7 @@ cmd_help() {
     echo "  rvtools <files>   Process RVTools XLSX into migration schedule"
     echo "  hc-report         Generate Health Check report from collected data"
     echo "  hc-summary-conclusion  Opt-in Cursor draft of Chapter 3/8 into an existing report"
+    echo "  hc-update-loi     Refresh Chapter 6 Level of Impact from KB TOML (one report path)"
     echo "  hc-html [path]    Generate collapsible HTML (optional named markdown path)"
     echo "  hc-pdf [path]     Generate branded PDF (optional named markdown path)"
     echo "  hc-investigate    Trace a Health Check finding to raw evidence"
@@ -538,6 +556,7 @@ case "${1:-help}" in
     rvtools)    shift; cmd_rvtools "$@" ;;
     hc-report)  shift; cmd_hc_report "$@" ;;
     hc-summary-conclusion) shift; cmd_hc_summary_conclusion "$@" ;;
+    hc-update-loi) shift; cmd_hc_update_loi "$@" ;;
     hc-html)    shift; cmd_hc_html "$@" ;;
     hc-pdf)     shift; cmd_hc_pdf "$@" ;;
     hc-investigate) shift; cmd_hc_investigate "$@" ;;

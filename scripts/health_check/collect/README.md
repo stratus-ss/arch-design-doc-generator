@@ -604,6 +604,15 @@ python3 scripts/health_check/draft_summary_conclusion.py --dry-run \
   output/Health_Check_Report/<ClientPrefix>_OpenShift_Health_Check_<cluster>.md
 ```
 
+After KB Level of Impact edits, refresh Chapter 6 on a **single** customized report without regenerating:
+
+```bash
+make hc-update-loi REPORT=output/Health_Check_Report/<ClientPrefix>_OpenShift_Health_Check_<cluster>.md
+make hc-update-loi REPORT=output/Health_Check_Report/<ClientPrefix>_OpenShift_Health_Check_<cluster>.md DRY_RUN=1
+python3 scripts/health_check/update_finding_loi.py --output UPDATED.md \
+  output/Health_Check_Report/<ClientPrefix>_OpenShift_Health_Check_<cluster>.md
+```
+
 ## Review the Report
 
 Open `output/Health_Check_Report/<ClientPrefix>_OpenShift_Health_Check_<cluster>.md` in your editor or a markdown viewer.
@@ -694,6 +703,7 @@ Each target below runs one discrete step and can be re-run on its own — useful
 | `hc-merge`                    | Merge multiple result dirs (`MERGE_INPUTS="dir1 dir2"`)                                                                                                                                                                                   |
 | `hc-report`                   | Generate branded health check report (runs in container; requires `project.yaml`). Optional `HC_OMIT_CHECK_IDS` writes `{stem}_pruned.md`. Optional `HC_SUMMARY_CONCLUSION=1` drafts Chapter 3/8 in place after generate (prefers pruned) |
 | `hc-summary-conclusion`       | Cursor-draft Chapter 3/8 into an existing report (`REPORT=path.md`)                                                                                                                                                                       |
+| `hc-update-loi`               | Refresh Chapter 6 Level of Impact from KB (`REPORT=path.md` required; `DRY_RUN=1` preview)                                                                                                                                                |
 | `hc-pdf`                      | Branded PDF from report markdown (optional `REPORT=path.md`; `FORCE=1` overwrites an existing basename dest)                                                                                                                              |
 | `hc-html`                     | Collapsible HTML from report markdown (optional `REPORT=path.md`; `FORCE=1` overwrites an existing basename dest)                                                                                                                         |
 | `hc-build-catalog`            | Rebuild TSR/CCX catalog JSON from a TSR HTML export (`TSR_HTML=path`)                                                                                                                                                                     |

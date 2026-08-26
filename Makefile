@@ -98,7 +98,7 @@ endef
         force-image \
         install-git-hooks check-pii \
         hc-collect hc-push-scripts hc-collect-remote hc-fetch-results hc-merge clean-hc \
-        hc-report hc-summary-conclusion hc-html hc-pdf hc-investigate hc-skip-summary hc-command-ref hc-build-catalog \
+        hc-report hc-summary-conclusion hc-update-loi hc-html hc-pdf hc-investigate hc-skip-summary hc-command-ref hc-build-catalog \
         hc-link-review hc-link-apply hc-report-from-supportshell check-hc-sync hc-docs \
         clean clean-build clean-hld clean-lld clean-pdfs clean-diagrams clean-workitems clean-ai clean-setup push
 
@@ -156,6 +156,7 @@ help: ## Show this help
 	print_target hc-merge; \
 	print_target hc-report; \
 	print_target hc-summary-conclusion; \
+	print_target hc-update-loi; \
 	print_target hc-html; \
 	print_target hc-pdf; \
 	print_target hc-build-catalog; \
@@ -492,6 +493,17 @@ hc-summary-conclusion: image ## Cursor-draft Chapter 3/8 into an existing report
 		$(if $(AI_TOOL),-e AI_TOOL="$(AI_TOOL)") \
 		--entrypoint /workspace/scripts/entrypoint.sh $(IMAGE) \
 		hc-summary-conclusion "/workspace/$(REPORT)"
+
+hc-update-loi: image ## Refresh Chapter 6 LOI from KB (container; set REPORT=path.md; DRY_RUN=1 to preview)
+	$(call require,REPORT,Error: set REPORT=path/to/one-report.md)
+	@if [ "$(words $(REPORT))" != "1" ]; then echo "REPORT must be a single path" >&2; exit 1; fi
+	@case "$(REPORT)" in *[\*\?\[\]]*) echo "REPORT must not be a glob" >&2; exit 1 ;; esac
+	@if [ ! -f "$(REPORT)" ]; then echo "Error: report not found: $(REPORT)" >&2; exit 1; fi
+	@$(ENGINE) run --rm \
+		-v "$$(pwd)":/workspace:Z \
+		-v "$$(pwd)/output":/output:Z \
+		--entrypoint /workspace/scripts/entrypoint.sh $(IMAGE) \
+		hc-update-loi "/workspace/$(REPORT)" $(if $(filter 1,$(DRY_RUN)),--dry-run)
 
 define hc_export_run
 	@if [ -n "$(REPORT)" ] && [ ! -f "$(REPORT)" ]; then echo "Error: report not found: $(REPORT)" >&2; exit 1; fi; \

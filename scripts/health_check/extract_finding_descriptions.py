@@ -17,10 +17,16 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
+_SCRIPT_DIR = Path(__file__).resolve().parent
+for extra_path in (_SCRIPT_DIR.parent / "shared" / "lib", _SCRIPT_DIR):
+    extra = str(extra_path)
+    if extra not in sys.path:
+        sys.path.insert(0, extra)
+
+from hc_report._text import parse_check_ids_from_line
+
 _PRIORITY_HEADING = re.compile(r"^### (P[0-3]):\s")
 _FINDING_HEADING = re.compile(r"^#### (6\.2\.\d+(?:\.\d+)+)\.\s+(.+?)\s*$")
-_CHECK_ID_LINE = re.compile(r"^\*\*Check ID:\*\*\s+(.*)$")
-_BACKTICK_VALUE = re.compile(r"`([^`]+)`")
 _CHAPTER_HEADING = re.compile(r"^## Chapter (\d+)")
 
 CHECK_FAMILY_LABELS = {
@@ -83,14 +89,11 @@ def _finding_from_heading(line: str) -> tuple[str, str] | None:
 
 
 def _check_ids_from_line(line: str) -> list[str] | None:
-    match = _CHECK_ID_LINE.match(line)
-    if not match:
+    """Thin wrapper preserving the None-vs-empty distinction for this module."""
+    result = parse_check_ids_from_line(line)
+    if not result and not line.startswith("**Check ID:**"):
         return None
-    values = _BACKTICK_VALUE.findall(match.group(1))
-    if values:
-        return values
-    leftover = match.group(1).strip()
-    return [leftover] if leftover else []
+    return result
 
 
 def _is_description_stop(line: str) -> bool:
