@@ -98,7 +98,7 @@ endef
         force-image \
         install-git-hooks check-pii \
         hc-collect hc-push-scripts hc-collect-remote hc-fetch-results hc-merge clean-hc \
-        hc-report hc-summary-conclusion hc-update-loi hc-html hc-pdf hc-investigate hc-skip-summary hc-command-ref hc-build-catalog \
+        hc-report hc-summary-conclusion hc-update-loi hc-renumber-findings hc-html hc-pdf hc-investigate hc-skip-summary hc-command-ref hc-build-catalog \
         hc-link-review hc-link-apply hc-report-from-supportshell check-hc-sync hc-docs \
         clean clean-build clean-hld clean-lld clean-pdfs clean-diagrams clean-workitems clean-ai clean-setup push
 
@@ -115,74 +115,27 @@ help: ## Show this help
 	@echo ""
 	@desc() { awk -v target="$$1" '$$0 ~ "^" target ":[^#]*## " { sub(/^[^#]*## /, ""); print; exit }' $(MAKEFILE_LIST); }; \
 	print_target() { description="$$(desc "$$1")"; [ -n "$$description" ] && printf "  \033[36m%-30s\033[0m %s\n" "$$1" "$$description"; }; \
-	echo "  Core workflow:"; \
-	print_target setup; \
-	print_target status; \
-	print_target build-hld-from-adr; \
-	print_target publish; \
-	print_target prepare-and-publish; \
-	print_target build; \
-	print_target rebuild; \
-	echo ""; \
-	echo "  HLD AI (host):"; \
-	print_target prepare-hld-ai; \
-	print_target validate-hld-ai-normalize; \
-	print_target test-hld-ai-repeatability; \
-	print_target inspect-slots; \
-	print_target inspect-chunks; \
-	print_target validate-slots; \
-	echo ""; \
-	echo "  Container/output:"; \
-	print_target build-lld; \
-	print_target diagrams; \
-	print_target pdfs; \
-	print_target workitems; \
-	print_target rvtools; \
-	print_target sample-schedule; \
-	echo ""; \
-	echo "  Utilities:"; \
-	print_target combine-drawio; \
-	print_target sanitize-diagrams; \
-	print_target check-annotations; \
-	print_target check-pii; \
-	print_target install-git-hooks; \
-	print_target package; \
-	echo ""; \
-	echo "  Health Check:"; \
-	print_target hc-collect; \
-	print_target hc-push-scripts; \
-	print_target hc-collect-remote; \
-	print_target hc-fetch-results; \
-	print_target hc-merge; \
-	print_target hc-report; \
-	print_target hc-summary-conclusion; \
-	print_target hc-update-loi; \
-	print_target hc-html; \
-	print_target hc-pdf; \
-	print_target hc-build-catalog; \
-	print_target hc-investigate; \
-	print_target hc-skip-summary; \
-	print_target hc-command-ref; \
-	print_target hc-link-review; \
-	print_target hc-link-apply; \
-	print_target hc-report-from-supportshell; \
-	print_target check-hc-sync; \
-	print_target hc-docs; \
-	print_target clean-hc; \
-	echo ""; \
-	echo "  Maintenance:"; \
-	print_target image; \
-	print_target force-image; \
-	print_target push; \
-	print_target clean; \
-	print_target clean-build; \
-	print_target clean-hld; \
-	print_target clean-lld; \
-	print_target clean-pdfs; \
-	print_target clean-diagrams; \
-	print_target clean-workitems; \
-	print_target clean-ai; \
-	print_target clean-setup
+	print_section() { heading="$$1"; shift; echo "  $$heading:"; for target_name in $$(printf '%s\n' "$$@" | LC_ALL=C sort); do print_target "$$target_name"; done; echo ""; }; \
+	print_section "ADR" \
+		build-hld-from-adr inspect-chunks setup; \
+	print_section "LLD" \
+		build-lld lld-closeness workitems; \
+	print_section "HLD" \
+		inspect-slots prepare-and-publish prepare-hld-ai publish \
+		test-hld-ai-repeatability validate-hld-ai-normalize validate-slots; \
+	print_section "Health Check" \
+		check-hc-sync clean-hc hc-build-catalog hc-collect hc-collect-remote \
+		hc-command-ref hc-docs hc-fetch-results hc-html hc-investigate \
+		hc-link-apply hc-link-review hc-merge hc-pdf hc-push-scripts \
+		hc-renumber-findings hc-report hc-report-from-supportshell \
+		hc-skip-summary hc-summary-conclusion hc-update-loi; \
+	print_section "Utilities" \
+		build check-annotations check-pii combine-drawio diagrams \
+		install-git-hooks package pdfs rebuild rvtools sample-schedule \
+		sanitize-diagrams status; \
+	print_section "Maintenance" \
+		clean clean-ai clean-build clean-diagrams clean-hld clean-lld \
+		clean-pdfs clean-setup clean-workitems force-image image push
 	@echo ""
 	@echo "  Quick start:"
 	@echo "    1. make setup CLIENT=\"Example Client\" PROJECT=\"OCP-V\""
@@ -504,6 +457,17 @@ hc-update-loi: image ## Refresh Chapter 6 LOI from KB (container; set REPORT=pat
 		-v "$$(pwd)/output":/output:Z \
 		--entrypoint /workspace/scripts/entrypoint.sh $(IMAGE) \
 		hc-update-loi "/workspace/$(REPORT)" $(if $(filter 1,$(DRY_RUN)),--dry-run)
+
+hc-renumber-findings: image ## Resequence §6.2 IDs after moving findings between P0–P3 (set REPORT=path.md; DRY_RUN=1 to preview)
+	$(call require,REPORT,Error: set REPORT=path/to/one-report.md)
+	@if [ "$(words $(REPORT))" != "1" ]; then echo "REPORT must be a single path" >&2; exit 1; fi
+	@case "$(REPORT)" in *[\*\?\[\]]*) echo "REPORT must not be a glob" >&2; exit 1 ;; esac
+	@if [ ! -f "$(REPORT)" ]; then echo "Error: report not found: $(REPORT)" >&2; exit 1; fi
+	@$(ENGINE) run --rm \
+		-v "$$(pwd)":/workspace:Z \
+		-v "$$(pwd)/output":/output:Z \
+		--entrypoint /workspace/scripts/entrypoint.sh $(IMAGE) \
+		hc-renumber-findings "/workspace/$(REPORT)" $(if $(filter 1,$(DRY_RUN)),--dry-run)
 
 define hc_export_run
 	@if [ -n "$(REPORT)" ] && [ ! -f "$(REPORT)" ]; then echo "Error: report not found: $(REPORT)" >&2; exit 1; fi; \

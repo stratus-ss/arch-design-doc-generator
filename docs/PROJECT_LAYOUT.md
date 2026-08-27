@@ -99,7 +99,7 @@
 - `generate_report.py` — thin entrypoint (`from hc_report import main`).
 - `draft_summary_conclusion.py` — optional post-render Cursor draft of Chapter 3/8 (`--in-place`).
 - `extract_finding_descriptions.py` — extract P0–P3 §6.2 descriptions from one report.
-- `renumber_finding_sections.py` — after moving §6.2 blocks between P0–P3 bands, rewrite finding numbers, §6.1, and `finding-*` anchors.
+- `renumber_finding_sections.py` — after moving §6.2 blocks between P0–P3 bands, rewrite finding numbers, §6.1, and `finding-*` anchors (`make hc-renumber-findings REPORT=path.md`).
 - `update_finding_loi.py` — rewrite Chapter 6 Level of Impact from KB TOML on one report (`make hc-update-loi REPORT=path.md`).
 - `hc_link_review.py` — CLI that produces a suggested-URL CSV/markdown from KB TOML links and a local docs tree.
   - `hc_report/link_review/` — models, URL parser, docs index, product-routing matcher, report writer, and CSV→TOML apply (`finalize.py`).

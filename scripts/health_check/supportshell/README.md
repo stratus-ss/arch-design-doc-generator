@@ -262,7 +262,7 @@ The report covers:
 
 Priority isn't stored anywhere in the collected data — it's derived at report-generation time from two inputs: the check's status (`FAIL` or `WARNING`; `INFO` becomes a P3 finding only when the KB sets `finding_on_info`; `PASS`, `NOT_APPLICABLE`, and `SKIPPED` never become findings) and a keyword match against that check's plain-English description text. `FAIL` checks whose description mentions a small set of severity-signalling terms (node readiness, cluster operators, critical alerts, etc.) become `P0`; every other `FAIL` becomes `P1`. `WARNING` checks are split the same way into `P2` / `P3` using a different keyword list (resource utilization, upgrades, deprecated features, etc.).
 
-This is a best-effort heuristic based on wording, not a guaranteed-correct severity rating — the keyword lists live in `scripts/health_check/hc_report/findings.py` if you want to see exactly what triggers each bucket. If a finding lands in a priority you disagree with for a given engagement, the generated report is just markdown: cut the `####` block under a different `### P0`–`### P3` heading in `output/Health_Check_Report/<ClientPrefix>_OpenShift_Health_Check_<cluster>.md` (or the `_pruned.md` sibling), then run `python3 scripts/health_check/renumber_finding_sections.py <that-file>` so §6.2 numbers, §6.1, and `finding-*` anchors match the new order. `--dry-run` prints the mapping without writing. The original check status and description are preserved unedited in the companion `<ClientPrefix>_HC_audit_<cluster>.json` file if you need to double-check what drove a classification.
+This is a best-effort heuristic based on wording, not a guaranteed-correct severity rating — the keyword lists live in `scripts/health_check/hc_report/findings.py` if you want to see exactly what triggers each bucket. If a finding lands in a priority you disagree with for a given engagement, the generated report is just markdown: cut the `####` block under a different `### P0`–`### P3` heading in `output/Health_Check_Report/<ClientPrefix>_OpenShift_Health_Check_<cluster>.md` (or the `_pruned.md` sibling), then run `make hc-renumber-findings REPORT=<that-file>` so §6.2 numbers, §6.1, and `finding-*` anchors match the new order. `DRY_RUN=1` prints the mapping without writing. The original check status and description are preserved unedited in the companion `<ClientPrefix>_HC_audit_<cluster>.json` file if you need to double-check what drove a classification.
 
 To supply your own executive summary text:
 
@@ -291,8 +291,8 @@ List descriptions from one report, or write the filled prompt without invoking a
 python3 scripts/health_check/extract_finding_descriptions.py \
   output/Health_Check_Report/<ClientPrefix>_OpenShift_Health_Check_<cluster>.md
 
-python3 scripts/health_check/renumber_finding_sections.py \
-  output/Health_Check_Report/<ClientPrefix>_OpenShift_Health_Check_<cluster>.md
+make hc-renumber-findings REPORT=output/Health_Check_Report/<ClientPrefix>_OpenShift_Health_Check_<cluster>.md
+make hc-renumber-findings REPORT=output/Health_Check_Report/<ClientPrefix>_OpenShift_Health_Check_<cluster>.md DRY_RUN=1
 
 python3 scripts/health_check/draft_summary_conclusion.py --dry-run \
   output/Health_Check_Report/<ClientPrefix>_OpenShift_Health_Check_<cluster>.md
@@ -464,6 +464,7 @@ Each target below runs one discrete step and can be re-run on its own — useful
 | `hc-report`                   | Generate branded health check report (runs in container; requires `project.yaml`). Optional `HC_OMIT_CHECK_IDS` writes `{stem}_pruned.md`. Optional `HC_SUMMARY_CONCLUSION=1` drafts Chapter 3/8 in place after generate (prefers pruned) |
 | `hc-summary-conclusion`       | Cursor-draft Chapter 3/8 into an existing report (`REPORT=path.md`)                                                                                                                                                                       |
 | `hc-update-loi`               | Refresh Chapter 6 Level of Impact from KB (`REPORT=path.md` required; `DRY_RUN=1` preview)                                                                                                                                                |
+| `hc-renumber-findings`        | Resequence §6.2 IDs, §6.1, and `finding-*` anchors after moving blocks between P0–P3 (`REPORT=path.md` required; `DRY_RUN=1` preview)                                                                                                     |
 | `hc-pdf`                      | Branded PDF from report markdown (optional `REPORT=path.md`; `FORCE=1` overwrites an existing basename dest)                                                                                                                              |
 | `hc-html`                     | Collapsible HTML from report markdown (optional `REPORT=path.md`; `FORCE=1` overwrites an existing basename dest)                                                                                                                         |
 | `hc-build-catalog`            | Rebuild TSR/CCX catalog JSON from a TSR HTML export (`TSR_HTML=path`)                                                                                                                                                                     |
