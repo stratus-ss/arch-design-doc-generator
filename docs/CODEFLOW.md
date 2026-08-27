@@ -143,8 +143,8 @@ The report writes `tmp/lld_closeness.md`. Default rendered dir is `output/LLD`.
 | `clean-hc` | Host | removes `output/hc_collect` and `output/Health_Check_Report` |
 | `hc-report-from-supportshell` | Host fetch, then container report | `hc-fetch-results` then `hc-report` with `HC_COLLECT_OUT=$(HC_FETCH_STAGE)` |
 | `hc-report`, `hc-investigate` | Container (`entrypoint.sh`) | `scripts/health_check/generate_report.py`, `scripts/health_check/hc_investigate.py` |
-| `hc-update-loi` | Container (`entrypoint.sh`) | `scripts/health_check/update_finding_loi.py` |
-| `hc-renumber-findings` | Container (`entrypoint.sh`) | `scripts/health_check/renumber_finding_sections.py` |
+| `hc-update-loi` | Host | `scripts/health_check/update_finding_loi.py` |
+| `hc-renumber-findings` | Host | `scripts/health_check/renumber_finding_sections.py` |
 | `hc-html`, `hc-pdf` | Container (`entrypoint.sh`) | `scripts/shared/rendering/hc_export_paths.py`, `html_collapsible.py`, `pdf_preprocess.py` |
 | `hc-docs` | Container (stitchmd) | `scripts/health_check/docs/` fragments → collect/supportshell READMEs |
 | `hc-build-catalog` | Host | `scripts/health_check/hc_report/build_crosswalk_catalog.py` |

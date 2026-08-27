@@ -81,6 +81,14 @@ fi
 endef
 
 # Collect/fetch/merge do not require project.yaml; remind the operator if it is missing.
+# Fail closed unless REPORT is exactly one existing file (relative or absolute).
+define hc_require_one_report
+	$(call require,REPORT,Error: set REPORT=path/to/one-report.md)
+	@if [ "$(words $(REPORT))" != "1" ]; then echo "REPORT must be a single path" >&2; exit 1; fi
+	@case "$(REPORT)" in *[\*\?\[\]]*) echo "REPORT must not be a glob" >&2; exit 1 ;; esac
+	@if [ ! -f "$(REPORT)" ]; then echo "Error: report not found: $(REPORT)" >&2; exit 1; fi
+endef
+
 define warn_missing_project_yaml
 	@if [ ! -f project.yaml ]; then \
 		echo "Note: project.yaml not found yet — collect/fetch do not require it."; \
@@ -447,27 +455,17 @@ hc-summary-conclusion: image ## Cursor-draft Chapter 3/8 into an existing report
 		--entrypoint /workspace/scripts/entrypoint.sh $(IMAGE) \
 		hc-summary-conclusion "/workspace/$(REPORT)"
 
-hc-update-loi: image ## Refresh Chapter 6 LOI from KB (container; set REPORT=path.md; DRY_RUN=1 to preview)
-	$(call require,REPORT,Error: set REPORT=path/to/one-report.md)
-	@if [ "$(words $(REPORT))" != "1" ]; then echo "REPORT must be a single path" >&2; exit 1; fi
-	@case "$(REPORT)" in *[\*\?\[\]]*) echo "REPORT must not be a glob" >&2; exit 1 ;; esac
-	@if [ ! -f "$(REPORT)" ]; then echo "Error: report not found: $(REPORT)" >&2; exit 1; fi
-	@$(ENGINE) run --rm \
-		-v "$$(pwd)":/workspace:Z \
-		-v "$$(pwd)/output":/output:Z \
-		--entrypoint /workspace/scripts/entrypoint.sh $(IMAGE) \
-		hc-update-loi "/workspace/$(REPORT)" $(if $(filter 1,$(DRY_RUN)),--dry-run)
+hc-update-loi: ## Refresh Chapter 6 LOI from KB (host; set REPORT=path.md relative or absolute; DRY_RUN=1 to preview)
+	$(hc_require_one_report)
+	@$(PYTHON) scripts/health_check/update_finding_loi.py \
+		$(if $(filter 1,$(DRY_RUN)),--dry-run,--in-place) \
+		"$(REPORT)"
 
-hc-renumber-findings: image ## Resequence §6.2 IDs after moving findings between P0–P3 (set REPORT=path.md; DRY_RUN=1 to preview)
-	$(call require,REPORT,Error: set REPORT=path/to/one-report.md)
-	@if [ "$(words $(REPORT))" != "1" ]; then echo "REPORT must be a single path" >&2; exit 1; fi
-	@case "$(REPORT)" in *[\*\?\[\]]*) echo "REPORT must not be a glob" >&2; exit 1 ;; esac
-	@if [ ! -f "$(REPORT)" ]; then echo "Error: report not found: $(REPORT)" >&2; exit 1; fi
-	@$(ENGINE) run --rm \
-		-v "$$(pwd)":/workspace:Z \
-		-v "$$(pwd)/output":/output:Z \
-		--entrypoint /workspace/scripts/entrypoint.sh $(IMAGE) \
-		hc-renumber-findings "/workspace/$(REPORT)" $(if $(filter 1,$(DRY_RUN)),--dry-run)
+hc-renumber-findings: ## Resequence §6.2 IDs after moving findings between P0–P3 (host; set REPORT=path.md relative or absolute; DRY_RUN=1 to preview)
+	$(hc_require_one_report)
+	@$(PYTHON) scripts/health_check/renumber_finding_sections.py \
+		$(if $(filter 1,$(DRY_RUN)),--dry-run) \
+		"$(REPORT)"
 
 define hc_export_run
 	@if [ -n "$(REPORT)" ] && [ ! -f "$(REPORT)" ]; then echo "Error: report not found: $(REPORT)" >&2; exit 1; fi; \
