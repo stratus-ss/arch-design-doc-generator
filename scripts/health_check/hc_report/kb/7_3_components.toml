@@ -168,6 +168,8 @@ priority_hint = ""
 impact = "workload-shift"
 impact_scope = "image registry pods and dependent build/image workflows"
 impact_detail = "Changing registry state or storage rolls registry pods and can briefly interrupt internal image pushes, pulls, and build flows while the new backend comes online."
+finding_group = "registry-management-state"
+finding_group_title = "Internal registry state"
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/registry/index#registry-operator-configuration-resource-overview_configuring-registry-operator"
@@ -319,12 +321,12 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 check_id = "7.3.tsr.3_5_5_etcd_compaction"
 title = "TSR etcd compaction"
 description = "This check measures how long etcd takes to compact (clean up) its internal database on each control plane node. The reported percentile value (e.g. \"95% quantile: 816ms\") means that 95 out of 100 compaction operations completed within that time. The TSR NOTE (KCS 6271341) is about 200 ms on a small cluster and no more than 800–900 ms on a large cluster (20+ workers); that is not an OCP HTML SLA. Values above that usually mean slow disks, a large database, or heavy API traffic, and API responsiveness may be degraded."
-recommendation = "Defrag if DB SIZE is bloated (typically over 8 GB), performing it one control-plane member at a time and allowing recovery between members. Treat 95th-percentile compaction above about 200 ms on a small cluster, or above 800–900 ms on a large cluster (20+ workers), as a storage or load problem: investigate control-plane disk latency, disk contention, database growth, and high API traffic. Persistent latency after defrag points to an underlying storage or workload issue rather than fragmentation alone."
-verification = "1. Check the current etcd database size on every member:\n   `oc -n openshift-etcd exec -c etcd etcd-<member> -- etcdctl endpoint status --cluster -w table`\n      Look at the DB SIZE column — healthy clusters are typically under 8 GB.\n2. If the database is large, schedule a defragmentation during a maintenance window:\n   `oc -n openshift-etcd exec -c etcd etcd-<member> -- etcdctl defrag --cluster`\n3. After defragmentation, verify that DB SIZE dropped and compaction latency improved.\n4. If compaction latency remains high, investigate disk I/O on the control plane nodes — slow storage is the most common root cause."
+recommendation = "Keep 95th-percentile compaction under about 200 ms on a small cluster, or under 800–900 ms on a large cluster (20+ workers). If history is not compacting, compact to the current revision in a maintenance window. Compaction truncates MVCC history; it does not shrink DB SIZE on disk. Persistent latency after compact is control-plane disk contention, database growth, or high API traffic."
+verification = "1. Check the current etcd database size on every member:\n   `oc -n openshift-etcd exec -c etcd etcd-<member> -- etcdctl endpoint status --cluster -w table`\n      Look at the DB SIZE column — healthy clusters are typically under 8 GB.\n2. Print the current revision from JSON status:\n   `oc -n openshift-etcd exec -c etcd etcd-<member> -- etcdctl endpoint status --write-out json`\n3. If history needs compaction, compact to that revision during a maintenance window:\n   `oc -n openshift-etcd exec -c etcd etcd-<member> -- etcdctl --command-timeout=600s compact <revision>`\n4. After compact, **PASS** when compaction latency improved. DB SIZE on disk does not drop until defragmentation. If compaction latency remains high, investigate disk I/O on the control plane nodes — slow storage is the most common root cause."
 priority_hint = ""
 impact = "maintenance-window"
 impact_scope = "control plane and etcd members"
-impact_detail = "Manual etcd defragmentation or backend recovery work affects the control plane and should be done in a planned window with etcd backup protection."
+impact_detail = "Manual etcd compact is a control-plane operation and should be done in a planned window with etcd backup protection."
 summary_patterns = [
   { contains = "95% quantile", text = "etcd compaction p95 exceeds ~200 ms (small cluster) or 800–900 ms (20+ workers)." },
 ]
@@ -336,6 +338,7 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/etcd/index#etcd-defrag_etcd-performance"
 "4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/etcd/index#etcd-defrag_etcd-performance"
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/etcd/index#etcd-defrag_etcd-performance"
+kcs = "https://access.redhat.com/solutions/5564771"
 
 [[checks]]
 check_id = "7.3.tsr.3_5_7_etcd_log_errors"
@@ -380,6 +383,8 @@ summary_patterns = [
   { contains = "less than 10ms", text = "etcd WAL fsync p99 exceeds the 10 ms Red Hat threshold." },
   { contains = "less than 25ms", text = "etcd backend commit p99 exceeds the 25 ms TSR threshold." },
 ]
+finding_group = "etcd-disk-latency"
+finding_group_title = "TSR etcd disk performance"
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
@@ -1257,6 +1262,7 @@ priority_hint = ""
 impact = "rolling-restart"
 impact_scope = "nodes in the paused, degraded, or updating pool"
 impact_detail = "Resolving MCP degradation may require the MCO to drain and reboot stuck nodes to complete configuration rollout."
+include_in_findings = false
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/postinstallation_configuration/index#understanding-the-machine-config-operator"

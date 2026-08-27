@@ -275,6 +275,7 @@ content_from = "7.5.pruning.jobs"
 check_id = "7.6.tsr.6_3_1_active_alerts"
 title = "TSR active alerts"
 content_from = "7.5.tsr.5_11_health_related_alerts"
+include_in_findings = false
 
 [[checks]]
 check_id = "7.6.storage.default_sc"

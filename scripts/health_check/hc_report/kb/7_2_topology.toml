@@ -68,6 +68,8 @@ priority_hint = ""
 impact = "maintenance-window"
 impact_scope = "control plane machines and failure-domain placement"
 impact_detail = "Redistributing control-plane nodes across failure domains typically replaces or migrates masters sequentially and should be performed in a planned window."
+finding_group = "control-plane-az"
+finding_group_title = "Control plane availability zone distribution"
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/machine_management/managing-control-plane-machines"
@@ -182,6 +184,8 @@ priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "control-plane node labels"
 impact_detail = "Adding topology labels does not drain nodes. Relocating control-plane machines across zones is a separate maintenance-window activity."
+finding_group = "control-plane-az"
+finding_group_title = "Control plane availability zone distribution"
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#about-control-planes_architecture-overview"

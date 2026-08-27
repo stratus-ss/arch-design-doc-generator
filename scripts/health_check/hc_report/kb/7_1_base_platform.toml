@@ -825,7 +825,7 @@ check_id = "7.1.tsr.1_5_7_2_chrony"
 title = "1.5.7.2. Chrony"
 description = "Chrony is the default NTP implementation on RHCOS. It must be configured with\nreachable time sources. This check's verification bar is clock offset under 100 ms.\n"
 recommendation = "Keep a reachable chrony source and offset under 100ms. If offset is high or sources are unreachable, fix chrony config via MachineConfig. PTP is only in scope when the design uses it. Firing clock alerts mean the node is already skewing."
-verification = "1. Print chrony tracking on each node:\n   `oc debug node/<name> -- chroot /host chronyc tracking`\n2. List the chrony sources:\n   `oc debug node/<name> -- chroot /host chronyc sources -v`\n3. **PASS** when the reported offset is under 100 ms (`< 100ms`) and at least one source is reachable."
+verification = "1. Print chrony tracking on each node:\n   `oc debug node/<name> -- chroot /host chronyc tracking`\n2. List the chrony sources:\n   `oc debug node/<name> -- chroot /host chronyc sources -v`\n3. **PASS** when the reported offset is under 100 ms (`< 100ms`) and **at least three** time sources are configured and reachable. Two sources that agree can still yield a usable time; two sources that disagree is **FAIL** because chrony cannot tell which one is correct without information from outside the protocol. One source is **FAIL** for the same reason."
 priority_hint = ""
 impact = "rolling-restart"
 impact_scope = "nodes in the chrony MachineConfig pool"
@@ -838,6 +838,7 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-special-config-chrony_installing-platform-agnostic"
 "4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-special-config-chrony_installing-platform-agnostic"
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-special-config-chrony_installing-platform-agnostic"
+kcs = "https://access.redhat.com/solutions/778603"
 
 [[checks]]
 check_id = "7.1.tsr.1_5_7_3_ptp"

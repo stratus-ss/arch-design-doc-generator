@@ -70,6 +70,8 @@ priority_hint = ""
 impact = "workload-shift"
 impact_scope = "CrashLoopBackOff containers"
 impact_detail = "Correcting image, configuration, or memory limits restarts those pods. OOMKilled can also mean node memory pressure that needs capacity work."
+finding_group = "crashloop-pods"
+finding_group_title = "CrashLoopBackOff pods"
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/support/index#understanding-pod-error-states_investigating-pod-issues"
@@ -170,6 +172,8 @@ summary_patterns = [
   { contains = "managementState: Unmanaged", text = "Image Registry Operator is Unmanaged; it will not reconcile registry config." },
   { contains = "managementState: Removed", text = "Image Registry Operator is Removed; there is no Operator-managed internal registry." },
 ]
+finding_group = "registry-management-state"
+finding_group_title = "Internal registry state"
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/registry/configuring-registry-operator"
