@@ -12,7 +12,9 @@ OUTPUT="/output"
 cd "$WORKSPACE"
 
 export PROJECT_ROOT="$WORKSPACE"
-export PYTHONPATH="$WORKSPACE/scripts/shared/lib:$WORKSPACE/scripts/shared/rendering:/toolkit/shared/lib:/toolkit/shared/rendering:${PYTHONPATH:-}"
+# Workspace scripts first so bind-mounted clones resolve sibling modules
+# (setup_status.py) even when the image /toolkit copy is stale or incomplete.
+export PYTHONPATH="$WORKSPACE/scripts:$WORKSPACE/scripts/shared/lib:$WORKSPACE/scripts/shared/rendering:/toolkit:/toolkit/shared/lib:/toolkit/shared/rendering:${PYTHONPATH:-}"
 
 green()  { printf '\033[32m%s\033[0m\n' "$*"; }
 red()    { printf '\033[31m%s\033[0m\n' "$*"; }
@@ -147,7 +149,7 @@ cmd_setup() {
         set -- "$@" --force
     fi
     bold "=== Setting up project for: ${client} (${project_code}) ==="
-    python3 "/toolkit/setup_project.py" "$WORKSPACE" "$client" "$project_code" "$@"
+    python3 "/workspace/scripts/setup_project.py" "$WORKSPACE" "$client" "$project_code" "$@"
     green "Setup complete."
 }
 
@@ -303,7 +305,7 @@ cmd_rvtools() {
 }
 
 cmd_status() {
-    python3 "/toolkit/setup_project.py" "$WORKSPACE" --status
+    python3 "/workspace/scripts/setup_project.py" "$WORKSPACE" --status
 }
 
 _hc_draft_each_report() {
