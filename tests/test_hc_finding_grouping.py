@@ -313,3 +313,117 @@ def test_catalog_ccx_fail_is_not_duplicated() -> None:
     assert extras == []
     assert len(findings) == 1
     assert findings[0].check_id == "7.7.ccx_internal.pods_check"
+
+
+def test_crashloop_native_and_ccx_group() -> None:
+    native_id = "7.5.pods.crashloop"
+    ccx_id = "7.7.ccx_internal.pods_crash_loop_check"
+    checks = [
+        _check_result(native_id, "[FAIL] - reason: CrashLoopBackOff"),
+        _check_result(ccx_id, "[FAIL] - reason: CrashLoopBackOff", source="ccx"),
+    ]
+    findings = derive_findings(checks)
+    assert len(findings) == 1
+    finding = findings[0]
+    assert native_id in finding.member_check_ids
+    assert ccx_id in finding.member_check_ids
+    assert finding.title == "CrashLoopBackOff pods"
+
+
+def test_control_plane_az_groups() -> None:
+    engine_id = "7.2.topo.master_az"
+    tsr_id = "7.2.tsr.2_2_2_master_av_zone_labels"
+    checks = [
+        _check_result(engine_id, "[FAIL] - reason: single zone"),
+        _check_result(tsr_id, "[FAIL] - reason: missing zone labels"),
+    ]
+    findings = derive_findings(checks)
+    assert len(findings) == 1
+    finding = findings[0]
+    assert engine_id in finding.member_check_ids
+    assert tsr_id in finding.member_check_ids
+    assert finding.title == "Control plane availability zone distribution"
+
+
+def test_etcd_disk_tsr_and_ccx_group() -> None:
+    tsr_id = "7.3.tsr.3_5_8_1_etcd_disk_performance"
+    ccx_id = "7.7.ccx_internal.etcd_low_backend_performance"
+    checks = [
+        _check_result(tsr_id, "[FAIL] - reason: less than 10ms"),
+        _check_result(ccx_id, "[FAIL] - reason: slow fdatasync", source="ccx"),
+    ]
+    findings = derive_findings(checks)
+    assert len(findings) == 1
+    finding = findings[0]
+    assert tsr_id in finding.member_check_ids
+    assert ccx_id in finding.member_check_ids
+    assert finding.title == "TSR etcd disk performance"
+
+
+def test_registry_state_and_health_group_stays_off_pods() -> None:
+    state_id = "7.3.registry.state"
+    health_id = "7.5.registry_health"
+    pods_id = "7.5.tsr.5_4_registry_health"
+    checks = [
+        _check_result(state_id, "[FAIL] - reason: managementState Removed"),
+        _check_result(health_id, "[FAIL] - reason: managementState Removed"),
+        _check_result(pods_id, "[FAIL] - reason: registry pods unhealthy"),
+    ]
+    findings = derive_findings(checks)
+    assert len(findings) == 2
+    state_finding = None
+    pods_finding = None
+    for finding in findings:
+        member_ids = set(finding.member_check_ids)
+        if finding.check_id:
+            member_ids.add(finding.check_id)
+        if state_id in member_ids:
+            state_finding = finding
+        if pods_id in member_ids:
+            pods_finding = finding
+    assert state_finding is not None
+    assert pods_finding is not None
+    state_member_ids = set(state_finding.member_check_ids)
+    if state_finding.check_id:
+        state_member_ids.add(state_finding.check_id)
+    pods_member_ids = set(pods_finding.member_check_ids)
+    if pods_finding.check_id:
+        pods_member_ids.add(pods_finding.check_id)
+    assert health_id in state_member_ids
+    assert pods_id not in state_member_ids
+    assert state_id not in pods_member_ids
+    assert state_finding.title == "Internal registry state"
+
+
+def test_active_alerts_parent_is_hidden() -> None:
+    parent_id = "7.6.tsr.6_3_1_active_alerts"
+    child_id = "7.7.ccx_internal.high_severity_alerts"
+    checks = [
+        _check_result(parent_id, "[FAIL] - reason: firing alerts"),
+        _check_result(child_id, "[FAIL] - reason: critical alert", source="ccx"),
+    ]
+    findings = derive_findings(checks)
+    for finding in findings:
+        assert finding.check_id != parent_id
+        assert parent_id not in finding.member_check_ids
+    assert any(finding.check_id == child_id for finding in findings)
+
+
+def test_mcp_3_15_is_hidden_pool_health_still_groups() -> None:
+    combined_id = "7.3.tsr.3_15_machine_config_pool"
+    pool_health_id = "7.5.tsr.5_7_machine_config_pool"
+    ccx_id = "7.7.ccx_internal.machine_pool_check"
+    checks = [
+        _check_result(combined_id, "[FAIL] - reason: MCP degraded"),
+        _check_result(pool_health_id, "[FAIL] - reason: MCP degraded"),
+        _check_result(ccx_id, "[FAIL] - reason: MCP degraded", source="ccx"),
+    ]
+    findings = derive_findings(checks)
+    for finding in findings:
+        assert finding.check_id != combined_id
+        assert combined_id not in finding.member_check_ids
+    assert len(findings) == 1
+    finding = findings[0]
+    assert pool_health_id in finding.member_check_ids
+    assert ccx_id in finding.member_check_ids
+

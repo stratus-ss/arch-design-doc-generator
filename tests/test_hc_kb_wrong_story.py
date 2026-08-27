@@ -88,7 +88,9 @@ def test_node_disk_and_csi_39_5_untouched() -> None:
     )
     csi = knowledge_base.get_entry("7.3.tsr.3_9_5_csi_drivers")
     assert csi is not None
-    assert "Validates installed CSI drivers" in csi.description
+    assert "Cluster CSI Driver operator" in csi.description
+    assert "third-party storage dependency" in csi.description
+    assert "Validates installed CSI drivers" not in csi.description
 
 
 def test_chunk_d_inventory_descriptions_present() -> None:
