@@ -7,6 +7,7 @@ import pytest
 
 from hc_report.kb_loader import (
     VERIFICATION_SPLIT_LABELS,
+    extra_reference_links,
     join_recommendation_parts,
     load_kb,
     split_recommendation_blob,
@@ -104,3 +105,31 @@ def test_loaded_kb_canonical_recommendation_field_has_no_verification_label() ->
         if entry.verification.strip():
             saw_verification = True
     assert saw_verification
+
+
+def test_extra_reference_links_skips_default_and_version_keys() -> None:
+    extras = extra_reference_links(
+        {
+            "default": "https://docs.example/latest",
+            "4.18": "https://docs.example/4.18",
+            "kcs": "https://access.redhat.com/solutions/778603",
+        },
+        "https://docs.example/4.18",
+    )
+    assert extras == ["https://access.redhat.com/solutions/778603"]
+
+
+def test_chrony_recommendation_includes_kcs_and_versioned_docs() -> None:
+    knowledge_base = load_kb()
+    recommendation = knowledge_base.get_recommendation(
+        "7.1.tsr.1_5_7_2_chrony", "4.18.0"
+    )
+    assert "at least three" in recommendation
+    assert "**Reference:**" in recommendation
+    assert "https://access.redhat.com/solutions/778603" in recommendation
+    assert (
+        "https://docs.redhat.com/en/documentation/openshift_container_platform/"
+        "4.18/html-single/installing_on_any_platform/index"
+        "#installation-special-config-chrony_installing-platform-agnostic"
+        in recommendation
+    )

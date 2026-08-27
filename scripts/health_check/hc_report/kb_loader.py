@@ -25,10 +25,25 @@ INHERITED_CONTENT_FIELDS = (
 )
 VERIFICATION_JOIN_LABEL = "**Verification:**"
 VERIFICATION_SPLIT_LABELS = frozenset({"Verification:", "**Verification:**"})
+REFERENCE_JOIN_LABEL = "**Reference:**"
 _DEFAULT_LINK_KEY = "default"
 _DEFAULT_KB_DIR = Path(__file__).resolve().parent / "kb"
 _VERSION_PATTERN = re.compile(r"^(\d+\.\d+)")
 _REDHAT_DOCS_PREFIX = "https://docs.redhat.com/en/documentation/"
+
+
+def is_versioned_doc_link_key(key: str) -> bool:
+    return bool(_VERSION_PATTERN.fullmatch(str(key).strip()))
+
+
+def extra_reference_links(links: dict[str, str], primary_link: str) -> list[str]:
+    extras: list[str] = []
+    for key, url in links.items():
+        if key == _DEFAULT_LINK_KEY or is_versioned_doc_link_key(key):
+            continue
+        if url and url != primary_link and url not in extras:
+            extras.append(url)
+    return extras
 
 
 def split_recommendation_blob(blob: str) -> tuple[str, str]:
@@ -127,8 +142,16 @@ class KnowledgeBase:
                 f"Candidate guidance:\n{recommendation}"
             )
         link = self.get_doc_link(check_id, ocp_version)
-        if link and link not in recommendation:
-            return f"{recommendation.rstrip()}\n\nReference: {link}"
+        missing_links = [
+            url
+            for url in (link, *extra_reference_links(entry.links, link))
+            if url and url not in recommendation
+        ]
+        if missing_links:
+            return (
+                f"{recommendation.rstrip()}\n\n{REFERENCE_JOIN_LABEL} "
+                + "\n".join(missing_links)
+            )
         return recommendation
 
     def get_description(self, check_id: str) -> str:

@@ -6,7 +6,12 @@ import sys
 from dataclasses import replace
 from pathlib import Path
 
-from hc_report.kb_loader import KBEntry, KnowledgeBase, load_kb
+from hc_report.kb_loader import (
+    KBEntry,
+    KnowledgeBase,
+    is_versioned_doc_link_key,
+    load_kb,
+)
 from hc_report.link_review.docs_index import build_docs_index
 from hc_report.link_review.finalize import suppress_unchanged_suggestions
 from hc_report.link_review.http_check import (
@@ -122,6 +127,8 @@ def _suggestions_for_entry(
     toml_file = _toml_file_for_check(entry.check_id)
     suggestions = []
     for version_key, current_url in entry.links.items():
+        if version_key != "default" and not is_versioned_doc_link_key(version_key):
+            continue
         suggestion = suggest_documentation_link(
             entry_title=entry.title,
             check_id=entry.check_id,
