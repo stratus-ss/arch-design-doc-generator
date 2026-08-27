@@ -19,7 +19,13 @@ cat output/hc_collect/<YYYY-MM-DD>/<cluster_name>/manifest.json
 make hc-report HC_COLLECT_OUT=output/hc_collect/<YYYY-MM-DD>/<cluster_name>
 ```
 
-Results are staged into a dated directory at `output/hc_collect/<YYYY-MM-DD>/`. Under that dated directory, each selected cluster lands in its own subdirectory. `hc-fetch-results` prefers `hc_results.tar.gz`, falls back to raw rsync, and shows transfer progress.
+Results are staged into a dated directory at `output/hc_collect/<YYYY-MM-DD>/`. Under that dated directory, each selected cluster lands in its own subdirectory. Default `hc-fetch-results` is unchanged: it prefers the well-known `hc_results.tar.gz`, falls back to raw rsync, and shows transfer progress.
+
+To re-download a previous cluster's salvage tarball (not the current well-known aggregate), set `HC_SSH_RESULTS` to that cluster stem — absolute path, no `~`:
+
+```bash
+make hc-fetch-results HC_SSH_HOST=user@your-supportshell-server.example.com HC_SSH_RESULTS=/home/remote/<username>/hc_results.prod-ocp-01
+```
 
 When verifying the manifest, check:
 - `total_errors` is `0` (or only contains expected not-installed entries)

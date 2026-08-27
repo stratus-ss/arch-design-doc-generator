@@ -16,6 +16,9 @@
 #   1. Discover must-gather subdirectories in the input
 #   2. For each: omc use <subdir> then run hc_collect.sh
 #   3. Merge results per cluster under a unified hc_results root
+#
+# Well-known OUTPUT_DIR and OUTPUT_DIR.tar.gz are this run only (cleared after
+# cluster selection). Salvage copies live at OUTPUT_DIR.<cluster>.tar.gz.
 
 set -euo pipefail
 
@@ -57,6 +60,9 @@ trap cleanup_tempdirs EXIT
 log_info()  { printf '[%s] [INFO ] %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$*" >&2; }
 log_warn()  { printf '[%s] [WARN ] %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$*" >&2; }
 log_error() { printf '[%s] [ERROR] %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$*" >&2; }
+
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/lib/output_layout.sh"
 
 sanitize_cluster_key() {
     local raw_name="$1"
@@ -194,6 +200,7 @@ while [[ $# -gt 0 ]]; do
         --cluster)            CLUSTER_SELECT="$2"; shift 2 ;;
         -h|--help)
             echo "Usage: $0 --input <must-gather-dir-or-tarball> [--output-dir PATH] [--tar] [--keep-tempdirs] [--categories 03,04,05] [--cluster <name|all>]"
+            echo "Well-known OUTPUT_DIR and OUTPUT_DIR.tar.gz are this run only; salvage is OUTPUT_DIR.<cluster>.tar.gz."
             exit 0
             ;;
         *) log_warn "Unknown argument: $1"; shift ;;
@@ -420,6 +427,8 @@ fi
 
 log_info "Processing cluster(s): ${SELECTED_CLUSTERS[*]}"
 
+clear_well_known_results "$OUTPUT_DIR" || exit 1
+
 # ---------------------------------------------------------------------------
 # Create working directory for intermediate results
 # ---------------------------------------------------------------------------
@@ -490,6 +499,8 @@ for cluster_key in "${SELECTED_CLUSTERS[@]}"; do
     python3 "${SCRIPT_DIR}/hc_merge.py" "${MERGE_ARGS[@]}"
 
     PRODUCED_DIRS+=("$cluster_output")
+    publish_cluster_salvage_tarball "$OUTPUT_DIR" "$cluster_key" \
+        || log_warn "Salvage tarball publish failed for ${cluster_key} — continuing"
     CLUSTER_LEDGER="${cluster_output}/skipped_commands.jsonl"
     if [[ -f "$CLUSTER_LEDGER" ]]; then
         SKIP_TOTAL="$(wc -l < "$CLUSTER_LEDGER" | tr -d ' ')"

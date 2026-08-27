@@ -3,7 +3,7 @@ make setup CLIENT="..." PROJECT="HC"   → project.yaml            (fill in the 
      │
      ▼
 make hc-push-scripts     → (once) stage collection scripts on the support shell server
-make hc-collect-remote   → runs hc_collect_multi.sh against the must-gather, produces /home/remote/<username>/hc_results
+make hc-collect-remote   → runs hc_collect_multi.sh against the must-gather; replaces well-known hc_results / hc_results.tar.gz (this run only)
 make hc-fetch-results    → output/hc_collect/<YYYY-MM-DD>/       (dated staging dir; see HC_FETCH_STAGE)
      │
      ▼

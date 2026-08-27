@@ -21,7 +21,7 @@ make setup CLIENT="..." PROJECT="HC"   → project.yaml            (fill in the 
      │
      ▼
 make hc-push-scripts     → (once) stage collection scripts on the support shell server
-make hc-collect-remote   → runs hc_collect_multi.sh against the must-gather, produces /home/remote/<username>/hc_results
+make hc-collect-remote   → runs hc_collect_multi.sh against the must-gather; replaces well-known hc_results / hc_results.tar.gz (this run only)
 make hc-fetch-results    → output/hc_collect/<YYYY-MM-DD>/       (dated staging dir; see HC_FETCH_STAGE)
      │
      ▼
@@ -109,6 +109,8 @@ bash /home/remote/<username>/hc_supportshell/hc_collect_multi.sh --input /home/r
 
 This produces `/home/remote/<username>/hc_results/<cluster_name>/` for each selected cluster, plus `/home/remote/<username>/hc_results.tar.gz` as an aggregate tarball when `--tar` is used.
 
+After cluster selection, `hc_collect_multi.sh` wipes the well-known results directory and aggregate tarball (`hc_results` and `hc_results.tar.gz`) so leftover cluster trees from a previous case are not packed into this run. Sibling salvage tarballs `hc_results.<cluster>.tar.gz` are kept and updated after each successful cluster merge. Two copies of the current cluster tarball (inside the well-known tree and as the salvage sibling) are expected.
+
 Each cluster output directory contains its own `skipped_commands.jsonl`, tagged with which must-gather subdirectory was active. This is useful for confirming a skip was expected rather than a collection bug. See [Skipped Commands Ledger (Debugging)](#skipped-commands-ledger-debugging) in Reference below for the full ledger format and readable-summary/investigation commands.
 
 **Multi-cluster behavior:**
@@ -195,7 +197,13 @@ cat output/hc_collect/<YYYY-MM-DD>/<cluster_name>/manifest.json
 make hc-report HC_COLLECT_OUT=output/hc_collect/<YYYY-MM-DD>/<cluster_name>
 ```
 
-Results are staged into a dated directory at `output/hc_collect/<YYYY-MM-DD>/`. Under that dated directory, each selected cluster lands in its own subdirectory. `hc-fetch-results` prefers `hc_results.tar.gz`, falls back to raw rsync, and shows transfer progress.
+Results are staged into a dated directory at `output/hc_collect/<YYYY-MM-DD>/`. Under that dated directory, each selected cluster lands in its own subdirectory. Default `hc-fetch-results` is unchanged: it prefers the well-known `hc_results.tar.gz`, falls back to raw rsync, and shows transfer progress.
+
+To re-download a previous cluster's salvage tarball (not the current well-known aggregate), set `HC_SSH_RESULTS` to that cluster stem — absolute path, no `~`:
+
+```bash
+make hc-fetch-results HC_SSH_HOST=user@your-supportshell-server.example.com HC_SSH_RESULTS=/home/remote/<username>/hc_results.prod-ocp-01
+```
 
 When verifying the manifest, check:
 - `total_errors` is `0` (or only contains expected not-installed entries)
@@ -454,28 +462,28 @@ Each target below runs one discrete step and can be re-run on its own — useful
 
 ###### Individual (atomic) targets
 
-| Target                        | Purpose                                                                                                                                                                                                                                   |
-|-------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `hc-collect`                  | Collect cluster data via `oc` (live cluster)                                                                                                                                                                                              |
-| `hc-push-scripts`             | Push supportshell collection scripts to remote server (`HC_SSH_HOST=user@host`)                                                                                                                                                           |
-| `hc-collect-remote`           | Run `hc_collect_multi.sh` on the remote server via SSH (`HC_SSH_HOST=user@host HC_MG_INPUT=<case-or-must-gather-path>`)                                                                                                                   |
-| `hc-fetch-results`            | Fetch results from remote server — prefers `hc_results.tar.gz`, falls back to raw rsync (`HC_SSH_HOST=user@host`)                                                                                                                         |
-| `hc-merge`                    | Merge multiple result dirs (`MERGE_INPUTS="dir1 dir2"`)                                                                                                                                                                                   |
-| `hc-report`                   | Generate branded health check report (runs in container; requires `project.yaml`). Optional `HC_OMIT_CHECK_IDS` writes `{stem}_pruned.md`. Optional `HC_SUMMARY_CONCLUSION=1` drafts Chapter 3/8 in place after generate (prefers pruned) |
-| `hc-summary-conclusion`       | Cursor-draft Chapter 3/8 into an existing report (`REPORT=path.md`)                                                                                                                                                                       |
-| `hc-update-loi`               | Refresh Chapter 6 Level of Impact from KB (host; `REPORT=path.md` relative or absolute; `DRY_RUN=1` preview)                                                                                                                              |
-| `hc-renumber-findings`        | Resequence §6.2 IDs, §6.1, and `finding-*` anchors after moving blocks between P0–P3 (host; `REPORT=path.md` relative or absolute; `DRY_RUN=1` preview)                                                                                   |
-| `hc-pdf`                      | Branded PDF from report markdown (optional `REPORT=path.md`; `FORCE=1` overwrites an existing basename dest)                                                                                                                              |
-| `hc-html`                     | Collapsible HTML from report markdown (optional `REPORT=path.md`; `FORCE=1` overwrites an existing basename dest)                                                                                                                         |
-| `hc-build-catalog`            | Rebuild TSR/CCX catalog JSON from a TSR HTML export (`TSR_HTML=path`)                                                                                                                                                                     |
-| `hc-skip-summary`             | Render `skipped_commands.jsonl` into readable YAML (`LEDGER=path`)                                                                                                                                                                        |
-| `hc-investigate`              | Trace a finding/check back to raw evidence (`RESULTS_DIR=...`)                                                                                                                                                                            |
-| `hc-command-ref`              | Generate static command reference markdown (`docs/HC_Command_Reference.md`)                                                                                                                                                               |
-| `hc-link-review`              | Suggest + HTTP-check KB documentation URLs (does not rewrite TOMLs)                                                                                                                                                                       |
-| `hc-docs`                     | Regenerate collect/supportshell READMEs from stitchmd sections                                                                                                                                                                            |
-| `hc-report-from-supportshell` | Fetch supportshell results, then generate the deterministic report                                                                                                                                                                        |
-| `clean-hc`                    | Remove health check pipeline output                                                                                                                                                                                                       |
-| `check-hc-sync`               | Verify `collect/` and `supportshell/` shared scripts 03–09 are in sync                                                                                                                                                                    |
+| Target                        | Purpose                                                                                                                                                                                                                                             |
+|-------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `hc-collect`                  | Collect cluster data via `oc` (live cluster)                                                                                                                                                                                                        |
+| `hc-push-scripts`             | Push supportshell collection scripts to remote server (`HC_SSH_HOST=user@host`)                                                                                                                                                                     |
+| `hc-collect-remote`           | Run `hc_collect_multi.sh` on the remote server via SSH (`HC_SSH_HOST=user@host HC_MG_INPUT=<case-or-must-gather-path>`). Clears well-known `hc_results` / `hc_results.tar.gz` after cluster selection; writes salvage `hc_results.<cluster>.tar.gz` |
+| `hc-fetch-results`            | Fetch results from remote server — prefers well-known `hc_results.tar.gz`, falls back to raw rsync (`HC_SSH_HOST=user@host`). Salvage: `HC_SSH_RESULTS=/home/remote/<username>/hc_results.<cluster>`                                                |
+| `hc-merge`                    | Merge multiple result dirs (`MERGE_INPUTS="dir1 dir2"`)                                                                                                                                                                                             |
+| `hc-report`                   | Generate branded health check report (runs in container; requires `project.yaml`). Optional `HC_OMIT_CHECK_IDS` writes `{stem}_pruned.md`. Optional `HC_SUMMARY_CONCLUSION=1` drafts Chapter 3/8 in place after generate (prefers pruned)           |
+| `hc-summary-conclusion`       | Cursor-draft Chapter 3/8 into an existing report (`REPORT=path.md`)                                                                                                                                                                                 |
+| `hc-update-loi`               | Refresh Chapter 6 Level of Impact from KB (host; `REPORT=path.md` relative or absolute; `DRY_RUN=1` preview)                                                                                                                                        |
+| `hc-renumber-findings`        | Resequence §6.2 IDs, §6.1, and `finding-*` anchors after moving blocks between P0–P3 (host; `REPORT=path.md` relative or absolute; `DRY_RUN=1` preview)                                                                                             |
+| `hc-pdf`                      | Branded PDF from report markdown (optional `REPORT=path.md`; `FORCE=1` overwrites an existing basename dest)                                                                                                                                        |
+| `hc-html`                     | Collapsible HTML from report markdown (optional `REPORT=path.md`; `FORCE=1` overwrites an existing basename dest)                                                                                                                                   |
+| `hc-build-catalog`            | Rebuild TSR/CCX catalog JSON from a TSR HTML export (`TSR_HTML=path`)                                                                                                                                                                               |
+| `hc-skip-summary`             | Render `skipped_commands.jsonl` into readable YAML (`LEDGER=path`)                                                                                                                                                                                  |
+| `hc-investigate`              | Trace a finding/check back to raw evidence (`RESULTS_DIR=...`)                                                                                                                                                                                      |
+| `hc-command-ref`              | Generate static command reference markdown (`docs/HC_Command_Reference.md`)                                                                                                                                                                         |
+| `hc-link-review`              | Suggest + HTTP-check KB documentation URLs (does not rewrite TOMLs)                                                                                                                                                                                 |
+| `hc-docs`                     | Regenerate collect/supportshell READMEs from stitchmd sections                                                                                                                                                                                      |
+| `hc-report-from-supportshell` | Fetch supportshell results, then generate the deterministic report                                                                                                                                                                                  |
+| `clean-hc`                    | Remove health check pipeline output                                                                                                                                                                                                                 |
+| `check-hc-sync`               | Verify `collect/` and `supportshell/` shared scripts 03–09 are in sync                                                                                                                                                                              |
 
 **Report ID conventions:** Finding IDs (`6.2.x.y`) appear in §6.1/§6.2 headings and are used with `FINDING_ID=...`. Machine Check IDs (e.g. `7.3.etcd.log_errors`) appear under each §6.2 heading as `**Check ID:**` and are used with `CHECK_ID=...`. TSR ref (e.g. `3.5.7`) is the human-readable section label for cross-referencing the TSR report.
 
@@ -500,8 +508,10 @@ KUBECONFIG Path to kubeconfig (live cluster collection)
 HC_COLLECT_OUT output/hc_collect — collection results directory
 HC_REPORT_OUT output/Health_Check_Report — final report output
 HC_SSH_HOST user@host — remote support shell server
-HC_SSH_RESULTS results path on remote (default is ~/hc_results, but ~ does not
-resolve reliably here — set explicitly, e.g. /home/remote/<username>/hc_results)
+HC_SSH_RESULTS results path on remote (default is the current well-known stem
+~/hc_results, but ~ does not resolve reliably here — set
+explicitly, e.g. /home/remote/<username>/hc_results). Set to
+/home/remote/<username>/hc_results.<cluster> to fetch a salvage tarball
 HC_SSH_SCRIPTS scripts path on remote (default is ~/hc_supportshell — same ~
 caveat, set explicitly, e.g. /home/remote/<username>/hc_supportshell)
 HC_MG_INPUT must-gather/case path on remote (for hc-collect-remote) — always set

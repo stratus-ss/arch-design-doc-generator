@@ -53,6 +53,8 @@ bash /home/remote/<username>/hc_supportshell/hc_collect_multi.sh --input /home/r
 
 This produces `/home/remote/<username>/hc_results/<cluster_name>/` for each selected cluster, plus `/home/remote/<username>/hc_results.tar.gz` as an aggregate tarball when `--tar` is used.
 
+After cluster selection, `hc_collect_multi.sh` wipes the well-known results directory and aggregate tarball (`hc_results` and `hc_results.tar.gz`) so leftover cluster trees from a previous case are not packed into this run. Sibling salvage tarballs `hc_results.<cluster>.tar.gz` are kept and updated after each successful cluster merge. Two copies of the current cluster tarball (inside the well-known tree and as the salvage sibling) are expected.
+
 Each cluster output directory contains its own `skipped_commands.jsonl`, tagged with which must-gather subdirectory was active. This is useful for confirming a skip was expected rather than a collection bug. See [Skipped Commands Ledger (Debugging)](#skipped-commands-ledger-debugging) in Reference below for the full ledger format and readable-summary/investigation commands.
 
 **Multi-cluster behavior:**

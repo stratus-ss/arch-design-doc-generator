@@ -85,7 +85,7 @@ A second engagement type (`PROJECT=HC`) collects OpenShift cluster JSON and gene
 | `make hc-collect KUBECONFIG=<path>` | Host | Collect cluster JSON via live `oc` CLI |
 | `make hc-push-scripts HC_SSH_HOST=user@host` | Host | Push supportshell scripts to a remote server |
 | `make hc-collect-remote HC_SSH_HOST=... HC_MG_INPUT=<path>` | Host | Run `hc_collect_multi.sh` on the remote via SSH |
-| `make hc-fetch-results HC_SSH_HOST=...` | Host | Fetch results tarball from remote into `output/hc_collect/<date>` |
+| `make hc-fetch-results HC_SSH_HOST=...` | Host | Fetch results tarball from remote into `output/hc_collect/<date>` (optional salvage: `HC_SSH_RESULTS=/path/hc_results.<cluster>`) |
 | `make hc-report-from-supportshell HC_SSH_HOST=user@host` | Host fetch, then container report | Fetch supportshell results, then run `hc-report` against the dated staging dir |
 | `make hc-merge MERGE_INPUTS="dir1 dir2"` | Host | Merge multiple `hc_results` dirs on the host |
 | `make hc-report` | Container | Generate markdown report + audit JSON from collected data (default profile `advisory`). Optional `HC_OMIT_CHECK_IDS` writes `{stem}_pruned.md`. Optional `HC_SUMMARY_CONCLUSION=1` drafts Chapter 3/8 in place (prefers pruned) |

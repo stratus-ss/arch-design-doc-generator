@@ -2,8 +2,10 @@ KUBECONFIG          Path to kubeconfig (live cluster collection)
 HC_COLLECT_OUT      output/hc_collect        — collection results directory
 HC_REPORT_OUT       output/Health_Check_Report — final report output
 HC_SSH_HOST         user@host                — remote support shell server
-HC_SSH_RESULTS      results path on remote (default is ~/hc_results, but ~ does not
-                    resolve reliably here — set explicitly, e.g. /home/remote/<username>/hc_results)
+HC_SSH_RESULTS      results path on remote (default is the current well-known stem
+                    ~/hc_results, but ~ does not resolve reliably here — set
+                    explicitly, e.g. /home/remote/<username>/hc_results). Set to
+                    /home/remote/<username>/hc_results.<cluster> to fetch a salvage tarball
 HC_SSH_SCRIPTS      scripts path on remote (default is ~/hc_supportshell — same ~
                     caveat, set explicitly, e.g. /home/remote/<username>/hc_supportshell)
 HC_MG_INPUT         must-gather/case path on remote (for hc-collect-remote) — always set

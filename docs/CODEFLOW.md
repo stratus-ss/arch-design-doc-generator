@@ -184,6 +184,8 @@ flowchart TD
     FetchResults --> Staged[output/hc_collect/date/ or date/cluster/]
 ```
 
+Remote collect replaces well-known `hc_results` / `hc_results.tar.gz` with this run only; cluster salvage tarballs stay as `hc_results.<cluster>.tar.gz`.
+
 ### Host merge
 
 ```bash

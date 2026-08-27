@@ -12,8 +12,8 @@ Each target below runs one discrete step and can be re-run on its own — useful
 |--------|---------|
 | `hc-collect` | Collect cluster data via `oc` (live cluster) |
 | `hc-push-scripts` | Push supportshell collection scripts to remote server (`HC_SSH_HOST=user@host`) |
-| `hc-collect-remote` | Run `hc_collect_multi.sh` on the remote server via SSH (`HC_SSH_HOST=user@host HC_MG_INPUT=<case-or-must-gather-path>`) |
-| `hc-fetch-results` | Fetch results from remote server — prefers `hc_results.tar.gz`, falls back to raw rsync (`HC_SSH_HOST=user@host`) |
+| `hc-collect-remote` | Run `hc_collect_multi.sh` on the remote server via SSH (`HC_SSH_HOST=user@host HC_MG_INPUT=<case-or-must-gather-path>`). Clears well-known `hc_results` / `hc_results.tar.gz` after cluster selection; writes salvage `hc_results.<cluster>.tar.gz` |
+| `hc-fetch-results` | Fetch results from remote server — prefers well-known `hc_results.tar.gz`, falls back to raw rsync (`HC_SSH_HOST=user@host`). Salvage: `HC_SSH_RESULTS=/home/remote/<username>/hc_results.<cluster>` |
 | `hc-merge` | Merge multiple result dirs (`MERGE_INPUTS="dir1 dir2"`) |
 | `hc-report` | Generate branded health check report (runs in container; requires `project.yaml`). Optional `HC_OMIT_CHECK_IDS` writes `{stem}_pruned.md`. Optional `HC_SUMMARY_CONCLUSION=1` drafts Chapter 3/8 in place after generate (prefers pruned) |
 | `hc-summary-conclusion` | Cursor-draft Chapter 3/8 into an existing report (`REPORT=path.md`) |
