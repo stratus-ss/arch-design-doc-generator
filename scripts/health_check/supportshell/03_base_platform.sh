@@ -3,6 +3,7 @@
 # Collects: cluster version, operators, subscriptions, infrastructure, nodes, SCCs, OAuth
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
 source "${SCRIPT_DIR}/lib/common.sh"
 CATEGORY="03_base_platform"
 hc_init "$CATEGORY"
@@ -23,11 +24,14 @@ hc_capture_json "$CATEGORY" "proxy"                  get proxy cluster
 
 # 7.1.4 — Nodes (hardware specs)
 hc_capture_json "$CATEGORY" "nodes"                  get nodes
-hc_capture_text "$CATEGORY" "nodes_wide"             $HC_CLI get nodes -o wide
+hc_capture_text "$CATEGORY" "nodes_wide"             "$HC_CLI" get nodes -o wide
 hc_capture_json "$CATEGORY" "csr"                    get csr
 
 # 7.1.5 — SCCs and authentication
 hc_capture_json "$CATEGORY" "scc"                    get scc
 hc_capture_json "$CATEGORY" "oauth"                  get oauth cluster
+
+# 7.1.6 — Remote health reporting
+hc_capture_json "$CATEGORY" "insightsoperator"       get insightsoperator -A
 
 hc_summary "$CATEGORY"

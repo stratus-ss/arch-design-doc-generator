@@ -3,6 +3,7 @@
 # Collects: kubelet versions, firing alerts, pod restarts, master taints
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
 source "${SCRIPT_DIR}/lib/common.sh"
 CATEGORY="07_cluster_health"
 hc_init "$CATEGORY"
@@ -15,6 +16,9 @@ hc_capture_json "$CATEGORY" "node_conditions"        get nodes
 
 # Pod restarts — capture all pods with status
 hc_capture_json "$CATEGORY" "pods_all"               get pods -A
+
+# Pod disruption budgets
+hc_capture_json "$CATEGORY" "pdb"                    get pdb -A
 
 # Master node taint check (schedulable masters = bad practice)
 hc_capture_json "$CATEGORY" "master_nodes"           get nodes -l node-role.kubernetes.io/master

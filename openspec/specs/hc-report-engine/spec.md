@@ -2,7 +2,7 @@
 
 > **Canonical spec:** this file (`openspec/specs/hc-report-engine/spec.md`). Do not recreate `agent_planning/openspec/specs/`.
 >
-> **Baseline date:** 2026-08-21 (landed Chunks A–G). Chunk H deltas live in `openspec/changes/hc-feedback-chunk-h/` until archived. `hc-omit-findings` is archived here (2026-08-25). Scoring veracity (`scoring_basis`, native FAIL/WARNING honesty vs OCP 4.22) is archived here (2026-08-25). `hc-tsr-pass-host-condense` is archived here (2026-08-26). `hc-tsr-inventory-condense` is archived here (2026-08-26). `hc-html-pdf-report-file` is archived here (2026-08-26). `hc-narrative-paragraph-spacing` is archived here (2026-08-26). `hc-toc-chapter-links` is archived here (2026-08-26).
+> **Baseline date:** 2026-08-21 (landed Chunks A–G). Chunk H deltas live in `openspec/changes/hc-feedback-chunk-h/` until archived. `hc-omit-findings` is archived here (2026-08-25). Scoring veracity (`scoring_basis`, native FAIL/WARNING honesty vs OCP 4.22) is archived here (2026-08-25). `hc-tsr-pass-host-condense` is archived here (2026-08-26). `hc-tsr-inventory-condense` is archived here (2026-08-26). `hc-html-pdf-report-file` is archived here (2026-08-26). `hc-narrative-paragraph-spacing` is archived here (2026-08-26). `hc-toc-chapter-links` is archived here (2026-08-26). `hc-live-parity-collect` is archived here (2026-08-28).
 
 ## Purpose
 
@@ -786,3 +786,18 @@ Native Chapter 7 SHALL not emit SKIPPED placeholder rows for TSR 3.5.4–3.5.9 e
 - THEN status is `WARNING`
 - AND evidence includes that the pool is paused
 - AND evidence does not say `not fully updated`
+
+### Requirement: Optional product and platform CR JSON on collect
+Live `hc-collect` SHALL write the following check_name files (plus `.meta.json`) via `hc_capture_json`. Missing CRD or empty items SHALL be `_hc_not_found`, not a failed collect.
+
+#### Scenario: New capture names exist after collect
+- GIVEN a successful `hc-collect` run
+- WHEN the results directory is listed
+- THEN these files exist under their category dirs:
+  `03_base_platform/insightsoperator.json`,
+  `05_components/dns_pods.json`, `featuregate.json`, `metallb.json`, `ipsecconfig.json`,
+  `sriovnetwork.json`, `performanceprofile.json`, `localvolume.json`, `csidriver.json`,
+  `06_layered/odf_storagecluster.json`, `rhoso_controlplane.json`, `mtv_controller.json`,
+  `07_cluster_health/pdb.json`,
+  `09_security/fileintegrity.json`
+- AND collect does not add a second DNS cluster capture besides existing `dns_config.json`

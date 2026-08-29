@@ -13,6 +13,7 @@ Captures the foundational cluster version and platform configuration.
 | `nodes_wide.json` | `oc get nodes -o wide` | Node IPs, OS images, kernel versions |
 | `scc.json` | `oc get scc` | Security Context Constraints — default vs custom |
 | `oauth.json` | `oc get oauth cluster` | Identity providers configured |
+| `insightsoperator.json` | `oc get insightsoperator -A` | Insights Operator CR — remote health reporting |
 
 ### `04_topology.sh` — Chapter 7.2
 
@@ -46,9 +47,17 @@ Core component health — monitoring, storage, networking, ingress.
 | `storageclass.json` | `oc get storageclass` | Available storage classes and defaults |
 | `pv.json` | `oc get pv` | Persistent volume inventory and states |
 | `pvc.json` | `oc get pvc -A` | PVC states across all namespaces |
+| `csidriver.json` | `oc get csidriver` | CSI driver inventory |
+| `localvolume.json` | `oc get localvolume -A` | Local Storage Operator volumes |
 | `network.json` | `oc get network cluster` | Cluster network config (CNI, CIDR ranges) |
 | `clusternetwork.json` | `oc get clusternetwork` | OCP 3.x SDN object — marks `not-installed` on OCP 4.x |
 | `network_operator.json` | `oc get network.operator cluster` | Network operator configuration |
+| `metallb.json` | `oc get metallb -A` | MetalLB load balancer instances |
+| `ipsecconfig.json` | `oc get ipsecconfig -A` | IPsec configuration (if installed) |
+| `sriovnetwork.json` | `oc get sriovnetwork -A` | SR-IOV network definitions |
+| `performanceprofile.json` | `oc get performanceprofile -A` | Node performance profiles (low-latency tuning) |
+| `dns_pods.json` | `oc get pods -n openshift-dns` | DNS pods status across cluster |
+| `featuregate.json` | `oc get featuregate cluster` | Enabled feature gates and tech preview features |
 
 ### `06_layered.sh` — Chapter 7.4
 
@@ -62,6 +71,9 @@ Optional Red Hat products. Every command here may produce `_hc_not_found` if the
 | **Logging (ClusterLogging / Loki)** | `logging_clusterlogging.json`, `logging_loki.json`, `logging_pods.json` |
 | **OpenShift Pipelines (Tekton)** | `pipelines_tektonconfig.json`, `pipelines_pods.json` |
 | **Service Mesh (Istio)** | `servicemesh_smcp.json`, `servicemesh_pods.json` |
+| **OpenShift Data Foundation (ODF)** | `odf_storagecluster.json` |
+| **Red Hat OpenStack Services (RHOSO)** | `rhoso_controlplane.json` |
+| **Migration Toolkit for Virtualization (MTV)** | `mtv_controller.json` |
 
 ### `07_cluster_health.sh` — Chapter 7.5
 
@@ -72,6 +84,7 @@ Runtime health — alerts, pod restarts, node conditions.
 | `nodes.json` | `oc get nodes` | Kubelet version consistency check |
 | `node_conditions.json` | `oc get nodes` | NotReady, MemoryPressure, DiskPressure conditions |
 | `pods_all.json` | `oc get pods -A` | All pods — used to detect high restart counts |
+| `pdb.json` | `oc get pdb -A` | PodDisruptionBudgets across all namespaces |
 | `master_nodes.json` | `oc get nodes -l node-role.kubernetes.io/master` | Master schedulability check |
 | `clusterversion.json` | `oc get clusterversion` | Current version and update state |
 | `clusteroperators.json` | `oc get clusteroperator` | Degraded operator check |
@@ -105,6 +118,7 @@ Security posture — SCCs, OAuth, RBAC, compliance operator (if installed).
 | `rolebindings.json` | `oc get rolebinding -A` | Namespace-level role bindings |
 | `compliance_scans.json` | `oc get compliancescan -A` | Compliance Operator scan results (if installed) |
 | `compliance_suites.json` | `oc get compliancesuite -A` | Compliance suite configurations (if installed) |
+| `fileintegrity.json` | `oc get fileintegrity -A` | File Integrity Operator instances (if installed) |
 | `namespaces.json` | `oc get namespaces` | Pod Security Admission labels per namespace |
 | `secrets_count.json` | `oc get secrets -A --no-headers` | Secret inventory by namespace (count only — no content) |
 | `clusterrolebindings_admin.json` | `oc get clusterrolebinding` | Used to audit cluster-admin grants |

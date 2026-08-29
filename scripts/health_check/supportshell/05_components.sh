@@ -3,6 +3,7 @@
 # Collects: operator health, etcd, registry, monitoring, ingress, storage, network
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
 source "${SCRIPT_DIR}/lib/common.sh"
 CATEGORY="05_components"
 hc_init "$CATEGORY"
@@ -13,7 +14,7 @@ hc_capture_json "$CATEGORY" "machineconfig"               get mc
 
 # Etcd health
 hc_capture_json "$CATEGORY" "etcd_pods"                   get pods -n openshift-etcd
-hc_capture_text "$CATEGORY" "etcd_status"                 $HC_CLI -n openshift-etcd get pods -o wide
+hc_capture_text "$CATEGORY" "etcd_status"                 "$HC_CLI" -n openshift-etcd get pods -o wide
 
 # Image registry
 hc_capture_json "$CATEGORY" "imageregistry"               get configs.imageregistry.operator.openshift.io cluster
@@ -30,6 +31,8 @@ hc_capture_json "$CATEGORY" "ingresscontroller"           get ingresscontroller 
 hc_capture_json "$CATEGORY" "storageclass"                get storageclass
 hc_capture_json "$CATEGORY" "pv"                          get pv
 hc_capture_json "$CATEGORY" "pvc"                         get pvc -A
+hc_capture_json "$CATEGORY" "csidriver"                   get csidriver
+hc_capture_json "$CATEGORY" "localvolume"                 get localvolume -A
 
 # Networking
 hc_capture_json "$CATEGORY" "network"                     get network cluster
@@ -37,10 +40,18 @@ hc_capture_json "$CATEGORY" "clusternetwork"              get clusternetwork || 
 hc_capture_json "$CATEGORY" "network_operator"            get network.operator cluster
 hc_capture_json "$CATEGORY" "nncp"                        get nncp || true
 hc_capture_json "$CATEGORY" "net_attach_def"              get net-attach-def -A || true
+hc_capture_json "$CATEGORY" "metallb"                     get metallb -A
+hc_capture_json "$CATEGORY" "ipsecconfig"                 get ipsecconfig -A
+hc_capture_json "$CATEGORY" "sriovnetwork"                get sriovnetwork -A
+hc_capture_json "$CATEGORY" "performanceprofile"          get performanceprofile -A
 
 # DNS
 hc_capture_json "$CATEGORY" "dns_operator"                get dns.operator default
 hc_capture_json "$CATEGORY" "dns_config"                  get dns cluster
+hc_capture_json "$CATEGORY" "dns_pods"                    get pods -n openshift-dns
+
+# Feature gates
+hc_capture_json "$CATEGORY" "featuregate"                 get featuregate cluster
 
 # CRDs and deprecated APIs
 hc_capture_json "$CATEGORY" "crds"                        get crd

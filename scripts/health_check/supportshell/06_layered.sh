@@ -47,4 +47,13 @@ hc_capture_json "$CATEGORY" "quay_registry"          get quayregistry -A || true
 # OCP AI / OpenShift AI
 hc_capture_json "$CATEGORY" "datasciencecluster"     get datasciencecluster -A || true
 
+# ODF / OpenShift Data Foundation
+hc_capture_json "$CATEGORY" "odf_storagecluster"     get storagecluster -A
+
+# RHOSO / Red Hat OpenStack Services on OpenShift
+hc_capture_json "$CATEGORY" "rhoso_controlplane"     get openstackcontrolplane -A
+
+# MTV / Migration Toolkit for Virtualization
+hc_capture_json "$CATEGORY" "mtv_controller"         get forkliftcontroller -A
+
 hc_summary "$CATEGORY"
