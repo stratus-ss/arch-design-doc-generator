@@ -1,0 +1,7 @@
+{
+  "rules": {
+    "check_id_prefixes": ["7.7.ccx_internal.", "html-unmapped:"],
+    "check_ids": ["7.4.tsr.4_8_4_5_host_kernel_bsod_indicators"]
+  },
+  "live_ids": ["7.3.monitoring.config"]
+}
