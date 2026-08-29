@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from hc_report.evaluators.ccx import evaluate_ccx
 from hc_report.evaluators.health import annotate_pod_restart_collection_gap
 from hc_report.models import CheckResult
 from hc_report.parity import expand_with_parity_checks
@@ -19,6 +20,12 @@ def evaluate_checks(
 ) -> list[CheckResult]:
     """Apply deterministic checks, then optional TSR/CCX parity expansion."""
     checks = evaluate_from_registry(results)
+    existing_ids = {check.check_id for check in checks}
+    for ccx_check in evaluate_ccx(results):
+        if ccx_check.check_id in existing_ids:
+            continue
+        checks.append(ccx_check)
+        existing_ids.add(ccx_check.check_id)
     profile = check_profile.lower().strip()
     if profile == "core":
         return checks

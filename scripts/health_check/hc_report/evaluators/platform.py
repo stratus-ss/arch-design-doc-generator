@@ -731,7 +731,31 @@ def _evaluate_system_security(category_data: dict, install_config_yaml: str, cat
     return checks
 
 
-def _evaluate_system_remote_health(cluster_operator_data: dict, category_id: str, category_name: str) -> list[CheckResult]:
+def _insights_reporting_disabled(insights_operator_data: dict) -> bool:
+    if _is_missing(insights_operator_data):
+        return False
+    for item in _get_items(insights_operator_data, default_single=True):
+        spec = item.get("spec", {}) if isinstance(item.get("spec"), dict) else {}
+        status = item.get("status", {}) if isinstance(item.get("status"), dict) else {}
+        if spec.get("disabled") is True or status.get("disabled") is True:
+            return True
+        if spec.get("disableInsightsReporting") is True:
+            return True
+    return False
+
+
+def _evaluate_system_remote_health(
+    cluster_operator_data: dict,
+    insights_operator_data: dict,
+    category_id: str,
+    category_name: str,
+) -> list[CheckResult]:
+    if _insights_reporting_disabled(insights_operator_data):
+        return [CheckResult(
+            category_id, category_name, f"{category_id}.sys.remote_health",
+            "1.5.15 Remote Health Reporting", "WARNING",
+            "InsightsOperator reporting is disabled",
+        )]
     insights_ok = False
     if not _is_missing(cluster_operator_data):
         for operator in _get_items(cluster_operator_data):
@@ -761,5 +785,10 @@ def _evaluate_system_config(category_data: dict, results: dict, category_id: str
     checks += _evaluate_system_node_resources(items, category_id, category_name)
     checks += _evaluate_system_time(items, category_id, category_name)
     checks += _evaluate_system_security(category_data, install_config_yaml, category_id, category_name)
-    checks += _evaluate_system_remote_health(cluster_operator_data, category_id, category_name)
+    checks += _evaluate_system_remote_health(
+        cluster_operator_data,
+        category_data.get("insightsoperator", {}),
+        category_id,
+        category_name,
+    )
     return checks

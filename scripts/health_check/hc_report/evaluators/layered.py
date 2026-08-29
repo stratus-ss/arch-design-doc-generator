@@ -36,8 +36,34 @@ def _evaluate_layered_product(name: str, category_id: str, category_name: str, d
         return CheckResult(category_id, category_name, f"{category_id}.{name}", name, "SKIPPED",
                            "Collection failed — manual check required")
     items = _get_items(data, default_single=True)
-    return CheckResult(category_id, category_name, f"{category_id}.{name}", name, "INFO",
-                       f"Installed. {len(items)} instance(s) found")
+    status, evidence = _product_condition_status(items, degraded_status="WARNING")
+    if status == "INFO":
+        evidence = f"Installed. {len(items)} instance(s) found"
+    return CheckResult(category_id, category_name, f"{category_id}.{name}", name, status, evidence)
+
+
+def _product_condition_status(items: list, *, degraded_status: str) -> tuple[str, str]:
+    saw_degraded = False
+    saw_available = False
+    for item in items:
+        status = item.get("status", {}) if isinstance(item.get("status"), dict) else {}
+        conditions = status.get("conditions", [])
+        if not isinstance(conditions, list):
+            conditions = []
+        if _find_condition(conditions, "Degraded").get("status") == "True":
+            saw_degraded = True
+        available = _find_condition(conditions, "Available")
+        ready = _find_condition(conditions, "Ready")
+        if available.get("status") == "True" or ready.get("status") == "True":
+            saw_available = True
+        phase = str(status.get("phase", "")).lower()
+        if phase in {"failed", "error"}:
+            saw_degraded = True
+    if saw_degraded:
+        return degraded_status, "Degraded or error conditions present"
+    if saw_available:
+        return "PASS", "Available/Ready is True"
+    return "INFO", f"{len(items)} instance(s) found"
 
 
 def _evaluate_cnv_aggregate(category_data: dict, category_id: str, category_name: str) -> list[CheckResult]:
@@ -251,4 +277,50 @@ def evaluate_layered(category_data: dict, results: dict, category_id: str, categ
     checks += _evaluate_cnv_aggregate(category_data, category_id, category_name)
     checks += _evaluate_acm_aggregate(category_data, category_id, category_name)
     checks += _evaluate_logging_aggregate(category_data, category_id, category_name)
+    checks += _evaluate_odf_state(category_data, category_id, category_name)
+    checks += _evaluate_rhoso_state(category_data, category_id, category_name)
     return checks
+
+
+def _evaluate_odf_state(category_data: dict, category_id: str, category_name: str) -> list[CheckResult]:
+    data = category_data.get("odf_storagecluster", {})
+    if data.get("_hc_error"):
+        return [CheckResult(
+            category_id, category_name, f"{category_id}.odf.state",
+            "ODF StorageCluster", "SKIPPED",
+            "ODF StorageCluster collection failed", "odf",
+        )]
+    items = [] if data.get("_hc_not_found") else _get_items(data)
+    if not items:
+        return [CheckResult(
+            category_id, category_name, f"{category_id}.odf.state",
+            "ODF StorageCluster", "NOT_APPLICABLE",
+            "OpenShift Data Foundation StorageCluster not installed", "odf",
+        )]
+    status, evidence = _product_condition_status(items, degraded_status="FAIL")
+    return [CheckResult(
+        category_id, category_name, f"{category_id}.odf.state",
+        "ODF StorageCluster", status, evidence, "odf",
+    )]
+
+
+def _evaluate_rhoso_state(category_data: dict, category_id: str, category_name: str) -> list[CheckResult]:
+    data = category_data.get("rhoso_controlplane", {})
+    if data.get("_hc_error"):
+        return [CheckResult(
+            category_id, category_name, f"{category_id}.rhoso.state",
+            "RHOSO OpenStackControlPlane", "SKIPPED",
+            "RHOSO OpenStackControlPlane collection failed", "rhoso",
+        )]
+    items = [] if data.get("_hc_not_found") else _get_items(data)
+    if not items:
+        return [CheckResult(
+            category_id, category_name, f"{category_id}.rhoso.state",
+            "RHOSO OpenStackControlPlane", "NOT_APPLICABLE",
+            "RHOSO OpenStackControlPlane not installed", "rhoso",
+        )]
+    status, evidence = _product_condition_status(items, degraded_status="FAIL")
+    return [CheckResult(
+        category_id, category_name, f"{category_id}.rhoso.state",
+        "RHOSO OpenStackControlPlane", status, evidence, "rhoso",
+    )]

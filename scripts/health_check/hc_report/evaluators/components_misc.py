@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 from hc_report.evaluators._common import (
+    _find_condition,
     _get_items,
     _is_missing,
     _not_applicable,
     _resource_name,
+    _resource_spec,
 )
 from hc_report.evaluators._shared_checks import check_mcp_degraded
 from hc_report.models import CheckResult
@@ -49,18 +51,57 @@ def _evaluate_misc_loadbalancer(category_data: dict, results: dict, category_id:
         "metallb" in _resource_name(item, default="").lower()
         for item in _get_items(cluster_operator_data, default_single=True)
     ) if not _is_missing(cluster_operator_data) else False
+    metallb_data = category_data.get("metallb")
+    metallb_items = []
+    if metallb_data is not None and not _is_missing(metallb_data):
+        metallb_items = _get_items(metallb_data)
     if metallb_installed:
-        checks.extend([
-            CheckResult(category_id, category_name, f"{category_id}.misc.metallb_installed",
-                        "3.14.2.1 MetalLB Installed", "PASS",
-                        "MetalLB operator detected in cluster operators", "metallb"),
-            CheckResult(category_id, category_name, f"{category_id}.misc.metallb_config",
-                        "3.14.2.2 MetalLB Config", "SKIPPED",
-                        "MetalLB configuration details require dedicated collection", "metallb"),
-            CheckResult(category_id, category_name, f"{category_id}.misc.metallb_l2",
-                        "3.14.2.3 MetalLB L2 ARP/NDP", "SKIPPED",
-                        "MetalLB L2 config requires dedicated collection", "metallb"),
-        ])
+        checks.append(CheckResult(
+            category_id, category_name, f"{category_id}.misc.metallb_installed",
+            "3.14.2.1 MetalLB Installed", "PASS",
+            "MetalLB operator detected in cluster operators", "metallb",
+        ))
+        if metallb_data is None:
+            config_status, config_evidence = (
+                "SKIPPED",
+                "MetalLB configuration details require dedicated collection",
+            )
+        elif metallb_items:
+            config_status, config_evidence = (
+                "PASS",
+                f"{len(metallb_items)} MetalLB CR(s) present",
+            )
+        else:
+            config_status, config_evidence = (
+                "WARNING",
+                "MetalLB operator present but no MetalLB CRs",
+            )
+        checks.append(CheckResult(
+            category_id, category_name, f"{category_id}.misc.metallb_config",
+            "3.14.2.2 MetalLB Config", config_status, config_evidence, "metallb",
+        ))
+        checks.append(CheckResult(
+            category_id, category_name, f"{category_id}.misc.metallb_l2",
+            "3.14.2.3 MetalLB L2 ARP/NDP", "SKIPPED",
+            "MetalLB L2 config requires dedicated collection", "metallb",
+        ))
+        return checks
+    if metallb_items:
+        checks.append(CheckResult(
+            category_id, category_name, f"{category_id}.misc.metallb_installed",
+            "3.14.2.1 MetalLB Installed", "PASS",
+            "MetalLB CR(s) present", "metallb",
+        ))
+        checks.append(CheckResult(
+            category_id, category_name, f"{category_id}.misc.metallb_config",
+            "3.14.2.2 MetalLB Config", "PASS",
+            f"{len(metallb_items)} MetalLB CR(s) present", "metallb",
+        ))
+        checks.append(CheckResult(
+            category_id, category_name, f"{category_id}.misc.metallb_l2",
+            "3.14.2.3 MetalLB L2 ARP/NDP", "SKIPPED",
+            "MetalLB L2 config requires dedicated collection", "metallb",
+        ))
         return checks
     for suffix, title in [
         ("metallb_installed", "3.14.2.1 MetalLB Installed"),
@@ -147,29 +188,77 @@ def _evaluate_misc_capabilities_and_workloads(category_data: dict, results: dict
                               "3.21 Deployment Config Usage", "SKIPPED",
                               "DC detection requires dedicated API query not in standard collection",
                               "deploymentconfig"))
-    machine_config_pool_data = category_data.get("machineconfig", {})
-    pp_detected = any(
-        "performance" in _resource_name(item, default="").lower()
-        for item in _get_items(machine_config_pool_data, default_single=True)
-    ) if not _is_missing(machine_config_pool_data) else False
-    checks.append(CheckResult(category_id, category_name, f"{category_id}.misc.wp_enabled",
-                              "3.22.1 Workload Partitioning Enabled",
-                              "INFO" if not pp_detected else "PASS",
-                              "Workload partitioning: " + (
-                                  "Performance profiles detected" if pp_detected
-                                  else "not detected (standard workload mode)"
-                              ),
-                              "performanceprofile"))
-    for suffix, title in [
-        ("pp_mcp", "3.22.2 Performance Profile Match MCP"),
-        ("pp_status", "3.22.3 Performance Profile Status"),
-        ("pp_config", "3.22.4 Performance Profile Configuration"),
-    ]:
-        checks.append(CheckResult(category_id, category_name, f"{category_id}.misc.{suffix}",
-                                  title, "NOT_APPLICABLE" if not pp_detected else "SKIPPED",
-                                  "Performance Profile not in use" if not pp_detected
-                                  else "Performance Profile details require dedicated collection",
-                                  "performanceprofile"))
+    checks += _evaluate_misc_performance_profiles(category_data, category_id, category_name)
+    return checks
+
+
+def _evaluate_misc_performance_profiles(
+    category_data: dict, category_id: str, category_name: str,
+) -> list[CheckResult]:
+    performance_profile_data = category_data.get("performanceprofile", {})
+    items = [] if _is_missing(performance_profile_data) else _get_items(performance_profile_data)
+    names = [_resource_name(item) for item in items]
+    checks = [CheckResult(
+        category_id, category_name, f"{category_id}.misc.wp_enabled",
+        "3.22.1 Workload Partitioning Enabled",
+        "PASS" if items else "INFO",
+        "Workload partitioning: " + (
+            f"{len(items)} PerformanceProfile(s)" if items
+            else "not detected (standard workload mode)"
+        ),
+        "performanceprofile",
+    )]
+    checks.append(CheckResult(
+        category_id, category_name, f"{category_id}.misc.pp_mcp",
+        "3.22.2 Performance Profile Match MCP",
+        "SKIPPED" if items else "NOT_APPLICABLE",
+        "Performance Profile MCP matching is not scored this release"
+        if items else "Performance Profile not in use",
+        "performanceprofile",
+    ))
+    if not items:
+        checks.append(CheckResult(
+            category_id, category_name, f"{category_id}.misc.pp_status",
+            "3.22.3 Performance Profile Status", "NOT_APPLICABLE",
+            "Performance Profile not in use", "performanceprofile",
+        ))
+        checks.append(CheckResult(
+            category_id, category_name, f"{category_id}.misc.pp_config",
+            "3.22.4 Performance Profile Configuration", "NOT_APPLICABLE",
+            "Performance Profile not in use", "performanceprofile",
+        ))
+        return checks
+    degraded_names = []
+    available_names = []
+    for item in items:
+        conditions = item.get("status", {}).get("conditions", [])
+        if _find_condition(conditions, "Degraded").get("status") == "True":
+            degraded_names.append(_resource_name(item))
+        if _find_condition(conditions, "Available").get("status") == "True":
+            available_names.append(_resource_name(item))
+    if degraded_names:
+        status, evidence = "WARNING", f"Degraded PerformanceProfile(s): {', '.join(degraded_names[:5])}"
+    else:
+        status, evidence = "PASS", f"PerformanceProfile Available: {', '.join(available_names[:5]) or ', '.join(names[:5])}"
+    checks.append(CheckResult(
+        category_id, category_name, f"{category_id}.misc.pp_status",
+        "3.22.3 Performance Profile Status", status, evidence, "performanceprofile",
+    ))
+    cpu_notes = []
+    for item in items:
+        cpu = _resource_spec(item).get("cpu", {})
+        if isinstance(cpu, dict) and (cpu.get("isolated") or cpu.get("reserved")):
+            cpu_notes.append(
+                f"{_resource_name(item)} isolated={cpu.get('isolated', '')} reserved={cpu.get('reserved', '')}"
+            )
+    config_evidence = f"Profiles: {', '.join(names[:8])}"
+    if cpu_notes:
+        config_evidence = f"{config_evidence}; {'; '.join(cpu_notes[:3])}"
+    checks.append(CheckResult(
+        category_id, category_name, f"{category_id}.misc.pp_config",
+        "3.22.4 Performance Profile Configuration", "INFO",
+        config_evidence, "performanceprofile",
+    ))
     return checks
 
 

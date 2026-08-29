@@ -295,4 +295,5 @@ def test_hc_report_core_still_has_no_tsr_source(
     audit = json.loads(audit_files[0].read_text(encoding="utf-8"))
     sources = {row.get("source") for row in audit.get("checks", [])}
     assert "tsr" not in sources
-    assert "ccx" not in sources
+    # Static CCX CVE checks (source="ccx") are now emitted in core profile
+    assert "ccx" in sources

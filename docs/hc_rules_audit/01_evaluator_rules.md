@@ -1,6 +1,6 @@
 # Native evaluator scoring rules
 
-Extracted from `scripts/health_check/hc_report/evaluators/` for the audit in `cursor_plans/hc_evaluator_rules_audit_2026-08-25.md`.
+Extracted from `scripts/health_check/hc_report/evaluators/` for the audit in `cursor_plans/hc_evaluator_rules_audit_2026-08-25.md`. Rows for FeatureGate, PDB, and FileIntegrity were updated 2026-08-28 for `hc_tsr_live_parity_evaluate`.
 
 **How to read:** Each table maps a check ID (or ID pattern) to a status matrix. “Source” is the Python function that assigns `CheckResult.status`.
 
@@ -246,7 +246,7 @@ Dispatcher: `evaluate_components`. Collect: `05_components`. Empty category → 
 |----------|-------------------|---------------|--------|
 | `7.3.net.kubeproxy` | Network type | Empty type → N/A. OVNKubernetes → **NOT_APPLICABLE**. Else **INFO** | `_evaluate_net_plugin_type` |
 | `7.3.net.ovnkube` | Network type | OVNKubernetes → **PASS**. Else **NOT_APPLICABLE** | `_evaluate_net_plugin_type` |
-| `7.3.net.featuregates` | Cluster operators present | Missing → **SKIPPED**. Else always **PASS** (does not actually detect TechPreview) | `_evaluate_net_config` |
+| `7.3.net.featuregates` | FeatureGate `spec.featureSet` | Missing capture → **SKIPPED**. `Default`/empty → **PASS**. `TechPreviewNoUpgrade`/`CustomNoUpgrade` → **FAIL** (`scoring_basis=doc_backed`) | `_evaluate_featuregate` |
 | `7.3.net.kubelet_config` | MachineConfig names containing `kubelet` | MCP missing → N/A. Else always **PASS** | `_evaluate_net_config` |
 | `7.3.net.ipstack` | OVN ipv4/ipv6 or CIDR characters | Always **PASS** when data exists; N/A if both missing | `_evaluate_net_ip_stack` |
 | `7.3.net.ipsec` | `ipsecConfig.mode` (default Disabled) | Missing operator → N/A. Else **INFO** | `_evaluate_net_ipsec` |
@@ -307,7 +307,8 @@ Source: `health.py`. Dispatcher: `evaluate_cluster_health`.
 | `7.5.registry_health` | `managementState` | Missing → **SKIPPED**. Managed → **PASS**. Unmanaged/Removed → **INFO**. Else **WARNING** | `_evaluate_health_registry` |
 | `7.5.pod_restarts` | Any container `restartCount > 10` | Missing pods → **SKIPPED**. Any → **WARNING**. Else **PASS** | `_evaluate_health_pod_restarts` |
 | `7.5.node_roles` | Nodes with no role labels | Missing → **SKIPPED**. Any unlabeled → **FAIL**. Else **PASS** | `_evaluate_health_node_roles` |
-| `7.5.machineset` / `.pdb` / `.vol_mount` | Not in standard collect | Always **SKIPPED** | `_evaluate_health_static_checks` |
+| `7.5.machineset` / `.vol_mount` | Not in standard collect | Always **SKIPPED** | `_evaluate_health_static_checks` |
+| `7.5.pdb` | PodDisruptionBudget list | Missing envelope or `_hc_error` → **SKIPPED**. Empty items → **INFO**. Blocking disruptions → **WARNING**. Else **PASS** | `_evaluate_pdb` |
 | `7.5.alerts.cp` / `.node` / `.overcommit` | Alertname keyword buckets | Alerts missing → **SKIPPED**. Any match → **WARNING**. Else **PASS** | `_evaluate_health_alert_breakdown` |
 | `7.5.dns_health` | DNS operator Available True | Missing → **SKIPPED**. True → **PASS**. Else **WARNING** | `_evaluate_health_dns` |
 | `7.5.alerts` | Firing alerts object missing | **NOT_APPLICABLE** | `_evaluate_firing_alerts` |
@@ -372,7 +373,7 @@ Source: `security.py`.
 | `7.7.vuln_scan` | Compliance scans object | Present → **PASS**. Else **NOT_APPLICABLE** | `_evaluate_tsr_security_aggregate` |
 | `7.7.tls_profile` | TLS profile type (default Intermediate) | Always **INFO** | `_evaluate_tsr_security_aggregate` |
 | `7.7.psa` | PSA labels on namespaces | Always **PASS** (even if data missing) | `_evaluate_tsr_security_aggregate` |
-| `7.7.file_integrity` | FIO | Always **NOT_APPLICABLE** | `_evaluate_tsr_security_aggregate` |
+| `7.7.file_integrity` | FileIntegrity CRs | `_hc_error` → **SKIPPED**. `_hc_not_found`/empty → **NOT_APPLICABLE**. Failed phase/condition → **FAIL**. Else **PASS** | `_evaluate_file_integrity` |
 | `7.7.scc.custom` | SCC names not in `_DEFAULT_SCCS` | Any custom → **WARNING**. Else **PASS** | `_evaluate_scc` |
 | `7.7.scc.privileged_users` | privileged SCC users not `system:` | Any → **WARNING**. Else **PASS**. Omitted if no privileged SCC | `_evaluate_scc` |
 | `7.7.oauth.idp` | Identity providers | None → **WARNING**. Else **PASS** | `_evaluate_oauth` |

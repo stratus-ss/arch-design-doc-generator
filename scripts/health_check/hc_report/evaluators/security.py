@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from hc_report.evaluators._common import (
+    _find_condition,
     _get_items,
     _is_missing,
     _not_applicable,
@@ -255,10 +256,48 @@ def _evaluate_tsr_security_aggregate(category_data: dict, results: dict, categor
                                   "psa"))
 
     # 7.2.2 File Integrity
-    checks.append(CheckResult(category_id, category_name, f"{category_id}.file_integrity",
-                              "7.2.2 File Integrity", "NOT_APPLICABLE",
-                              "File Integrity Operator not in standard collection", "fio"))
+    checks += _evaluate_file_integrity(category_data.get("fileintegrity", {}), category_id, category_name)
     return checks
+
+
+def _evaluate_file_integrity(
+    file_integrity_data: dict, category_id: str, category_name: str,
+) -> list[CheckResult]:
+    if file_integrity_data.get("_hc_error"):
+        return [CheckResult(
+            category_id, category_name, f"{category_id}.file_integrity",
+            "7.2.2 File Integrity", "SKIPPED",
+            "FileIntegrity collection failed", "fio",
+        )]
+    items = [] if file_integrity_data.get("_hc_not_found") else _get_items(
+        file_integrity_data,
+    )
+    if not items:
+        return [CheckResult(
+            category_id, category_name, f"{category_id}.file_integrity",
+            "7.2.2 File Integrity", "NOT_APPLICABLE",
+            "File Integrity Operator not installed", "fio",
+        )]
+    failed_names = []
+    for item in items:
+        status = item.get("status", {}) if isinstance(item.get("status"), dict) else {}
+        phase = str(status.get("phase", ""))
+        failed_condition = _find_condition(status.get("conditions", []), "Failed")
+        if phase.lower() == "failed" or failed_condition.get("status") == "True":
+            failed_names.append(_resource_name(item))
+    if failed_names:
+        return [CheckResult(
+            category_id, category_name, f"{category_id}.file_integrity",
+            "7.2.2 File Integrity", "FAIL",
+            f"FileIntegrity Failed: {', '.join(failed_names[:5])}",
+            "fio",
+        )]
+    return [CheckResult(
+        category_id, category_name, f"{category_id}.file_integrity",
+        "7.2.2 File Integrity", "PASS",
+        f"{len(items)} FileIntegrity resource(s) healthy",
+        "fio",
+    )]
 
 
 def evaluate_security(category_data: dict, results: dict, category_id: str, category_name: str) -> list[CheckResult]:

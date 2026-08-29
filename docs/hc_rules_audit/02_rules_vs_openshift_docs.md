@@ -1,6 +1,8 @@
 # Native evaluator rules vs OpenShift 4.22 on-disk docs
 
-**Landed in `scoring_veracity` (2026-08-25):** engine conflicts and mixed mappings for `7.1.nodes.master_sched`, `7.1.sys.fips`, `7.3.net.featuregates`, 7.1/7.2 install-min severity split, WAL 50 ms FAIL, and 7.3 etcd metric placeholders were addressed on branch `scoring_veracity`. Plan: `cursor_plans/scoring_veracity_2026-08-25.md`. Tables below remain the **pre-change audit snapshot**; they are not rewritten here.
+**Landed in `scoring_veracity` (2026-08-25):** engine conflicts and mixed mappings for `7.1.nodes.master_sched`, `7.1.sys.fips`, `7.3.net.featuregates`, 7.1/7.2 install-min severity split, WAL 50 ms FAIL, and 7.3 etcd metric placeholders were addressed on branch `scoring_veracity`. Plan: `cursor_plans/scoring_veracity_2026-08-25.md`.
+
+**Landed in `hc_tsr_live_parity_evaluate` (2026-08-28):** `7.3.net.featuregates` now parses FeatureGate `spec.featureSet`; `7.5.pdb` and `7.7.file_integrity` are no longer always SKIPPED/N-A. Tables below remain the **pre-change audit snapshot**; they are not rewritten here. Current matrices: [01_evaluator_rules.md](01_evaluator_rules.md) and `docs/HC_CHECK_RATIONALE.md`.
 
 Corpus (canonical): `~/git_projects/openshift_documentation/Openshift_Container_Platform-4.22-docs/txt/`  
 Engine source: [01_evaluator_rules.md](01_evaluator_rules.md)  

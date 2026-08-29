@@ -49,14 +49,45 @@ def _evaluate_net_plugin_type(net_type: str, category_id: str, category_name: st
     return checks
 
 
-def _evaluate_net_config(category_data: dict, category_id: str, category_name: str) -> list[CheckResult]:
-    checks: list[CheckResult] = []
-    checks.append(CheckResult(
+def _evaluate_featuregate(category_data: dict, category_id: str, category_name: str) -> CheckResult:
+    """Score FeatureGate spec.featureSet (TSR 3.10.3). Missing capture stays SKIPPED."""
+    if "featuregate" not in category_data:
+        return CheckResult(
+            category_id, category_name, f"{category_id}.net.featuregates",
+            "3.10.3 Featuregates", "SKIPPED",
+            "FeatureGate status not collected — clusteroperators are not a TechPreview detector",
+            "network",
+        )
+    featuregate_data = category_data.get("featuregate", {})
+    if _is_missing(featuregate_data):
+        return CheckResult(
+            category_id, category_name, f"{category_id}.net.featuregates",
+            "3.10.3 Featuregates", "SKIPPED",
+            "FeatureGate capture missing or not found",
+            "network",
+        )
+    items = _get_items(featuregate_data, default_single=True)
+    feature_set = ""
+    if items:
+        feature_set = str(_resource_spec(items[0]).get("featureSet") or "")
+    if feature_set in ("TechPreviewNoUpgrade", "CustomNoUpgrade"):
+        return CheckResult(
+            category_id, category_name, f"{category_id}.net.featuregates",
+            "3.10.3 Featuregates", "FAIL",
+            f"FeatureGate featureSet is {feature_set} (irreversible; blocks upgrades)",
+            "network",
+            scoring_basis="doc_backed",
+        )
+    return CheckResult(
         category_id, category_name, f"{category_id}.net.featuregates",
-        "3.10.3 Featuregates", "SKIPPED",
-        "FeatureGate status not collected — clusteroperators are not a TechPreview detector",
+        "3.10.3 Featuregates", "PASS",
+        f"FeatureGate featureSet is {feature_set or 'Default'}",
         "network",
-    ))
+    )
+
+
+def _evaluate_net_config(category_data: dict, category_id: str, category_name: str) -> list[CheckResult]:
+    checks: list[CheckResult] = [_evaluate_featuregate(category_data, category_id, category_name)]
     machine_config_pool_data = category_data.get("machineconfig", {})
     if _is_missing(machine_config_pool_data):
         checks.append(_not_applicable(f"{category_id}.net.kubelet_config", "3.10.4 Kubelet-Config", category_id, category_name))
@@ -102,15 +133,41 @@ def _evaluate_net_ip_stack(network_data: dict, net_op: dict, category_id: str, c
                         "3.17.1 IP Stack", "PASS", f"IP Stack: {stack}", "network")]
 
 
-def _evaluate_net_ipsec(net_op: dict, category_id: str, category_name: str) -> list[CheckResult]:
+def _ipsec_result_for_mode(mode: str, category_id: str, category_name: str) -> CheckResult:
+    normalized = str(mode or "Disabled")
+    status = "PASS" if normalized.lower() in {"full", "on"} else "INFO"
+    return CheckResult(
+        category_id, category_name, f"{category_id}.net.ipsec",
+        "3.17.2 IPsec Encryption", status,
+        f"IPsec mode: {normalized}", "network",
+    )
+
+
+def _ipsec_mode_from_cr(ipsec_config: dict) -> str:
+    items = _get_items(ipsec_config)
+    if not items:
+        items = _get_items(ipsec_config, default_single=True)
+    for item in items:
+        spec = _resource_spec(item)
+        mode = spec.get("mode") or spec.get("ipsecMode")
+        if mode:
+            return str(mode)
+    return "Disabled"
+
+
+def _evaluate_net_ipsec(category_data: dict, category_id: str, category_name: str) -> list[CheckResult]:
+    ipsec_config = category_data.get("ipsecconfig", {})
+    net_op = category_data.get("network_operator", {})
+    if not _is_missing(ipsec_config):
+        return [_ipsec_result_for_mode(_ipsec_mode_from_cr(ipsec_config), category_id, category_name)]
     if _is_missing(net_op):
-        return [_not_applicable(f"{category_id}.net.ipsec", "3.17.2 IPsec Encryption", category_id, category_name)]
+        return [_not_applicable(
+            f"{category_id}.net.ipsec", "3.17.2 IPsec Encryption", category_id, category_name,
+        )]
     ovn_config = _ovn_kubernetes_config(net_op)
     ipsec = ovn_config.get("ipsecConfig", {})
     mode = ipsec.get("mode", "Disabled") if isinstance(ipsec, dict) else "Disabled"
-    return [CheckResult(category_id, category_name, f"{category_id}.net.ipsec",
-                        "3.17.2 IPsec Encryption", "INFO",
-                        f"IPsec mode: {mode}", "network")]
+    return [_ipsec_result_for_mode(str(mode), category_id, category_name)]
 
 
 def _evaluate_net_additional(category_data: dict, category_id: str, category_name: str) -> list[CheckResult]:
@@ -128,18 +185,28 @@ def _evaluate_net_additional(category_data: dict, category_id: str, category_nam
                                   "3.17.3 Multiple Networks", "INFO",
                                   "NetworkAttachmentDefinition data not collected", "net_attach_def"))
     nncp_data = category_data.get("nncp", {})
-    if not _is_missing(nncp_data):
-        nncp_items = _get_items(nncp_data)
-        checks.append(CheckResult(category_id, category_name, f"{category_id}.net.hwnet",
-                                  "3.17.4 Hardware Networks",
-                                  "INFO" if nncp_items else "NOT_APPLICABLE",
-                                  f"{len(nncp_items)} NodeNetworkConfigurationPolicy(ies)"
-                                  if nncp_items else "No NNCP resources (SR-IOV/hardware networking not configured)",
-                                  "nncp"))
+    sriov_data = category_data.get("sriovnetwork", {})
+    nncp_items = [] if _is_missing(nncp_data) else _get_items(nncp_data)
+    sriov_items = [] if _is_missing(sriov_data) else _get_items(sriov_data)
+    if nncp_items or sriov_items:
+        evidence_parts = []
+        if nncp_items:
+            evidence_parts.append(f"{len(nncp_items)} NodeNetworkConfigurationPolicy(ies)")
+        if sriov_items:
+            evidence_parts.append(f"{len(sriov_items)} SriovNetwork(s)")
+        checks.append(CheckResult(
+            category_id, category_name, f"{category_id}.net.hwnet",
+            "3.17.4 Hardware Networks", "INFO",
+            "; ".join(evidence_parts),
+            "nncp",
+        ))
     else:
-        checks.append(CheckResult(category_id, category_name, f"{category_id}.net.hwnet",
-                                  "3.17.4 Hardware Networks", "NOT_APPLICABLE",
-                                  "NNCP data not collected", "nncp"))
+        checks.append(CheckResult(
+            category_id, category_name, f"{category_id}.net.hwnet",
+            "3.17.4 Hardware Networks", "NOT_APPLICABLE",
+            "No NNCP or SriovNetwork resources (hardware networking not configured)",
+            "nncp",
+        ))
     return checks
 
 
@@ -153,6 +220,6 @@ def _evaluate_networking_features(category_data: dict, category_id: str, categor
     checks += _evaluate_net_plugin_type(net_type, category_id, category_name)
     checks += _evaluate_net_config(category_data, category_id, category_name)
     checks += _evaluate_net_ip_stack(network_data, net_op, category_id, category_name)
-    checks += _evaluate_net_ipsec(net_op, category_id, category_name)
+    checks += _evaluate_net_ipsec(category_data, category_id, category_name)
     checks += _evaluate_net_additional(category_data, category_id, category_name)
     return checks

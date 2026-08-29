@@ -468,14 +468,54 @@ def _evaluate_health_node_roles(nodes_data: dict, category_id: str, category_nam
                         "nodes")]
 
 
+def _evaluate_pdb(pdb_data: dict, category_id: str, category_name: str) -> list[CheckResult]:
+    if not pdb_data:
+        return [CheckResult(
+            category_id, category_name, f"{category_id}.pdb",
+            "5.9 Pod Disruption Budget", "SKIPPED",
+            "PDB data not in standard collection", "pdb",
+        )]
+    if pdb_data.get("_hc_error"):
+        return [CheckResult(
+            category_id, category_name, f"{category_id}.pdb",
+            "5.9 Pod Disruption Budget", "SKIPPED",
+            "PDB collection failed", "pdb",
+        )]
+    items = _get_items(pdb_data)
+    if pdb_data.get("_hc_not_found") or not items:
+        return [CheckResult(
+            category_id, category_name, f"{category_id}.pdb",
+            "5.9 Pod Disruption Budget", "INFO",
+            "No PodDisruptionBudget resources", "pdb",
+        )]
+    blocked = []
+    for item in items:
+        status = item.get("status", {}) if isinstance(item.get("status"), dict) else {}
+        disruptions_allowed = status.get("disruptionsAllowed")
+        current_healthy = status.get("currentHealthy", 0)
+        desired_healthy = status.get("desiredHealthy", 0)
+        if disruptions_allowed == 0 and current_healthy < desired_healthy:
+            blocked.append(_resource_metadata(item).get("name", "?"))
+    if blocked:
+        return [CheckResult(
+            category_id, category_name, f"{category_id}.pdb",
+            "5.9 Pod Disruption Budget", "WARNING",
+            f"{len(blocked)} PDB(s) blocking disruptions: {', '.join(blocked[:5])}",
+            "pdb",
+        )]
+    return [CheckResult(
+        category_id, category_name, f"{category_id}.pdb",
+        "5.9 Pod Disruption Budget", "PASS",
+        f"{len(items)} PodDisruptionBudget(s) allow disruptions",
+        "pdb",
+    )]
+
+
 def _evaluate_health_static_checks(category_id: str, category_name: str) -> list[CheckResult]:
     return [
         CheckResult(category_id, category_name, f"{category_id}.machineset",
                     "5.8 Machine Set", "SKIPPED",
                     "MachineSet data not in standard collection", "machineset"),
-        CheckResult(category_id, category_name, f"{category_id}.pdb",
-                    "5.9 Pod Disruption Budget", "SKIPPED",
-                    "PDB data not in standard collection", "pdb"),
         CheckResult(category_id, category_name, f"{category_id}.vol_mount",
                     "5.10 Volume Mount Durations", "SKIPPED",
                     "Requires Prometheus metrics not in standard collection", "metrics"),
@@ -549,6 +589,7 @@ def _evaluate_tsr_health_aggregate(category_data: dict, results: dict, category_
     checks += _evaluate_health_registry(results, category_id, category_name)
     checks += _evaluate_health_pod_restarts(category_data, category_id, category_name)
     checks += _evaluate_health_node_roles(nodes_data, category_id, category_name)
+    checks += _evaluate_pdb(category_data.get("pdb", {}), category_id, category_name)
     checks += _evaluate_health_static_checks(category_id, category_name)
     checks += _evaluate_health_alert_breakdown(category_data, category_id, category_name)
     checks += _evaluate_health_dns(results, category_id, category_name)

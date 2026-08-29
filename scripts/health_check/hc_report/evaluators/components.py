@@ -11,6 +11,7 @@ from hc_report.evaluators.components_infra import (
     _evaluate_ingress_aggregate,
     _evaluate_storage,
     _evaluate_storage_aggregate,
+    _evaluate_localvolume,
 )
 from hc_report.evaluators.components_misc import _evaluate_misc_components
 from hc_report.evaluators.components_network import _evaluate_networking_features
@@ -314,6 +315,7 @@ def evaluate_components(category_data: dict, results: dict, category_id: str, ca
     checks += _evaluate_etcd_aggregate(category_data, results, category_id, category_name)
     checks += _evaluate_ingress_aggregate(category_data, category_id, category_name)
     checks += _evaluate_storage_aggregate(category_data, category_id, category_name)
+    checks += _evaluate_localvolume(category_data, category_id, category_name)
     checks += _evaluate_networking_features(category_data, category_id, category_name)
     checks += _evaluate_misc_components(category_data, results, category_id, category_name)
     # Existing detailed checks
