@@ -270,22 +270,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.1.tsr.1_3_2_platform_hypervisor"
 title = "1.3.2. Platform/Hypervisor"
-description = "Platform and hypervisor settings define how the cluster integrates with the\nunderlying infrastructure for machine management, storage provisioning, and\ncloud provider operations.\n"
-recommendation = "This section is a section index. Reconcile `status.platform` versus `status.platformStatus.type` and providerID on the platform and hypervisor children. BareMetal and public cloud: the hypervisor child does not apply."
-verification = "1. Compare `status.platform` to `status.platformStatus.type` on the Infrastructure object. `platformStatus` includes IPs:\n   `oc get infrastructure cluster -o custom-columns=PLATFORM:.status.platform,TYPE:.status.platformStatus.type`\n2. Confirm each node `spec.providerID` prefix matches the platform (`baremetalhost://`, `vsphere://`, `aws://`, `gcp://`, `azure://`, or empty on some UPI):\n   `oc get nodes -o custom-columns=NAME:.metadata.name,PROVIDER:.spec.providerID`"
-priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-overview_installing-platform-agnostic"
-
+content_from = "7.1.tsr.1_3_2_2_hypervisor_checks"
+include_in_findings = false
 [[checks]]
 check_id = "7.1.tsr.1_3_2_1_platform"
 title = "1.3.2.1. Platform"
@@ -346,21 +332,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.1.tsr.1_4_minimum_hardware_requirements"
 title = "1.4. Minimum Hardware Requirements"
-description = "OpenShift has documented minimum hardware requirements for control-plane and\nworker nodes. Running below minimums causes instability, etcd performance\ndegradation, and scheduling failures.\n"
-recommendation = "This section is a section index. Resize or replace undersized control-plane and worker nodes using the CPU, memory, and disk children. Do not lower requests to hide undersize.\n"
-priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-
+content_from = "7.1.tsr.1_4_1_master_nodes"
+include_in_findings = false
 [[checks]]
 check_id = "7.1.tsr.1_4_1_master_nodes"
 title = "1.4.1. Master Nodes"
@@ -383,41 +356,13 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.1.tsr.1_4_1_1_operating_system_version"
 title = "1.4.1.1. Operating System Version"
-description = "Master nodes must run Red Hat Enterprise Linux CoreOS (RHCOS) at a version\ncompatible with the installed OCP release. Version mismatches indicate\nincomplete upgrades or manual OS tampering.\n"
-recommendation = "Run the same RHCOS image on every master for the installed OCP release. If any master differs, inspect `MachineConfigPool` and pending node updates. Do not mix RHEL on masters."
-verification = "1. Print the OS image on each master node:\n   `oc get nodes -l node-role.kubernetes.io/master -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.status.nodeInfo.osImage}{\"\\n\"}{end}'`\n2. Healthy is **PASS** when all masters report the same RHCOS version matching the cluster release."
-priority_hint = ""
-impact = "rolling-restart"
-impact_scope = "control-plane MachineConfigPool"
-impact_detail = "Completing a stalled kubelet or machine-config rollout drains and reboots lagging nodes one at a time. On compact 3-node clusters where all nodes serve as both control-plane and worker, this affects 100% of cluster capacity."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#rhcos-about_architecture-rhcos"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/architecture/index#rhcos-about_architecture-rhcos"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/architecture/index#rhcos-about_architecture-rhcos"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/architecture/index#rhcos-about_architecture-rhcos"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/architecture/index#rhcos-about_architecture-rhcos"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/architecture/index#rhcos-about_architecture-rhcos"
-
+content_from = "7.1.tsr.1_1_identification_and_state"
+include_in_findings = false
 [[checks]]
 check_id = "7.1.tsr.1_4_1_2_master_cpus"
 title = "1.4.1.2. Master CPUs"
-description = "Control-plane nodes require a minimum of 4 vCPUs (8+ recommended for\nproduction). Insufficient CPU causes API server latency, etcd leader\nelections, and degraded cluster responsiveness.\n"
-recommendation = "Resize or replace any control-plane node whose `status.capacity.cpu` is below 4 vCPU. The 8+ figure in the description is a production preference and does not change this threshold. Do not hide undersize with a kubelet tweak."
-verification = "1. Check CPU capacity (`status.capacity.cpu`) on each control-plane node. **PASS** is 4 or more vCPU:\n   `oc get nodes -l node-role.kubernetes.io/master --no-headers -o custom-columns=NAME:.metadata.name,CPU:.status.capacity.cpu | awk '{print ($2+0>=4?\"PASS\":\"FAIL\"), $1, $2}'`"
-priority_hint = ""
-impact = "maintenance-window"
-impact_scope = "control-plane nodes"
-impact_detail = "Resize or replace any undersized control-plane node. That work requires a maintenance window and can reduce API capacity while a master is remediated."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-
+content_from = "7.1.tsr.1_2_subscriptions"
+include_in_findings = false
 [[checks]]
 check_id = "7.1.tsr.1_4_1_3_master_memory"
 title = "1.4.1.3. Master Memory"
@@ -497,22 +442,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.1.tsr.1_4_2_non_master_nodes"
 title = "1.4.2. Non-Master Nodes"
-description = "Worker and infrastructure nodes run application workloads and platform\nservices. They must meet minimum resource requirements for the workloads\nscheduled to them.\n"
-recommendation = "This section is a section index. Use the OS, CPU, memory, disk, and architecture children. On compact clusters the worker set is the same nodes as the control plane."
-verification = "1. List the worker-role nodes. On compact clusters this is the same set as masters:\n   `oc get nodes -l node-role.kubernetes.io/worker`\n      Confirm topology with unique roles:\n   `oc get nodes --no-headers | awk '{print $3}' | sort -u`"
-priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-
+content_from = "7.1.tsr.1_4_1_master_nodes"
+include_in_findings = false
 [[checks]]
 check_id = "7.1.tsr.1_4_2_1_operating_system_version"
 title = "1.4.2.1. Operating System Version"
@@ -536,63 +467,18 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.1.tsr.1_4_2_2_node_cpus"
 title = "1.4.2.2. Node CPUs"
-description = "Worker nodes require a minimum of 2 vCPUs. Insufficient CPU causes scheduling\nfailures and noisy-neighbor latency for application pods.\n"
-recommendation = "Add CPU or replace any worker whose `status.capacity.cpu` is below 2 vCPU. Compact clusters use the same nodes as the control plane, which scores at 4 vCPU. Do not lower requests to hide undersize."
-verification = "1. Check CPU capacity (`status.capacity.cpu`) on each worker node. **PASS** is 2 or more vCPU:\n   `oc get nodes -l node-role.kubernetes.io/worker --no-headers -o custom-columns=NAME:.metadata.name,CPU:.status.capacity.cpu | awk '{print ($2+0>=2?\"PASS\":\"FAIL\"), $1, $2}'`"
-
-priority_hint = ""
-impact = "maintenance-window"
-impact_scope = "worker nodes"
-impact_detail = "Resize or replace any undersized worker. That work requires a maintenance window and drains the node while it is remediated."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-
+content_from = "7.1.tsr.1_4_1_master_nodes"
+include_in_findings = false
 [[checks]]
 check_id = "7.1.tsr.1_4_2_3_node_memory"
 title = "1.4.2.3. Node Memory"
-description = "Worker nodes require a minimum of 8 GiB RAM. Insufficient memory causes OOM\nkills of application pods and kubelet eviction.\n"
-recommendation = "Add memory or replace any worker whose `status.capacity.memory` is below 8 GiB. Compact clusters use the same nodes as the control plane, which scores at 16 GiB."
-verification = "1. Check memory capacity (`status.capacity.memory`, in Ki) on each worker node. **PASS** is 8 GiB (8388608 Ki) or more:\n   `oc get nodes -l node-role.kubernetes.io/worker --no-headers -o custom-columns=NAME:.metadata.name,MEM:.status.capacity.memory | awk '{print ($2+0>=8388608?\"PASS\":\"FAIL\"), $1, $2}'`"
-
-priority_hint = ""
-impact = "maintenance-window"
-impact_scope = "worker nodes"
-impact_detail = "Resize or replace any undersized worker. That work requires a maintenance window and drains the node while it is remediated."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-
+content_from = "7.1.tsr.1_4_1_master_nodes"
+include_in_findings = false
 [[checks]]
 check_id = "7.1.tsr.1_4_2_4_node_disk"
 title = "1.4.2.4. Node Disk"
-description = "Worker nodes require sufficient disk space for container images, ephemeral\nstorage, and logs. Disk pressure causes pod evictions and scheduling failures\nthat impact application availability.\n"
-recommendation = "Plan larger worker disks when `ephemeral-storage` is below 100 GiB. Prefer collect `11_hardware` lsblk when present. A thin worker disk is not a control-plane etcd emergency."
-verification = "1. Check ephemeral-storage capacity (`status.capacity.ephemeral-storage`, in Ki) on each worker node. **PASS** is 100 GiB (104857600 Ki) or more. This is the API fallback, not physical disk:\n   `oc get nodes -l node-role.kubernetes.io/worker --no-headers -o custom-columns=NAME:.metadata.name,EPHEMERAL:.status.capacity.ephemeral-storage | awk '{print ($2+0>=104857600?\"PASS\":\"FAIL\"), $1, $2}'`"
-
-priority_hint = ""
-impact = "maintenance-window"
-impact_scope = "worker disks or node replacement"
-impact_detail = "Plan larger worker disks when ephemeral-storage is below 100 GiB. That work requires a maintenance window and may involve node drain or replacement."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
-
+content_from = "7.1.tsr.1_4_1_master_nodes"
+include_in_findings = false
 [[checks]]
 check_id = "7.1.tsr.1_4_2_5_node_architecture"
 title = "1.4.2.5. Node Architecture"
@@ -652,22 +538,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.1.tsr.1_5_2_dns"
 title = "1.5.2. DNS"
-description = "DNS is a foundational cluster service. The DNS operator, CoreDNS pods, and\nupstream resolver configuration must all be healthy for service discovery,\npod networking, and operator functionality.\n"
-recommendation = "Bring the DNS Operator to `Available=True`, `Progressing=False`, `Degraded=False`. If it is degraded, inspect dns.operator default conditions, then forwarding, CoreDNS pods, and DNS alerts. Do not restart CoreDNS until the operator condition is understood."
-verification = "1. Check the DNS Operator object `dns.operator default` (`Available=True`, `Progressing=False`, `Degraded=False`):\n   `oc get dns.operator default -o jsonpath='{range .status.conditions[*]}{.type}={.status}{\"\\n\"}{end}' | awk -F= '$1==\"Available\"{a=$2} $1==\"Progressing\"{p=$2} $1==\"Degraded\"{d=$2} END{print (a==\"True\" && p==\"False\" && d==\"False\"?\"PASS\":\"FAIL\"), \"Available=\"a, \"Progressing=\"p, \"Degraded=\"d}'`"
-priority_hint = ""
-impact = "workload-shift"
-impact_scope = "DNS Operator and CoreDNS pods"
-impact_detail = "Restoring dns.operator default rolls CoreDNS and can briefly break name resolution. It does not reboot nodes."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#nw-dns-operator_dns-operator"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#nw-dns-operator_dns-operator"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#nw-dns-operator_dns-operator"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#nw-dns-operator_dns-operator"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#nw-dns-operator_dns-operator"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#nw-dns-operator_dns-operator"
-
+content_from = "7.1.tsr.1_5_2_1_dns_config"
+include_in_findings = false
 [[checks]]
 check_id = "7.1.tsr.1_5_2_1_dns_config"
 title = "1.5.2.1. DNS Config"
@@ -938,23 +810,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.1.tsr.1_5_11_fips"
 title = "1.5.11. FIPS"
-description = "FIPS 140-2 mode enforces use of validated cryptographic modules. FIPS must\nbe enabled at install time and cannot be toggled post-install. This check\nverifies whether FIPS is active and consistent across nodes.\n"
-recommendation = "Treat FIPS as install-time only. If the design required FIPS and `/proc/sys/crypto/fips_enabled` is 0, this is a rebuild. If FIPS is on and not required, leave it — turning it off is also a rebuild."
-verification = "1. Print the FIPS setting from install-config:\n   `oc get configmap cluster-config-v1 -n kube-system -o jsonpath='{.data.install-config}' | grep -i '^fips:'`\n2. Confirm FIPS status on each node:\n   `oc debug node/<name> -- chroot /host cat /proc/sys/crypto/fips_enabled`\n3. A value of `1` means FIPS is active. FIPS can only be set at install time."
-priority_hint = ""
-impact = "maintenance-window"
-impact_scope = "cluster rebuild"
-impact_detail = "FIPS is install-time. Turning it on or off is a rebuild, not a day-2 flag."
-finding_on_info = false
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-fips_installing-platform-agnostic"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-fips_installing-platform-agnostic"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-fips_installing-platform-agnostic"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-fips_installing-platform-agnostic"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-fips_installing-platform-agnostic"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-fips_installing-platform-agnostic"
-
+content_from = "7.1.tsr.1_4_1_master_nodes"
+include_in_findings = false
 [[checks]]
 check_id = "7.1.tsr.1_5_12_huge_pages"
 title = "1.5.12. Huge Pages"

@@ -274,7 +274,7 @@ content_from = "7.5.pruning.jobs"
 [[checks]]
 check_id = "7.6.tsr.6_3_1_active_alerts"
 title = "TSR active alerts"
-content_from = "7.5.tsr.5_11_health_related_alerts"
+content_from = "7.1.tsr.1_5_2_3_dns_alerts"
 include_in_findings = false
 
 [[checks]]
@@ -311,41 +311,13 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.6.tsr.6_1_1_quota_and_resources"
 title = "6.1.1. Quota and Resources"
-description = "Evaluates ResourceQuota and LimitRange coverage across namespaces. Without\nquotas, individual namespaces can exhaust shared cluster capacity and create\nnoisy-neighbor conditions for other tenants.\n"
-recommendation = "This section is ResourceQuota and LimitRange coverage on tenant projects. Scored recommendations live on project assignment and cluster-quota configuration children."
-verification = "1. List ResourceQuota coverage across namespaces.\n   `oc get resourcequota -A`\n2. Print LimitRange defaults (DEFAULT_CPU, DEFAULT_MEM) per namespace.\n   `oc get limitrange -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,DEFAULT_CPU:.spec.limits[0].default.cpu,DEFAULT_MEM:.spec.limits[0].default.memory`\n3. Apply ResourceQuotas to tenant namespaces.\n4. Configure project templates to auto-apply quotas on namespace creation."
-priority_hint = "P3"
-impact = "non-disruptive"
-impact_scope = "namespace admission and capacity guardrails"
-impact_detail = "Quota changes take effect immediately for new creates and scale-outs but do not restart nodes or stop running workloads."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/scalability_and_performance/index#compute-resource-quotas"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/scalability_and_performance/index#compute-resource-quotas"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/scalability_and_performance/index#compute-resource-quotas"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/scalability_and_performance/index#compute-resource-quotas"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/scalability_and_performance/index#compute-resource-quotas"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/scalability_and_performance/index#compute-resource-quotas"
-
+content_from = "7.6.tsr.6_1_1_1_quota_resources_project_assignment"
+include_in_findings = false
 [[checks]]
 check_id = "7.6.tsr.6_1_1_2_cluster_quota_configuration"
 title = "6.1.1.2. Cluster Quota Configuration"
-description = "This check evaluates ClusterResourceQuota objects, which enforce a shared resource limit across multiple OpenShift namespaces selected by project labels or annotations. Unlike a namespace-scoped ResourceQuota, usage is aggregated across all matching projects, so an incorrect selector or undersized hard limit can block workload creation or scaling in multiple namespaces.\n"
-recommendation = "Keep each ClusterResourceQuota selector narrowly scoped to the intended projects and size its hard limits for the combined CPU, memory, storage, pod, and object capacity those projects are allowed to consume. Review aggregate used versus hard before onboarding namespaces or scaling workloads. An empty selector, no matching namespaces, or no ClusterResourceQuota is not inherently unhealthy. It may simply mean no shared cross-project cap is intended."
-verification = "1. List ClusterResourceQuota objects with their selectors and hard limits.\n   `oc get clusterresourcequota -o custom-columns=NAME:.metadata.name,SELECTOR:.spec.selector,HARD:.spec.quota.hard`\n2. Check actual consumption against limits for a specific quota.\n   `oc describe clusterresourcequota <name>`"
-priority_hint = "P3"
-impact = "non-disruptive"
-impact_scope = "cross-namespace resource admission"
-impact_detail = "ClusterResourceQuota changes affect admission for new creates across selected namespaces without restarting nodes."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/scalability_and_performance/index#quota-scopes_using-quotas-and-limit-ranges"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/scalability_and_performance/index#quota-scopes_using-quotas-and-limit-ranges"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/scalability_and_performance/index#quota-scopes_using-quotas-and-limit-ranges"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/scalability_and_performance/index#quota-scopes_using-quotas-and-limit-ranges"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/scalability_and_performance/index#quota-scopes_using-quotas-and-limit-ranges"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/scalability_and_performance/index#quota-scopes_using-quotas-and-limit-ranges"
-
+content_from = "7.6.tsr.6_1_1_1_quota_resources_project_assignment"
+include_in_findings = false
 [[checks]]
 check_id = "7.6.tsr.6_1_2_requests_and_limits"
 title = "6.1.2. Requests and Limits"
@@ -497,22 +469,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.6.tsr.6_2_patch_management"
 title = "6.2. Patch Management"
-description = "Parent section covering cluster and workload patching including update history,\nworkload impact assessment, and container image currency. Stale patches\nincrease security exposure and supportability risk.\n"
-recommendation = "This section is whether the cluster and its operators can still patch. Scored recs live on the children: update history, update-impacting workloads, and image patch policy."
-verification = "1. Print the current cluster version and update channel, then list available upgrades.\n   `oc get clusterversion version -o jsonpath='{.status.desired.version}{\" \"}{.spec.channel}{\"\\n\"}'`\n   `oc adm upgrade`\n2. List operator subscriptions where INSTALLED differs from CURRENT, indicating a pending update.\n   `oc get subscription -A --no-headers -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,INSTALLED:.status.installedCSV,CURRENT:.status.currentCSV | awk '$3!=$4 {print}'`\n3. Plan upgrade paths using the OCP Upgrade Graph."
-priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/updating_clusters/index#understanding-openshift-updates"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/updating_clusters/index#understanding-openshift-updates"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/updating_clusters/index#understanding-openshift-updates"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/updating_clusters/index#understanding-openshift-updates"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/updating_clusters/index#understanding-openshift-updates"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/updating_clusters/index#understanding-openshift-updates"
-
+content_from = "7.6.tsr.6_1_capacity_management"
+include_in_findings = false
 [[checks]]
 check_id = "7.6.tsr.6_2_2_update_impacting_workloads"
 title = "6.2.2. Update Impacting Workloads"
@@ -554,22 +512,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.6.tsr.6_3_alert_management"
 title = "6.3. Alert Management"
-description = "Parent section covering alert management including active alerts, receiver\nconfiguration, and update retrieval. Effective alerting ensures operational\nissues are detected and routed to the appropriate teams.\n"
-recommendation = "This parent is Alertmanager routing, not the firing-alert table. Grep receiver and route names only — the secret can contain webhook URLs."
-verification = "1. Print Alertmanager receiver and route names from the secret. The secret can contain webhook URLs — do not dump the full content.\n   `oc -n openshift-monitoring get secret alertmanager-main -o jsonpath='{.data.alertmanager.yaml}' | base64 -d | grep -E '^(receivers:|route:)|severity:'`\n2. Verify receivers are configured for critical and warning routes.\n3. Verify alert inhibition rules prevent noise."
-priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/latest/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
-"4.18" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.18/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
-"4.19" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.19/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
-"4.20" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.20/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
-"4.21" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.21/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
-"4.22" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.22/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
-
+content_from = "7.6.tsr.6_1_capacity_management"
+include_in_findings = false
 [[checks]]
 check_id = "7.6.tsr.6_3_2_alert_receivers"
 title = "6.3.2. Alert Receivers"

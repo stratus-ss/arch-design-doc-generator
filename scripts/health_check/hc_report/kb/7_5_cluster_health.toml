@@ -246,22 +246,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.5.tsr.5_2_machine_config"
 title = "5.2. Machine Config"
-description = "This check is MachineConfig drift: node STATE, CURRENT, and DESIRED, and MCP DEGRADED. `STATE=Done` and `CURRENT=DESIRED` = **PASS**. `DEGRADED=True` = **FAIL**."
-recommendation = "Bring every node CURRENT annotation to DESIRED, and clear MCP Degraded. This row is read-only; applying the desired config drains and reboots that pool."
-verification = "1. List each node's machine-config state, current config, and desired config. `STATE=Done` with CURRENT matching DESIRED is healthy; otherwise the row needs action. If no nodes exist the command reports it:\n   `oc get nodes -o 'custom-columns=NAME:.metadata.name,STATE:.metadata.annotations.machineconfiguration\\.openshift\\.io/state,CURRENT:.metadata.annotations.machineconfiguration\\.openshift\\.io/currentConfig,DESIRED:.metadata.annotations.machineconfiguration\\.openshift\\.io/desiredConfig' --no-headers | awk '{r=\"PASS\"; if($2!=\"Done\" || $3!=$4) r=\"FAIL\"; print r, \"NAME=\"$1, \"STATE=\"$2, \"CURRENT=\"$3, \"DESIRED=\"$4} END{if(NR==0) print \"INFO n/a-node\"}'`\n2. List `MachineConfigPool` rendered config and degradation status. `DEGRADED=True` needs action; `UPDATING=True` is informational. If no pools exist the command reports it:\n   `oc get mcp --no-headers | awk '{r=\"PASS\"; if($5==\"True\") r=\"FAIL\"; else if($4==\"True\") r=\"INFO\"; print r, \"NAME=\"$1, \"CONFIG=\"$2, \"UPDATED=\"$3, \"UPDATING=\"$4, \"DEGRADED=\"$5} END{if(NR==0) print \"INFO n/a-mcp\"}'`"
-priority_hint = ""
-impact = "rolling-restart"
-impact_scope = "nodes in the affected MachineConfigPool"
-impact_detail = "Scoring drift is read-only. Applying a desired MachineConfig drains and reboots nodes in that pool."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/machine_configuration/index#understanding-the-machine-config-operator"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/machine_configuration/index#understanding-the-machine-config-operator"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/postinstallation_configuration/index#understanding-the-machine-config-operator"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/postinstallation_configuration/index#understanding-the-machine-config-operator"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/machine_configuration/index#understanding-the-machine-config-operator"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/machine_configuration/index#understanding-the-machine-config-operator"
-
+content_from = "7.3.tsr.3_15_machine_config_pool"
+include_in_findings = false
 [[checks]]
 check_id = "7.5.tsr.5_3_operator_state"
 title = "5.3. Operator State"
@@ -284,24 +270,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.5.tsr.5_4_registry_health"
 title = "5.4. Registry Health"
-description = "Validates internal image registry pod health, storage backend availability, and\nmanagementState. A degraded registry blocks builds, ImageStream imports, and\ninternal image distribution.\n"
-recommendation = "Restore registry pods and the image-registry ClusterOperator, and configure storage if it is missing. A degraded registry blocks builds and ImageStream imports. Operator managementState is ownership of the registry, not the storage backend."
-verification = "1. Check the image-registry ClusterOperator status. A healthy operator shows `AVAILABLE=True`, `PROGRESSING=False`, `DEGRADED=False`:\n   `oc get co image-registry --no-headers | awk '{print ($3==\"True\" && $4==\"False\" && $5==\"False\"?\"PASS\":\"FAIL\"), $0}'`\n2. Verify registry pods are running:\n   `oc get pods -n openshift-image-registry`\n3. Show the managementState and storage backend configuration:\n   `oc get configs.imageregistry.operator.openshift.io cluster -o custom-columns=STATE:.spec.managementState,REPLICAS:.spec.replicas,EMPTYDIR:.spec.storage.emptyDir,PVC:.spec.storage.pvc.claim`"
-priority_hint = ""
-impact = "workload-shift"
-impact_scope = "image-registry pods and internal image workflows"
-impact_detail = "Changing registry state or storage rolls registry pods and can briefly interrupt builds or internal image pulls/pushes."
-finding_group = "registry-health-pods"
-finding_group_title = "Image registry health (pods and ClusterOperator)"
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/registry/index#checking-the-status-of-registry-pods_accessing-the-registry"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/registry/index#checking-the-status-of-registry-pods_accessing-the-registry"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/registry/index#checking-the-status-of-registry-pods_accessing-the-registry"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/registry/index#checking-the-status-of-registry-pods_accessing-the-registry"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/registry/index#checking-the-status-of-registry-pods_accessing-the-registry"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/registry/index#checking-the-status-of-registry-pods_accessing-the-registry"
-
+content_from = "7.3.tsr.3_6_1_registry_scaled"
+include_in_findings = false
 [[checks]]
 check_id = "7.5.tsr.5_5_pod_frequent_restarts"
 title = "5.5. Pod Frequent Restarts"
@@ -402,22 +372,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.5.tsr.5_11_health_related_alerts"
 title = "5.11. Health Related Alerts"
-description = "Parent section covering health-related alerts including control plane, node,\nand overcommit alert categories. Active alerts signal conditions that may\ndegrade cluster stability or workload reliability.\n"
-recommendation = "This parent is the compact alert table. Scored recommendations live on the control-plane, node-pressure, and overcommit alert children."
-verification = "1. List all firing alerts, showing `state`, `alertname`, and `severity`:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -s http://localhost:9090/api/v1/alerts | jq '.data.alerts[] | {state, alertname: .labels.alertname, severity: .labels.severity}'`\n2. Control-plane, node, and overcommit breakdowns are in the 5.11.x sub-checks."
-priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/latest/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
-"4.18" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.18/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
-"4.19" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.19/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
-"4.20" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.20/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
-"4.21" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.21/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
-"4.22" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.22/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
-
+content_from = "7.1.tsr.1_5_2_3_dns_alerts"
+include_in_findings = false
 [[checks]]
 check_id = "7.5.tsr.5_11_1_control_plane_alerts"
 title = "5.11.1. Control Plane Alerts"
@@ -440,41 +396,13 @@ default = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat
 [[checks]]
 check_id = "7.5.tsr.5_11_2_node_alerts"
 title = "5.11.2. Node Alerts"
-description = "This check is node READY and MEMORY/DISK/PID pressure. `READY=True` and pressures False = **PASS**. Else **FAIL**."
-recommendation = "Restore `Ready=True` and MEMORY/DISK/PID pressure False on every node. Pressure True means the kubelet is protecting the node — find the consumer before you add more workload."
-verification = "1. List each node with READY, MEMORY pressure, DISK pressure, and PID pressure. `READY=True` with all pressures False is healthy; any other combination needs action. If no nodes exist the command reports it. Quote the custom-columns value so bash does not parse the jsonpath:\n   `oc get nodes -o 'custom-columns=NAME:.metadata.name,READY:.status.conditions[?(@.type==\"Ready\")].status,MEMORY:.status.conditions[?(@.type==\"MemoryPressure\")].status,DISK:.status.conditions[?(@.type==\"DiskPressure\")].status,PID:.status.conditions[?(@.type==\"PIDPressure\")].status' --no-headers | awk '{r=\"PASS\"; if($2!=\"True\" || $3!=\"False\" || $4!=\"False\" || $5!=\"False\") r=\"FAIL\"; print r, \"NAME=\"$1, \"READY=\"$2, \"MEMORY=\"$3, \"DISK=\"$4, \"PID=\"$5} END{if(NR==0) print \"INFO n/a-node\"}'`"
-priority_hint = ""
-impact = "maintenance-window"
-impact_scope = "nodes with Ready false or MEMORY, DISK, or PID pressure"
-impact_detail = "Pressure True means the kubelet is protecting the node. Finding the consumer or adding capacity can require a drain or node replacement."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/nodes/index#nodes-nodes-viewing-listing_nodes-nodes-viewing"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/nodes/index#nodes-nodes-viewing-listing_nodes-nodes-viewing"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/nodes/index#nodes-nodes-viewing-listing_nodes-nodes-viewing"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/nodes/index#nodes-nodes-viewing-listing_nodes-nodes-viewing"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/nodes/index#nodes-nodes-viewing-listing_nodes-nodes-viewing"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/nodes/index#nodes-nodes-viewing-listing_nodes-nodes-viewing"
-
+content_from = "7.1.tsr.1_5_2_3_dns_alerts"
+include_in_findings = false
 [[checks]]
 check_id = "7.5.tsr.5_11_3_overcommit_alerts"
 title = "5.11.3. Overcommit Alerts"
-description = "This check evaluates CPU and memory request overcommit using Overcommit/Quota alerts and the ratio of requested resources to node allocatable capacity. A ratio greater than 1.0 is a **WARNING** because scheduled requests exceed available allocatable resources.\n"
-recommendation = "Review workloads scheduled to node pools where CPU or memory requests exceed available allocatable capacity, then right-size requests based on sustained demand or add node capacity. Do not rely on `oc adm top` to assess this condition, as it reports current usage rather than scheduler reservations and can show idle nodes even when the cluster is overcommitted. Avoid increasing allocatable values solely to suppress the alert."
-verification = "1. List firing Overcommit or Quota alerts by state, alertname, and severity. If none are firing the command reports it:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -s http://localhost:9090/api/v1/alerts | jq -r '.data.alerts[] | select(.labels.alertname | test(\"Overcommit|Quota\"; \"i\")) | [.state, .labels.alertname, .labels.severity] | @tsv' | awk -F'\\t' '{print \"WARNING\", \"STATE=\"$1, \"ALERT=\"$2, \"SEVERITY=\"$3} END{if(NR==0) print \"INFO n/a-overcommit-alert\"}'`\n2. Show CPU request-to-allocatable ratio per node. A ratio above 1 means CPU requests exceed allocatable capacity. If no data is returned the command reports it:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -sG http://localhost:9090/api/v1/query --data-urlencode 'query=sum by (node) (kube_pod_container_resource_requests{resource=\"cpu\"}) / sum by (node) (kube_node_status_allocatable{resource=\"cpu\"})' | jq -r '.data.result[] | [.metric.node, .value[1]] | @tsv' | awk -F'\\t' '{r=\"PASS\"; if($2+0>1) r=\"WARNING\"; printf \"%s NODE=%s CPU_REQ_RATIO=%.2f\\n\", r, $1, $2} END{if(NR==0) print \"INFO n/a-cpu-overcommit\"}'`\n3. Show memory request-to-allocatable ratio per node. A ratio above 1 means memory requests exceed allocatable capacity. If no data is returned the command reports it:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -sG http://localhost:9090/api/v1/query --data-urlencode 'query=sum by (node) (kube_pod_container_resource_requests{resource=\"memory\"}) / sum by (node) (kube_node_status_allocatable{resource=\"memory\"})' | jq -r '.data.result[] | [.metric.node, .value[1]] | @tsv' | awk -F'\\t' '{r=\"PASS\"; if($2+0>1) r=\"WARNING\"; printf \"%s NODE=%s MEM_REQ_RATIO=%.2f\\n\", r, $1, $2} END{if(NR==0) print \"INFO n/a-mem-overcommit\"}'`"
-priority_hint = ""
-impact = "workload-shift"
-impact_scope = "workloads whose requests exceed allocatable"
-impact_detail = "Right-sizing requests from sustained demand reschedules or rolls those workloads. Adding nodes is a maintenance window. Do not raise allocatable to hide the alert."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/nodes/index#nodes-cluster-overcommit-reserving-resources_nodes-cluster-overcommit"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/nodes/index#nodes-cluster-overcommit-reserving-resources_nodes-cluster-overcommit"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/nodes/index#nodes-cluster-overcommit-reserving-resources_nodes-cluster-overcommit"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/nodes/index#nodes-cluster-overcommit-reserving-resources_nodes-cluster-overcommit"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/nodes/index#nodes-cluster-overcommit-reserving-resources_nodes-cluster-overcommit"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/nodes/index#nodes-cluster-overcommit-reserving-resources_nodes-cluster-overcommit"
-
+content_from = "7.1.tsr.1_5_2_3_dns_alerts"
+include_in_findings = false
 [[checks]]
 check_id = "7.5.tsr.5_12_dns_health"
 title = "5.12. DNS Health"

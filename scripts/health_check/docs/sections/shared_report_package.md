@@ -13,7 +13,7 @@ scripts/health_check/hc_report/
   kb/               — external TOML knowledge base: descriptions, recommendations,
                        optional verification, impact metadata, and version-aware doc
                        links, keyed by check_id. Sparse `content_from` rows are aliases
-                       (they inherit verification); see root README Knowledge Base.
+                       (they inherit verification; new aliases omit Chapter 6); see root README Knowledge Base.
   kb_loader.py      — loads/version-resolves the KB (including `content_from` aliases);
                        get_recommendation() joins optional verification with a bold
                        **Verification:** line; get_links()/get_impact()

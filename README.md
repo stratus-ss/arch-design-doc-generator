@@ -125,7 +125,10 @@ Some `[[checks]]` entries look almost empty on purpose. When two `check_id`s tel
 check_id = "7.6.tsr.6_1_5_1_pod_pruning"
 title = "TSR pod pruning"
 content_from = "7.5.pruning.pods"
+include_in_findings = false
 ```
+
+Prefer a **native** `check_id` as the target when one exists (RHACM → `7.4.acm.state`, ODF → `7.4.odf.state`, virt → `7.4.cnv.state` / `kubevirt` / `pods` / `live_migratable` by story). Distinct virt TSR prose rows stay canonical; they are not aliases of `7.4.tsr.4_8_1_1_1_identification_and_state`. New Plan 2c aliases set `include_in_findings = false` so Chapter 6 findings come from the native row; Chapter 7 still lists the alias.
 
 `load_kb()` copies those inherited fields from the canonical row in a **single hop**. Title and finding flags (`include_in_findings`, `finding_group`, `finding_on_info`) stay on the alias so chapter 7 can still list every check while Chapter 4 / §6.2 may merge or hide duplicates.
 

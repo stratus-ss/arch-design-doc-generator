@@ -139,22 +139,8 @@ default = "https://access.redhat.com/security/cve/CVE-2026-43284"
 [[checks]]
 check_id = "7.7.ccx_internal.high_severity_alerts"
 title = "CCX high severity alerts"
-description = "Indicates firing Prometheus alerts with severity critical or warning. Any critical alert is considered a **FAIL** while any warning alert is **WARNING**.\n"
-recommendation = "Investigate and resolve all firing Prometheus alerts according to their severity. Treat critical alerts as active incidents requiring immediate triage and remediation. Warnings still need to be remediated even when it does not require immediate intervention. An empty result confirms that no high-severity alerts are currently firing."
-verification = "1. Print firing Prometheus alerts with severity critical or warning. A critical alert needs immediate action; a warning needs review. An empty result means no high-severity alerts are firing.\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -s http://localhost:9090/api/v1/alerts | jq -r '.data.alerts[] | select(.state==\"firing\" and (.labels.severity==\"critical\" or .labels.severity==\"warning\")) | [.state, .labels.alertname, .labels.severity] | @tsv' | awk -F'\\t' '{r=\"FAIL\"; if($3==\"warning\") r=\"WARNING\"; print r, \"STATE=\"$1, \"ALERT=\"$2, \"SEVERITY=\"$3} END{if(NR==0) print \"PASS none-high-severity\"}'`"
-priority_hint = ""
-impact = "maintenance-window"
-impact_scope = "whatever the alertname names, often control plane"
-impact_detail = "Clearing a firing critical alert follows that alert's runbook. Do not silence it. The remediating change is usually planned control-plane or node work."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/latest/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
-"4.18" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.18/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
-"4.19" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.19/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
-"4.20" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.20/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
-"4.21" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.21/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
-"4.22" = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/4.22/html-single/managing_alerts/index#getting-information-about-alerts-silences-and-alerting-rules_managing-alerts-as-an-administrator"
-
+content_from = "7.1.tsr.1_5_2_3_dns_alerts"
+include_in_findings = false
 [[checks]]
 check_id = "7.7.ccx_internal.high_core_dns_errors_high_alerts"
 title = "CCX high CoreDNS error rate"
@@ -208,90 +194,31 @@ content_from = "7.5.tsr.5_3_operator_state"
 [[checks]]
 check_id = "7.7.ccx_internal.pods_check_containers"
 title = "CCX pods container health"
-description = "One or more pods have containers that are repeatedly crashing (`CrashLoopBackOff`), cannot pull their image (ImagePullBackOff), or are restarting frequently. The evidence lists the specific pods and their restart counts. These failures may indicate application bugs, missing configuration, or infrastructure problems."
-recommendation = "Treat `CrashLoopBackOff`, ImagePullBackOff, and container Error states as active pod failures and diagnose the cause before deleting or restarting the affected pod. Review the pod events and container logs to identify application failures, invalid configuration, missing secrets or ConfigMaps, image-reference or registry-authentication issues, dependency failures, or resource constraints. Investigate high restart counts separately when the pod is not in `CrashLoopBackOff`, because that represents a restart-frequency issue rather than this specific failure-state finding."
-verification = "1. List pods in `CrashLoopBackOff`, Error, or ImagePullBackOff state.\n   `oc get pods -A | grep -E 'CrashLoop|Error|ImagePull'`\n2. For `CrashLoopBackOff` pods, check the previous container log and pod events for the crash reason.\n   `oc logs <pod> -n <ns> --previous`\n   `oc describe pod <pod> -n <ns>`\n3. For ImagePullBackOff pods, verify the image reference is correct, pull secrets are configured, and network connectivity to the registry is working."
-priority_hint = ""
-impact = "workload-shift"
-impact_scope = "CrashLoopBackOff, ImagePullBackOff, and Error containers"
-impact_detail = "Correcting image, configuration, or memory limits restarts those pods. OOMKilled can also mean node memory pressure that needs capacity work."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/support/index#investigating-pod-issues"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/support/index#investigating-pod-issues"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/support/index#investigating-pod-issues"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/support/index#investigating-pod-issues"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/support/index#investigating-pod-issues"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/support/index#investigating-pod-issues"
-
+content_from = "7.7.ccx_internal.pods_check"
+include_in_findings = false
 [[checks]]
 check_id = "7.7.ccx_internal.uninstalled_operators_with_leftover_resources"
 title = "CCX uninstalled operators with leftover resources"
-content_from = "7.3.tsr.3_3_custom_resource_definitions"
-
+content_from = "7.3.tsr.3_2_1_platform_operators"
 [[checks]]
 check_id = "7.7.ccx_internal.webhooks_check"
 title = "CCX webhooks health"
-description = "Fail/timeout/tier scoring for both ValidatingWebhookConfiguration and MutatingWebhookConfiguration. Fail count is **WARNING**, timeout>10 is **WARNING**, Fail scoped to openshift-*/kube-system is **FAIL**.\n"
-recommendation = "Review validating and mutating webhooks for Fail policy, timeout over 10 seconds, and Fail scoped to openshift-*/kube-system. A down backend with Fail rejects or stalls admission cluster-wide.\n\nValidating hooks admit or deny without rewriting the object. Mutating hooks rewrite objects before they are persisted. Inspect validating webhooks first, then mutating webhooks."
-verification = "1. Validating webhook scan. Count `failurePolicy=Fail` hooks ; more than zero needs review (shipped operators commonly use Fail).\n   `oc get validatingwebhookconfigurations -o json | jq '[.items[].webhooks[]? | select(.failurePolicy==\"Fail\")] | length' | awk '{print ($1==0?\"PASS\":\"WARNING\"), \"fail_policy=\"$1}'`\n2. Print `CONFIG`, `HOOK`, `TIMEOUT`, `POLICY`, `SERVICE` for `timeoutSeconds>10` . Any listed row needs review.\n   `oc get validatingwebhookconfigurations -o json | jq -r '\"CONFIG\\tHOOK\\tTIMEOUT\\tPOLICY\\tSERVICE\", (.items[] as $config | $config.webhooks[]? | select((.timeoutSeconds // 10) > 10) | [$config.metadata.name, .name, (.timeoutSeconds // 10 | tostring), (.failurePolicy // \"Ignore\"), ((.clientConfig.service.namespace // \"-\")+\"/\"+(.clientConfig.service.name // \"-\"))] | @tsv)' | column -t | awk 'NR==1{print; next} {print; n++} END{print (n==0?\"PASS\":\"WARNING\"), n+0, \"timeout>10\"}'`\n      An empty result means no timeout issue.\n3. Print Fail hooks whose selector values name `openshift-*`, `kube-system`, `kube-public`, or `default` . Any listed row needs action.\n   `oc get validatingwebhookconfigurations -o json | jq -r '\"CONFIG\\tHOOK\\tNS_VALUES\", (.items[] as $config | $config.webhooks[]? | select(.failurePolicy==\"Fail\") | [((.namespaceSelector.matchLabels // {})[]), (.namespaceSelector.matchExpressions[]?.values[]?)] as $ns | select(any($ns[]; type==\"string\" and (startswith(\"openshift-\") or .==\"kube-system\" or .==\"kube-public\" or .==\"default\"))) | [$config.metadata.name, .name, ($ns|join(\",\"))] | @tsv)' | column -t | awk 'NR==1{print; next} {print; n++} END{print (n==0?\"PASS\":\"FAIL\"), n+0, \"fail_tier\"}'`\n      An empty result means no Fail-policy issue. If steps 1–3 are clean, the validating scan is complete.\n4. For each remaining SERVICE, check EndpointSlice readiness.\n   `oc get endpointslice -n <ns> -l kubernetes.io/service-name=<svc> -o json | jq '{ready: ([.items[].endpoints[]? | select(.conditions.ready==true)] | length), notReady: ([.items[].endpoints[]? | select(.conditions.ready!=true)] | length)}'`\n   `ready=0` means the backend is down.\n\nMutating hooks rewrite objects before they are persisted. The same Fail/timeout/tier checks apply; a down backend blocks those mutations and can stall admission.\n\n5. Mutating webhook scan. Count `failurePolicy=Fail` hooks ; more than zero needs review (shipped operators commonly use Fail).\n   `oc get mutatingwebhookconfigurations -o json | jq '[.items[].webhooks[]? | select(.failurePolicy==\"Fail\")] | length' | awk '{print ($1==0?\"PASS\":\"WARNING\"), \"fail_policy=\"$1}'`\n6. Print `CONFIG`, `HOOK`, `TIMEOUT`, `POLICY`, `SERVICE` for `timeoutSeconds>10` . Any listed row needs review.\n   `oc get mutatingwebhookconfigurations -o json | jq -r '\"CONFIG\\tHOOK\\tTIMEOUT\\tPOLICY\\tSERVICE\", (.items[] as $config | $config.webhooks[]? | select((.timeoutSeconds // 10) > 10) | [$config.metadata.name, .name, (.timeoutSeconds // 10 | tostring), (.failurePolicy // \"Ignore\"), ((.clientConfig.service.namespace // \"-\")+\"/\"+(.clientConfig.service.name // \"-\"))] | @tsv)' | column -t | awk 'NR==1{print; next} {print; n++} END{print (n==0?\"PASS\":\"WARNING\"), n+0, \"timeout>10\"}'`\n      An empty result means no timeout issue.\n7. Print Fail hooks whose selector values name `openshift-*`, `kube-system`, `kube-public`, or `default` . Any listed row needs action.\n   `oc get mutatingwebhookconfigurations -o json | jq -r '\"CONFIG\\tHOOK\\tNS_VALUES\", (.items[] as $config | $config.webhooks[]? | select(.failurePolicy==\"Fail\") | [((.namespaceSelector.matchLabels // {})[]), (.namespaceSelector.matchExpressions[]?.values[]?)] as $ns | select(any($ns[]; type==\"string\" and (startswith(\"openshift-\") or .==\"kube-system\" or .==\"kube-public\" or .==\"default\"))) | [$config.metadata.name, .name, ($ns|join(\",\"))] | @tsv)' | column -t | awk 'NR==1{print; next} {print; n++} END{print (n==0?\"PASS\":\"FAIL\"), n+0, \"fail_tier\"}'`\n      An empty result means no Fail-policy issue. If steps 5–7 are clean, the mutating scan is complete.\n8. For each remaining SERVICE, check EndpointSlice readiness.\n   `oc get endpointslice -n <ns> -l kubernetes.io/service-name=<svc> -o json | jq '{ready: ([.items[].endpoints[]? | select(.conditions.ready==true)] | length), notReady: ([.items[].endpoints[]? | select(.conditions.ready!=true)] | length)}'`\n   `ready=0` means the backend is down."
-priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
+content_from = "7.3.tsr.3_13_webhooks"
 include_in_findings = false
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#configuring-dynamic-admission_admission-plug-ins"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/architecture/index#configuring-dynamic-admission_admission-plug-ins"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/architecture/index#configuring-dynamic-admission_admission-plug-ins"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/architecture/index#configuring-dynamic-admission_admission-plug-ins"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/architecture/index#configuring-dynamic-admission_admission-plug-ins"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/architecture/index#configuring-dynamic-admission_admission-plug-ins"
-
 [[checks]]
 check_id = "7.7.ccx_internal.image_registry_storage_comprehensive"
 title = "CCX image registry storage"
-content_from = "7.3.tsr.3_6_2_registry_storage_type"
-
+content_from = "7.3.tsr.3_6_1_registry_scaled"
 [[checks]]
 check_id = "7.7.ccx_internal.tls_handshake_errors"
 title = "CCX TLS handshake errors"
-description = "Cluster components are failing to establish secure (TLS) connections with each other. The evidence shows which components are affected. Common causes include expired certificates, mismatched TLS versions between components, or network appliances (load balancers, firewalls) interfering with encrypted traffic inside the cluster."
-recommendation = "TLS handshake failures between cluster components are usually expired certs, a too-strict TLS profile, or a middlebox terminating internal traffic. Identify the endpoints from the evidence, then check serving certs and the API TLS profile. Internal cluster TLS should pass through, not terminate, on the load balancer."
-verification = "1. Identify the failing components from the evidence log entries.\n2. List TLS-related secrets for the affected namespace.\n   `oc get secret -n <namespace> -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\\n' | grep -E 'tls|cert|serving'`\n3. Check the API server TLS security profile; a too-restrictive setting can cause handshake failures.\n   `oc get apiserver cluster -o jsonpath='{.spec.tlsSecurityProfile}'`\n4. If a load balancer or proxy sits between cluster nodes, confirm it passes through internal cluster TLS rather than terminating it."
-priority_hint = ""
-impact = "workload-shift"
-impact_scope = "components failing TLS handshakes"
-impact_detail = "Fixing handshake errors can require certificate rotation or TLS profile changes that restart the affected operands."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/security_and_compliance/index#tls-profiles-view-details_tls-security-profiles"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/security_and_compliance/index#tls-profiles-view-details_tls-security-profiles"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/security_and_compliance/index#tls-profiles-view-details_tls-security-profiles"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/security_and_compliance/index#tls-profiles-view-details_tls-security-profiles"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/security_and_compliance/index#tls-profiles-view-details_tls-security-profiles"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/security_and_compliance/index#tls-profiles-view-details_tls-security-profiles"
-
+content_from = "7.7.ccx_internal.certificates_expiring_soon"
+include_in_findings = false
 [[checks]]
 check_id = "7.7.tsr.7_1_security"
 title = "7.1. Security"
-description = "Parent section covering cluster security posture including container security,\nauditing, encryption, vulnerability scanning, TLS profiles, and pod security\nadmission. Comprehensive security requires addressing each sub-area.\n"
-recommendation = "This section is security posture. Child recs cover container security, etcd encryption, and PSA. Do not invent a rebuild rec here."
-verification = "1. Print SecurityContextConstraints and their privilege settings.\n   `oc get scc -o custom-columns=NAME:.metadata.name,PRIV:.allowPrivilegedContainer`\n2. Print the configured identity providers.\n   `oc get oauth cluster -o jsonpath='{.spec.identityProviders[*].name}{\"\\t\"}{.spec.identityProviders[*].type}{\"\\n\"}'`\n3. Print the API server etcd encryption type. An empty result means encryption is not configured.\n   `oc get apiserver cluster -o jsonpath='{.spec.encryption.type}{\"\\n\"}'`\n4. Print Pod Security Admission enforce labels per namespace.\n   `oc get namespaces -o custom-columns=NAME:.metadata.name,ENFORCE:.metadata.labels.pod-security\\.kubernetes\\.io/enforce`\n5. Review individual sub-check findings for specific security concerns."
-priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/security_and_compliance/index#security-platform_security-platform"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/security_and_compliance/index#security-platform_security-platform"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/security_and_compliance/index#security-platform_security-platform"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/security_and_compliance/index#security-platform_security-platform"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/security_and_compliance/index#security-platform_security-platform"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/security_and_compliance/index#security-platform_security-platform"
-
+content_from = "7.1.tsr.1_5_18_security_context_constraints"
+include_in_findings = false
 [[checks]]
 check_id = "7.7.tsr.7_1_1_container_security"
 title = "7.1.1. Container Security"
@@ -385,41 +312,13 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.7.tsr.7_2_compliance"
 title = "7.2. Compliance"
-description = "Parent section covering compliance assessment including automated scanning,\nscan results analysis, and file integrity monitoring. Compliance posture\nrequires continuous validation against organizational security baselines.\n"
-recommendation = "This section is Compliance Operator plus File Integrity Operator. Child recs cover scan cadence, results, and FIO. Do not invent a rebuild rec here."
-verification = "1. Check whether the Compliance Operator is installed.\n   `oc get csv -n openshift-compliance`\n2. Check whether the File Integrity Operator is installed.\n   `oc get csv -n openshift-file-integrity`\n3. Confirm scan schedules and results show continuous compliance monitoring is active."
-priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/security_and_compliance/index#compliance-operator-scan-management"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/security_and_compliance/index#compliance-operator-scan-management"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/security_and_compliance/index#compliance-operator-scan-management"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/security_and_compliance/index#compliance-operator-scan-management"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/security_and_compliance/index#compliance-operator-scan-management"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/security_and_compliance/index#compliance-operator-scan-management"
-
+content_from = "7.7.tsr.7_2_1_1_compliance_scans"
+include_in_findings = false
 [[checks]]
 check_id = "7.7.tsr.7_2_1_compliance_check"
 title = "7.2.1. Compliance Check"
-description = "Evaluates whether the Compliance Operator is installed and active with\nconfigured scan schedules. Without automated compliance scanning, security\ndrift goes undetected between manual audits.\n"
-recommendation = "No ScanSetting and no scheduled ComplianceSuite means scanning is not actually on. A running operator CSV is not enough — confirm a suite against CIS, NIST, or STIG."
-verification = "1. Confirm the Compliance Operator pods are running.\n   `oc get pods -n openshift-compliance`\n2. List the configured `ScanSettings`.\n   `oc get scansettings -n openshift-compliance`\n3. Confirm at least one `ComplianceSuite` is scheduled against a relevant profile (`CIS`, `NIST`, or `STIG`)."
-priority_hint = ""
-impact = "non-disruptive"
-impact_scope = "Compliance Operator ScanSetting and suite"
-impact_detail = "Deploying the Compliance Operator and running scans adds cluster load and creates scan pods, but it does not reboot nodes by itself."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/security_and_compliance/index#compliance-operator-scan-management"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/security_and_compliance/index#compliance-operator-scan-management"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/security_and_compliance/index#compliance-operator-scan-management"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/security_and_compliance/index#compliance-operator-scan-management"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/security_and_compliance/index#compliance-operator-scan-management"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/security_and_compliance/index#compliance-operator-scan-management"
-
+content_from = "7.7.tsr.7_2_1_1_compliance_scans"
+include_in_findings = false
 [[checks]]
 check_id = "7.7.tsr.7_2_1_1_compliance_scans"
 title = "7.2.1.1. Compliance Scans"
@@ -442,22 +341,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.7.tsr.7_2_1_2_compliance_scan_results"
 title = "7.2.1.2. Compliance Scan Results"
-description = "Evaluates ComplianceCheckResult objects for **FAIL** and INCONSISTENT findings.\nFailed compliance checks indicate configuration drift from the target security\nbaseline and may have regulatory implications.\n"
-recommendation = "Failed and inconsistent ComplianceCheckResults are drift from the chosen profile. Read the rule, then the remediation — applying a remediation can roll nodes."
-verification = "1. List ComplianceCheckResults with a **FAIL** status.\n   `oc get compliancecheckresults -n openshift-compliance -o custom-columns=NAME:.metadata.name,STATUS:.status --no-headers | awk '$2==\"FAIL\" {print}'`\n2. List available ComplianceRemediations for the failed rules.\n   `oc get complianceremediations -n openshift-compliance`\n3. Apply remediations only after reviewing their impact; some roll nodes."
-priority_hint = ""
-impact = "rolling-restart"
-impact_scope = "nodes targeted by the remediation"
-impact_detail = "Applying a Compliance remediation can drain and reboot targeted nodes. Read the rule before you apply it."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/security_and_compliance/index#compliance-operator-remediation"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/security_and_compliance/index#compliance-operator-remediation"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/security_and_compliance/index#compliance-operator-remediation"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/security_and_compliance/index#compliance-operator-remediation"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/security_and_compliance/index#compliance-operator-remediation"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/security_and_compliance/index#compliance-operator-remediation"
-
+content_from = "7.7.tsr.7_2_1_1_compliance_scans"
+include_in_findings = false
 [[checks]]
 check_id = "7.7.tsr.7_2_2_file_integrity"
 title = "7.2.2. File Integrity"
@@ -556,22 +441,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.7.ccx_internal.cluster_status_overview_nodes_and_machineconfigpools"
 title = "CCX Cluster Status Overview Nodes And Machineconfigpools"
-description = "Insights detected issues with node readiness or `MachineConfigPool` degradation.\nNotReady nodes cannot schedule workloads; degraded MCPs block configuration\nrollout and upgrades.\n"
-recommendation = "NotReady nodes cannot schedule; a degraded MCP blocks MachineConfig and upgrades. Describe the node or pool before you unpause or drain."
-verification = "1. List nodes and `MachineConfigPool`s.\n   `oc get nodes`\n   `oc get mcp`\n2. Investigate any `NotReady` nodes.\n   `oc describe node <node>`\n3. For degraded MCPs, inspect the pool details and MCO logs.\n   `oc describe mcp <pool>`\n4. Common causes include failed kubelet restarts, disk pressure, or stalled MachineConfig rendering."
-priority_hint = ""
-impact = "rolling-restart"
-impact_scope = "nodes in the degraded or updating MachineConfigPool"
-impact_detail = "Resolving MCP degradation may require the MCO to drain and reboot stuck nodes to complete configuration rollout."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/postinstallation_configuration/index#understanding-the-machine-config-operator"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/postinstallation_configuration/index#understanding-the-machine-config-operator"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/postinstallation_configuration/index#understanding-the-machine-config-operator"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/postinstallation_configuration/index#understanding-the-machine-config-operator"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/postinstallation_configuration/index#understanding-the-machine-config-operator"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/postinstallation_configuration/index#understanding-the-machine-config-operator"
-
+content_from = "7.5.tsr.5_7_machine_config_pool"
+include_in_findings = false
 [[checks]]
 check_id = "7.7.ccx_internal.cluster_status_overview_operators"
 title = "CCX Cluster Status Overview Operators"
@@ -580,7 +451,7 @@ content_from = "7.5.tsr.5_3_operator_state"
 [[checks]]
 check_id = "7.7.ccx_internal.image_registry_pods"
 title = "CCX Image Registry Pods"
-content_from = "7.5.tsr.5_4_registry_health"
+content_from = "7.3.tsr.3_6_1_registry_scaled"
 finding_group = "registry-health-pods"
 finding_group_title = "Image registry health (pods and ClusterOperator)"
 
@@ -654,21 +525,8 @@ content_from = "7.1.tsr.1_1_identification_and_state"
 [[checks]]
 check_id = "7.7.ccx_internal.version_info"
 title = "CCX Version Info"
-description = "Insights version information check providing details about the cluster version,\nupdate channel, and available updates. This informational check helps track\ncluster currency and update availability.\n"
-recommendation = "Version, channel, and availableUpdates are currency, not a defect by themselves. Confirm the channel matches the support policy."
-verification = "1. Print the cluster version, update channel, and available updates.\n   `oc get clusterversion version -o jsonpath='{.status.desired.version}{\" \"}{.spec.channel}{\"\\n\"}{range .status.availableUpdates[*]}available={.version}{\"\\n\"}{end}'`\n   `oc adm upgrade`\n2. Verify the cluster is on a supported update channel."
-priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/updating_clusters/index#understanding-openshift-updates"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/updating_clusters/index#understanding-openshift-updates"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/updating_clusters/index#understanding-openshift-updates"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/updating_clusters/index#understanding-openshift-updates"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/updating_clusters/index#understanding-openshift-updates"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/updating_clusters/index#understanding-openshift-updates"
+content_from = "7.3.tsr.3_1_cluster_version"
+include_in_findings = false
 [[checks]]
 check_id = "7.7.ccx_external.mcp_set_to_pause"
 title = "MCP Set To Pause"
@@ -705,46 +563,13 @@ finding_group_title = "MachineConfigPool degraded or updating"
 [[checks]]
 check_id = "7.7.ccx_external.cluster_does_not_support_olm_operators_network_policies"
 title = "Cluster Does Not Support OLM Operators Network Policies"
-description = "Red Hat Insights reports this OpenShift z-stream cannot let Operator Lifecycle Manager manage `NetworkPolicy` objects for OLM components. The defect is platform OLM support (Insights Fixed Version), not a missing customer NetworkPolicy."
-recommendation = "Upgrade the cluster to the Insights **Fixed Version** or a later z-stream on the same minor so OLM can manage its own `NetworkPolicy` objects. Do not create or edit NetworkPolicies for OLM namespaces to clear this finding; those objects are platform-managed after the z-stream. Use `oc adm upgrade` to pick an approved target that is at least the Fixed Version."
-verification = """1. Print the current ClusterVersion. Compare it to the Fixed Version in Observation. Below that z-stream needs an upgrade.
-   `oc get clusterversion version -o jsonpath='{.status.desired.version}{\"\\n\"}'`
-2. List eligible updates. Pick a target at or above the Fixed Version.
-   `oc adm upgrade`"""
-priority_hint = ""
-impact = "rolling-restart"
-impact_scope = "control plane and worker nodes in unpaused MachineConfigPools"
-impact_detail = "The z-stream upgrade rolls operators and typically reboots nodes through the MCO."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/updating_clusters/index#understanding-openshift-updates"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/updating_clusters/index#understanding-openshift-updates"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/updating_clusters/index#understanding-openshift-updates"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/updating_clusters/index#understanding-openshift-updates"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/updating_clusters/index#understanding-openshift-updates"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/updating_clusters/index#understanding-openshift-updates"
-
+content_from = "7.5.tsr.5_3_operator_state"
+include_in_findings = false
 [[checks]]
 check_id = "7.7.ccx_external.ocp_version_end_of_life"
 title = "OCP Version End Of Life"
-description = "Insights `OCP4X_EOL_IMMINENT` (or past EOL) compares ClusterVersion to the OpenShift life-cycle calendar. Even-numbered minors are EUS releases; Maintenance end is not the same as “no EUS remaining.”"
-recommendation = "Confirm whether the subscription includes Extended Update Support for this even-numbered minor. After Maintenance ends, Full/Maintenance patches stop; EUS Term 1 (when entitled) continues Critical/Important and urgent fixes only. Plan an EUS-to-EUS or supported minor upgrade off the assessed z-stream. A same-minor z-stream after Maintenance end does not restore Full/Maintenance. Do not stay on an unelected Standard-tier minor past Maintenance without an EUS add-on."
-verification = """1. Print desired version and channel.
-   `oc get clusterversion version -o jsonpath='{.status.desired.version}{\" \"}{.spec.channel}{\"\\n\"}'`
-2. Compare the minor to the OpenShift Container Platform life-cycle page in the reference for this check (Maintenance vs EUS dates)."""
-priority_hint = ""
-impact = "maintenance-window"
-impact_scope = "entire cluster"
-impact_detail = "Leaving Maintenance without EUS or an upgrade path leaves the cluster without standard errata; the upgrade itself reboots nodes."
-
-[checks.links]
-default = "https://access.redhat.com/support/policy/updates/openshift"
-"4.18" = "https://access.redhat.com/support/policy/updates/openshift"
-"4.19" = "https://access.redhat.com/support/policy/updates/openshift"
-"4.20" = "https://access.redhat.com/support/policy/updates/openshift"
-"4.21" = "https://access.redhat.com/support/policy/updates/openshift"
-"4.22" = "https://access.redhat.com/support/policy/updates/openshift"
-
+content_from = "7.3.tsr.3_1_cluster_version"
+include_in_findings = false
 [[checks]]
 check_id = "7.7.ccx_internal.pods_crash_loop_check"
 title = "Pods Crash Loop Check"

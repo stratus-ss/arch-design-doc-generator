@@ -139,22 +139,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.2.tsr.2_2_high_availability"
 title = "2.2. High Availability"
-description = "Section overview for high availability checks. Evaluates control plane\nresiliency including master node count, failure-domain distribution, and load\nbalancer redundancy to ensure the cluster can survive component failures.\n"
-recommendation = "This section is a section index. Use master count, zone labels, and API/ingress load-balancer redundancy for scored recommendations."
-verification = "1. Check control-plane readiness. The `STATUS` column shows Ready or NotReady:\n   `oc get nodes -l node-role.kubernetes.io/master`"
-priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#about-control-planes_architecture-overview"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/architecture/index#about-control-planes_architecture-overview"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/architecture/index#about-control-planes_architecture-overview"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/architecture/index#about-control-planes_architecture-overview"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/architecture/index#about-control-planes_architecture-overview"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/architecture/index#about-control-planes_architecture-overview"
-
+content_from = "7.2.tsr.2_1_consistency"
+include_in_findings = false
 [[checks]]
 check_id = "7.2.tsr.2_2_1_number_of_master_nodes"
 title = "2.2.1. Number of Master Nodes"
@@ -217,22 +203,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.2.tsr.2_3_scalability"
 title = "2.3. Scalability"
-description = "Section overview for scalability checks. Assesses whether the cluster's node\ncount, pod density, and routing configuration are within tested limits and\nscaled appropriately for the workload.\n"
-recommendation = "This section is a section index. Use node count, pod density, and router capacity for scored recommendations."
-verification = "1. Count cluster nodes:\n   `oc get nodes --no-headers | wc -l`\n2. Count total pods cluster-wide:\n   `oc get pods -A --no-headers | wc -l`"
-priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/scalability_and_performance/index#recommended-performance-scale-practices_recommended-performance-scale-practices"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/scalability_and_performance/index#recommended-performance-scale-practices_recommended-performance-scale-practices"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/scalability_and_performance/index#recommended-performance-scale-practices_recommended-performance-scale-practices"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/scalability_and_performance/index#recommended-performance-scale-practices_recommended-performance-scale-practices"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/scalability_and_performance/index#recommended-performance-scale-practices_recommended-performance-scale-practices"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/scalability_and_performance/index#recommended-performance-scale-practices_recommended-performance-scale-practices"
-
+content_from = "7.2.tsr.2_1_consistency"
+include_in_findings = false
 [[checks]]
 check_id = "7.2.tsr.2_3_1_sdn_number_of_nodes"
 title = "2.3.1. SDN Number of Nodes"

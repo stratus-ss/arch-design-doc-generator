@@ -78,29 +78,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.3.tsr.3_3_custom_resource_definitions"
 title = "TSR custom resource definitions"
-description = "This check identifies CRDs that retain an OLM ownership label but whose owning Operator no longer has a Succeeded `ClusterServiceVersion` (CSV). Such CRDs can be remnants of a previous Operator installation or uninstall, but their presence alone does not prove they are safe to remove. This check does not assess overall CRD count, webhook health, or unused namespaces; those are evaluated separately. A result with no orphaned OLM-owned CRDs is **PASS**.\n"
-# why-rec
-# CORRECTED. Dropped the operators.coreos.com/<package>.<namespace> label glob
-# and per-CRD wc -l. Rec prints OLM OWNER counts, then stock oc get csv -A.
-# OWNER with no Succeeded CSV is leftover. Lab: INFO OWNER rows and Succeeded
-# CSVs. Did not delete CRDs.
-# Why the check fires (thresholds) is in docs/HC_CHECK_RATIONALE.md. This note is why the rec
-# text is the right response.
-recommendation = "For each identified CRD, first confirm that the owning Operator is intentionally absent and inventory all custom-resource instances across the cluster. If no instances remain, back up the CRD definition and verify no remaining workloads, automation, integrations, or planned reinstall depend on it before deleting the CRD. Do not delete a CRD that still has live instances because deleting a CRD removes its API endpoint and deletes all custom objects of that type. Treat excessive live CRD count as a separate API-discovery and lifecycle-management issue; it is not justification for deleting CRDs that are still in use."
-verification = "1. Print OLM owner labels on CRDs. If no labels are found, OLM ownership is not in use:\n   `oc get crd -o json | jq -r '.items[] | (.metadata.labels // {}) | keys[]' | awk '/^operators.coreos.com\\//{count[$1]++} END{if(length(count)==0) print \"INFO n/a-olm-owner\"; else for (owner in count) print \"INFO\", \"COUNT=\"count[owner], \"OWNER=\"owner}'`\n2. Print live CSVs. PHASE is on the stock table. If no CSVs exist, none are installed:\n   `oc get csv -A 2>&1 | awk '/No resources found/{print \"INFO n/a-csv\"; seen=1} seen{next} {print}'`"
-priority_hint = ""
-impact = "workload-shift"
-impact_scope = "API schema and any workloads, automation, or integrations that still use the CRD"
-impact_detail = "Deleting a CRD that still has dependents can cause unpredictable results. At minimum it is a workload shift: the CRD API is removed and all custom objects of that type are deleted. Confirm the owning Operator is gone and that no instances or dependents remain before deletion."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/operators/index#crd-managing-resources-from-crds"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/operators/index#crd-managing-resources-from-crds"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/operators/index#crd-managing-resources-from-crds"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/operators/index#crd-managing-resources-from-crds"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/operators/index#crd-managing-resources-from-crds"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/operators/index#crd-managing-resources-from-crds"
-
+content_from = "7.3.tsr.3_2_1_platform_operators"
+include_in_findings = false
 [[checks]]
 check_id = "7.3.crds"
 title = "Custom resource definitions"
@@ -397,25 +376,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.3.tsr.3_6_2_registry_storage_type"
 title = "TSR registry storage type"
-description = "The internal image registry is using \"emptyDir\" (temporary) storage. This means all container images stored in the registry are lost when the registry pod restarts. Production clusters must use persistent storage (such as a PVC or object storage) so that pushed images are retained reliably."
-recommendation = "Set a persistent registry backend (PVC or object store). emptyDir is ephemeral: images vanish when the registry pod restarts. `managementState` is ownership, not the backend. Then confirm pods and that the pruner is not suspended."
-verification = "1. Confirm registry storage backend names only (not credentials). `managementState` is ownership, not a backend. `emptyDir` is ephemeral:\n   `oc get configs.imageregistry.operator.openshift.io cluster -o json | jq -r '(.spec.storage | keys - [\"managementState\"]) as $backends | (if $backends == [\"emptyDir\"] then \"FAIL\" else \"PASS\" end) + \" backends=\" + ($backends | join(\",\"))'`\n2. If the previous command failed, set a persistent backend: PVC on bare metal, or the platform object store (S3, Azure Blob, GCS) on cloud.\n3. Check registry pods:\n   `oc get pods -n openshift-image-registry`\n4. Confirm the image pruner is not suspended:\n   `oc get imagepruner cluster -o custom-columns=NAME:.metadata.name,SUSPEND:.spec.suspend,SCHEDULE:.spec.schedule`"
-priority_hint = ""
-impact = "workload-shift"
-impact_scope = "image registry pods and backing storage"
-impact_detail = "Changing registry storage backends rolls registry pods and can briefly interrupt image pushes, pulls, and build flows during cutover."
-summary_patterns = [
-  { contains = "emptyDir", text = "The image registry is using emptyDir; images are lost on registry pod restart." },
-]
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/registry/index#registry-configuring-storage-baremetal_configuring-registry-storage-baremetal"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/registry/index#registry-configuring-storage-baremetal_configuring-registry-storage-baremetal"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/registry/index#registry-configuring-storage-baremetal_configuring-registry-storage-baremetal"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/registry/index#registry-configuring-storage-baremetal_configuring-registry-storage-baremetal"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/registry/index#registry-configuring-storage-baremetal_configuring-registry-storage-baremetal"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/registry/index#registry-configuring-storage-baremetal_configuring-registry-storage-baremetal"
-
+content_from = "7.3.tsr.3_6_1_registry_scaled"
+include_in_findings = false
 [[checks]]
 check_id = "7.3.tsr.3_7_2_monitoring_storage_type"
 title = "TSR monitoring storage type"
@@ -484,41 +446,13 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.3.tsr.3_2_operators"
 title = "3.2. Operators"
-description = "Overview section covering all installed operators including platform and\nadditional OLM-managed operators. Validates overall operator health, version\nconsistency, and subscription status across the cluster.\n"
-recommendation = "This section is a section index. Use platform operators, additional operators, and `installPlanApproval` for scored recommendations."
-verification = "1. List unhealthy ClusterOperators only:\n   `oc get co | grep -v 'True.*False.*False'`\n2. List OLM subscription fields this section evaluates:\n   `oc get subscription -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,CHANNEL:.spec.channel,STATE:.status.state,INSTALLED:.status.installedCSV,CURRENT:.status.currentCSV`\n3. List CSV phase:\n   `oc get csv -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,PHASE:.status.phase`"
-priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/operators/index#olm-what-operators-are"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/operators/index#olm-what-operators-are"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/operators/index#olm-what-operators-are"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/operators/index#olm-what-operators-are"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/operators/index#olm-what-operators-are"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/operators/index#olm-what-operators-are"
-
+content_from = "7.3.tsr.3_2_1_platform_operators"
+include_in_findings = false
 [[checks]]
 check_id = "7.3.tsr.3_2_2_additional_operators"
 title = "3.2.2. Additional Operators"
-description = "Validates OLM-managed operators installed from OperatorHub beyond the platform\ndefaults. Checks subscription health, CSV phase, and whether installed operators\nare actively used or orphaned.\n"
-recommendation = "Review the affected Operator Subscription and determine why the automatic update has not completed. Confirm that the subscription is on the intended channel, inspect its conditions and referenced `InstallPlan` for catalog-source, dependency, resolution, or install failures, and then review the target CSV, related events, operator pods, and logs until the operator reaches a Succeeded CSV state. Do not delete the Subscription, CSV, or `InstallPlan` as a first response as debug information may be lost."
-verification = "1. List additional operator subscriptions and verify CSV status:\n   `oc get subscription -A`\n   `oc get csv -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,PHASE:.status.phase`\n2. Investigate any CSV not in 'Succeeded' phase."
-priority_hint = ""
-impact = "non-disruptive"
-impact_scope = "the stuck Operator Subscription and CSV"
-impact_detail = "Repairing catalog, InstallPlan, or CSV rolls that operator. It does not reboot nodes."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/operators/index#olm-adding-operators-to-a-cluster"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/operators/index#olm-adding-operators-to-a-cluster"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/operators/index#olm-adding-operators-to-a-cluster"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/operators/index#olm-adding-operators-to-a-cluster"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/operators/index#olm-adding-operators-to-a-cluster"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/operators/index#olm-adding-operators-to-a-cluster"
-
+content_from = "7.3.tsr.3_2_1_platform_operators"
+include_in_findings = false
 [[checks]]
 check_id = "7.3.tsr.3_2_3_operators_plan_approval"
 title = "3.2.3. Operators Plan approval"
@@ -548,21 +482,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.3.tsr.3_5_etcd"
 title = "3.5. ETCD"
-description = "Parent section covering etcd cluster health including membership, leader\nelection, database size, compaction, defragmentation, performance, and alerts.\netcd is the backbone of the Kubernetes control plane.\n"
-recommendation = "This section is a section index. Use the etcd endpoint, leader, health, size, compaction, defrag, performance, and alert children. Do not defrag or replace a member from this parent."
-verification = "1. Check etcd pods:\n   `oc get pods -n openshift-etcd`\n2. Print etcd operator conditions only:\n   `oc get etcd cluster -o jsonpath='{range .status.conditions[*]}{.type}={.status}{\"\\n\"}{end}'`\n3. For detailed member status use:\n   `oc -n openshift-etcd exec -c etcd etcd-<node> -- etcdctl endpoint status --cluster -w table`"
-priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/etcd/index#etcd-overview"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/etcd/index#etcd-overview"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/etcd/index#etcd-overview"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/etcd/index#etcd-overview"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/etcd/index#etcd-overview"
-
+content_from = "7.3.tsr.3_5_3_etcd_health"
+include_in_findings = false
 [[checks]]
 check_id = "7.3.tsr.3_5_1_etcd_endpoints"
 title = "3.5.1. ETCD Endpoints"
@@ -663,101 +584,28 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.3.tsr.3_5_8_etcd_performance"
 title = "3.5.8. ETCD Performance"
-description = "Parent section covering etcd performance metrics including disk I/O, network\nlatency, and CPU utilization. Poor performance in any dimension causes raft\ntimeouts and API instability.\n"
-recommendation = "This section is a section index. Use the disk, network, and CPU children for scored etcd performance recommendations."
-verification = "1. Validate control plane storage with `quay.io/cloud-bulldozer/etcd-perf`.\n2. Review etcd latency metrics in Prometheus:\n   `histogram_quantile(0.99, rate(etcd_disk_wal_fsync_duration_seconds_bucket[5m]))`\n   `histogram_quantile(0.99, rate(etcd_disk_backend_commit_duration_seconds_bucket[5m]))`\n   `histogram_quantile(0.99, rate(etcd_network_peer_round_trip_time_seconds_bucket[2m]))`\n3. Use the disk and network subsections below to isolate the bottleneck."
-recommendation_supported_versions = [
-    "4.18",
-    "4.19",
-    "4.20",
-    "4.21",
-    "4.22",
-]
-priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
-
+content_from = "7.3.tsr.3_5_8_1_etcd_disk_performance"
+include_in_findings = false
 [[checks]]
 check_id = "7.3.tsr.3_5_8_2_etcd_network_performance"
 title = "3.5.8.2. ETCD Network Performance"
-description = "Measures network round-trip latency between etcd members. OpenShift etcd\npractices require the 99th percentile of `etcd_network_peer_round_trip_time`\nto stay below 50 ms. Higher latency causes heartbeat timeouts, leader\nelections, and request failures that propagate to the API server.\n"
-recommendation = "Keep peer RTT under 50 ms. High latency causes heartbeat timeouts and elections. Fix control-plane network placement; do not chase an etcd flag."
-verification = "1. Test network latency between control plane nodes hosting etcd.\n2. Review etcd logs for peer connectivity warnings:\n   `oc -n openshift-etcd logs etcd-<node> -c etcd | grep -i 'overloaded network\\|dial timeout\\|peer'`\n3. Ensure control plane nodes are on a low-latency network segment."
-priority_hint = ""
-impact = "maintenance-window"
-impact_scope = "control plane peer network"
-impact_detail = "Keeping peer RTT under 50 ms usually requires relocating control-plane nodes or changing the underlay and should be performed in a planned window. That work can interrupt API and etcd traffic until the new path is stable."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
-
+content_from = "7.3.tsr.3_5_8_1_etcd_disk_performance"
+include_in_findings = false
 [[checks]]
 check_id = "7.3.tsr.3_5_8_3_etcd_cpu_performance"
 title = "3.5.8.3. ETCD CPU Performance"
-description = "Checks CPU pressure on control plane nodes running etcd. The TSR scores\netcd `cpu_iowait` and expects it below 4.0 seconds. CPU starvation causes\netcd request timeouts, slow commits, and can trigger leader elections that\naffect the entire cluster.\n"
-recommendation = "Move customer pods off masters or add CPU when `oc adm top` shows high steal on masters or etcd pods. etcd is latency-sensitive to CPU steal, especially if masters are schedulable."
-verification = "1. Review CPU usage on control plane nodes:\n   `oc adm top nodes -l node-role.kubernetes.io/master=`\n2. Check etcd container CPU usage:\n   `oc adm top pods -n openshift-etcd`\n3. Investigate noisy-neighbor workloads if control plane nodes are schedulable."
-priority_hint = ""
-impact = "maintenance-window"
-impact_scope = "control plane nodes"
-impact_detail = "Adding CPU or replacing control-plane nodes requires a maintenance window and can reduce API capacity while masters are remediated. Evicting user pods off schedulable masters reschedules those workloads without rebooting nodes."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/etcd/index#etcd-verify-hardware_etcd-practices"
-
+content_from = "7.3.tsr.3_5_8_1_etcd_disk_performance"
+include_in_findings = false
 [[checks]]
 check_id = "7.3.tsr.3_5_9_etcd_alerts"
 title = "3.5.9. ETCD Alerts"
-description = "Reviews active Prometheus alerts related to etcd health, performance, and\nquorum. Firing etcd alerts indicate conditions that require immediate\ninvestigation to prevent control plane degradation.\n"
-recommendation = "Clear firing etcd Prometheus alerts. Use the alertname to pick the child row. Do not silence etcd alerts to clear this check. Empty is healthy."
-verification = "1. See which etcd alerts are firing:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -s http://localhost:9090/api/v1/alerts | jq '.data.alerts[] | select(.labels.alertname | test(\"^etcd\"; \"i\")) | {state, alertname: .labels.alertname, severity: .labels.severity}'`"
-priority_hint = ""
-impact = "maintenance-window"
-impact_scope = "control plane and etcd members"
-impact_detail = "Fixing etcd disk-performance problems usually requires control-plane infrastructure or storage changes that can reduce API capacity while nodes are remediated."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/etcd/index#etcd-overview"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/etcd/index#etcd-overview"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/etcd/index#etcd-overview"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/etcd/index#etcd-overview"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/etcd/index#etcd-overview"
-
+content_from = "7.1.tsr.1_5_2_3_dns_alerts"
+include_in_findings = false
 [[checks]]
 check_id = "7.3.tsr.3_6_registry"
 title = "3.6. Registry"
-description = "Parent section covering internal image registry configuration, scaling, and\nstorage. The image registry is critical for builds, ImageStreams, and internal\nimage distribution.\n"
-recommendation = "This section is a section index. Use replica count and storage type for scored recommendations."
-verification = "1. Print registry managementState, replicas, and storage backend names:\n   `oc get configs.imageregistry.operator.openshift.io cluster -o custom-columns=STATE:.spec.managementState,REPLICAS:.spec.replicas,EMPTYDIR:.spec.storage.emptyDir,PVC:.spec.storage.pvc.claim`\n2. Check registry pod health:\n   `oc get pods -n openshift-image-registry`"
-priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/registry/index#configuring-registry-operator"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/registry/index#configuring-registry-operator"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/registry/index#configuring-registry-operator"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/registry/index#configuring-registry-operator"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/registry/index#configuring-registry-operator"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/registry/index#configuring-registry-operator"
-
+content_from = "7.3.tsr.3_6_1_registry_scaled"
+include_in_findings = false
 [[checks]]
 check_id = "7.3.tsr.3_6_1_registry_scaled"
 title = "3.6.1. Registry Scaled"
@@ -1141,22 +989,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.3.tsr.3_14_load_balancer"
 title = "3.14. Load Balancer"
-description = "Parent section covering load balancer configuration including platform load\nbalancers and MetalLB for bare-metal environments. Proper load balancing\nis critical for API and ingress high availability.\n"
-recommendation = "This section is a section index. Keep a reachable API VIP and, on bare metal, MetalLB or another LB actually assigning IPs. Use platform LB and MetalLB children for scored recommendations."
-verification = "1. List LoadBalancer services only:\n   `oc get svc -A --no-headers -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,TYPE:.spec.type,IP:.status.loadBalancer.ingress[0].ip | awk '$3==\"LoadBalancer\" {print}'`\n2. Check MetalLB status if deployed:\n   `oc get metallb -n metallb-system`"
-priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#load-balancing"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#load-balancing"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#load-balancing"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#load-balancing"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#load-balancing"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#load-balancing"
-
+content_from = "7.3.tsr.3_14_1_platform_load_balancer"
+include_in_findings = false
 [[checks]]
 check_id = "7.3.tsr.3_14_1_platform_load_balancer"
 title = "3.14.1. Platform Load Balancer"
@@ -1179,22 +1013,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.3.tsr.3_14_2_metallb"
 title = "3.14.2. MetalLB"
-description = "Parent section covering MetalLB load balancer deployment, configuration, and\nprotocol settings for bare-metal clusters. MetalLB provides LoadBalancer-type\nservice support without cloud provider integration.\n"
-recommendation = "This section is a section index. MetalLB is not applicable unless this cluster uses it for LoadBalancer Services. Use installed, config, and L2 ARP/NDP children when it is in use."
-verification = "1. List MetalLB CRs:\n   `oc get metallb -n metallb-system -o custom-columns=NAME:.metadata.name,LOGLEVEL:.spec.logLevel`\n2. Verify speaker and controller pods:\n   `oc get pods -n metallb-system`"
-priority_hint = ""
-impact = "none"
-impact_scope = ""
-impact_detail = ""
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#about-metallb"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#about-metallb"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#about-metallb"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#about-metallb"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#about-metallb"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#about-metallb"
-
+content_from = "7.3.tsr.3_14_2_2_lb_metallb_config"
+include_in_findings = false
 [[checks]]
 check_id = "7.3.tsr.3_14_2_1_metallb_installed"
 title = "3.14.2.1. Metallb Installed"
@@ -1236,22 +1056,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.3.tsr.3_14_2_3_metallb_l2_arp_ndp"
 title = "3.14.2.3. MetalLB L2 ARP/NDP"
-description = "Checks MetalLB Layer 2 mode ARP/NDP advertisement configuration and speaker\nhealth. L2 mode relies on ARP (IPv4) or NDP (IPv6) to announce VIPs, and\nmisconfiguration causes unreachable services.\n"
-recommendation = "Keep an L2Advertisement covering the pool and speakers Running on the nodes that should own the VIP. If the Service has an IP but is unreachable, check speaker placement and logs before changing the pool."
-verification = "1. Print L2 advertisements:\n   `oc get l2advertisement -n metallb-system -o custom-columns=NAME:.metadata.name,POOLS:.spec.ipAddressPools,INTERFACES:.spec.interfaces`\n2. Verify speaker pods are running on all nodes:\n   `oc get pods -n metallb-system -l component=speaker -o wide`\n3. Check speaker logs for ARP/NDP errors."
-priority_hint = ""
-impact = "workload-shift"
-impact_scope = "L2 VIP ownership and speaker placement"
-impact_detail = "Moving speakers or fixing L2Advertisement can briefly move the VIP between nodes. It does not reboot nodes."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#metallb-configure-l2-advertisement"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/networking_overview/index#metallb-configure-l2-advertisement"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/networking_overview/index#metallb-configure-l2-advertisement"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#metallb-configure-l2-advertisement"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#metallb-configure-l2-advertisement"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#metallb-configure-l2-advertisement"
-
+content_from = "7.3.tsr.3_14_2_2_lb_metallb_config"
+include_in_findings = false
 [[checks]]
 check_id = "7.3.tsr.3_15_machine_config_pool"
 title = "3.15. Machine Config Pool"
@@ -1613,3 +1419,10 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/scalability_and_performance/index#cnf-understanding-low-latency"
 "4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/scalability_and_performance/index#cnf-understanding-low-latency"
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/scalability_and_performance/index#cnf-understanding-low-latency"
+
+[[checks]]
+check_id = "7.3.storage.localvolume"
+title = "LocalVolume family"
+description = "Scores whether Local Storage Operator LocalVolume CRs are present. Empty or not-found capture is not a failure on clusters that do not use local volumes."
+recommendation = "Scoring and evidence are in Chapter 7. Full recommendation narrative is a follow-up KB plan."
+impact = "non-disruptive"

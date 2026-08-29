@@ -466,116 +466,28 @@ default = "https://access.redhat.com/support/policy/updates/openshift_operators"
 [[checks]]
 check_id = "7.4.tsr.4_1_2_logging_storage_type"
 title = "TSR logging storage type"
-description = "This check is LokiStack log-store type: spec.storage.secret.type and spec.storageClassName. An operator CSV without a LokiStack still means logs are not persisted."
-recommendation = "Set LokiStack store type and storageClassName so logs persist. Both <none> is a CR with no store — set them before treating Loki as unhealthy. An operator CSV without a LokiStack still means logs are not persisted."
-verification = "1. Print LokiStack store type and storageClassName. If the CRD is missing or empty, the command prints **INFO**. A row with both STORE and STORAGECLASS set is healthy; both showing <none> needs review.\n   `oc get lokistack -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,STORE:.spec.storage.secret.type,STORAGECLASS:.spec.storageClassName 2>&1 | awk '/have a resource type|No resources found/{print \"INFO n/a-lokistack\"; n=1; next} NR==1{print \"RESULT\",$0; next} {r=\"PASS\"; if($3==\"<none>\" && $4==\"<none>\") r=\"WARNING\"; print r,$0} END{if(!n && NR==0) print \"INFO n/a-lokistack\"}'`"
-priority_hint = ""
-impact = "workload-shift"
-impact_scope = "openshift-logging collector and log-store pods"
-impact_detail = "Creating or changing a LokiStack rolls logging pods and can briefly interrupt log collection until the store is ready."
-summary_patterns = [
-  { contains = "no instance configuration", text = "The Loki operator is installed, but no LokiStack is configured." },
-]
-finding_group = "logging-not-configured"
-finding_group_title = "Cluster logging is not configured (no LokiStack)"
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
-"4.18" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
-"4.19" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
-"4.20" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
-"4.21" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
-"4.22" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
-
+content_from = "7.4.tsr.4_1_1_logging_supported_configuration"
+include_in_findings = false
 [[checks]]
 check_id = "7.4.tsr.4_1_4_logging_pod_status"
 title = "TSR logging pod status"
-description = "This check confirms expected logging and Loki pods are running. Missing compactor, distributor, gateway, index-gateway, ingester, querier, or query-frontend pods usually mean logging is not configured yet, not that those images failed independently."
-recommendation = "Configure LokiStack storage first; then keep expected logging and Loki pods Running. Missing operand pods with no LokiStack means logging is not installed, not a CrashLoop. After a LokiStack exists, inspect the named non-Running pod."
-verification = "1. Check whether a LokiStack instance is configured.\n   `oc get lokistack -A`\n2. If a LokiStack exists, verify expected logging and Loki pods are Running.\n   `oc get pods -n openshift-logging`\nNo LokiStack means logging is not configured yet (informational). After a LokiStack exists, non-Running expected pods are a failure."
-priority_hint = ""
-impact = "workload-shift"
-impact_scope = "openshift-logging and Loki pods"
-impact_detail = "Bringing the logging stack up starts new pods; it does not reboot nodes."
-summary_patterns = [
-  { contains = "no pod found", text = "Expected logging/Loki pods are not running." },
-]
-finding_group = "logging-not-configured"
-finding_group_title = "Cluster logging is not configured (no LokiStack)"
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
-"4.18" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
-"4.19" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
-"4.20" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
-"4.21" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
-"4.22" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
-
+content_from = "7.4.tsr.4_1_1_logging_supported_configuration"
+include_in_findings = false
 [[checks]]
 check_id = "7.4.tsr.4_1_5_2_loki_health"
 title = "TSR Loki health"
-description = "Loki health cannot be verified until a LokiStack instance exists. A **FAIL** for no instance configuration is a configuration gap, not a degraded running store."
-recommendation = "Treat no LokiStack as a configuration gap, not a degraded store. After a CR exists, keep Available/Ready true."
-verification = "1. Check for a LokiStack instance. An empty list means no instance is configured (informational). After an instance exists, False conditions are a failure.\n   `oc get lokistack -A`"
-priority_hint = ""
-impact = "workload-shift"
-impact_scope = "LokiStack operands"
-impact_detail = "Configuring LokiStack deploys store components and can briefly interrupt log query until they become ready."
-summary_patterns = [
-  { contains = "no instance configuration", text = "Loki health cannot be verified because no LokiStack is configured." },
-]
-finding_group = "logging-not-configured"
-finding_group_title = "Cluster logging is not configured (no LokiStack)"
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
-"4.18" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
-"4.19" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
-"4.20" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
-"4.21" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
-"4.22" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.5/html-single/installing_logging/index"
-
+content_from = "7.4.tsr.4_1_1_logging_supported_configuration"
+include_in_findings = false
 [[checks]]
 check_id = "7.4.tsr.4_1_6_cluster_log_forwarders"
 title = "TSR cluster log forwarders"
-description = "Multiple ClusterLogForwarder objects require the Vector collector. Fluentd does not support multi-forwarder. This check fails when more than one forwarder is configured without Vector."
-recommendation = "Switch the collector to Vector if more than one ClusterLogForwarder exists. Fluentd with multiple forwarders is unsupported and drops logs. One forwarder, or Vector with many, is the healthy state."
-verification = "1. List ClusterLogForwarder resources.\n   `oc get clusterlogforwarder -A`\n2. Print the collector type for each ClusterLogging instance.\n   `oc get clusterlogging -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,TYPE:.spec.collection.type`\nZero or one forwarders is healthy. More than one forwarder with a collector type other than vector is a failure."
-priority_hint = ""
-impact = "workload-shift"
-impact_scope = "log collector pods"
-impact_detail = "Changing collector type or forwarder count rolls collector pods and can drop logs until they reschedule."
-summary_patterns = [
-  { contains = "multi log forwarder", text = "Multiple log forwarders are configured; that requires the Vector collector." },
-]
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/configuring_logging/configuring-log-forwarding"
-"4.18" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/configuring_logging/configuring-log-forwarding"
-"4.19" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/configuring_logging/configuring-log-forwarding"
-"4.20" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/configuring_logging/configuring-log-forwarding"
-"4.21" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/configuring_logging/configuring-log-forwarding"
-"4.22" = "https://docs.redhat.com/en/documentation/red_hat_openshift_logging/6.4/html/configuring_logging/configuring-log-forwarding"
-
+content_from = "7.4.tsr.4_1_1_logging_supported_configuration"
+include_in_findings = false
 [[checks]]
 check_id = "7.4.tsr.4_1_8_logging_security_context_constraints"
 title = "TSR logging security context constraints"
-description = "This check compares logging-related Security Context Constraints with the platform defaults, including the SCC used by node-exporter. An edited default SCC can weaken isolation or break logging/monitoring pods."
-recommendation = "Restore undocumented default SCC drift, including the SCC node-exporter uses. Record required exceptions and the pods that depend on them. Changing an SCC can bounce every pod bound to it."
-verification = "1. Identify the SCC used by node-exporter pods.\n   `oc get pod -n openshift-monitoring -l app.kubernetes.io/name=node-exporter -o custom-columns=NAME:.metadata.name,SCC:.metadata.annotations.openshift\\.io/scc`\n2. Compare that SCC to the platform default. A match is healthy; undocumented drift is a failure.\n   `oc get scc -o custom-columns=NAME:.metadata.name,PRIV:.allowPrivilegedContainer`"
-priority_hint = ""
-impact = "workload-shift"
-impact_scope = "pods bound to the altered SCC"
-impact_detail = "Restoring or changing an SCC can bounce pods that use it; it does not reboot nodes."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/authentication_and_authorization/managing-pod-security-policies"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/authentication_and_authorization/managing-pod-security-policies"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html/authentication_and_authorization/managing-pod-security-policies"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/authentication_and_authorization/managing-pod-security-policies"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/authentication_and_authorization/managing-pod-security-policies"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html/authentication_and_authorization/managing-pod-security-policies"
-
+content_from = "7.4.tsr.4_1_1_logging_supported_configuration"
+include_in_findings = false
 [[checks]]
 check_id = "7.4.tsr.4_8_1_1_1_identification_and_state"
 title = "TSR CNV identification and state"
@@ -658,18 +570,802 @@ default = "https://access.redhat.com/support/policy/updates/openshift_operators"
 [[checks]]
 check_id = "7.4.tsr.4_8_1_5_3_2_storage_checkup"
 title = "TSR CNV storage checkup"
-description = "This check reviews the result of the Kiagnose kubevirt-storage checkup, which validates that OpenShift Virtualization can provision and bind a test PersistentVolumeClaim (PVC) through the selected storage class. A successful checkup records `status.succeeded=true` and confirms that the test PVC was bound (`status.result.pvcBound`). The checkup result is stored in its ConfigMap; if the ConfigMap is absent, the storage checkup has not been run and the result is informational rather than evidence of a storage outage. Cluster-wide PVC health, the default StorageClass, and StorageProfile configuration are assessed separately.\n"
-recommendation = "Treat `status.succeeded=true` with a bound test PVC as confirmation that the tested storage path is functioning for OpenShift Virtualization. If the checkup reports failure or the PVC does not bind, review `status.failureReason`. If no Kiagnose checkup ConfigMap exists, run the OpenShift Virtualization storage checkup when validation is required—especially after storage changes, CSI-driver updates, or an OpenShift upgrade. Do not classify a missing ConfigMap as a storage failure; it only indicates that this specific validation has not yet been performed."
-verification = "1. Print the kubevirt-storage checkup ConfigMap results: SUCCEEDED, PVCBBOUND, and FAILURE. A value of true for SUCCEEDED is healthy; false needs action. If the ConfigMap does not exist, the checkup has never been run.\n   `oc get cm -A -l kiagnose/checkup-type=kubevirt-storage -o json | jq -r '.items[] | [.metadata.namespace, .metadata.name, (.data[\"status.succeeded\"] // \"-\"), (.data[\"status.result.pvcBound\"] // \"-\"), (if (.data[\"status.failureReason\"] // \"\") == \"\" then \"-\" else .data[\"status.failureReason\"] end)] | @tsv' | awk -F'\\t' '{r=\"INFO\"; if($3==\"true\") r=\"PASS\"; else if($3==\"false\") r=\"FAIL\"; print r, \"NS=\"$1, \"NAME=\"$2, \"SUCCEEDED=\"$3, \"PVCBBOUND=\"$4, \"FAILURE=\"$5} END{if(NR==0) print \"INFO n/a-storage-checkup\"}'`\n2. If this validation is required and the ConfigMap is missing, run the OpenShift Virtualization storage checkup using the procedure in the reference for this check."
-priority_hint = ""
+content_from = "7.4.cnv.state"
+include_in_findings = false
+[[checks]]
+check_id = "7.4.odf.state"
+title = "ODF StorageCluster family"
+description = "Family-level OpenShift Data Foundation StorageCluster health. Missing or empty StorageCluster is not applicable; Available/Ready is pass; Degraded or error conditions fail."
+recommendation = "Scoring and evidence are in Chapter 7. Full recommendation narrative is a follow-up KB plan."
 impact = "non-disruptive"
-impact_scope = "PVCs created by the storage checkup"
-impact_detail = "Reading checkup results does not reboot nodes; re-running the checkup creates short-lived test VMs and PVCs."
 
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/virtualization/index#virt-checking-storage-configuration_virt-storage-checkups"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/virtualization/index#virt-checking-storage-configuration_virt-running-cluster-checkups"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/virtualization/index#virt-checking-storage-configuration_virt-running-cluster-checkups"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/virtualization/index#virt-checking-storage-configuration_virt-running-cluster-checkups"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/virtualization/index#virt-checking-storage-configuration_virt-storage-checkups"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index#virt-checking-storage-configuration_virt-storage-checkups"
+[[checks]]
+check_id = "7.4.rhoso.state"
+title = "RHOSO OpenStackControlPlane family"
+description = "Family-level RHOSO OpenStackControlPlane health. Missing control plane is not applicable on clusters that are not RHOSO; Available/Ready is pass; Degraded fails."
+recommendation = "Scoring and evidence are in Chapter 7. Full recommendation narrative is a follow-up KB plan."
+impact = "non-disruptive"
+
+[[checks]]
+check_id = "7.4.acm.state"
+title = "RHACM hub family"
+description = "Family-level Red Hat Advanced Cluster Management hub health. Missing MultiClusterHub is not applicable; Available is pass; Degraded is warning."
+recommendation = "Scoring and evidence are in Chapter 7. Full recommendation narrative is a follow-up KB plan."
+impact = "non-disruptive"
+
+[[checks]]
+check_id = "7.4.cnv.state"
+title = "OpenShift Virtualization HyperConverged family"
+description = "Family-level OpenShift Virtualization HyperConverged health. Not installed is not applicable; Available and not Degraded is pass."
+recommendation = "Scoring and evidence are in Chapter 7. Full recommendation narrative is a follow-up KB plan."
+impact = "non-disruptive"
+
+[[checks]]
+check_id = "7.4.cnv.kubevirt"
+title = "KubeVirt CR phase"
+description = "KubeVirt custom resource phase for OpenShift Virtualization. Missing data is skipped or not applicable; healthy phase is pass."
+recommendation = "Scoring and evidence are in Chapter 7. Full recommendation narrative is a follow-up KB plan."
+impact = "non-disruptive"
+
+[[checks]]
+check_id = "7.4.cnv.pods"
+title = "OpenShift Virtualization pod health"
+description = "Aggregate pod health for OpenShift Virtualization namespaces. Missing namespace or zero pods is not applicable; all Running is pass; CrashLoopBackOff or pending pods fail."
+recommendation = "Scoring and evidence are in Chapter 7. Full recommendation narrative is a follow-up KB plan."
+impact = "non-disruptive"
+[[checks]]
+check_id = "7.4.tsr.4_1_3_logging_storage_size"
+title = "7.4.tsr.4_1_3_logging_storage_size"
+content_from = "7.4.tsr.4_1_1_logging_supported_configuration"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_1_5_1_elasticsearch_health"
+title = "7.4.tsr.4_1_5_1_elasticsearch_health"
+content_from = "7.4.tsr.4_1_1_logging_supported_configuration"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_1_5_logging_health"
+title = "7.4.tsr.4_1_5_logging_health"
+content_from = "7.4.tsr.4_1_1_logging_supported_configuration"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_1_7_logging_alerts"
+title = "7.4.tsr.4_1_7_logging_alerts"
+content_from = "7.4.tsr.4_1_1_logging_supported_configuration"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_1_openshift_logging"
+title = "7.4.tsr.4_1_openshift_logging"
+content_from = "7.4.tsr.4_1_1_logging_supported_configuration"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_2_2_3_1_8_rbd_virtualization_reclaim_space"
+title = "7.4.tsr.4_2_2_3_1_8_rbd_virtualization_reclaim_space"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_1_1_rhacm_supported_config"
+title = "7.4.tsr.4_7_1_1_rhacm_supported_config"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_1_2_rhacm_agent"
+title = "7.4.tsr.4_7_1_2_rhacm_agent"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_1_3_2_1_rhacm_node_selector"
+title = "7.4.tsr.4_7_1_3_2_1_rhacm_node_selector"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_1_3_2_2_rhacm_node_cpu"
+title = "7.4.tsr.4_7_1_3_2_2_rhacm_node_cpu"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_1_3_2_3_rhacm_node_memory"
+title = "7.4.tsr.4_7_1_3_2_3_rhacm_node_memory"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_1_3_2_rhacm_compute_nodes"
+title = "7.4.tsr.4_7_1_3_2_rhacm_compute_nodes"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_1_3_rhacm_minimum_hardware_requirements"
+title = "7.4.tsr.4_7_1_3_rhacm_minimum_hardware_requirements"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_1_4_1_rhacm_hub_self_management_status"
+title = "7.4.tsr.4_7_1_4_1_rhacm_hub_self_management_status"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_1_4_2_rhacm_update_cluster_image_sets_status"
+title = "7.4.tsr.4_7_1_4_2_rhacm_update_cluster_image_sets_status"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_1_4_rhacm_other_basic_checks"
+title = "7.4.tsr.4_7_1_4_rhacm_other_basic_checks"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_1_rhacm_basic_checks"
+title = "7.4.tsr.4_7_1_rhacm_basic_checks"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_2_2_1_rhacm_availability_config"
+title = "7.4.tsr.4_7_2_2_1_rhacm_availability_config"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_2_2_rhacm_high_availability"
+title = "7.4.tsr.4_7_2_2_rhacm_high_availability"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_2_rhacm_pods"
+title = "7.4.tsr.4_7_2_rhacm_pods"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_2_rhacm_topology"
+title = "7.4.tsr.4_7_2_rhacm_topology"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_10_1_rhacm_multicluster_observability_status"
+title = "7.4.tsr.4_7_3_10_1_rhacm_multicluster_observability_status"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_10_2_rhacm_multicluster_observability_config_override"
+title = "7.4.tsr.4_7_3_10_2_rhacm_multicluster_observability_config_override"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_10_rhacm_multicluster_observability"
+title = "7.4.tsr.4_7_3_10_rhacm_multicluster_observability"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_11_1_rhacm_search_status"
+title = "7.4.tsr.4_7_3_11_1_rhacm_search_status"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_11_2_rhacm_search_config_override"
+title = "7.4.tsr.4_7_3_11_2_rhacm_search_config_override"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_11_rhacm_search"
+title = "7.4.tsr.4_7_3_11_rhacm_search"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_12_1_rhacm_siteconfig_status"
+title = "7.4.tsr.4_7_3_12_1_rhacm_siteconfig_status"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_12_2_rhacm_siteconfig_config_override"
+title = "7.4.tsr.4_7_3_12_2_rhacm_siteconfig_config_override"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_12_rhacm_siteconfig"
+title = "7.4.tsr.4_7_3_12_rhacm_siteconfig"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_13_1_rhacm_submariner_addon_status"
+title = "7.4.tsr.4_7_3_13_1_rhacm_submariner_addon_status"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_13_2_rhacm_submariner_addon_config_override"
+title = "7.4.tsr.4_7_3_13_2_rhacm_submariner_addon_config_override"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_13_rhacm_submariner_addon"
+title = "7.4.tsr.4_7_3_13_rhacm_submariner_addon"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_14_1_rhacm_volsync_status"
+title = "7.4.tsr.4_7_3_14_1_rhacm_volsync_status"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_14_2_volsync_config_override"
+title = "7.4.tsr.4_7_3_14_2_volsync_config_override"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_14_rhacm_volsync"
+title = "7.4.tsr.4_7_3_14_rhacm_volsync"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_1_1_rhacm_app_lifecycle_status"
+title = "7.4.tsr.4_7_3_1_1_rhacm_app_lifecycle_status"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_1_2_rhacm_app_lifecycle_config_override"
+title = "7.4.tsr.4_7_3_1_2_rhacm_app_lifecycle_config_override"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_1_rhacm_app_lifecycle"
+title = "7.4.tsr.4_7_3_1_rhacm_app_lifecycle"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_2_1_rhacm_cluster_backup_status"
+title = "7.4.tsr.4_7_3_2_1_rhacm_cluster_backup_status"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_2_2_rhacm_cluster_backup_config_override"
+title = "7.4.tsr.4_7_3_2_2_rhacm_cluster_backup_config_override"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_2_rhacm_cluster_backup"
+title = "7.4.tsr.4_7_3_2_rhacm_cluster_backup"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_3_1_rhacm_cluster_lifecycle_status"
+title = "7.4.tsr.4_7_3_3_1_rhacm_cluster_lifecycle_status"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_3_2_rhacm_cluster_lifecycle_config_override"
+title = "7.4.tsr.4_7_3_3_2_rhacm_cluster_lifecycle_config_override"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_3_rhacm_cluster_lifecycle"
+title = "7.4.tsr.4_7_3_3_rhacm_cluster_lifecycle"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_4_1_rhacm_cluster_permission_status"
+title = "7.4.tsr.4_7_3_4_1_rhacm_cluster_permission_status"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_4_2_rhacm_cluster_permission_config_override"
+title = "7.4.tsr.4_7_3_4_2_rhacm_cluster_permission_config_override"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_4_rhacm_cluster_permission"
+title = "7.4.tsr.4_7_3_4_rhacm_cluster_permission"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_5_1_rhacm_console_status"
+title = "7.4.tsr.4_7_3_5_1_rhacm_console_status"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_5_2_rhacm_console_config_override"
+title = "7.4.tsr.4_7_3_5_2_rhacm_console_config_override"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_5_rhacm_console"
+title = "7.4.tsr.4_7_3_5_rhacm_console"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_6_1_rhacm_edge_manager_preview_status"
+title = "7.4.tsr.4_7_3_6_1_rhacm_edge_manager_preview_status"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_6_2_rhacm_edge_manager_preview_config_override"
+title = "7.4.tsr.4_7_3_6_2_rhacm_edge_manager_preview_config_override"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_6_rhacm_edge_manager_preview"
+title = "7.4.tsr.4_7_3_6_rhacm_edge_manager_preview"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_7_1_rhacm_grc_status"
+title = "7.4.tsr.4_7_3_7_1_rhacm_grc_status"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_7_2_rhacm_grc_config_override"
+title = "7.4.tsr.4_7_3_7_2_rhacm_grc_config_override"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_7_rhacm_grc"
+title = "7.4.tsr.4_7_3_7_rhacm_grc"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_8_1_rhacm_insights_status"
+title = "7.4.tsr.4_7_3_8_1_rhacm_insights_status"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_8_2_rhacm_insights_config_override"
+title = "7.4.tsr.4_7_3_8_2_rhacm_insights_config_override"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_8_rhacm_insights"
+title = "7.4.tsr.4_7_3_8_rhacm_insights"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_9_1_rhacm_multicluster_engine_status"
+title = "7.4.tsr.4_7_3_9_1_rhacm_multicluster_engine_status"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_9_2_rhacm_multicluster_engine_config_override"
+title = "7.4.tsr.4_7_3_9_2_rhacm_multicluster_engine_config_override"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_9_3_rhacm_multicluster_engine_supported_configuration"
+title = "7.4.tsr.4_7_3_9_3_rhacm_multicluster_engine_supported_configuration"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_9_rhacm_multicluster_engine"
+title = "7.4.tsr.4_7_3_9_rhacm_multicluster_engine"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_3_rhacm_components"
+title = "7.4.tsr.4_7_3_rhacm_components"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_4_1_1_rhacm_multiclusterhub_operator"
+title = "7.4.tsr.4_7_4_1_1_rhacm_multiclusterhub_operator"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_4_1_2_rhacm_multicluster_observability_operator"
+title = "7.4.tsr.4_7_4_1_2_rhacm_multicluster_observability_operator"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_4_1_rhacm_operators"
+title = "7.4.tsr.4_7_4_1_rhacm_operators"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_4_3_rhacm_managed_cluster_health"
+title = "7.4.tsr.4_7_4_3_rhacm_managed_cluster_health"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_4_4_rhacm_managed_clusters_addons"
+title = "7.4.tsr.4_7_4_4_rhacm_managed_clusters_addons"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_4_5_pod_restarts"
+title = "7.4.tsr.4_7_4_5_pod_restarts"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_4_rhacm_health"
+title = "7.4.tsr.4_7_4_rhacm_health"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_5_1_rhacm_persistent_volume_usage"
+title = "7.4.tsr.4_7_5_1_rhacm_persistent_volume_usage"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_5_2_rhacm_placement_tolerations"
+title = "7.4.tsr.4_7_5_2_rhacm_placement_tolerations"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_5_rhacm_day_2_operations"
+title = "7.4.tsr.4_7_5_rhacm_day_2_operations"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_7_red_hat_advanced_cluster_manager_rhacm"
+title = "7.4.tsr.4_7_red_hat_advanced_cluster_manager_rhacm"
+content_from = "7.4.acm.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_1_1_installation"
+title = "7.4.tsr.4_8_1_1_installation"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_1_2_1_platform_hypervisor"
+title = "7.4.tsr.4_8_1_2_1_platform_hypervisor"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_1_2_infrastructure_requirements"
+title = "7.4.tsr.4_8_1_2_infrastructure_requirements"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_1_3_1_node_os_version"
+title = "7.4.tsr.4_8_1_3_1_node_os_version"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_1_3_2_node_cpu"
+title = "7.4.tsr.4_8_1_3_2_node_cpu"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_1_3_3_node_memory"
+title = "7.4.tsr.4_8_1_3_3_node_memory"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_1_3_minimum_hardware_requirements"
+title = "7.4.tsr.4_8_1_3_minimum_hardware_requirements"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_1_4_2_memory_physical_resource_overhead_requirements"
+title = "7.4.tsr.4_8_1_4_2_memory_physical_resource_overhead_requirements"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_1_4_3_storage_physical_resource_overhead_requirements"
+title = "7.4.tsr.4_8_1_4_3_storage_physical_resource_overhead_requirements"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_1_4_node_disk"
+title = "7.4.tsr.4_8_1_4_node_disk"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_1_5_1_2_workload_node_placement"
+title = "7.4.tsr.4_8_1_5_1_2_workload_node_placement"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_1_5_1_3_controller_node_placement"
+title = "7.4.tsr.4_8_1_5_1_3_controller_node_placement"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_1_5_1_node_placement_rules"
+title = "7.4.tsr.4_8_1_5_1_node_placement_rules"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_1_5_2_1_qemu_guest_agent"
+title = "7.4.tsr.4_8_1_5_2_1_qemu_guest_agent"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_1_5_2_2_virtio_drivers"
+title = "7.4.tsr.4_8_1_5_2_2_virtio_drivers"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_1_5_2_drivers"
+title = "7.4.tsr.4_8_1_5_2_drivers"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_1_5_3_1_latency_checkup"
+title = "7.4.tsr.4_8_1_5_3_1_latency_checkup"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_1_5_3_3_dpdk_checkup"
+title = "7.4.tsr.4_8_1_5_3_3_dpdk_checkup"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_1_5_3_monitoring"
+title = "7.4.tsr.4_8_1_5_3_monitoring"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_1_5_other_basic_checks"
+title = "7.4.tsr.4_8_1_5_other_basic_checks"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_1_basic_checks"
+title = "7.4.tsr.4_8_1_basic_checks"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_2_1_1_1_supporting_storage"
+title = "7.4.tsr.4_8_2_1_1_1_supporting_storage"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_2_1_1_2_migration_policies"
+title = "7.4.tsr.4_8_2_1_1_2_migration_policies"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_2_1_1_5_cpu_compatibility_for_migration"
+title = "7.4.tsr.4_8_2_1_1_5_cpu_compatibility_for_migration"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_2_1_1_6_migration_capacity_headroom"
+title = "7.4.tsr.4_8_2_1_1_6_migration_capacity_headroom"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_2_1_1_live_migrations_requirements"
+title = "7.4.tsr.4_8_2_1_1_live_migrations_requirements"
+content_from = "7.4.cnv.live_migratable"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_2_1_high_availability"
+title = "7.4.tsr.4_8_2_1_high_availability"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_2_topology_checks"
+title = "7.4.tsr.4_8_2_topology_checks"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_3_1_2_host_path_provisioner"
+title = "7.4.tsr.4_8_3_1_2_host_path_provisioner"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_3_1_3_xfs_kubevirt_csi_filesystem_posture"
+title = "7.4.tsr.4_8_3_1_3_xfs_kubevirt_csi_filesystem_posture"
+content_from = "7.4.cnv.kubevirt"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_3_1_storage_configurations"
+title = "7.4.tsr.4_8_3_1_storage_configurations"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_3_2_network_configurations"
+title = "7.4.tsr.4_8_3_2_network_configurations"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_3_component_checks"
+title = "7.4.tsr.4_8_3_component_checks"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_4_10_vm_disk_expansion_posture"
+title = "7.4.tsr.4_8_4_10_vm_disk_expansion_posture"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_4_11_windows_nfs_bsod_risk_correlation"
+title = "7.4.tsr.4_8_4_11_windows_nfs_bsod_risk_correlation"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_4_1_machine_health_checks"
+title = "7.4.tsr.4_8_4_1_machine_health_checks"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_4_4_vm_sata_disk_bus"
+title = "7.4.tsr.4_8_4_4_vm_sata_disk_bus"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_4_8_windows_vm_storage_posture"
+title = "7.4.tsr.4_8_4_8_windows_vm_storage_posture"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_4_virtualization_health"
+title = "7.4.tsr.4_8_4_virtualization_health"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_5_1_capacity_management"
+title = "7.4.tsr.4_8_5_1_capacity_management"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_5_2_4_prometheus_duplicate_servicemonitor"
+title = "7.4.tsr.4_8_5_2_4_prometheus_duplicate_servicemonitor"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_5_2_alert_management"
+title = "7.4.tsr.4_8_5_2_alert_management"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_5_3_2_data_protection_application"
+title = "7.4.tsr.4_8_5_3_2_data_protection_application"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_5_3_3_backup_restore_crs"
+title = "7.4.tsr.4_8_5_3_3_backup_restore_crs"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_5_3_4_cnv_virtualization_snapshots"
+title = "7.4.tsr.4_8_5_3_4_cnv_virtualization_snapshots"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_5_3_virtual_machine_backup_and_restore"
+title = "7.4.tsr.4_8_5_3_virtual_machine_backup_and_restore"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_5_day_2_operations"
+title = "7.4.tsr.4_8_5_day_2_operations"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_6_1_vtpm"
+title = "7.4.tsr.4_8_6_1_vtpm"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_6_security"
+title = "7.4.tsr.4_8_6_security"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_8_red_hat_openshift_virtualization"
+title = "7.4.tsr.4_8_red_hat_openshift_virtualization"
+content_from = "7.4.cnv.state"
+include_in_findings = false
+

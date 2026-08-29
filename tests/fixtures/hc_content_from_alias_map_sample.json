@@ -1,0 +1,46 @@
+{
+  "apply_sample": [
+    {
+      "alias_check_id": "7.1.tsr.1_3_2_platform_hypervisor",
+      "canonical_check_id": "7.1.tsr.1_3_2_2_hypervisor_checks"
+    },
+    {
+      "alias_check_id": "7.1.tsr.1_4_1_1_operating_system_version",
+      "canonical_check_id": "7.1.tsr.1_1_identification_and_state"
+    },
+    {
+      "alias_check_id": "7.4.tsr.4_7_1_1_rhacm_supported_config",
+      "canonical_check_id": "7.4.acm.state"
+    },
+    {
+      "alias_check_id": "7.4.tsr.4_8_1_1_installation",
+      "canonical_check_id": "7.4.cnv.state"
+    },
+    {
+      "alias_check_id": "7.6.tsr.6_3_1_active_alerts",
+      "canonical_check_id": "7.1.tsr.1_5_2_3_dns_alerts"
+    }
+  ],
+  "virt_sample": [
+    {
+      "alias_check_id": "7.4.tsr.4_8_1_1_installation",
+      "canonical_check_id": "7.4.cnv.state"
+    },
+    {
+      "alias_check_id": "7.4.tsr.4_8_1_2_1_platform_hypervisor",
+      "canonical_check_id": "7.4.cnv.state"
+    },
+    {
+      "alias_check_id": "7.4.tsr.4_8_1_3_1_node_os_version",
+      "canonical_check_id": "7.4.cnv.state"
+    },
+    {
+      "alias_check_id": "7.4.tsr.4_8_3_1_3_xfs_kubevirt_csi_filesystem_posture",
+      "canonical_check_id": "7.4.cnv.kubevirt"
+    },
+    {
+      "alias_check_id": "7.4.tsr.4_8_2_1_1_live_migrations_requirements",
+      "canonical_check_id": "7.4.cnv.live_migratable"
+    }
+  ]
+}
