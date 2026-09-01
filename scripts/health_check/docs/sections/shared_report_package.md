@@ -5,8 +5,10 @@ scripts/health_check/hc_report/
   models.py        — CheckResult, Finding dataclasses (Finding carries impact/impact_scope/impact_detail)
   loader.py        — load_results() (manifest or directory scan)
   metadata.py      — derive_metadata() from collected JSON
-  registry.py      — check-profile dispatch (core/extended/advisory)
-  evaluators/      — per-category check functions (12 modules plus `_common.py` and `_shared_checks.py`)
+  registry.py      — native category evaluators 03–11 (`get_core_registry`)
+  evaluators/      — `evaluate_checks()` runs the registry then `parity.py` for `extended`/`advisory`
+                     (`platform`, `topology`, `components` plus infra/network/misc helpers,
+                     `layered`, `health`, `day2`, `security`, `metrics`, `hardware`)
   parity.py        — TSR/CCX additive parity expansion
   tsr_parser.py    — parse TSR HTML exports into parity status inputs
   catalogs/        — tsr_ccx_crosswalk.json (+ README)
@@ -19,12 +21,12 @@ scripts/health_check/hc_report/
                        **Verification:** line; get_links()/get_impact()
   link_review/      — suggest + HTTP-check KB documentation URLs (does not rewrite TOMLs)
   build_crosswalk_catalog.py — regenerates catalogs/tsr_ccx_crosswalk.json
-  findings.py      — derive_findings(); resolves recommendation/impact via kb_loader.py,
-                       falling back to notes.py, then a generic [NEEDS REVIEW] placeholder
+  findings.py      — derive_findings() / derive_findings_with_tsr(); recommendation/impact via kb_loader.py
+  omit_findings.py — optional Chapter 6 filter → `{stem}_pruned.md`
   renderer.py      — render_report() template slot substitution; emits a conditional
                        "Level of Impact" block per finding when KB impact data is present
-  notes.py         — KB-first per-check documentation links; small _CHECK_NOTES fallback table
-  cli.py           — argument parsing, orchestration
+  notes.py         — `get_note()` fallback links used by the renderer when KB links are empty
+  cli.py           — argument parsing, orchestration (`cli.main`)
 ```
 
 Code quality is enforced via `ruff.toml` (C901 ≤ 15, max-branches ≤ 15, max-statements ≤ 50).

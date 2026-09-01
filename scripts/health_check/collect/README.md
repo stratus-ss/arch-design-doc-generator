@@ -4,7 +4,7 @@
 
 Zero-dependency data collection for OpenShift Health Check engagements.
 
-**Requirements:** `oc` CLI only. No `jq`, Python, or any other tools needed on the collection machine.
+**Requirements:** `oc` CLI. No `jq`. Category scripts `10_metrics.sh` and `11_hardware.sh` use `python3` when those categories run (default full collect).
 **Cluster access:** All commands are read-only. Nothing is created, modified, or deleted.
 
 ## What hc-collect Actually Does
@@ -21,7 +21,7 @@ Before touching the cluster, the script:
 
 #### 2. Category scripts run in sequence
 
-Nine bash scripts run one after the other. Together they cover health check chapters HC-03 through HC-11. Each command produces one JSON file in the output directory.
+The driver runs ten category scripts one after the other (`03_base_platform.sh` through `12_ccx.sh`). Together they cover report chapters 7.1–7.9 plus optional CCX advisory payload. Each capture writes one JSON file in the matching category directory.
 
 For each `oc get` command, one of four things happens:
 
@@ -193,14 +193,17 @@ Core component health — monitoring, storage, networking, ingress.
 
 Optional Red Hat products. Every command here may produce `_hc_not_found` if the product isn't installed — this is expected and normal.
 
-| Product                               | Files collected                                                         |
-|---------------------------------------|-------------------------------------------------------------------------|
-| **OpenShift Virtualization (CNV)**    | `cnv_hyperconverged.json`, `cnv_kubevirt.json`, `cnv_pods.json`         |
-| **Advanced Cluster Management (ACM)** | `acm_multiclusterhub.json`, `acm_pods.json`                             |
-| **Advanced Cluster Security (ACS)**   | `acs_central.json`, `acs_pods.json`                                     |
-| **Logging (ClusterLogging / Loki)**   | `logging_clusterlogging.json`, `logging_loki.json`, `logging_pods.json` |
-| **OpenShift Pipelines (Tekton)**      | `pipelines_tektonconfig.json`, `pipelines_pods.json`                    |
-| **Service Mesh (Istio)**              | `servicemesh_smcp.json`, `servicemesh_pods.json`                        |
+| Product                               | Files collected                                                                                |
+|---------------------------------------|------------------------------------------------------------------------------------------------|
+| **OpenShift Virtualization (CNV)**    | `cnv_hyperconverged.json`, `cnv_kubevirt.json`, `cnv_pods.json`, `cnv_vm.json`, `cnv_vmi.json` |
+| **Advanced Cluster Management (ACM)** | `acm_multiclusterhub.json`, `acm_pods.json`                                                    |
+| **Advanced Cluster Security (ACS)**   | `acs_central.json`, `acs_pods.json`                                                            |
+| **Logging (ClusterLogging / Loki)**   | `logging_clusterlogging.json`, `logging_loki.json`, `logging_pods.json`                        |
+| **OpenShift Pipelines (Tekton)**      | `pipelines_tektonconfig.json`, `pipelines_pods.json`                                           |
+| **Service Mesh (Istio)**              | `servicemesh_smcp.json`, `servicemesh_pods.json`                                               |
+| **OpenShift Serverless (Knative)**    | `serverless_knserving.json`, `serverless_kneventing.json`                                      |
+| **Quay Registry**                     | `quay_registry.json`                                                                           |
+| **OpenShift AI / Data Science**       | `datasciencecluster.json`                                                                      |
 
 #### `07_cluster_health.sh` — Chapter 7.5
 
@@ -248,6 +251,26 @@ Security posture — SCCs, OAuth, RBAC, compliance operator (if installed).
 | `secrets_count.json`             | `oc get secrets -A --no-headers` | Secret inventory by namespace (count only — no content) |
 | `clusterrolebindings_admin.json` | `oc get clusterrolebinding`      | Used to audit cluster-admin grants                      |
 
+#### `10_metrics.sh` — Chapter 7.8
+
+Live PromQL via `oc exec` into Thanos querier, plus `etcdctl` endpoint probes. Needs `python3` to URL-encode queries. Missing Thanos writes `_hc_error` for that check.
+
+| File                                                                                   | Source             | Purpose                        |
+|----------------------------------------------------------------------------------------|--------------------|--------------------------------|
+| `node_cpu_requests_pct.json` / `node_memory_requests_pct.json`                         | PromQL             | Node request vs allocatable    |
+| `node_cpu_limits_pct.json` / `node_memory_limits_pct.json`                             | PromQL             | Node limit vs allocatable      |
+| `etcd_disk_wal_fsync_p99.json` / `etcd_disk_backend_p99.json`                          | PromQL             | etcd disk latency              |
+| `etcd_leader_changes_1h.json` / `etcd_db_size_bytes.json` / `etcd_db_size_in_use.json` | PromQL             | etcd leadership and DB size    |
+| `etcd_proposals_failed.json` / `etcd_heartbeat_failures.json`                          | PromQL             | etcd proposal/heartbeat health |
+| `apiserver_request_latency_p99.json` / `apiserver_error_rate.json`                     | PromQL             | API server latency and errors  |
+| `cert_expiry_days.json`                                                                | PromQL             | Certificate days to expiry     |
+| `etcd_endpoint_health.json` / `etcd_endpoint_status.json`                              | `etcdctl` via exec | etcd member health             |
+| `node_memory_working_set_pct.json` / `pvc_utilization_pct.json`                        | PromQL             | Working set and PVC fill       |
+
+#### `11_hardware.sh` — Chapter 7.9
+
+Per-node inventory via `oc debug node` (slowest live step). Writes `node_hw_<short_name>.json`. Needs `python3` to parse debug output. Failed debug writes `_hc_error`.
+
 #### `12_ccx.sh` — Advisory Rule Payload (optional)
 
 Optional ingestion of CCX advisory rule output from a local JSON payload.
@@ -261,6 +284,7 @@ Optional ingestion of CCX advisory rule output from a local JSON payload.
 ```
 output/hc_collect/
 ├── manifest.json                    ← collection summary (timestamp, file list, error count)
+├── skipped_commands.jsonl           ← per-command skip/error ledger (not ingested by the report)
 ├── 03_base_platform/
 │   ├── clusterversion.json
 │   ├── clusteroperators.json
@@ -652,6 +676,9 @@ The flow is identical to the OCP-V pipeline: markdown → `pandoc` (branded CSS 
 PDFs are written to:
 - `output/Health_Check_Report/PDFs/` — customer-facing report (nested reports keep a cluster subdirectory, e.g. `PDFs/<cluster_dir>/…`)
 
+HTML is written to:
+- `output/Health_Check_Report/HTML/` — collapsible report (`make hc-html`; same `REPORT=` / `FORCE=1` rules)
+
 Unset `REPORT` discovers all report markdown (prefers `_pruned.md`). `REPORT=path.md` exports that one file. A source outside the report tree maps by basename. `FORCE=1` overwrites an existing basename dest.
 
 If the container image hasn't been built yet, `make hc-pdf` will build it automatically first.
@@ -768,8 +795,10 @@ scripts/health_check/hc_report/
   models.py        — CheckResult, Finding dataclasses (Finding carries impact/impact_scope/impact_detail)
   loader.py        — load_results() (manifest or directory scan)
   metadata.py      — derive_metadata() from collected JSON
-  registry.py      — check-profile dispatch (core/extended/advisory)
-  evaluators/      — per-category check functions (12 modules plus `_common.py` and `_shared_checks.py`)
+  registry.py      — native category evaluators 03–11 (`get_core_registry`)
+  evaluators/      — `evaluate_checks()` runs the registry then `parity.py` for `extended`/`advisory`
+                     (`platform`, `topology`, `components` plus infra/network/misc helpers,
+                     `layered`, `health`, `day2`, `security`, `metrics`, `hardware`)
   parity.py        — TSR/CCX additive parity expansion
   tsr_parser.py    — parse TSR HTML exports into parity status inputs
   catalogs/        — tsr_ccx_crosswalk.json (+ README)
@@ -782,12 +811,12 @@ scripts/health_check/hc_report/
                        **Verification:** line; get_links()/get_impact()
   link_review/      — suggest + HTTP-check KB documentation URLs (does not rewrite TOMLs)
   build_crosswalk_catalog.py — regenerates catalogs/tsr_ccx_crosswalk.json
-  findings.py      — derive_findings(); resolves recommendation/impact via kb_loader.py,
-                       falling back to notes.py, then a generic [NEEDS REVIEW] placeholder
+  findings.py      — derive_findings() / derive_findings_with_tsr(); recommendation/impact via kb_loader.py
+  omit_findings.py — optional Chapter 6 filter → `{stem}_pruned.md`
   renderer.py      — render_report() template slot substitution; emits a conditional
                        "Level of Impact" block per finding when KB impact data is present
-  notes.py         — KB-first per-check documentation links; small _CHECK_NOTES fallback table
-  cli.py           — argument parsing, orchestration
+  notes.py         — `get_note()` fallback links used by the renderer when KB links are empty
+  cli.py           — argument parsing, orchestration (`cli.main`)
 ```
 
 Code quality is enforced via `ruff.toml` (C901 ≤ 15, max-branches ≤ 15, max-statements ≤ 50).

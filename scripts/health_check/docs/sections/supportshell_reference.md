@@ -10,7 +10,7 @@ The category scripts (`03_base_platform.sh` through `12_ccx.sh`) are intentional
 The scripts cannot be trivially shared because:
 
 1. **CLI differences** — `omc` is a drop-in for most `oc get` commands but does not support `oc exec`, `oc adm top`, or live Prometheus queries. The supportshell scripts handle these gracefully.
-2. **Category implementation differences** — both paths include `10_metrics.sh` and `11_hardware.sh`, but the supportshell versions collect static must-gather artifacts where the live path uses `oc exec` and `oc debug node`.
+2. **Category implementation differences** — both paths include `10_metrics.sh`, `11_hardware.sh`, and `12_ccx.sh`. Supportshell metrics/hardware collect static must-gather artifacts where the live path uses `oc exec` and `oc debug node`. `make check-hc-sync` diffs only the paired twins `03`–`09`.
 3. **Pre-flight** — The live path verifies cluster connectivity; the supportshell path verifies `omc` has a must-gather loaded.
 
 The JSON output format is identical between both paths, making downstream tooling agnostic to the collection method.

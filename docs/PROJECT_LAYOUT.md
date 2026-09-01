@@ -27,27 +27,36 @@
 │   │   └── report_lld_closeness.py
 │   ├── health_check/
 │   │   ├── README.md
-│   │   ├── docs/
-│   │   ├── collect/
-│   │   ├── supportshell/
+│   │   ├── docs/                       # stitchmd fragments (make hc-docs)
+│   │   ├── collect/                    # live oc; scripts 03–12
+│   │   ├── supportshell/               # omc twins + hc_merge.py
 │   │   ├── hc_report/
 │   │   ├── generate_report.py
 │   │   ├── hc_investigate.py
 │   │   ├── hc_skip_summary.py
-│   │   └── generate_command_reference.py
+│   │   ├── generate_command_reference.py
+│   │   ├── draft_summary_conclusion.py
+│   │   ├── update_finding_loi.py
+│   │   ├── renumber_finding_sections.py
+│   │   ├── hc_link_review.py
+│   │   ├── hc_link_apply.py
+│   │   └── hc_fetch_results.sh
 │   ├── shared/
 │   │   ├── lib/
+│   │   ├── rendering/                  # HC HTML/PDF post-process
 │   │   └── tools/                      # sanitize_diagrams, check_pii, package_release
 │   ├── rvtools/
 │   ├── entrypoint.sh
 │   └── setup_project.py
 ├── openspec/
-│   └── specs/hld-lld-slot-pipeline/spec.md
+│   ├── specs/hld-lld-slot-pipeline/spec.md
+│   └── specs/hc-report-engine/spec.md
 ├── tests/
 ├── output/                             # generated (gitignored; not a template source)
 ├── Containerfile
 ├── Makefile
 ├── project.example.yaml                # committed template; project.yaml is gitignored
+├── project.example.hc.yaml             # Health Check template when PROJECT=HC
 └── README.md
 ```
 
@@ -73,6 +82,9 @@
 - `output/LLD/` — client-prefixed LLD files (setup copy, then slot render).
 - `output/.deterministic/slots/slot_map.json` — unified slot map for HLD and LLD (also gitignored at any path as `**/slot_map.json`).
 - `output/.deterministic/slots/slot_map.fingerprint.json` — input hashes used to skip or re-run extraction.
+- `output/hc_collect/` — collected Health Check JSON (`manifest.json`, category dirs `03`–`12`, `skipped_commands.jsonl`).
+- `output/Health_Check_Report/` — generated report markdown, audit JSON, `HTML/`, `PDFs/`.
+- `output/tsr_html/` — optional TSR HTML drop directory for `make hc-report` discovery.
 - PDFs, PNG exports, and work items also land here.
 
 ### `docs/`
@@ -90,7 +102,7 @@
 - `collect/` — live `oc` collectors (`hc_collect.sh`, `lib/common.sh`, category scripts `03`–`12`). `supportshell/` has the same `10`–`12` scripts. `make check-hc-sync` diffs only the paired twins `03`–`09`. `06_layered.sh` captures `cnv_vm` and `cnv_vmi` after `cnv_pods`.
 - `supportshell/` — offline `omc` collectors, `hc_merge.py`, `hc_collect_multi.sh`. `supportshell/06_layered.sh` is the `omc` twin of collect `06_layered.sh` (`cnv_vm` / `cnv_vmi` included).
 - `hc_report/` — report engine:
-  - `evaluators/` — 12 category evaluator modules (`platform`, `topology`, `components` plus `components_infra` / `components_network` / `components_misc`, `layered`, `health`, `day2`, `security`, `metrics`, `hardware`) plus `_common.py` and `_shared_checks.py`.
+  - `evaluators/` — native registry categories `03`–`11` (`platform`, `topology`, `components` plus `components_infra` / `components_network` / `components_misc`, `layered`, `health`, `day2`, `security`, `metrics`, `hardware`) plus `_common.py` and `_shared_checks.py`. Category `12` CCX is not a native evaluator; advisory profile expands it via `parity.py`.
   - `kb/` — TOML knowledge base (`7_1`–`7_9` plus `versions.toml`). Optional fields: `verification` (joined at read with a bold `**Verification:**` line inside Recommendation), `summary_patterns` (§6.1), `finding_group` / `finding_group_title`, `include_in_findings` (default true), `finding_on_info` (default false; INFO → P3 finding), and `content_from` (exact canonical `check_id`; alias omits inherited fields including `verification` so the TOML looks sparse; single hop; `load_kb` fails closed). Full alias rules: [README Knowledge Base](../README.md#knowledge-base-kb-for-recommendations-and-notes). Descriptions are mode-neutral (valid without TSR); do not encode a single cluster's TSR remainder. Recommendations list failure classes as examples.
   - `parity.py`, `tsr_parser.py`, `_text.py`, `build_crosswalk_catalog.py` — TSR/CCX catalog expansion, HTML parse, catalog rebuild.
   - `catalogs/` — `tsr_ccx_crosswalk.json`.

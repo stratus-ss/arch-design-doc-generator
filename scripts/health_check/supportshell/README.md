@@ -354,6 +354,9 @@ The flow is identical to the OCP-V pipeline: markdown → `pandoc` (branded CSS 
 PDFs are written to:
 - `output/Health_Check_Report/PDFs/` — customer-facing report (nested reports keep a cluster subdirectory, e.g. `PDFs/<cluster_dir>/…`)
 
+HTML is written to:
+- `output/Health_Check_Report/HTML/` — collapsible report (`make hc-html`; same `REPORT=` / `FORCE=1` rules)
+
 Unset `REPORT` discovers all report markdown (prefers `_pruned.md`). `REPORT=path.md` exports that one file. A source outside the report tree maps by basename. `FORCE=1` overwrites an existing basename dest.
 
 If the container image hasn't been built yet, `make hc-pdf` will build it automatically first.
@@ -385,7 +388,7 @@ The category scripts (`03_base_platform.sh` through `12_ccx.sh`) are intentional
 The scripts cannot be trivially shared because:
 
 1. **CLI differences** — `omc` is a drop-in for most `oc get` commands but does not support `oc exec`, `oc adm top`, or live Prometheus queries. The supportshell scripts handle these gracefully.
-2. **Category implementation differences** — both paths include `10_metrics.sh` and `11_hardware.sh`, but the supportshell versions collect static must-gather artifacts where the live path uses `oc exec` and `oc debug node`.
+2. **Category implementation differences** — both paths include `10_metrics.sh`, `11_hardware.sh`, and `12_ccx.sh`. Supportshell metrics/hardware collect static must-gather artifacts where the live path uses `oc exec` and `oc debug node`. `make check-hc-sync` diffs only the paired twins `03`–`09`.
 3. **Pre-flight** — The live path verifies cluster connectivity; the supportshell path verifies `omc` has a must-gather loaded.
 
 The JSON output format is identical between both paths, making downstream tooling agnostic to the collection method.
@@ -536,8 +539,10 @@ scripts/health_check/hc_report/
   models.py        — CheckResult, Finding dataclasses (Finding carries impact/impact_scope/impact_detail)
   loader.py        — load_results() (manifest or directory scan)
   metadata.py      — derive_metadata() from collected JSON
-  registry.py      — check-profile dispatch (core/extended/advisory)
-  evaluators/      — per-category check functions (12 modules plus `_common.py` and `_shared_checks.py`)
+  registry.py      — native category evaluators 03–11 (`get_core_registry`)
+  evaluators/      — `evaluate_checks()` runs the registry then `parity.py` for `extended`/`advisory`
+                     (`platform`, `topology`, `components` plus infra/network/misc helpers,
+                     `layered`, `health`, `day2`, `security`, `metrics`, `hardware`)
   parity.py        — TSR/CCX additive parity expansion
   tsr_parser.py    — parse TSR HTML exports into parity status inputs
   catalogs/        — tsr_ccx_crosswalk.json (+ README)
@@ -550,12 +555,12 @@ scripts/health_check/hc_report/
                        **Verification:** line; get_links()/get_impact()
   link_review/      — suggest + HTTP-check KB documentation URLs (does not rewrite TOMLs)
   build_crosswalk_catalog.py — regenerates catalogs/tsr_ccx_crosswalk.json
-  findings.py      — derive_findings(); resolves recommendation/impact via kb_loader.py,
-                       falling back to notes.py, then a generic [NEEDS REVIEW] placeholder
+  findings.py      — derive_findings() / derive_findings_with_tsr(); recommendation/impact via kb_loader.py
+  omit_findings.py — optional Chapter 6 filter → `{stem}_pruned.md`
   renderer.py      — render_report() template slot substitution; emits a conditional
                        "Level of Impact" block per finding when KB impact data is present
-  notes.py         — KB-first per-check documentation links; small _CHECK_NOTES fallback table
-  cli.py           — argument parsing, orchestration
+  notes.py         — `get_note()` fallback links used by the renderer when KB links are empty
+  cli.py           — argument parsing, orchestration (`cli.main`)
 ```
 
 Code quality is enforced via `ruff.toml` (C901 ≤ 15, max-branches ≤ 15, max-statements ≤ 50).

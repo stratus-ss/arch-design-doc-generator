@@ -10,7 +10,7 @@ Before touching the cluster, the script:
 
 ### 2. Category scripts run in sequence
 
-Nine bash scripts run one after the other. Together they cover health check chapters HC-03 through HC-11. Each command produces one JSON file in the output directory.
+The driver runs ten category scripts one after the other (`03_base_platform.sh` through `12_ccx.sh`). Together they cover report chapters 7.1–7.9 plus optional CCX advisory payload. Each capture writes one JSON file in the matching category directory.
 
 For each `oc get` command, one of four things happens:
 

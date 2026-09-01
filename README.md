@@ -5,7 +5,7 @@ Config-driven document automation toolkit for architecture engagements. It turns
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md) - system components, data flow, and runtime boundaries
-- [Code Flow](docs/CODEFLOW.md) - execution paths for setup, AI preparation, publish, and work item generation
+- [Code Flow](docs/CODEFLOW.md) - execution paths for setup, AI preparation, publish, work items, and Health Check
 - [Project Layout](docs/PROJECT_LAYOUT.md) - directory structure and file-level responsibilities
 
 ## Prerequisites
@@ -13,7 +13,8 @@ Config-driven document automation toolkit for architecture engagements. It turns
 | For | Needs |
 |---|---|
 | Host AI targets (`build-hld-from-adr`, `prepare-hld-ai`) | `python3`, `pyyaml`, AI tooling (`cursor-sdk` or selected CLI) |
-| Container targets (`setup`, `publish`, `build-lld`, `workitems`) | `podman` or `docker`, `make` |
+| Container targets (`setup`, `publish`, `build-lld`, `workitems`, `hc-report`) | `podman` or `docker`, `make` |
+| Health Check live collect (`hc-collect`) | `oc`; `python3` for categories `10` and `11` |
 
 Podman is auto-detected; override with `ENGINE=docker` if needed.
 
@@ -96,6 +97,8 @@ A second engagement type (`PROJECT=HC`) collects OpenShift cluster JSON and gene
 | `make hc-investigate RESULTS_DIR=… FINDING_ID=…` | Container | Trace a finding or check back to raw evidence (`CHECK_ID=` / `QUERY=` also work) |
 | `make hc-skip-summary LEDGER=…` | Host | Summarize skipped collection commands from `skipped_commands.jsonl` (`RESULTS_DIR=` also works) |
 | `make hc-command-ref` | Host | Write `docs/HC_Command_Reference.md` from collect scripts |
+| `make hc-update-loi REPORT=path.md` | Host | Rewrite Chapter 6 Level of Impact from current KB TOML |
+| `make hc-renumber-findings REPORT=path.md` | Host | Resequence §6.2 IDs after moving findings between P0–P3 |
 | `make hc-link-review` | Container | Suggest KB doc URLs and HTTP-check pages with `curl_cffi` |
 | `make hc-link-apply` | Host | Write accepted `REPLACE` URLs from `kb_link_review.csv` into KB `[checks.links]` |
 | `make check-hc-sync` | Host | Diff collect/ vs supportshell/ shared scripts 03–09 |
