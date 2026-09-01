@@ -15,6 +15,7 @@ from hc_report.evaluators._common import (
     _node_capacity,
     _node_info,
     _not_applicable,
+    _parse_alerts_list,
     _parse_cpu_cores,
     _parse_lsblk_size_gib,
     _parse_quantity_gib,
@@ -24,6 +25,8 @@ from hc_report.evaluators._common import (
 )
 from hc_report.evaluators._shared_checks import is_compact_cluster, node_roles
 from hc_report.models import CheckResult
+
+CORE_DNS_ALERT_NAMES = ("CoreDNSErrorsHigh", "CoreDNSHealthCheckSlow", "CoreDNSPanicking")
 
 
 def _evaluate_cluster_version(cluster_version_raw: dict, category_id: str, category_name: str) -> list[CheckResult]:
@@ -230,6 +233,33 @@ def _evaluate_single_subscription(subscription: dict, cluster_service_version_ph
                         f"Subscription: {name} ({namespace})", status, evidence, name)]
 
 
+def _evaluate_coredns_alerts(alerts_data: dict, category_id: str, category_name: str) -> list[CheckResult]:
+    check_id = f"{category_id}.dns.coredns_alerts"
+    title = "CoreDNS alerts"
+    if _is_missing(alerts_data):
+        return [CheckResult(
+            category_id, category_name, check_id, title, "SKIPPED",
+            "firing_alerts not collected",
+        )]
+    matching_names: list[str] = []
+    for alert in _parse_alerts_list(alerts_data):
+        if alert.get("state", "").lower() != "firing":
+            continue
+        alert_name = alert.get("labels", {}).get("alertname")
+        if alert_name in CORE_DNS_ALERT_NAMES:
+            matching_names.append(alert_name)
+    if matching_names:
+        joined = ", ".join(matching_names)
+        return [CheckResult(
+            category_id, category_name, check_id, title, "FAIL",
+            f"CoreDNS alert(s) firing: {joined}",
+        )]
+    return [CheckResult(
+        category_id, category_name, check_id, title, "PASS",
+        "No CoreDNSErrorsHigh, CoreDNSHealthCheckSlow, or CoreDNSPanicking alerts firing",
+    )]
+
+
 def evaluate_base_platform(category_data: dict, results: dict, category_id: str, category_name: str) -> list[CheckResult]:
     """Dispatch evaluators for 7.1 Base Platform Checks."""
     checks: list[CheckResult] = []
@@ -246,6 +276,25 @@ def evaluate_base_platform(category_data: dict, results: dict, category_id: str,
         hardware_data=results.get("11_hardware", {}),
     )
     checks += _evaluate_system_config(category_data, results, category_id, category_name)
+    detected_plugin = _detect_network_plugin(
+        category_data.get("clusteroperators", {}),
+        _install_config_yaml(category_data),
+    )
+    fallback_type = ""
+    if "OVN" in detected_plugin:
+        fallback_type = "OVNKubernetes"
+    elif "SDN" in detected_plugin:
+        fallback_type = "OpenShiftSDN"
+    checks += _evaluate_overlay_ports(
+        results.get("05_components", {}).get("network", {}),
+        category_id,
+        category_name,
+        fallback_network_type=fallback_type,
+    )
+    checks += _evaluate_coredns_alerts(
+        results.get("07_cluster_health", {}).get("firing_alerts", {}),
+        category_id, category_name,
+    )
     return checks
 
 
@@ -517,6 +566,60 @@ def _evaluate_node_requirements(
 # ---------------------------------------------------------------------------
 # 1.5.x System Configurations
 # ---------------------------------------------------------------------------
+
+_OVERLAY_EXPECTED_PORTS = (
+    "6081/udp all nodes; 6443/tcp control-plane; "
+    "2379/tcp and 2380/tcp control-plane; 10250/tcp all nodes; ports not probed"
+)
+
+
+def _evaluate_overlay_ports(
+    network_data: dict, category_id: str, category_name: str,
+    *, fallback_network_type: str = "",
+) -> list[CheckResult]:
+    """Score overlay/API port posture from network.config (canonical source).
+
+    When spec.networkType is empty, falls back to fallback_network_type
+    (derived from ClusterOperator by the caller) so the two detection
+    paths cannot silently disagree.
+    """
+    check_id = f"{category_id}.net.overlay_ports"
+    title = "Cluster overlay and API ports"
+    if network_data.get("_hc_error"):
+        return [CheckResult(
+            category_id, category_name, check_id, title, "SKIPPED",
+            "network.json collect error; ports not probed",
+        )]
+    if not network_data or network_data.get("_hc_not_found"):
+        return [CheckResult(
+            category_id, category_name, check_id, title, "NOT_APPLICABLE",
+            "network.json not collected; ports not probed",
+        )]
+    items = _get_items(network_data, default_single=True)
+    first_item = items[0] if items else {}
+    network_type = str(first_item.get("spec", {}).get("networkType") or "")
+    if not network_type and fallback_network_type:
+        network_type = fallback_network_type
+    if network_type == "OVNKubernetes":
+        return [CheckResult(
+            category_id, category_name, check_id, title, "PASS",
+            f"CNI {network_type}. Expected ports: {_OVERLAY_EXPECTED_PORTS}",
+        )]
+    if network_type == "OpenShiftSDN":
+        return [CheckResult(
+            category_id, category_name, check_id, title, "WARNING",
+            f"CNI {network_type} (removed in 4.17). Expected ports: {_OVERLAY_EXPECTED_PORTS}",
+        )]
+    if network_type:
+        return [CheckResult(
+            category_id, category_name, check_id, title, "INFO",
+            f"CNI {network_type}. Expected ports: {_OVERLAY_EXPECTED_PORTS}",
+        )]
+    return [CheckResult(
+        category_id, category_name, check_id, title, "INFO",
+        f"networkType empty. Expected ports: {_OVERLAY_EXPECTED_PORTS}",
+    )]
+
 
 def _evaluate_system_firewall_proxy(proxy_data: dict, category_id: str, category_name: str) -> list[CheckResult]:
     if _is_missing(proxy_data):

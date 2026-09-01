@@ -186,9 +186,9 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.5.pod_restarts"
 title = "Pod frequent restarts"
-description = "This check identifies pods with a combined container restart count greater than 10. It measures total restarts across all containers in a pod and is intended to detect running workloads that are repeatedly cycling.\n"
-recommendation = "Investigate pods with the highest restart totals first, using pod events and previous container logs to identify causes such as OOMKilled, failing probes, application errors, or invalid configuration. Correct the underlying issue and confirm that restart counts stop increasing."
-verification = "1. List pods sorted by total restart count across all containers. Any pod with more than 10 restarts needs investigation. If no pods exist the command reports it:\n   `oc get pods -A -o json | jq -r '.items[] | [((.status.containerStatuses // []) | map(.restartCount) | add // 0), .metadata.name, .metadata.namespace] | @tsv' | sort -n | awk -F'\\t' '{r=\"PASS\"; if($1+0>10) r=\"WARNING\"; print r, \"RESTARTS=\"$1, \"NAME=\"$2, \"NS=\"$3} END{if(NR==0) print \"INFO n/a-pod\"}'`"
+description = "This check identifies any container whose `restartCount` is greater than 10. It inspects each `containerStatuses` entry, not a pod-wide sum. The first container over 10 is enough for WARNING.\n"
+recommendation = "Investigate pods with a container restart count greater than 10 first, using pod events and previous container logs to identify causes such as OOMKilled, failing probes, application errors, or invalid configuration. Correct the underlying issue and confirm that that container's restart count stops increasing."
+verification = "1. List each container restart count. A container with more than 10 restarts is WARNING. If no pods exist the command reports it:\n   `oc get pods -A -o json | jq -r '.items[] | . as $p | ($p.status.containerStatuses // [])[] | [(.restartCount // 0), $p.metadata.name, $p.metadata.namespace, .name] | @tsv' | awk -F'\\t' '{r=\"PASS\"; if($1+0>10) r=\"WARNING\"; print r, \"RESTARTS=\"$1, \"NAME=\"$2, \"NS=\"$3, \"CONTAINER=\"$4} END{if(NR==0) print \"INFO n/a-pod\"}'`"
 priority_hint = ""
 impact = "workload-shift"
 impact_scope = "pods with rising restart counts"
@@ -203,18 +203,38 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/support/index#reviewing-pod-status_investigating-pod-issues"
 
 [[checks]]
-check_id = "7.5.tsr.5_6_node_role_values"
-title = "TSR node-role values"
-description = "This check verifies that each node has the correct role labels (master, worker, infra) and associated taints. Missing or incorrect labels can cause user workloads to run on control plane nodes, infrastructure workloads to land on worker nodes, or subscription entitlements to be miscounted."
-recommendation = "Keep node-role labels matching the intended worker, infra, and control-plane split. Missing infra labels is not a defect unless this cluster was meant to have dedicated infra nodes. On compact/SNO, masters are the workers — do not add NoSchedule there."
-verification = "1. List node role labels:\n   `oc get nodes --show-labels | grep node-role`\n2. If infra workloads should run on dedicated nodes, label them accordingly:\n   `oc label node <node> node-role.kubernetes.io/infra=\"\"`\n3. Taint infra nodes to keep user workloads off them:\n   `oc adm taint nodes <node> node-role.kubernetes.io/infra=:NoSchedule`\n4. On HA clusters with dedicated workers, confirm control-plane nodes carry the NoSchedule taint. On compact or SNO clusters, a missing NoSchedule taint is expected."
+check_id = "7.5.node.utilization"
+title = "Current node load"
+description = "This check is cluster current node load from `oc adm top nodes`. Per-node rows `7.5.node.{short}.utilization` still emit. WARNING if any node CPU percent is greater than 80 or memory percent is greater than 85. INFO if any node CPU percent is greater than 60 or memory percent is greater than 70 and none are WARNING. PASS when every parsed node is below those INFO bars. Missing or unparseable top output is N/A.\n"
+recommendation = "Add workers, spread load, or right-size requests when `oc adm top` shows nodes consistently above 80% CPU or 85% memory. That is usage, not requests. Per-node rows remain in chapter 7."
+verification = "1. Print node CPU and memory utilization. WARNING if CPU percent is greater than 80 or memory percent is greater than 85. INFO if CPU percent is greater than 60 or memory percent is greater than 70.\n   `oc adm top nodes`\n2. Scale by adding workers, rebalance with pod anti-affinity or topology-spread constraints, or right-size pod resource requests."
 priority_hint = ""
 impact = "workload-shift"
-impact_scope = "node scheduling and infra workload placement"
-impact_detail = "Changing node roles or taints affects where future workloads land and may require workload migration or rollout to move existing infra pods."
-summary_patterns = [
-  { contains = "NoSchedule", text = "Expected NoSchedule taint is missing on one or more nodes." },
-]
+impact_scope = "workloads on nodes above 80% CPU or 85% memory"
+impact_detail = "Spreading load or right-sizing requests reschedules those pods. Adding workers is a maintenance window."
+finding_group = "node-utilization"
+finding_group_title = "Current node load"
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/nodes/index#nodes-nodes-viewing-memory_nodes-nodes-viewing"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/nodes/index#nodes-nodes-viewing-memory_nodes-nodes-viewing"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/nodes/index#nodes-nodes-viewing-memory_nodes-nodes-viewing"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/nodes/index#nodes-nodes-viewing-memory_nodes-nodes-viewing"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/nodes/index#nodes-nodes-viewing-memory_nodes-nodes-viewing"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/nodes/index#nodes-nodes-viewing-memory_nodes-nodes-viewing"
+
+[[checks]]
+check_id = "7.5.node_roles"
+title = "Node-role labels"
+description = "This check verifies that every node has at least one `node-role.kubernetes.io/*` label. It does not score taints, compact-cluster NoSchedule, or whether an infra role is present. Missing labels leave the node outside machine-config pools and scheduling conventions."
+recommendation = "Label every node with at least one `node-role.kubernetes.io/*` role (master, worker, or infra). Missing infra labels is not a defect for this check. Control-plane NoSchedule taints are scored by `7.5.master_taints`, not here."
+verification = "1. List node role labels. Every node should appear with at least one `node-role.kubernetes.io/*` key. A node with none of those keys is FAIL:\n   `oc get nodes --show-labels | grep node-role`\n2. If a node has no role label, add the intended role. Example for a dedicated infra node:\n   `oc label node <node> node-role.kubernetes.io/infra=\"\"`"
+priority_hint = ""
+impact = "workload-shift"
+impact_scope = "node scheduling and machine-config pool membership"
+impact_detail = "Adding a missing node-role label changes which MachineConfigPool owns the node and where new pods may land. It does not apply taints."
+finding_group = "node-role-labels"
+finding_group_title = "Node-role labels"
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/machine_management/index#binding-infra-node-workloads-using-taints-tolerations_creating-infrastructure-machinesets"
@@ -225,15 +245,23 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/machine_management/index#binding-infra-node-workloads-using-taints-tolerations_creating-infrastructure-machinesets"
 
 [[checks]]
-check_id = "7.5.tsr.5_1_node_kubelet_health"
-title = "5.1. Node Kubelet Health"
-description = "This check validates the Kubernetes node Ready condition. A node is healthy and available to accept pods only when `Ready=True`; `Ready=False` means the node is unhealthy and not accepting workloads, while `Ready=Unknown` means the control plane has stopped receiving kubelet heartbeats. Any state other than `Ready=True` is a node-availability failure and can disrupt scheduling, VM placement, live migration, and workload recovery. This check is limited to node readiness.\n"
+check_id = "7.5.tsr.5_6_node_role_values"
+title = "TSR node-role values"
+content_from = "7.5.node_roles"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.5.kubelet_health"
+title = "Node kubelet health"
+description = "This check validates the Kubernetes node Ready condition. A node is available to accept pods when `Ready=True`; `Ready=False` means the node is not accepting workloads, while `Ready=Unknown` means the control plane has stopped receiving kubelet heartbeats. Any state other than `Ready=True` is WARNING. This check does not FAIL. It is limited to node readiness.\n"
 recommendation = "Restore every node to `Ready=True` before relying on it for workload placement or VM operations. For each non-ready node, inspect its condition reason, recent events, kubelet and CRI-O status, node networking, certificate state, and Machine Config Operator status; cordon the node and migrate or drain workloads safely where appropriate before remediation."
-verification = "1. List each node and its STATUS. Ready is healthy; any other status needs action. If no nodes exist the command reports it:\n   `oc get nodes --no-headers | awk '{r=\"PASS\"; if($2!=\"Ready\") r=\"FAIL\"; print r, \"NAME=\"$1, \"STATUS=\"$2} END{if(NR==0) print \"INFO n/a-node\"}'`"
+verification = "1. List each node and its STATUS. Ready is PASS; any other status is WARNING. If no nodes exist the command reports it:\n   `oc get nodes --no-headers | awk '{r=\"PASS\"; if($2!=\"Ready\") r=\"WARNING\"; print r, \"NAME=\"$1, \"STATUS=\"$2} END{if(NR==0) print \"INFO n/a-node\"}'`"
 priority_hint = ""
 impact = "maintenance-window"
 impact_scope = "NotReady nodes and their workloads"
 impact_detail = "Cordon, drain, then repair kubelet, CRI-O, or Machine Config. Node recovery can reboot that node and shift its workloads."
+finding_group = "kubelet-health"
+finding_group_title = "Node kubelet health"
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/nodes/index#nodes-nodes-viewing-listing_nodes-nodes-viewing"
@@ -244,9 +272,15 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/nodes/index#nodes-nodes-viewing-listing_nodes-nodes-viewing"
 
 [[checks]]
+check_id = "7.5.tsr.5_1_node_kubelet_health"
+title = "5.1. Node Kubelet Health"
+content_from = "7.5.kubelet_health"
+include_in_findings = false
+
+[[checks]]
 check_id = "7.5.tsr.5_2_machine_config"
 title = "5.2. Machine Config"
-content_from = "7.3.tsr.3_15_machine_config_pool"
+content_from = "7.3.misc.mcp"
 include_in_findings = false
 [[checks]]
 check_id = "7.5.tsr.5_3_operator_state"
@@ -275,21 +309,8 @@ include_in_findings = false
 [[checks]]
 check_id = "7.5.tsr.5_5_pod_frequent_restarts"
 title = "5.5. Pod Frequent Restarts"
-description = "This check identifies pods with a combined container restart count greater than 10. It measures total restarts across all containers in a pod and is intended to detect running workloads that are repeatedly cycling.\n"
-recommendation = "Investigate pods with the highest restart totals first, using pod events and previous container logs to identify causes such as OOMKilled, failing probes, application errors, or invalid configuration. Correct the underlying issue and confirm that restart counts stop increasing."
-verification = "1. List pods sorted by total restart count across all containers. Any pod with more than 10 restarts needs investigation. If no pods exist the command reports it:\n   `oc get pods -A -o json | jq -r '.items[] | [((.status.containerStatuses // []) | map(.restartCount) | add // 0), .metadata.name, .metadata.namespace] | @tsv' | sort -n | awk -F'\\t' '{r=\"PASS\"; if($1+0>10) r=\"WARNING\"; print r, \"RESTARTS=\"$1, \"NAME=\"$2, \"NS=\"$3} END{if(NR==0) print \"INFO n/a-pod\"}'`"
-priority_hint = ""
-impact = "workload-shift"
-impact_scope = "pods with rising restart counts"
-impact_detail = "Correcting image, configuration, or memory limits restarts those pods. OOMKilled can also mean node memory pressure that needs capacity work."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/support/index#reviewing-pod-status_investigating-pod-issues"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/support/index#reviewing-pod-status_investigating-pod-issues"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/support/index#reviewing-pod-status_investigating-pod-issues"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/support/index#reviewing-pod-status_investigating-pod-issues"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/support/index#reviewing-pod-status_investigating-pod-issues"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/support/index#reviewing-pod-status_investigating-pod-issues"
+content_from = "7.5.pod_restarts"
+include_in_findings = false
 
 [[checks]]
 check_id = "7.5.tsr.5_7_machine_config_pool"
@@ -351,28 +372,36 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/nodes/index#nodes-pods-configuring-pod-distruption-about_nodes-pods-configuring"
 
 [[checks]]
-check_id = "7.5.tsr.5_10_volume_mount_durations"
-title = "5.10. Volume Mount Durations"
-description = "This check identifies slow or failed PVC attach and mount operations that delay pod startup. A pod cannot start until Kubernetes and the CSI driver attach, stage, and mount its volumes on the target node. Repeated `FailedAttachVolume`, `FailedMount`, or stuck `VolumeAttachment` conditions can delay application recovery, VM startup, node drains, and rollouts. This is an availability risk, not just a performance metric. Isolated delays can be transient, but recurring failures can materially extend recovery time—especially for VM disks, which must be available before the VM can boot.\n"
-recommendation = "Treat recurring attach or mount failures as a storage availability issue. Review the affected pod events, PVC/PV, and `VolumeAttachment`, then check CSI controller and node-plugin health, storage-backend status, node-to-storage connectivity, access-mode compatibility, and whether the volume is still attached to a prior node. Do not delete `VolumeAttachment` objects, restart CSI components, resize volumes, or migrate workloads as a default fix. Force-detach only after confirming the previous node no longer uses the volume and the action is safe for the workload. After remediation, confirm the pod starts and the volume attaches and mounts within the required recovery time."
-verification = "1. List `FailedMount` and `FailedAttachVolume` events that indicate slow or stuck volume operations:\n   `oc get events -A --field-selector reason=FailedMount`\n   `oc get events -A --field-selector reason=FailedAttachVolume`\n2. Verify CSI driver pods are running in the storage namespace and that the storage backend is responsive.\n3. Check for `VolumeAttachment` objects stuck in an attaching state:\n   `oc get volumeattachment`"
-priority_hint = ""
+check_id = "7.5.volume.mount_p99"
+title = "Volume mount p99 duration"
+description = "This check scores kubelet CSI volume mount duration at the 99th percentile over 15 minutes. A pod cannot start until Kubernetes and the CSI driver attach, stage, and mount its volumes. Slow mounts delay application recovery, VM startup, node drains, and rollouts. This is not PVC used percent.\n"
+recommendation = "Treat p99 above 2 seconds as a storage attach or mount delay. Review FailedMount and FailedAttachVolume events, VolumeAttachment, CSI controller and node-plugin pods, and backend connectivity. Do not scrape host mount tables. Do not delete VolumeAttachment objects as a default fix. Empty PromQL is informational, not a pass.\n"
+verification = "1. Query kubelet storage-operation duration p99 for volume_mount and mount operations. At or below 2 seconds is PASS. Above 2 seconds and at most 10 seconds is WARNING. Above 10 seconds is FAIL. An empty result is INFO — the metric was not scraped:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -sG http://localhost:9090/api/v1/query --data-urlencode 'query=histogram_quantile(0.99, sum(rate(storage_operation_duration_seconds_bucket{operation=~\"volume_mount|mount\"}[15m])) by (le))' | jq -r '.data.result[] | .value[1]' | awk '{if($1==\"NaN\"||$1==\"+Inf\"||$1==\"-Inf\"){print \"INFO\", \"P99=not-a-number\"; next} r=\"PASS\"; if($1+0>10) r=\"FAIL\"; else if($1+0>2) r=\"WARNING\"; printf \"%s P99=%.2fs\\n\", r, $1+0} END{if(NR==0) print \"INFO empty vector\"}'`"
+priority_hint = "P1"
 impact = "workload-shift"
-impact_scope = "pods stuck on attach or mount"
-impact_detail = "Online expansion may be transparent, but storage migration or cutover can require pod restart, rescheduling, or temporary workload movement."
+impact_scope = "pods waiting on volume attach or mount"
+impact_detail = "Fixing slow CSI mount usually restarts or reschedules the waiting pods. It does not reboot nodes by itself."
+finding_group = "volume-mount-duration"
+finding_group_title = "Volume mount duration"
 
 [checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/storage/index#persistent-storage-csi"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/storage/index#persistent-storage-csi"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/storage/index#persistent-storage-csi"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/storage/index#persistent-storage-csi"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/storage/index#persistent-storage-csi"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/storage/index#persistent-storage-csi"
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/observability/index#reviewing-monitoring-dashboards_about-monitoring"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/observability/index#reviewing-monitoring-dashboards_about-monitoring"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/observability/index#reviewing-monitoring-dashboards_about-monitoring"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/observability/index#reviewing-monitoring-dashboards_about-monitoring"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/observability/index#reviewing-monitoring-dashboards_about-monitoring"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/observability/index#reviewing-monitoring-dashboards_about-monitoring"
+
+[[checks]]
+check_id = "7.5.tsr.5_10_volume_mount_durations"
+title = "5.10. Volume Mount Durations"
+content_from = "7.5.volume.mount_p99"
+include_in_findings = false
 
 [[checks]]
 check_id = "7.5.tsr.5_11_health_related_alerts"
 title = "5.11. Health Related Alerts"
-content_from = "7.1.tsr.1_5_2_3_dns_alerts"
+content_from = "7.5.alerts.critical"
 include_in_findings = false
 [[checks]]
 check_id = "7.5.tsr.5_11_1_control_plane_alerts"
@@ -396,12 +425,12 @@ default = "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat
 [[checks]]
 check_id = "7.5.tsr.5_11_2_node_alerts"
 title = "5.11.2. Node Alerts"
-content_from = "7.1.tsr.1_5_2_3_dns_alerts"
+content_from = "7.5.alerts.critical"
 include_in_findings = false
 [[checks]]
 check_id = "7.5.tsr.5_11_3_overcommit_alerts"
 title = "5.11.3. Overcommit Alerts"
-content_from = "7.1.tsr.1_5_2_3_dns_alerts"
+content_from = "7.5.alerts.critical"
 include_in_findings = false
 [[checks]]
 check_id = "7.5.tsr.5_12_dns_health"

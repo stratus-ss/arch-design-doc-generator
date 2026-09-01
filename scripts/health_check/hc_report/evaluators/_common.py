@@ -1,6 +1,7 @@
 """Shared helpers, constants, and parsing utilities for all evaluators."""
 from __future__ import annotations
 
+import json
 import re
 
 from hc_report.models import CheckResult
@@ -58,6 +59,21 @@ def _not_applicable(
 def _is_missing(data: dict) -> bool:
     """Return True if data is empty, errored, or not found."""
     return not data or data.get("_hc_error") or data.get("_hc_not_found")
+
+
+def _parse_alerts_list(alerts_data: dict) -> list[dict]:
+    """Extract firing alert list from various data shapes."""
+    if "data" in alerts_data and "alerts" in alerts_data.get("data", {}):
+        return alerts_data["data"]["alerts"]
+    if alerts_data.get("status") == "success":
+        return alerts_data.get("data", {}).get("alerts", [])
+    if "_hc_text" in alerts_data:
+        try:
+            parsed = json.loads(alerts_data.get("output", "{}"))
+            return parsed.get("data", {}).get("alerts", [])
+        except (json.JSONDecodeError, TypeError):
+            pass
+    return []
 
 
 def _get_items(data: dict, default_single: bool = False) -> list:

@@ -38,6 +38,103 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/etcd/index"
 
 [[checks]]
+check_id = "7.8.etcd.disk"
+title = "etcd disk aggregate"
+description = "This check's verification bar is WAL fsync P99 on every etcd member. Any member above 10 ms is FAIL for the cluster. Per-pod WAL rows stay separate; this native is the Chapter 6 disk story when TSR HTML is absent.\n"
+recommendation = "Move etcd onto NVMe or enterprise SSD when any member WAL fsync P99 is above 10 ms. Do not retune etcd to hide slow disks. A missing WAL metric is INFO, not a pass."
+verification = "1. WAL fsync P99 per etcd member. At or below 10 ms on every member is PASS. Any member above 10 ms is FAIL. An empty result means the metric is not scraped:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -sG http://localhost:9090/api/v1/query --data-urlencode 'query=histogram_quantile(0.99, sum(rate(etcd_disk_wal_fsync_duration_seconds_bucket[5m])) by (le, pod))' | jq -r '.data.result[] | [.metric.pod // \"-\", .value[1]] | @tsv' | awk '{if($2==\"NaN\"||$2==\"+Inf\"||$2==\"-Inf\"){print \"INFO\", \"POD=\"$1, \"P99=n/a-nan\"; next} ms=$2*1000; r=\"PASS\"; if(ms>10) r=\"FAIL\"; printf \"%s POD=%s P99=%.1fms\\n\", r, $1, ms} END{if(NR==0) print \"INFO n/a-wal\"}'`\n2. Confirm members and endpoint status:\n   `oc -n openshift-etcd exec -c etcd etcd-<member> -- etcdctl endpoint status --cluster -w table`"
+priority_hint = ""
+impact = "maintenance-window"
+impact_scope = "control plane nodes and etcd storage path"
+impact_detail = "Fixing etcd disk-performance problems usually requires control-plane infrastructure or storage changes that can reduce API capacity while nodes are remediated."
+finding_group = "etcd-disk-latency"
+finding_group_title = "etcd disk performance"
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/etcd/index"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/scalability_and_performance/recommended-performance-and-scalability-practices-2"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/etcd/index"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/scalability_and_performance/recommended-performance-and-scalability-practices-2"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/etcd/index"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/etcd/index"
+
+[[checks]]
+check_id = "7.8.etcd.compaction"
+title = "etcd compaction duration"
+description = "This check measures how long etcd takes to compact its MVCC database on each control plane node. The 95th percentile is the bar. KCS guidance is about 200 ms on a small cluster and no more than 800–900 ms on a large cluster. That is not an OpenShift HTML SLA. Values above that usually mean slow disks, a large database, or heavy API traffic.\n"
+recommendation = "Keep compaction p95 at or below 200 ms on a small cluster. Above 200 ms through 900 ms is a warning band. Above 900 ms is FAIL. Do not run etcdctl compact from this health-check collect. Missing PromQL is INFO, not FAIL. Persistent latency is control-plane disk contention, database growth, or high API traffic."
+verification = "1. Compaction p95 per etcd member (`etcd_debugging_mvcc_db_compaction_total_duration_milliseconds`, 1h rate, divide by 1000). At or below 200 ms is PASS. Above 200 ms and at most 900 ms is WARNING. Above 900 ms is FAIL. An empty or NaN result is INFO:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -sG http://localhost:9090/api/v1/query --data-urlencode 'query=histogram_quantile(0.95, sum(rate(etcd_debugging_mvcc_db_compaction_total_duration_milliseconds_bucket[1h])) by (le, pod)) / 1000' | jq -r '.data.result[] | [.metric.pod // \"-\", .value[1]] | @tsv' | awk '{if($2==\"NaN\"||$2==\"+Inf\"||$2==\"-Inf\"){print \"INFO\", \"POD=\"$1, \"P95=n/a-nan\"; next} ms=$2*1000; r=\"PASS\"; if(ms>900) r=\"FAIL\"; else if(ms>200) r=\"WARNING\"; printf \"%s POD=%s P95=%.1fms\\n\", r, $1, ms} END{if(NR==0) print \"INFO n/a-compaction\"}'`\n2. Print auto-compaction flags from the etcd pod spec (read-only):\n   `oc -n openshift-etcd get pod -l app=etcd -o jsonpath='{range .items[*]}{.metadata.name}{\" \"}{.spec.containers[0].args}{\"\\n\"}{end}'`\n3. Current etcd database size on every member:\n   `oc -n openshift-etcd exec -c etcd etcd-<member> -- etcdctl endpoint status --cluster -w table`"
+priority_hint = "P1"
+impact = "maintenance-window"
+impact_scope = "control plane and etcd members"
+impact_detail = "High compaction latency is usually disk or database growth. Do not compact from collect scripts."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/etcd/index#etcd-defrag_etcd-performance"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/scalability_and_performance/index#etcd-defrag_recommended-etcd-practices"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/etcd/index#etcd-defrag_etcd-performance"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/etcd/index#etcd-defrag_etcd-performance"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/etcd/index#etcd-defrag_etcd-performance"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/etcd/index#etcd-defrag_etcd-performance"
+kcs = "https://access.redhat.com/solutions/5564771"
+
+[[checks]]
+check_id = "7.8.etcd.defrag"
+title = "etcd fragmentation"
+description = "This check compares etcd database size to in-use bytes on each member. High unused bytes mean the backend is fragmented and is a defrag candidate. Size bars on 7.8.etcd.db.* stay separate.\n"
+recommendation = "Defrag in a maintenance window when any member fragment ratio is 0.50 or higher. Take a backup first; the cluster command locks members. Do not treat this as a DB size quota check. Missing both Prometheus files is skipped, not a pass."
+verification = "1. Prometheus database size (`etcd_mvcc_db_total_size_in_bytes`) and in-use (`etcd_mvcc_db_total_size_in_use_in_bytes`) per etcd pod give fragment ratio (size minus in-use) divided by size. Any member at or above 0.70 is FAIL; at or above 0.50 with none at 0.70 is WARNING; all below 0.50 is PASS. Empty samples are INFO and missing both files is SKIPPED:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -sG http://localhost:9090/api/v1/query --data-urlencode 'query=etcd_mvcc_db_total_size_in_bytes' | jq -r '.data.result[] | [.metric.pod // \"-\", .value[1]] | @tsv'`\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -sG http://localhost:9090/api/v1/query --data-urlencode 'query=etcd_mvcc_db_total_size_in_use_in_bytes' | jq -r '.data.result[] | [.metric.pod // \"-\", .value[1]] | @tsv'`\n2. Compare DB SIZE and IN USE columns on the etcdctl status table:\n   `oc -n openshift-etcd exec -c etcd etcd-<node> -- etcdctl endpoint status --cluster -w table`"
+priority_hint = "P1"
+impact = "maintenance-window"
+impact_scope = "control plane and etcd members"
+impact_detail = "Defragmentation briefly locks each etcd member and can cause transient API latency; schedule during a maintenance window."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/etcd/index#etcd-defrag_etcd-performance"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/etcd/index#etcd-defrag_etcd-performance"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/etcd/index#etcd-defrag_etcd-performance"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/etcd/index#etcd-defrag_etcd-performance"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/etcd/index#etcd-defrag_etcd-performance"
+
+[[checks]]
+check_id = "7.8.etcd.log_errors"
+title = "etcd log phrase errors"
+description = "This check counts three etcd log phrases over the last six hours on each member: failed to send out heartbeat on time, request timed out, and rafthttp: failed to read. Any count above zero is FAIL. Unreadable logs are INFO.\n"
+recommendation = "Heartbeat failures usually mean overloaded CPU or slow WAL writes. request timed out commonly means peer-network latency. rafthttp: failed to read needs peer connectivity, certificates, DNS, and time sync. Check WAL fsync before treating a member as dead."
+verification = "1. Count the three phrases in the last six hours on each etcd member. Zero for all three is PASS. Any count above zero is FAIL:\n   `for member in $(oc -n openshift-etcd get pods -l app=etcd -o jsonpath='{.items[*].metadata.name}'); do printf '%s ' \"$member\"; oc -n openshift-etcd logs \"$member\" -c etcd --since=6h | awk '/failed to send out heartbeat on time/{h++} /request timed out/{t++} /rafthttp: failed to read/{r++} END{print (h+t+r==0?\"PASS\":\"FAIL\"), \"heartbeat=\"(h+0), \"timed_out=\"(t+0), \"rafthttp=\"(r+0)}'; done`\n2. If the previous command failed, print the matching lines on that member:\n   `oc -n openshift-etcd logs etcd-<member> -c etcd --since=6h | grep -E 'failed to send out heartbeat on time|request timed out|rafthttp: failed to read'`"
+priority_hint = ""
+impact = "maintenance-window"
+impact_scope = "control plane storage, network, or CPU"
+impact_detail = "Fixing etcd disk-performance problems usually requires control-plane infrastructure or storage changes that can reduce API capacity while nodes are remediated."
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/etcd/index#understand-etcd-performance_etcd-overview"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/scalability_and_performance/index#recommended-etcd-practices"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/etcd/index#understand-etcd-performance_etcd-overview"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/etcd/index#understand-etcd-performance_etcd-overview"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/etcd/index#understand-etcd-performance_etcd-overview"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/etcd/index#understand-etcd-performance_etcd-overview"
+
+[[checks]]
+check_id = "7.8.etcd.heartbeat"
+title = "etcd heartbeat send failures"
+description = "This check sums one-hour increase of etcd_server_heartbeat_send_failures_total. A positive increase is WARNING. Zero is PASS. A missing metric is INFO.\n"
+recommendation = "Fix the disk or CPU causing late heartbeats; do not restart etcd first. Any send-failure increase in the last hour is a write-path or scheduling problem. Check WAL fsync and the 6h log phrases next."
+verification = "1. Heartbeat send-failure increase over one hour. Zero is PASS. Above zero is WARNING. An empty result means the metric is not scraped:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -sG http://localhost:9090/api/v1/query --data-urlencode 'query=sum(increase(etcd_server_heartbeat_send_failures_total[1h]))' | jq -r 'if (.data.result|length)==0 then \"n/a\" else .data.result[0].value[1] end' | awk '{if($1==\"n/a\") print \"INFO n/a-heartbeat\"; else {c=$1+0; r=\"PASS\"; if(c>0) r=\"WARNING\"; printf \"%s INCREASE=%.0f\\n\", r, c}}'`\n2. Per-member increase:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -sG http://localhost:9090/api/v1/query --data-urlencode 'query=increase(etcd_server_heartbeat_send_failures_total[1h])' | jq -r '.data.result[] | [.metric.pod // \"-\", .value[1]] | @tsv' | awk '{printf \"POD=%s INCREASE=%.0f\\n\", $1, $2+0} END{if(NR==0) print \"INFO n/a-heartbeat\"}'`"
+priority_hint = ""
+impact = "maintenance-window"
+impact_scope = "control plane nodes and etcd storage path"
+impact_detail = "Fixing etcd disk-performance problems usually requires control-plane infrastructure or storage changes that can reduce API capacity while nodes are remediated."
+
+[checks.links]
+default = "https://etcd.io/docs/latest/tuning/"
+"4.18" = "https://etcd.io/docs/latest/tuning/"
+"4.19" = "https://etcd.io/docs/latest/tuning/"
+"4.20" = "https://etcd.io/docs/latest/tuning/"
+"4.21" = "https://etcd.io/docs/latest/tuning/"
+"4.22" = "https://etcd.io/docs/latest/tuning/"
+
+[[checks]]
 check_id = "7.8.etcd.proposals"
 title = "etcd failed proposals"
 description = "Failed raft proposals indicate that some write requests could not be committed.\nThis usually points to a slow or failed cluster member, or disk/network\nlatency affecting quorum progress.\n"

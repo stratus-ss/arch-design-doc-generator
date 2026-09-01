@@ -1,13 +1,15 @@
 [[checks]]
-check_id = "7.4.tsr.4_8_1_1_2_related_subscriptions"
-title = "TSR CNV related subscriptions"
-description = "OpenShift Virtualization depends on related operator subscriptions in the virt namespace and in sibling namespaces (for example workload-availability). Missing or degraded subscriptions block CNV features and upgrades."
-recommendation = "Keep the kubevirt-hyperconverged Subscription at `AtLatestKnown` with installedCSV matching currentCSV. Treat absent workload-availability, NMState, or SR-IOV namespaces as optional integration components unless the virtualization design requires them. For a stalled required subscription, review and complete or approve its `InstallPlan`, then confirm the CSV reaches Succeeded."
-verification = "1. List the Virtualization operator subscription in openshift-cnv. Healthy when STATE is `AtLatestKnown` and INSTALLED matches CURRENT. If that namespace does not exist, the command prints **INFO** — Virtualization is not installed.\n   `oc get subscription -n openshift-cnv -o custom-columns=NAME:.metadata.name,PACKAGE:.spec.name,CHANNEL:.spec.channel,STATE:.status.state,INSTALLED:.status.installedCSV,CURRENT:.status.currentCSV 2>&1 | awk '/not found/{print \"INFO n/a-cnv\"; n=1; next} NR==1{print \"RESULT\",$0; next} {r=\"FAIL\"; if($1==\"kubevirt-hyperconverged\" && $4==\"AtLatestKnown\" && $5==$6) r=\"PASS\"; print r,$0} END{if(!n && NR==1) print \"FAIL missing-kubevirt-hyperconverged\"}'`\n2. Print the kubevirt-hyperconverged-operator CSV. Succeeded PHASE is healthy; any other phase is a failure.\n   `oc get csv -n openshift-cnv 2>&1 | awk '/not found/{print \"INFO n/a-cnv\"; n=1; next} NR==1{print \"RESULT\",$0; next} $1 ~ /^kubevirt-hyperconverged-operator/ {r=($NF==\"Succeeded\"?\"PASS\":\"FAIL\"); print r,$0; found=1} END{if(!n && !found) print \"FAIL missing-kubevirt-hyperconverged-operator\"}'`\n3. List optional related subscriptions in workload-availability, nmstate, and sriov namespaces. If a namespace does not exist, the command prints **INFO** and moves on.\n   `oc get subscription,csv -n openshift-workload-availability 2>&1 | awk '/No resources found|not found|have a resource type/{print \"INFO n/a-workload-availability\"; n=1; next} {print} END{if(!n && NR==0) print \"INFO n/a-workload-availability\"}' && \\\n   oc get subscription,csv -n openshift-nmstate 2>&1 | awk '/No resources found|not found|have a resource type/{print \"**INFO** n/a-nmstate\"; `n=1`; next} {print} END{if(!n && NR==0) print \"**INFO** n/a-nmstate\"}' && \\\n   oc get subscription,csv -n openshift-sriov-network-operator 2>&1 | awk '/No resources found|not found|have a resource type/{print \"**INFO** n/a-sriov\"; `n=1`; next} {print} END{if(!n && NR==0) print \"**INFO** n/a-sriov\"}'`\n4. If a required subscription failed, list `InstallPlan`s that are not Complete.\n   `oc get installplan -n openshift-cnv -o custom-columns=NAME:.metadata.name,CSV:.spec.clusterServiceVersionNames,APPROVED:.spec.approved,PHASE:.status.phase | awk 'NR==1{print; next} $4!=\"Complete\"{print; n++} END{if(n+0==0) print \"PASS no-stuck-installplans\"}'`"
+check_id = "7.4.cnv.subscription"
+title = "CNV related subscriptions"
+description = "OpenShift Virtualization requires the kubevirt-hyperconverged Subscription in openshift-cnv. Sibling operators such as NMState and SR-IOV are scored separately when those namespaces have CSVs."
+recommendation = "Keep the kubevirt-hyperconverged Subscription at `AtLatestKnown` with installedCSV matching currentCSV. For a stalled required subscription, review and complete or approve its `InstallPlan`, then confirm the CSV reaches Succeeded."
+verification = "1. List the Virtualization operator subscription in openshift-cnv. Healthy when STATE is `AtLatestKnown` and INSTALLED matches CURRENT. If that namespace does not exist, the command prints **INFO** — Virtualization is not installed.\n   `oc get subscription -n openshift-cnv -o custom-columns=NAME:.metadata.name,PACKAGE:.spec.name,CHANNEL:.spec.channel,STATE:.status.state,INSTALLED:.status.installedCSV,CURRENT:.status.currentCSV 2>&1 | awk '/not found/{print \"INFO n/a-cnv\"; n=1; next} NR==1{print \"RESULT\",$0; next} {r=\"FAIL\"; if($1==\"kubevirt-hyperconverged\" && $4==\"AtLatestKnown\" && $5==$6) r=\"PASS\"; print r,$0} END{if(!n && NR==1) print \"FAIL missing-kubevirt-hyperconverged\"}'`"
 priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "openshift-cnv operator namespace"
 impact_detail = "Approving `InstallPlan`s or reconciling CNV subscriptions rolls operator-managed pods but does not reboot cluster nodes."
+finding_group = "cnv-subscription"
+finding_group_title = "CNV related subscriptions"
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/virtualization/index#virt-subscribing-cli_installing-virt"
@@ -18,15 +20,23 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index#virt-subscribing-cli_installing-virt"
 
 [[checks]]
-check_id = "7.4.tsr.4_8_1_3_4_node_disk"
-title = "4.8.1.3.4 Default virtualization StorageClass"
+check_id = "7.4.tsr.4_8_1_1_2_related_subscriptions"
+title = "TSR CNV related subscriptions"
+content_from = "7.4.cnv.subscription"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.cnv.virt_storageclass"
+title = "Default virtualization StorageClass"
 description = "This finding is whether a default StorageClass for virtualization workloads exists (annotation storageclass.kubevirt.io/is-default-virt-class), not node root-disk fullness or kubelet DiskPressure. A cluster-wide default StorageClass is a different setting."
 recommendation = "Mark exactly one StorageClass with the virt-default annotation for VM disks, and keep a VolumeSnapshotClass whose DRIVER matches that provisioner. Annotate only after you confirm the provisioner. Empty snapshot classes mean snapshots are not in use. Missing virt-default is a problem when VMs need a default disk class."
 verification = "1. List each StorageClass provisioner and virt-default annotation.\n   `oc get storageclass -o custom-columns=NAME:.metadata.name,PROVISIONER:.provisioner,VIRTDEFAULT:.metadata.annotations.storageclass\\.kubevirt\\.io/is-default-virt-class`\n2. Annotate the StorageClass that should back VM disks.\n   `oc annotate storageclass <name> storageclass.kubevirt.io/is-default-virt-class=true`\n3. Print VolumeSnapshotClass DRIVER values. If the CRD is missing or empty the command prints **INFO**. The DRIVER should match the virt-default PROVISIONER from step 1.\n   `oc get volumesnapshotclass 2>&1 | awk '/No resources found|have a resource type/{print \"INFO n/a-volumesnapshotclass\"; n=1; next} {print} END{if(!n && NR==0) print \"INFO n/a-volumesnapshotclass\"}'`\nNo virt-default class when VMs need one is a failure. Empty snapshot classes are informational."
-priority_hint = ""
+priority_hint = "P2"
 impact = "non-disruptive"
 impact_scope = "StorageClass annotations for VM disks"
 impact_detail = "Setting `storageclass.kubevirt.io/is-default-virt-class` changes which class new VM disks pick. It does not drain nodes or move existing PVCs."
+finding_group = "cnv-virt-storageclass"
+finding_group_title = "Default virtualization StorageClass"
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/virtualization/index#virt-node-maintenance"
@@ -35,6 +45,12 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/virtualization/index#virt-node-maintenance"
 "4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/virtualization/index#virt-node-maintenance"
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index#virt-node-maintenance"
+
+[[checks]]
+check_id = "7.4.tsr.4_8_1_3_4_node_disk"
+title = "4.8.1.3.4 Default virtualization StorageClass"
+content_from = "7.4.cnv.virt_storageclass"
+include_in_findings = false
 
 [[checks]]
 check_id = "7.4.cnv.live_migratable"
@@ -47,15 +63,17 @@ impact_scope = "affected VMs"
 impact_detail = "Making a VM live-migratable may require storage, networking, or eviction-policy changes and can require a VM reboot."
 
 [[checks]]
-check_id = "7.4.tsr.4_8_1_5_1_1_cnv_operators_node_placement"
-title = "TSR CNV operators node placement"
-description = "This check validates where OpenShift Virtualization infrastructure and VM workloads can run. It compares the HyperConverged resource's `spec.infra.nodePlacement` and `spec.workloads.nodePlacement` settings with the `virt-handler` DaemonSet placement and readiness, then verifies that intended VM nodes are eligible for virtualization. `virt-handler` is a node-level DaemonSet, so its Ready count should equal its Desired count on all nodes selected to host virtualization components; `virt-launcher` is instead created per running VM. Node-placement rules use exact label matching, and empty `nodePlacement` uses the platform default scheduling behavior.\n"
-recommendation = "Align HyperConverged node-placement rules, node labels, taints/tolerations, and the `virt-handler` DaemonSet before changing node eligibility. Ensure every node intended to host VMs has `kubevirt.io/schedulable=true`, exposes the required hardware-virtualization CPU capability (`vmx` for Intel or `svm` for AMD), and has a running `virt-handler` pod. For a **WARNING** where `virt-handler` Ready does not equal Desired, identify the affected nodes and resolve the scheduling or runtime cause—such as a nonmatching selector, missing toleration, unsatisfied affinity rule, incompatible CPU virtualization support, resource pressure, or an unhealthy pod—rather than simply relabeling nodes. If placement is intentionally restricted, ensure the HyperConverged workload placement and `virt-handler` selector target the same node set."
-verification = "1. Confirm virt-handler DaemonSet READY equals DESIRED. If the DS does not exist, Virtualization is not installed.\n   `oc get ds virt-handler -n openshift-cnv 2>&1 | awk '/not found/{print \"INFO n/a-cnv\"; next} NR==1{next} {print ($4==$2?\"PASS\":\"FAIL\"), \"READY=\"$4, \"DESIRED=\"$2, $1}'`\n2. Print HyperConverged infra and workloads nodeSelector. A value of <none> means default placement on all nodes.\n   `oc get hyperconverged kubevirt-hyperconverged -n openshift-cnv -o custom-columns=NAME:.metadata.name,INFRA_SEL:.spec.infra.nodePlacement.nodeSelector,WORKLOADS_SEL:.spec.workloads.nodePlacement.nodeSelector`\n3. Print kubevirt.io/schedulable and CPU-feature labels (vmx for Intel, svm for AMD). Healthy when schedulable is true and at least one hardware-virt flag is present.\n   `oc get nodes -L kubevirt.io/schedulable -L cpu-feature.node.kubevirt.io/svm -L cpu-feature.node.kubevirt.io/vmx | awk 'NR==1{print \"RESULT\",$0; next} {r=\"FAIL\"; if($6==\"true\" && ($7==\"true\" || $8==\"true\")) r=\"PASS\"; print r,$0}'`"
+check_id = "7.4.cnv.node_placement"
+title = "CNV operators node placement"
+description = "This check compares virt-handler DaemonSet readiness with worker node `kubevirt.io/schedulable` labels. Empty HyperConverged nodePlacement uses platform default scheduling and is not a failure. CPU virtualization flags are not scored here."
+recommendation = "Align virt-handler DaemonSet readiness with nodes intended to host VMs. Ensure every non-control-plane node that should run VMs has `kubevirt.io/schedulable=true`. For READY not equal to DESIRED, identify the affected nodes and resolve the scheduling or runtime cause. Control-plane-only compact clusters do not fail for missing worker schedulable labels."
+verification = "1. Confirm virt-handler DaemonSet READY equals DESIRED. If the DS does not exist, Virtualization is not installed.\n   `oc get ds virt-handler -n openshift-cnv 2>&1 | awk '/not found/{print \"INFO n/a-cnv\"; next} NR==1{next} {print ($4==$2?\"PASS\":\"FAIL\"), \"READY=\"$4, \"DESIRED=\"$2, $1}'`\n2. Print kubevirt.io/schedulable on nodes. Worker nodes intended for VMs should show true.\n   `oc get nodes -L kubevirt.io/schedulable`"
 priority_hint = ""
 impact = "workload-shift"
 impact_scope = "CNV infrastructure pods and VM-capable worker nodes"
 impact_detail = "Changing schedulable labels or node placement reschedules CNV components and can require VM migration before draining or repurposing nodes."
+finding_group = "cnv-node-placement"
+finding_group_title = "CNV operators node placement"
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/virtualization/index#virt-specifying-nodes-for-vms_virt-node-placement-virt-handler"
@@ -66,15 +84,23 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index#virt-specifying-nodes-for-vms_virt-node-placement-virt-handler"
 
 [[checks]]
-check_id = "7.4.tsr.4_8_1_5_1_5_vm_run_strategy_and_availability"
-title = "TSR VM run strategy and availability"
-description = "VM RunStrategy controls how VMs behave during node failures and maintenance.\n`Always` ensures automatic restart on healthy nodes; `Manual` requires operator\nintervention. Production VMs should use `Always` with live migration enabled.\n"
-recommendation = "Set production VMs to RunStrategy Always with LiveMigrate eviction. Leave Manual only when the SLA requires operator-driven recovery. Empty VM list is n/a — do not fail the cluster for having no guests."
+check_id = "7.4.tsr.4_8_1_5_1_1_cnv_operators_node_placement"
+title = "TSR CNV operators node placement"
+content_from = "7.4.cnv.node_placement"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.cnv.run_strategy"
+title = "VM run strategy"
+description = "VM `spec.runStrategy` controls restart policy. `Always` is the expected production value; other values including omitted are informational. Live-migration eviction is a separate finding."
+recommendation = "Set production VMs to RunStrategy Always when the SLA requires automatic restart. Leave Manual only when the SLA requires operator-driven recovery. Empty VM list is n/a — do not fail the cluster for having no guests."
 verification = "1. List each VM runStrategy. Always is the expected production value; Manual or RerunOnFailure is a design decision, not automatic failure. An empty list means no VMs exist.\n   `oc get vm -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,STRATEGY:.spec.runStrategy`"
 priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "virtual machine policy"
 impact_detail = "Updating runStrategy or eviction policy changes future failover and maintenance behavior immediately, but it does not reboot nodes or stop running VMs by itself."
+finding_group = "cnv-run-strategy"
+finding_group_title = "VM run strategy"
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/virtualization/index#run-strategies"
@@ -85,15 +111,23 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index#run-strategies"
 
 [[checks]]
-check_id = "7.4.tsr.4_8_2_1_1_3_live_migration_network_readiness"
-title = "TSR live migration network readiness"
-description = "This check evaluates which network the HyperConverged resource uses for live-migration traffic. An empty value uses the default pod network. A named network must exist as a NetworkAttachmentDefinition in openshift-cnv."
-recommendation = "Set HyperConverged live-migration network to a NAD that exists in openshift-cnv, or leave it empty to use the default pod network. Create the NAD or clear the pin if the named network is missing. Do not treat LiveMigratable False as this row; that is guest constraints."
+check_id = "7.4.tsr.4_8_1_5_1_5_vm_run_strategy_and_availability"
+title = "TSR VM run strategy and availability"
+content_from = "7.4.cnv.run_strategy"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.cnv.migration_network"
+title = "Live migration network"
+description = "This check evaluates which network the HyperConverged resource uses for live-migration traffic. An empty value uses the default pod network. A named network must exist as a NetworkAttachmentDefinition in openshift-cnv. Guest LiveMigratable False is a separate finding."
+recommendation = "Set HyperConverged live-migration network to a NAD that exists in openshift-cnv, or leave it empty to use the default pod network. Create the NAD or clear the pin if the named network is missing."
 verification = "1. Print the HyperConverged live-migration network name. A value of <none> means the default pod network is in use. If the HyperConverged resource does not exist, Virtualization is not installed.\n   `oc get hyperconverged kubevirt-hyperconverged -n openshift-cnv -o custom-columns=NAME:.metadata.name,NETWORK:.spec.liveMigrationConfig.network 2>&1 | awk '/not found/{print \"INFO n/a-cnv\"; next} NR==1{next} {n=$2; if(n==\"<none>\"||n==\"\") print \"INFO NETWORK=<none>\", $1; else print \"NETWORK=\"n, $1}'`\n2. List NADs in openshift-cnv. If step 1 named a network, that name must appear here; a missing NAD needs action.\n   `oc get net-attach-def -n openshift-cnv`"
 priority_hint = ""
 impact = "workload-shift"
 impact_scope = "live-migration traffic path and virt-handler pods"
 impact_detail = "Adding a dedicated migration network updates HyperConverged migration settings and restarts virt-handler pods; migration traffic then shifts off the primary cluster network."
+finding_group = "cnv-migration-network"
+finding_group_title = "Live migration network"
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/virtualization/index#virt-dedicated-network-live-migration"
@@ -104,8 +138,14 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index#virt-dedicated-network-live-migration"
 
 [[checks]]
-check_id = "7.4.tsr.4_8_2_2_1_2_network_configuration"
-title = "TSR network configuration"
+check_id = "7.4.tsr.4_8_2_1_1_3_live_migration_network_readiness"
+title = "TSR live migration network readiness"
+content_from = "7.4.cnv.migration_network"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.cnv.nncp"
+title = "Node network configuration (NMState)"
 description = "This check verifies that the node network configuration required for virtual machine connectivity is properly set up. It looks for NodeNetworkConfigurationPolicy (NNCP) and NodeNetworkConnectionEnactment (NNCE) resources. Missing or failed network policies mean VMs may not be able to connect to external networks or other VMs."
 recommendation = "Validate that the host networking required by VM bridges, VLANs, and secondary networks is present and healthy on every node eligible to run those VMs. Where the configuration is managed through the Kubernetes NMState Operator, confirm that the applicable NodeNetworkConfigurationPolicy resources and their per-node NodeNetworkConfigurationEnactment results are in the SuccessfullyConfigured state; investigate and remediate any failed enactments before scheduling or attaching additional VMs to the affected network. The absence of NNCPs or NNCEs is not, by itself, a finding: the required host networking may have been configured during installation in install-config.yaml, provisioned by another supported mechanism, or may not be required when VMs use only the default overlay network."
 verification = "1. List NodeNetworkConfigurationPolicy and NodeNetworkConfigurationEnactment resources.\n   `oc get nncp` and `oc get nnce`\n2. If NNCPs exist but show errors, inspect detailed enactment status.\n   `oc get nnce -o wide`\n3. List all NetworkAttachmentDefinitions for VM network connectivity.\n   `oc get net-attach-def -A`\nIf no NNCP or NNCE exists and the cluster uses only the overlay network, the absence is expected. A failed enactment needs investigation."
@@ -113,9 +153,8 @@ priority_hint = ""
 impact = "maintenance-window"
 impact_scope = "targeted worker-node networking and attached VM interfaces"
 impact_detail = "Bridge, SR-IOV, or other host-network changes can interrupt node and VM connectivity while the node networking is reconfigured."
-summary_patterns = [
-  { contains = "no NNCE found", text = "No NodeNetworkConfigurationEnactment was found for VM node networking." },
-]
+finding_group = "cnv-nncp"
+finding_group_title = "Node network configuration (NMState)"
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/kubernetes_nmstate/index#k8s-nmstate-updating-node-network-config"
@@ -126,15 +165,23 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/kubernetes_nmstate/index#k8s-nmstate-updating-node-network-config"
 
 [[checks]]
-check_id = "7.4.tsr.4_8_3_1_1_storage_profiles"
-title = "TSR storage profiles"
-description = "This check validates CDI StorageProfile defaults for each StorageClass used by OpenShift Virtualization. It evaluates the configured clone strategy—`snapshot`, `csi-clone`, or host-assisted `copy`—and the default PVC properties in `claimPropertySets`, including access modes and volume mode. When the StorageProfile.spec fields are empty, CDI derives the effective values in the profile status from the StorageClass and CSI driver capabilities. `copy` cloning transfers data between source and target pods and is the least efficient method. `snapshot` cloning uses a CSI VolumeSnapshotClass, while `csi-clone` uses the CSI driver's native volume-clone API.\n"
+check_id = "7.4.tsr.4_8_2_2_1_2_network_configuration"
+title = "TSR network configuration"
+content_from = "7.4.cnv.nncp"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.cnv.storageprofile"
+title = "CDI storage profiles"
+description = "This check scores CDI StorageProfile `status.cloneStrategy` for each StorageClass. Host-assisted `copy` is a warning. `snapshot` and `csi-clone` are healthy. An empty list is informational. A missing StorageProfile API is not applicable. `spec.cloneStrategy` and snapshotClass are evidence only. Virt-default StorageClass annotation is a separate finding."
 recommendation = "Prefer `snapshot` or `csi-clone` for StorageClasses that support the corresponding CSI capability and are used for VM disks, templates, or frequent DataVolume clones. These methods avoid host-assisted data transfer and generally reduce clone time and cluster network or node-resource consumption. Keep `copy` only where the CSI driver does not support snapshots or CSI cloning, or where the required VolumeSnapshotClass is unavailable or does not match the StorageClass provisioner. Do not force a clone strategy solely to clear this warning: an unsupported `snapshot` or `csi-clone` configuration can cause DataVolume imports and VM cloning operations to fail."
 verification = "1. Print StorageProfile provisioner, effective clone strategy, and snapshotClass. A strategy of snapshot or csi-clone is healthy; copy means host-assisted cloning. If the CRD is missing or empty, the command prints **INFO**.\n   `oc get storageprofile -o custom-columns=NAME:.metadata.name,PROVISIONER:.status.provisioner,CLONE:.status.cloneStrategy,SPEC_CLONE:.spec.cloneStrategy,SNAPCLASS:.spec.snapshotClass 2>&1 | awk '/have a resource type|No resources found/{print \"INFO n/a-storageprofile\"; n=1; next} NR==1{print \"RESULT\",$0; next} {c=$3; r=\"INFO\"; if(c==\"copy\") r=\"WARNING\"; else if(c==\"csi-clone\"||c==\"snapshot\") r=\"PASS\"; print r,$0} END{if(!n && NR==0) print \"INFO n/a-storageprofile\"}'`\n2. Print claimPropertySets accessModes and volumeMode per StorageProfile.\n   `oc get storageprofile -o json | jq -r '[\"NAME\",\"ACCESS\",\"VOLMODE\"], (.items[] as $sp | ($sp.status.claimPropertySets // [{}])[] as $claim | [$sp.metadata.name, (($claim.accessModes // []) | join(\",\") | if .==\"\" then \"-\" else . end), ($claim.volumeMode // \"-\")]) | @tsv' | column -t -s $'\\t'`"
 priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "new DataVolumes and VM disk defaults"
 impact_detail = "StorageProfile changes affect future imports, clones, and PVC defaults; existing volumes and running VMs continue unchanged."
+finding_group = "cnv-storageprofile"
+finding_group_title = "CDI storage profiles"
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/virtualization/index#virt-customizing-storage-profile_virt-configuring-storage-profile"
@@ -145,15 +192,23 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index#virt-customizing-storage-profile_virt-configuring-storage-profile"
 
 [[checks]]
-check_id = "7.4.tsr.4_8_3_2_1_nmstate_operator"
-title = "TSR NMState operator"
-description = "This check evaluates the NMState operator used for NodeNetworkConfigurationPolicy. Failures include operator missing, CSV not current, or failed enactments."
-recommendation = "Confirm that the Kubernetes NMState Operator CSV in `openshift-nmstate` is **Succeeded** and current before modifying or reapplying any NodeNetworkConfigurationPolicy (NNCP). If the NMState namespace is absent and no NNCPs are in use, treat the result as not applicable."
-verification = "1. List the NMState operator CSV. If the namespace does not exist, NMState is not installed. A PHASE other than Succeeded is a failure.\n   `oc get csv -n openshift-nmstate`\n2. List NNCP and NNCE resources to detect failed enactments.\n   `oc get nncp,nnce`\nMissing namespace is informational. A failed NNCE is a failure."
+check_id = "7.4.tsr.4_8_3_1_1_storage_profiles"
+title = "TSR storage profiles"
+content_from = "7.4.cnv.storageprofile"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.cnv.nmstate_csv"
+title = "NMState operator CSV"
+description = "This check scores ClusterServiceVersion phase in openshift-nmstate. Absence of that namespace is not applicable. NodeNetworkConfigurationEnactment health is a separate finding."
+recommendation = "Confirm that the Kubernetes NMState Operator CSV in `openshift-nmstate` is **Succeeded** before modifying NodeNetworkConfigurationPolicy. If the NMState namespace is absent, treat the result as not applicable."
+verification = "1. List the NMState operator CSV. If the namespace does not exist, NMState is not installed. A PHASE other than Succeeded is a failure.\n   `oc get csv -n openshift-nmstate`"
 priority_hint = ""
 impact = "maintenance-window"
 impact_scope = "nodes targeted by NodeNetworkConfigurationPolicy"
 impact_detail = "Applying or correcting NNCPs can briefly disrupt host networking; use controlled rollout settings such as `maxUnavailable` and validate rollback behavior."
+finding_group = "cnv-nmstate-csv"
+finding_group_title = "NMState operator CSV"
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/kubernetes_nmstate/index#k8s-nmstate-updating-node-network-config"
@@ -164,15 +219,23 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/kubernetes_nmstate/index#k8s-nmstate-updating-node-network-config"
 
 [[checks]]
-check_id = "7.4.tsr.4_8_3_2_2_sr_iov_operator"
-title = "TSR SR-IOV operator"
-description = "This check verifies whether the SR-IOV Network Operator is installed and available. The operator manages SR-IOV-capable NICs by configuring Physical Functions (PFs), creating Virtual Functions (VFs), and applying `SriovNetworkNodePolicy` resources to selected nodes. If the `openshift-sriov-network-operator` namespace or its `ClusterServiceVersion` (CSV) is missing, SR-IOV is not installed; this is an absence of an optional capability, not necessarily a configuration failure.\n"
-recommendation = "Treat a missing SR-IOV namespace or CSV as not applicable unless the cluster design requires VFs for workloads, low-latency networking, or VM passthrough. If SR-IOV is required, install the SR-IOV Network Operator through OperatorHub or a supported Subscription, confirm its CSV reaches **Succeeded**, and create `SriovNetworkNodePolicy` resources that match the target nodes and supported NIC PFs. Do not use SR-IOV-related resources found in unrelated namespaces as evidence that the operator is installed. Validate installation from the operator namespace, then verify the policy status, discovered interfaces, allocated VFs, and the NetworkAttachmentDefinitions consumed by the intended pods or virtual machines."
-verification = "1. Search for an SR-IOV namespace and CSV. If none is found, SR-IOV is not installed — treat as informational unless the design requires it.\n   `oc get csv,ns | grep -i sriov`"
+check_id = "7.4.tsr.4_8_3_2_1_nmstate_operator"
+title = "TSR NMState operator"
+content_from = "7.4.cnv.nmstate_csv"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.cnv.sriov_csv"
+title = "SR-IOV operator CSV"
+description = "This check scores ClusterServiceVersion phase in openshift-sriov-network-operator. A missing namespace is not applicable. SriovNetworkNodePolicy is not scored here."
+recommendation = "Treat a missing SR-IOV namespace or CSV as not applicable unless the cluster design requires VFs. If SR-IOV is required, confirm the CSV in the operator namespace reaches **Succeeded**."
+verification = "1. List CSV resources in the SR-IOV operator namespace. If none is found, SR-IOV is not installed — treat as informational unless the design requires it.\n   `oc get csv -n openshift-sriov-network-operator`"
 priority_hint = ""
 impact = "maintenance-window"
 impact_scope = "SR-IOV-capable worker nodes and attached VMs/pods"
 impact_detail = "Updating SR-IOV policies reprovisions virtual functions on the NIC and can interrupt workloads attached to those interfaces until reconciliation completes."
+finding_group = "cnv-sriov-csv"
+finding_group_title = "SR-IOV operator CSV"
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/hardware_networks/index#configuring-sriov-network-devices"
@@ -183,15 +246,23 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/hardware_networks/index#configuring-sriov-network-devices"
 
 [[checks]]
-check_id = "7.4.tsr.4_8_3_2_3_linux_bridge_network"
-title = "TSR Linux bridge network"
-description = "This check inventories Linux-bridge VM network attachments. A Linux-bridge attachment is represented by a NetworkAttachmentDefinition (NAD) using the `cnv-bridge` or `bridge` CNI type, with a bridge name and, optionally, VLAN configuration. The referenced host bridge must exist on every node that may run a VM using that NAD. An NMState NodeNetworkConfigurationPolicy (NNCP) and its NodeNetworkConfigurationEnactment (NNCE) provide evidence that the bridge was configured and successfully applied through NMState. However, they are not required when the bridge was created during cluster installation or is otherwise managed outside NMState.\n"
-recommendation = "For every required Linux-bridge VM network, ensure the `cnv-bridge` or `bridge` NAD references a host bridge that exists and is operational on all eligible VM nodes. Confirm that its bridge name, physical uplink or bond, VLAN design, node placement, and VM scheduling constraints are consistent. Use an NNCP as the preferred, declarative day-2 method to create or maintain the bridge, and require a successful NNCE when NMState manages it. If the bridge was configured through `install-config.yaml` during installation or another approved host-configuration method, treat the absence of an NNCP as informational and not a failure."
-verification = "1. List NNCE resources. If the CRD is missing or empty, host bridges are not enacted here.\n   `oc get nnce 2>&1 | awk '/have a resource type|No resources found/{print \"INFO n/a-nnce\"; n=1; next} {print} END{if(!n && NR==0) print \"INFO n/a-nnce\"}'`\n2. Print each NAD TYPE, BRIDGE, and VLAN. A type of cnv-bridge or bridge is healthy; other types are informational. An empty list means no NADs exist.\n   `oc get net-attach-def -A -o json | jq -r '.items[] | (.spec.config|fromjson) as $c | [.metadata.namespace, .metadata.name, $c.type, ($c.bridge // \"-\"), ($c.vlan // \"-\")] | @tsv' | awk 'BEGIN{print \"RESULT\",\"NS\",\"NAME\",\"TYPE\",\"BRIDGE\",\"VLAN\"} {r=\"INFO\"; if($3==\"cnv-bridge\"||$3==\"bridge\") r=\"PASS\"; print r,$0} END{if(NR==0) print \"INFO n/a-nad\"}' | column -t`"
+check_id = "7.4.tsr.4_8_3_2_2_sr_iov_operator"
+title = "TSR SR-IOV operator"
+content_from = "7.4.cnv.sriov_csv"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.cnv.linux_bridge"
+title = "Linux bridge network"
+description = "This check inventories Linux-bridge VM network attachments. A Linux-bridge attachment is a NetworkAttachmentDefinition whose CNI type is `cnv-bridge` or `bridge`. Zero such NADs is informational. NNCP/NNCE health is a separate finding."
+recommendation = "For every required Linux-bridge VM network, ensure a `cnv-bridge` or `bridge` NAD exists. Treat zero bridge NADs as informational when VMs use only the overlay network."
+verification = "1. Print each NAD TYPE, BRIDGE, and VLAN. A type of cnv-bridge or bridge is healthy; other types are informational. An empty list means no NADs exist.\n   `oc get net-attach-def -A -o json | jq -r '.items[] | (.spec.config|fromjson) as $c | [.metadata.namespace, .metadata.name, $c.type, ($c.bridge // \"-\"), ($c.vlan // \"-\")] | @tsv' | awk 'BEGIN{print \"RESULT\",\"NS\",\"NAME\",\"TYPE\",\"BRIDGE\",\"VLAN\"} {r=\"INFO\"; if($3==\"cnv-bridge\"||$3==\"bridge\") r=\"PASS\"; print r,$0} END{if(NR==0) print \"INFO n/a-nad\"}' | column -t`"
 priority_hint = ""
 impact = "maintenance-window"
 impact_scope = "targeted worker nodes and bridge-attached VM interfaces"
 impact_detail = "Linux bridge changes are host-network reconfiguration events and can temporarily drop connectivity for affected nodes or VMs during application."
+finding_group = "cnv-linux-bridge"
+finding_group_title = "Linux bridge network"
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/virtualization/index#virt-connecting-vm-to-linux-bridge"
@@ -200,6 +271,12 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/virtualization/index#virt-connecting-vm-to-linux-bridge"
 "4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/virtualization/index#virt-connecting-vm-to-linux-bridge"
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index#virt-connecting-vm-to-linux-bridge"
+
+[[checks]]
+check_id = "7.4.tsr.4_8_3_2_3_linux_bridge_network"
+title = "TSR Linux bridge network"
+content_from = "7.4.cnv.linux_bridge"
+include_in_findings = false
 
 [[checks]]
 check_id = "7.4.tsr.4_8_4_2_windows_bsod_risk_posture"
@@ -342,15 +419,17 @@ default = "https://access.redhat.com/solutions/7144584"
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index"
 
 [[checks]]
-check_id = "7.4.tsr.4_8_5_1_1_quota_and_resources"
-title = "TSR CNV quota and resources"
-description = "ResourceQuotas and LimitRanges in namespaces running VMs must account for\nvirt-launcher pod overhead. Insufficient quotas prevent VM starts and live\nmigrations.\n"
+check_id = "7.4.cnv.vm_quota"
+title = "CNV quota and resources"
+description = "This check looks at ResourceQuota objects in namespaces that already have VirtualMachines. Missing ResourceQuota in a VM namespace is informational: there is no cap, not a failure. When used equals hard on a shared key (string match), new VM starts or live migrations can be blocked — that is a warning. Cluster-wide quota inventory is a separate Day-2 finding."
 recommendation = "Size VM-namespace quotas for virt-launcher overhead (about 1 CPU per vCPU plus memory) and at least 2× the largest VM during migration. Raise quota before the next drain if used is near hard. Missing ResourceQuota means there is no cap, not that VMs are healthy."
 verification = "1. List ResourceQuota in the target VM namespace. Missing quota means there is no cap (informational). Used near hard limits is a warning for new VM starts or migrations.\n   `oc get resourcequota -n <ns>`"
 priority_hint = "P3"
 impact = "non-disruptive"
 impact_scope = "VM namespaces and admission control"
 impact_detail = "Quota changes take effect immediately for new VM starts or migrations, but they do not restart nodes or stop already running VMs."
+finding_group = "cnv-vm-quota"
+finding_group_title = "CNV quota and resources"
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/virtualization/index"
@@ -361,15 +440,44 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index"
 
 [[checks]]
-check_id = "7.4.tsr.4_8_5_2_1_active_alerts"
-title = "TSR CNV active alerts"
-description = "This check reports firing OpenShift Virtualization alerts from Prometheus, including alerts such as `VMCannotBeEvicted`. These alerts identify current operational conditions that can affect VM availability, node maintenance, live migration, or the health of virtualization components. `VMCannotBeEvicted` fires when a VM is configured with `evictionStrategy: LiveMigrate` but its active VMI is not migratable. Common causes include non-migratable storage, restrictive placement or affinity rules, insufficient target-node capacity, or disruption constraints such as a PodDisruptionBudget.\n"
-recommendation = "Investigate and resolve every firing OpenShift Virtualization alert according to its alert name, labels, and runbook. An empty Prometheus result is healthy: it means no matching alert is currently firing. For VMs that must remain available during node drains, upgrades, or maintenance, retain `evictionStrategy: LiveMigrate` and correct the condition preventing migration. Confirm that the VM uses migratable storage (typically shared RWX storage), has an eligible target node, and is not constrained. If a VM is intentionally non-migratable, set an eviction behavior consistent with its approved maintenance and recovery plan, such as shutdown, rather than leaving it configured for live migration that cannot occur."
-verification = "1. Query Prometheus for KubeVirt and VMCannot alerts (prints `state`, `alertname`, `severity`). Empty output means none are firing.\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -s http://localhost:9090/api/v1/alerts | jq '.data.alerts[] | select(.labels.alertname | test(\"KubeVirt|kubevirt|VMCannot\"; \"i\")) | {state, alertname: .labels.alertname, severity: .labels.severity}'`\n2. If `VMCannotBeEvicted` is firing, inspect PodDisruptionBudgets for the affected VMI.\n   `oc get pdb -A`"
+check_id = "7.4.tsr.4_8_5_1_1_quota_and_resources"
+title = "TSR CNV quota and resources"
+content_from = "7.4.cnv.vm_quota"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.cnv.cpu_virt_flag"
+title = "Node hardware virtualization flags"
+description = "This check looks at kubevirt cpu-feature labels on schedulable nodes. OpenShift Virtualization needs Intel VMX or AMD SVM advertised as `cpu-feature.node.kubevirt.io/vmx=true` or `cpu-feature.node.kubevirt.io/svm=true` on at least one node that can run VMs. Missing HyperConverged is not applicable. Missing labels is a warning, never a failure. Host `/proc/cpuinfo` is not scored. ORIG node-CPU TSR stays on CNV state."
+recommendation = "Confirm hardware virtualization is enabled in firmware and that kubevirt labeled the node. Either vmx or svm is enough; do not require both. Do not enable flags by editing labels by hand. Unreachable hosts and NFS virt kernel dumps are out of this check."
+verification = "1. List kubevirt cpu-feature VMX and SVM labels on nodes. PASS when at least one schedulable node shows true for vmx or svm. Missing labels is WARNING. If Virtualization is not installed, skip.\n   `oc get nodes -L cpu-feature.node.kubevirt.io/vmx -L cpu-feature.node.kubevirt.io/svm`"
+priority_hint = ""
+impact = "workload-shift"
+impact_scope = "nodes intended to host VMs"
+impact_detail = "Enabling CPU virtualization in firmware can require a node reboot before kubevirt relabels the node and VMs can start."
+finding_group = "cnv-cpu-virt-flag"
+finding_group_title = "Node hardware virtualization flags"
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/virtualization/index#virt-enabling-virt-hardware"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/virtualization/index#virt-enabling-virt-hardware"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/virtualization/index#virt-enabling-virt-hardware"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/virtualization/index#virt-enabling-virt-hardware"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/virtualization/index#virt-enabling-virt-hardware"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index#virt-enabling-virt-hardware"
+
+[[checks]]
+check_id = "7.4.cnv.alerts"
+title = "CNV firing alerts"
+description = "This check looks at already collected Prometheus firing alerts for OpenShift Virtualization names and namespaces. A match is kubevirt, CDI, SSP, HCO, hyperconverged, openshift-cnv, or nmstate in the alert name or namespace. Firing or pending virt matches fail. Platform-only alerts such as CPU throttling pass. Missing firing_alerts is skipped. Cluster-wide critical alerts stay a separate 7.5 finding."
+recommendation = "Resolve each firing or pending Virtualization alert using its runbook and labels. Do not treat platform-only alerts as virt failures. Missing firing_alerts collection is skipped, not a pass. Critical platform alerts remain the 7.5 check."
+verification = "1. List firing and pending alerts whose name or namespace matches virt tokens (kubevirt, cdi, ssp, hco, hyperconverged, openshift-cnv, nmstate). Any match is FAIL. Empty or platform-only lists are PASS. Missing firing_alerts is SKIPPED.\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -s http://localhost:9090/api/v1/alerts`"
 priority_hint = ""
 impact = "non-disruptive"
-impact_scope = "virtual machines named in firing alerts"
-impact_detail = "Investigating alerts does not restart nodes; making a VM migratable may migrate that VM."
+impact_scope = "virtual machines and virt operators named in firing alerts"
+impact_detail = "Investigating alerts does not restart nodes; fixing a migratable-VM alert may migrate that VM."
+finding_group = "cnv-alerts"
+finding_group_title = "CNV firing alerts"
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/virtualization/index#virt-runbooks"
@@ -380,15 +488,23 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index#virt-runbooks"
 
 [[checks]]
-check_id = "7.4.tsr.4_8_5_2_3_cnv_vmi_readiness_prometheus"
-title = "TSR CNV VMI readiness metrics"
-description = "This check evaluates VirtualMachineInstance phase from Prometheus, both as a count by phase and as each guest by name. It is not an inventory of running virtual machines. Pending, Scheduling, Failed, or Unknown with a count above zero needs review; an empty result means no VirtualMachineInstance exists."
-recommendation = "Investigate each VirtualMachineInstance that is Pending, Scheduling, Failed, or Unknown and fix the scheduling, storage, or virt-launcher problem keeping that guest from Running. Running is the expected phase for active guests. No VirtualMachineInstance in Prometheus is informational when the cluster has no guests."
-verification = "1. Query kubevirt_vmi_phase_count from Prometheus. Phases Pending, Scheduling, Failed, or Unknown with a count above zero need review. An empty result means no VMIs exist.\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -sG http://localhost:9090/api/v1/query --data-urlencode 'query=kubevirt_vmi_phase_count' | jq -r '.data.result[] | [.metric.phase, .value[1]] | @tsv' | awk '{r=\"INFO\"; if($1 ~ /Pending|Scheduling|Failed|Unknown/ && $2+0>0) r=\"WARNING\"; print r, \"PHASE=\"$1, \"COUNT=\"$2} END{if(NR==0) print \"INFO n/a-vmi\"}'`\n2. Query kubevirt_vmi_info to list each VMI by phase. Same warning phases apply. An empty result means no VMIs exist.\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -sG http://localhost:9090/api/v1/query --data-urlencode 'query=kubevirt_vmi_info' | jq -r '.data.result[] | [.metric.namespace, .metric.name, .metric.phase] | @tsv' | awk '{r=\"INFO\"; if($3 ~ /Pending|Scheduling|Failed|Unknown/) r=\"WARNING\"; print r, \"NS=\"$1, \"NAME=\"$2, \"PHASE=\"$3} END{if(NR==0) print \"INFO n/a-vmi\"}'`"
+check_id = "7.4.tsr.4_8_5_2_1_active_alerts"
+title = "TSR CNV active alerts"
+content_from = "7.4.cnv.alerts"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.cnv.vmi_phase"
+title = "VMI phase"
+description = "This check evaluates VirtualMachineInstance `.status.phase` from the API. Pending, Scheduling, Failed, or Unknown needs review. Prometheus phase metrics are not scored."
+recommendation = "Investigate each VirtualMachineInstance that is Pending, Scheduling, Failed, or Unknown and fix the scheduling, storage, or virt-launcher problem keeping that guest from Running. No VirtualMachineInstance is informational when the cluster has no guests."
+verification = "1. List each VMI phase. Pending, Scheduling, Failed, or Unknown needs review. An empty list means no VMIs exist.\n   `oc get vmi -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,PHASE:.status.phase`"
 priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "virtual machines that are not ready"
 impact_detail = "Investigating VMI readiness does not reboot nodes; fixing eviction or provisioning issues can migrate or restart individual VMs."
+finding_group = "cnv-vmi-phase"
+finding_group_title = "VMI phase"
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/virtualization/index#virt-querying-metrics_virt-prometheus-queries"
@@ -399,8 +515,14 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index#virt-querying-metrics_virt-prometheus-queries"
 
 [[checks]]
-check_id = "7.4.tsr.4_8_5_3_1_oadp_operator"
-title = "TSR OADP operator"
+check_id = "7.4.tsr.4_8_5_2_3_cnv_vmi_readiness_prometheus"
+title = "TSR CNV VMI readiness metrics"
+content_from = "7.4.cnv.vmi_phase"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.oadp.state"
+title = "OADP operator"
 description = "This check evaluates OADP / backup operator posture. Evidence may show a healthy OLM CSV in `openshift-adp`, or no CSV, OperatorGroup, or Subscription because the stack was installed outside OLM (Helm or manual)."
 recommendation = "Verify that the cluster's intended backup solution is deployed, healthy, and capable of protecting the workloads it is responsible for. If OADP is the selected platform, confirm its health using the installation method in use: an OLM-managed deployment should have a Succeeded OADP CSV, while Helm- or manually deployed Velero/OADP should have an available DataProtectionApplication and functional BackupStorageLocation in the namespace where it is installed, which might not be openshift-adp. Do not treat missing OADP CSV, Subscription, or OperatorGroup resources as a failure when OADP is not used, is installed outside OLM, or another supported backup product fulfills the cluster backup requirement."
 verification = "1. Search for OADP or Velero OLM resources (CSV, Subscription, OperatorGroup). If none are found, record the result as informational unless the documented backup design requires OADP.\n   `oc get csv,subscription,operatorgroup -A | grep -i -E 'oadp|velero|adp'`\nFor an OLM-managed deployment, the OADP CSV must be Succeeded; any other phase is a failure. A DataProtectionApplication or BackupStorageLocation that is not Available is also a failure when OADP is the designated backup platform."
@@ -408,9 +530,8 @@ priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "openshift-adp backup and restore components"
 impact_detail = "Deploying or correcting OADP rolls backup components and adds backup I/O, but it does not reboot nodes or stop running VMs."
-summary_patterns = [
-  { contains = "csv resources not found", text = "OADP CSV resources were not found." },
-]
+finding_group = "oadp-state"
+finding_group_title = "OADP operator"
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/backup_and_restore/index#configuring-oadp-with-openshift-virtualization"
@@ -421,15 +542,23 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/backup_and_restore/index#configuring-oadp-with-openshift-virtualization"
 
 [[checks]]
-check_id = "7.4.tsr.4_8_5_3_5_cdi_image_upload_posture"
-title = "TSR CDI image upload posture"
-description = "CDI (Containerized Data Importer) manages VM disk image imports and uploads.\nIssues with CDI configuration prevent DataVolume provisioning, blocking new VM\ncreation and disk cloning operations.\n"
+check_id = "7.4.tsr.4_8_5_3_1_oadp_operator"
+title = "TSR OADP operator"
+content_from = "7.4.oadp.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.cnv.cdi"
+title = "CDI image upload"
+description = "CDI manages VM disk image imports and uploads. This check scores CDI conditions and cdi-uploadproxy readiness. Overall CNV pod health is a separate finding."
 recommendation = "Keep CDI `Available=True`, `Progressing=False`, `Degraded=False`, with cdi-uploadproxy pods Ready. Restore CDI before the next disk import. Missing CR is n/a — running VMs are unaffected."
 verification = "1. Confirm CDI conditions: `Available=True`, `Progressing=False`, `Degraded=False`. If the CDI resource does not exist, it is informational.\n   `oc get cdi -n openshift-cnv -o jsonpath='{range .items[*]}{range .status.conditions[*]}{.type}={.status}{\"\\n\"}{end}{end}' 2>&1 | awk -F= '/not found|No resources found|have a resource type/{print \"INFO n/a-cdi\"; n=1; next} $1==\"Available\"{a=$2} $1==\"Progressing\"{p=$2} $1==\"Degraded\"{d=$2} END{if(n) exit; if(a==\"\"&&p==\"\"&&d==\"\") print \"INFO n/a-cdi\"; else print (a==\"True\" && p==\"False\" && d==\"False\"?\"PASS\":\"FAIL\"), \"Available=\"a, \"Progressing=\"p, \"Degraded=\"d}'`\n2. Confirm cdi-uploadproxy pods are Ready.\n   `oc get pods -n openshift-cnv -l app=cdi-uploadproxy`"
 priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "CDI importer and upload components"
 impact_detail = "CDI remediation rolls import or upload control pods and affects new image imports or uploads, but not already running VMs."
+finding_group = "cnv-cdi"
+finding_group_title = "CDI image upload"
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/virtualization/index"
@@ -438,6 +567,12 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/virtualization/index"
 "4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/virtualization/index"
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/virtualization/index"
+
+[[checks]]
+check_id = "7.4.tsr.4_8_5_3_5_cdi_image_upload_posture"
+title = "TSR CDI image upload posture"
+content_from = "7.4.cnv.cdi"
+include_in_findings = false
 
 [[checks]]
 check_id = "7.4.tsr.4_1_1_logging_supported_configuration"
@@ -1367,5 +1502,38 @@ include_in_findings = false
 check_id = "7.4.tsr.4_8_red_hat_openshift_virtualization"
 title = "7.4.tsr.4_8_red_hat_openshift_virtualization"
 content_from = "7.4.cnv.state"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.quay.pods"
+title = "Internal Quay application pods"
+description = "This finding is whether each QuayRegistry namespace has a Running application pod whose name contains quay-app or registry-quay-app. QuayRegistry Available and operator pods are a different finding. Supported-configuration lifecycle is not scored here."
+recommendation = "Confirm at least one Running quay-app (or registry-quay-app) pod in every namespace that hosts a QuayRegistry, including spec.targetNamespace when set. Restore the registry deployment if only operator pods remain. Missing QuayRegistry is not a failure."
+verification = "1. List QuayRegistry objects and their namespaces. If none exist, the command is informational — Quay is not installed.\n   `oc get quayregistry -A`\n2. List pods whose name contains quay-app in registry namespaces. Healthy is PASS when phase is Running and containers are Ready. Zero matching Running pods in an installed registry namespace is a failure.\n   `oc get pods -A -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,PHASE:.status.phase --no-headers 2>&1 | awk '/not found|No resources found/{print \"INFO n/a-quay\"; n=1; next} $2 ~ /quay-app/ {r=\"FAIL\"; if($3==\"Running\") r=\"PASS\"; print r,$0} END{if(!n && NR==0) print \"INFO n/a-quay\"}'`"
+priority_hint = "P1"
+impact = "non-disruptive"
+impact_scope = "QuayRegistry application namespaces"
+impact_detail = "Restoring quay-app pods restarts registry traffic in that namespace. It does not reboot cluster nodes."
+finding_group = "quay-pods"
+finding_group_title = "Internal Quay application pods"
+
+[checks.links]
+default = "https://access.redhat.com/documentation/en-us/red_hat_quay/"
+"4.18" = "https://access.redhat.com/documentation/en-us/red_hat_quay/"
+"4.19" = "https://access.redhat.com/documentation/en-us/red_hat_quay/"
+"4.20" = "https://access.redhat.com/documentation/en-us/red_hat_quay/"
+"4.21" = "https://access.redhat.com/documentation/en-us/red_hat_quay/"
+"4.22" = "https://access.redhat.com/documentation/en-us/red_hat_quay/"
+
+[[checks]]
+check_id = "7.4.tsr.4_5_2_quay_pods"
+title = "TSR Quay application pods"
+content_from = "7.4.quay.pods"
+include_in_findings = false
+
+[[checks]]
+check_id = "7.4.tsr.4_5_4_1_quay_pods"
+title = "TSR Quay application pods (4.5.4.1)"
+content_from = "7.4.quay.pods"
 include_in_findings = false
 

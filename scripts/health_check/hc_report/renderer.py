@@ -337,9 +337,18 @@ def _build_cluster_id_table(meta: dict) -> str:
     return "\n".join(rows)
 
 
+def _include_in_chapter7(check: CheckResult) -> bool:
+    entry = load_kb().get_entry(check.check_id)
+    if entry is None:
+        return True
+    return not entry.content_from
+
+
 def _build_stats_rows(checks: list[CheckResult]) -> str:
     checks_by_category: dict[str, list[CheckResult]] = defaultdict(list)
     for check in checks:
+        if not _include_in_chapter7(check):
+            continue
         checks_by_category[check.category_id].append(check)
 
     category_names = {category_id: name for _, (category_id, name) in _CATEGORY_MAP.items()}
@@ -367,7 +376,11 @@ def _build_check_results_table(
     ocp_version: str = "latest",
 ) -> str:
     """Render one 2-column table per check."""
-    category_checks = [check for check in checks if check.category_id == category_id]
+    category_checks = [
+        check
+        for check in checks
+        if check.category_id == category_id and _include_in_chapter7(check)
+    ]
     if not category_checks:
         return "_No data collected for this category._"
 

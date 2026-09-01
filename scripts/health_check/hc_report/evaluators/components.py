@@ -1,7 +1,16 @@
 """Evaluators for 7.3 Component Checks."""
 from __future__ import annotations
 
-from hc_report.evaluators._common import _find_condition, _get_items, _is_missing, _not_applicable
+from hc_report.evaluators._common import (
+    _find_condition,
+    _get_items,
+    _is_missing,
+    _not_applicable,
+    _resource_annotations,
+    _resource_metadata,
+    _resource_name,
+    _resource_spec,
+)
 from hc_report.evaluators._shared_checks import find_degraded_operators
 from hc_report.evaluators.components_infra import (
     _evaluate_cluster_version,
@@ -18,10 +27,42 @@ from hc_report.evaluators.components_network import _evaluate_networking_feature
 from hc_report.models import CheckResult
 
 
+def _cluster_operator_platform(
+    per_operator_checks: list[CheckResult], category_id: str, category_name: str,
+) -> CheckResult:
+    fail_count = sum(1 for check in per_operator_checks if check.status == "FAIL")
+    warning_count = sum(1 for check in per_operator_checks if check.status == "WARNING")
+    pass_count = sum(1 for check in per_operator_checks if check.status == "PASS")
+    if fail_count:
+        status = "FAIL"
+    elif warning_count:
+        status = "WARNING"
+    else:
+        status = "PASS"
+    return CheckResult(
+        category_id, category_name, f"{category_id}.co.platform",
+        "Platform operators", status,
+        f"FAIL={fail_count} WARNING={warning_count} PASS={pass_count}",
+    )
+
+
+def _missing_cluster_operators(category_id: str, category_name: str) -> list[CheckResult]:
+    return [
+        _not_applicable(
+            f"{category_id}.co", "Cluster Operators",
+            category_id, category_name,
+        ),
+        _not_applicable(
+            f"{category_id}.co.platform", "Platform operators",
+            category_id, category_name,
+        ),
+    ]
+
+
 def _evaluate_cluster_operators(data: dict, category_id: str, category_name: str) -> list[CheckResult]:
     """One check per cluster operator — Available, Degraded, Progressing."""
     if _is_missing(data):
-        return [_not_applicable(f"{category_id}.co", "Cluster Operators", category_id, category_name)]
+        return _missing_cluster_operators(category_id, category_name)
 
     items = _get_items(data, default_single=True)
     degraded_ops = set(find_degraded_operators(data))
@@ -47,6 +88,9 @@ def _evaluate_cluster_operators(data: dict, category_id: str, category_name: str
 
         checks.append(CheckResult(category_id, category_name, f"{category_id}.co.{name}",
                                   f"Cluster Operator: {name}", status, evidence, name))
+    if not checks:
+        return _missing_cluster_operators(category_id, category_name)
+    checks.append(_cluster_operator_platform(checks, category_id, category_name))
     return checks
 
 
@@ -146,6 +190,147 @@ def _evaluate_image_registry(registry_data: dict, category_id: str, category_nam
                         "7.3.8 Image Registry Management State", "WARNING",
                         f"Registry state: {mgmt_state}. "
                         f"Available: {available.get('status', 'unknown')}", "imageregistry")]
+
+
+_REGISTRY_OBJECT_BACKENDS = frozenset({"s3", "azure", "gcs", "ibmcos", "oss", "swift"})
+_FILE_PROVISIONER_TOKENS = ("nfs", "efs", "azurefile", "cephfs")
+_DEFAULT_STORAGE_CLASS_ANNOTATION = "storageclass.kubernetes.io/is-default-class"
+
+
+def _registry_storage_backend(storage: dict) -> str:
+    """Return the first spec.storage key other than managementState."""
+    if not isinstance(storage, dict):
+        return "none"
+    remaining_keys = [key for key in storage if key != "managementState"]
+    if not remaining_keys:
+        return "none"
+    return remaining_keys[0]
+
+
+def _evaluate_registry_storage(
+    registry_data: dict, category_id: str, category_name: str,
+) -> list[CheckResult]:
+    """Score emptyDir vs persistent/object registry backend (not management state)."""
+    check_id = f"{category_id}.registry.storage"
+    title = "Internal registry storage"
+    if _is_missing(registry_data):
+        return [CheckResult(
+            category_id, category_name, check_id, title, "INFO",
+            "Image registry payload missing", "imageregistry",
+        )]
+    spec = _resource_spec(registry_data)
+    management_state = spec.get("managementState", "unknown")
+    storage = spec.get("storage", {})
+    backend = _registry_storage_backend(storage if isinstance(storage, dict) else {})
+    if management_state == "Removed":
+        return [CheckResult(
+            category_id, category_name, check_id, title, "INFO",
+            f"Registry managementState is Removed; storage backend {backend} not scored",
+            "imageregistry",
+        )]
+    if backend == "emptyDir" and management_state in ("Managed", "Unmanaged"):
+        return [CheckResult(
+            category_id, category_name, check_id, title, "FAIL",
+            f"Registry storage backend is emptyDir with managementState {management_state}",
+            "imageregistry", scoring_basis="doc_backed",
+        )]
+    if backend in _REGISTRY_OBJECT_BACKENDS or backend == "pvc":
+        return [CheckResult(
+            category_id, category_name, check_id, title, "PASS",
+            f"Registry storage backend is {backend}", "imageregistry",
+        )]
+    return [CheckResult(
+        category_id, category_name, check_id, title, "WARNING",
+        f"Registry storage backend is {backend}", "imageregistry",
+    )]
+
+
+def _storage_class_provisioner(storage_classes: dict, class_name: str) -> str:
+    """Look up a StorageClass provisioner by name, or the default class if name is empty."""
+    items = _get_items(storage_classes, default_single=True)
+    if class_name:
+        for storage_class in items:
+            if _resource_metadata(storage_class).get("name") == class_name:
+                return str(storage_class.get("provisioner") or "")
+        return ""
+    for storage_class in items:
+        annotations = _resource_annotations(storage_class)
+        if annotations.get(_DEFAULT_STORAGE_CLASS_ANNOTATION) == "true":
+            return str(storage_class.get("provisioner") or "")
+    return ""
+
+
+def _monitoring_item_storage_status(item: dict, storageclass_data: dict) -> str:
+    """Classify one Prometheus or Alertmanager CR: FAIL, WARNING, PASS, or SKIP."""
+    if not isinstance(item, dict):
+        return "SKIP"
+    spec = _resource_spec(item)
+    storage = spec.get("storage")
+    if not isinstance(storage, dict):
+        return "FAIL"
+    template = storage.get("volumeClaimTemplate")
+    if not isinstance(template, dict) or not template:
+        return "FAIL"
+    template_spec = template.get("spec")
+    if not isinstance(template_spec, dict):
+        template_spec = {}
+    access_modes = template_spec.get("accessModes") or []
+    if not isinstance(access_modes, list):
+        access_modes = []
+    class_name = template_spec.get("storageClassName")
+    if class_name is None:
+        class_name = ""
+    provisioner = _storage_class_provisioner(storageclass_data, str(class_name))
+    if "ReadWriteMany" in access_modes:
+        return "WARNING"
+    lowered_provisioner = provisioner.lower()
+    if any(token in lowered_provisioner for token in _FILE_PROVISIONER_TOKENS):
+        return "WARNING"
+    return "PASS"
+
+
+def _evaluate_monitoring_storage(
+    prometheus_data: dict,
+    alertmanager_data: dict,
+    storageclass_data: dict,
+    category_id: str,
+    category_name: str,
+) -> list[CheckResult]:
+    """Score Prometheus/Alertmanager PVC template, RWO, and file provisioner."""
+    check_id = f"{category_id}.monitoring.storage"
+    title = "Monitoring storage type"
+    prometheus_missing = _is_missing(prometheus_data)
+    alertmanager_missing = _is_missing(alertmanager_data)
+    if prometheus_missing and alertmanager_missing:
+        return [CheckResult(
+            category_id, category_name, check_id, title, "INFO",
+            "Prometheus and Alertmanager payloads missing", "monitoring_storage",
+        )]
+    items: list = []
+    if not prometheus_missing:
+        items.extend(_get_items(prometheus_data, default_single=True))
+    if not alertmanager_missing:
+        items.extend(_get_items(alertmanager_data, default_single=True))
+    statuses = [
+        _monitoring_item_storage_status(item, storageclass_data) for item in items
+    ]
+    if "FAIL" in statuses:
+        return [CheckResult(
+            category_id, category_name, check_id, title, "FAIL",
+            "Prometheus or Alertmanager lacks volumeClaimTemplate",
+            "monitoring_storage", scoring_basis="doc_backed",
+        )]
+    if "WARNING" in statuses:
+        return [CheckResult(
+            category_id, category_name, check_id, title, "WARNING",
+            "Monitoring storage uses ReadWriteMany or a file provisioner",
+            "monitoring_storage",
+        )]
+    return [CheckResult(
+        category_id, category_name, check_id, title, "PASS",
+        "Prometheus and Alertmanager use RWO non-file persistent storage",
+        "monitoring_storage",
+    )]
 
 
 def _evaluate_dns(dns_op: dict, dns_config: dict, category_id: str, category_name: str) -> list[CheckResult]:
@@ -307,6 +492,54 @@ def _evaluate_monitoring_config(cm_data: dict, category_id: str, category_name: 
                         "monitoring_config", doc_ref=_MONITORING_STORAGE_DOC_REF)]
 
 
+def _evaluate_olm_failed_csv(
+    csv_data: dict, category_id: str, category_name: str,
+) -> list[CheckResult]:
+    check_id = f"{category_id}.olm.failed_csv"
+    title = "OLM failed ClusterServiceVersions"
+    if csv_data.get("_hc_error"):
+        return [CheckResult(
+            category_id, category_name, check_id, title, "SKIPPED",
+            "csv payload collection error", "csv",
+        )]
+    if not csv_data or csv_data.get("_hc_not_found"):
+        return [_not_applicable(
+            check_id, title, category_id, category_name,
+            evidence="csv payload missing",
+        )]
+    items = _get_items(csv_data)
+    if not items:
+        return [_not_applicable(
+            check_id, title, category_id, category_name,
+            evidence="No ClusterServiceVersion items",
+        )]
+    failed_names = []
+    warning_entries = []
+    for item in items:
+        name = _resource_name(item, default="unknown")
+        phase = item.get("status", {}).get("phase") or ""
+        if not isinstance(phase, str):
+            phase = ""
+        if phase == "Failed":
+            failed_names.append(name)
+        elif phase and phase != "Succeeded":
+            warning_entries.append(f"{name}={phase}")
+    if failed_names:
+        return [CheckResult(
+            category_id, category_name, check_id, title, "FAIL",
+            f"Failed CSV(s): {', '.join(failed_names[:8])}", "csv",
+        )]
+    if warning_entries:
+        return [CheckResult(
+            category_id, category_name, check_id, title, "WARNING",
+            f"Non-Succeeded CSV phase(s): {', '.join(warning_entries[:8])}", "csv",
+        )]
+    return [CheckResult(
+        category_id, category_name, check_id, title, "PASS",
+        f"{len(items)} ClusterServiceVersion(s) Succeeded or empty phase", "csv",
+    )]
+
+
 def evaluate_components(category_data: dict, results: dict, category_id: str, category_name: str) -> list[CheckResult]:
     """Dispatch evaluators for 7.3 Component Checks."""
     checks: list[CheckResult] = []
@@ -323,9 +556,12 @@ def evaluate_components(category_data: dict, results: dict, category_id: str, ca
         category_data.get("cluster_operators", category_data.get("clusteroperators", {})),
         category_id, category_name,
     )
+    csv_data = results.get("03_base_platform", {}).get("csv", {})
+    checks += _evaluate_olm_failed_csv(csv_data, category_id, category_name)
     checks += _evaluate_network(category_data.get("network", {}), category_id, category_name)
     checks += _evaluate_ingress(category_data.get("ingresscontroller", {}), category_id, category_name)
     checks += _evaluate_image_registry(category_data.get("imageregistry", {}), category_id, category_name)
+    checks += _evaluate_registry_storage(category_data.get("imageregistry", {}), category_id, category_name)
     checks += _evaluate_storage(
         category_data.get("storageclass", {}),
         category_data.get("pv", {}),
@@ -345,4 +581,10 @@ def evaluate_components(category_data: dict, results: dict, category_id: str, ca
         category_id, category_name,
     )
     checks += _evaluate_monitoring_config(category_data.get("monitoring_config", {}), category_id, category_name)
+    checks += _evaluate_monitoring_storage(
+        category_data.get("prometheus", {}),
+        category_data.get("alertmanager", {}),
+        category_data.get("storageclass", {}),
+        category_id, category_name,
+    )
     return checks

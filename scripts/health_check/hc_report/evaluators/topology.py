@@ -422,6 +422,160 @@ def _evaluate_etcd_pods(pods_data: dict, category_id: str, category_name: str) -
     return checks
 
 
+def _node_capacity_gib_by_name(nodes_data: dict) -> dict[str, float]:
+    """Map node metadata name to capacity memory in GiB."""
+    capacity_by_name: dict[str, float] = {}
+    if _is_missing(nodes_data):
+        return capacity_by_name
+    for item in _get_items(nodes_data, default_single=True):
+        if not isinstance(item, dict):
+            continue
+        name = str(_resource_metadata(item).get("name", ""))
+        if not name:
+            continue
+        capacity_by_name[name] = _parse_quantity_gib(_node_capacity(item).get("memory", "0"))
+    return capacity_by_name
+
+
+def _member_reserved_memory(member: dict) -> str:
+    reserved = member.get("system_reserved_memory")
+    if not isinstance(reserved, str):
+        return ""
+    return reserved.strip()
+
+
+def _member_missing_reserved(member: dict) -> bool:
+    if member.get("auto_sizing_reserved") is True:
+        return False
+    return _member_reserved_memory(member) == ""
+
+
+def _member_default_1gi_large(member: dict, capacity_by_name: dict[str, float]) -> bool:
+    reserved = _member_reserved_memory(member)
+    if reserved not in ("1Gi", "1G"):
+        return False
+    node_name = str(member.get("node", ""))
+    return capacity_by_name.get(node_name, 0.0) >= 64.0
+
+
+def _evaluate_system_reserved_effective(
+    node_image_gc_data: dict, nodes_data: dict, category_id: str, category_name: str,
+) -> list[CheckResult]:
+    """Score effective kubelet systemReserved.memory from configz excerpts."""
+    check_id = f"{category_id}.kubelet.system_reserved"
+    title = "Effective kubelet systemReserved"
+    members: list[dict] = []
+    if isinstance(node_image_gc_data, dict):
+        raw_members = node_image_gc_data.get("members")
+        if isinstance(raw_members, list):
+            members = raw_members
+        if node_image_gc_data.get("_hc_error") and not members:
+            return [CheckResult(
+                category_id, category_name, check_id, title, "SKIPPED",
+                "node_image_gc collection error", "node_image_gc",
+            )]
+        if not node_image_gc_data or node_image_gc_data.get("_hc_not_found"):
+            return [_not_applicable(check_id, title, category_id, category_name)]
+    else:
+        return [_not_applicable(check_id, title, category_id, category_name)]
+    if not members:
+        return [_not_applicable(
+            check_id, title, category_id, category_name, "No node_image_gc members",
+        )]
+    capacity_by_name = _node_capacity_gib_by_name(nodes_data)
+    missing_nodes: list[str] = []
+    default_1gi_nodes: list[str] = []
+    for member in members:
+        if not isinstance(member, dict):
+            missing_nodes.append("unknown")
+            continue
+        node_name = str(member.get("node", "unknown"))
+        if _member_missing_reserved(member):
+            missing_nodes.append(node_name)
+        elif _member_default_1gi_large(member, capacity_by_name):
+            default_1gi_nodes.append(node_name)
+    if missing_nodes:
+        status = "WARNING"
+        evidence = (
+            f"{len(missing_nodes)} node(s) missing systemReserved.memory "
+            f"(autoSizingReserved not true): {', '.join(missing_nodes[:5])}"
+        )
+    elif default_1gi_nodes:
+        status = "INFO"
+        evidence = (
+            f"{len(default_1gi_nodes)} node(s) ≥64 GiB RAM with default "
+            f"systemReserved memory 1Gi: {', '.join(default_1gi_nodes[:5])}"
+        )
+    else:
+        status = "PASS"
+        evidence = "All scored nodes report parseable systemReserved memory"
+    return [CheckResult(
+        category_id, category_name, check_id, title, status, evidence, "node_image_gc",
+    )]
+
+
+_KEEPALIVED_NAMESPACE = "openshift-kni-infra"
+_KEEPALIVED_NAME_PREFIX = "keepalived-"
+
+
+def _is_keepalived_vip_pod(pod: dict) -> bool:
+    """True when the pod is a kni-infra keepalived VIP process."""
+    metadata = _resource_metadata(pod)
+    namespace = metadata.get("namespace", "")
+    name = metadata.get("name", "")
+    return namespace == _KEEPALIVED_NAMESPACE and name.startswith(_KEEPALIVED_NAME_PREFIX)
+
+
+def _keepalived_pod_ready(pod: dict) -> bool:
+    """True when the pod is Running and every container reports Ready."""
+    status = _resource_status(pod)
+    if status.get("phase") != "Running":
+        return False
+    container_statuses = status.get("containerStatuses") or []
+    if not container_statuses:
+        return False
+    return all(container.get("ready") is True for container in container_statuses)
+
+
+def _evaluate_keepalived_pods(
+    pods_data: dict, category_id: str, category_name: str,
+) -> list[CheckResult]:
+    """Score kni-infra keepalived Ready for the API/ingress VIP."""
+    check_id = f"{category_id}.topo.keepalived"
+    title = "Keepalived VIP pods"
+    if _is_missing(pods_data):
+        return [CheckResult(
+            category_id, category_name, check_id, title, "SKIPPED",
+            "pods_all payload missing or collection error", "pods_all",
+        )]
+    keepalived_pods = [
+        pod for pod in _get_items(pods_data) if _is_keepalived_vip_pod(pod)
+    ]
+    if not keepalived_pods:
+        return [CheckResult(
+            category_id, category_name, check_id, title, "INFO",
+            f"No keepalived pods in {_KEEPALIVED_NAMESPACE} (cloud or external VIP)",
+            "pods_all",
+        )]
+    not_ready_names = [
+        _resource_metadata(pod).get("name", "?")
+        for pod in keepalived_pods
+        if not _keepalived_pod_ready(pod)
+    ]
+    if not_ready_names:
+        listed = ", ".join(not_ready_names[:5])
+        return [CheckResult(
+            category_id, category_name, check_id, title, "FAIL",
+            f"{len(not_ready_names)} keepalived pod(s) not Ready: {listed}",
+            "pods_all",
+        )]
+    return [CheckResult(
+        category_id, category_name, check_id, title, "PASS",
+        f"{len(keepalived_pods)} keepalived pod(s) Running and Ready in {_KEEPALIVED_NAMESPACE}",
+        "pods_all",
+    )]
+
+
 def evaluate_topology(category_data: dict, results: dict, category_id: str, category_name: str) -> list[CheckResult]:
     """Dispatch evaluators for 7.2 Topology Checks."""
     checks: list[CheckResult] = []
@@ -433,6 +587,17 @@ def evaluate_topology(category_data: dict, results: dict, category_id: str, cate
         "7.2.1",
         category_data.get("kubeletconfig", {}),
         results.get("11_hardware", {}),
+    )
+    checks += _evaluate_system_reserved_effective(
+        results.get("08_day2", {}).get("node_image_gc", {}),
+        category_data.get("nodes", {}),
+        category_id,
+        category_name,
+    )
+    checks += _evaluate_keepalived_pods(
+        results.get("07_cluster_health", {}).get("pods_all", {}),
+        category_id,
+        category_name,
     )
     checks += _evaluate_mcp(category_data.get("machineconfigpool", {}), category_id, category_name)
     checks += _evaluate_etcd(category_data.get("etcd", {}), category_id, category_name)

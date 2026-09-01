@@ -116,11 +116,32 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-network-connectivity-user-infra_installing-platform-agnostic"
 
 [[checks]]
+check_id = "7.1.net.overlay_ports"
+title = "Cluster overlay and API ports"
+description = "OpenShift needs overlay, API, etcd, and kubelet ports between the right nodes.\n`network.config` names the CNI (`spec.networkType`) only. This check does not probe\nhost iptables or security groups. OVNKubernetes is PASS with ports not probed.\nOpenShiftSDN is WARNING. Any other named CNI is INFO. Collect errors are SKIPPED.\nMissing network data is not applicable. This check never FAILs. Cluster-wide proxy\npresence is a different check (`7.1.sys.firewall`).\n"
+recommendation = "Allow Geneve 6081/udp between all nodes, API 6443/tcp to control-plane, etcd 2379/tcp and 2380/tcp between control-plane nodes, and kubelet 10250/tcp to all nodes. `network.config` names the CNI only; it does not list ports. If overlay or API ports are blocked, change security groups, ACLs, or host firewall. Do not patch Network.config to open ports. Do not treat missing host-firewall scrape as a FAIL."
+verification = "1. Print the CNI plugin name from the Network config object:\n   `oc get network.config cluster -o jsonpath='{.spec.networkType}{\"\\n\"}'`\n   Healthy is PASS when the name is OVNKubernetes. OpenShiftSDN is WARNING. Any other non-empty name is INFO. The API does not prove ports are open.\n2. Confirm these ports are allowed in security groups, ACLs, or host firewall. This step is operator review; the scorer does not probe and never FAILs for unprobed ports:\n      - API 6443/tcp to control-plane\n      - etcd 2379/tcp and 2380/tcp between control-plane nodes\n      - kubelet 10250/tcp to all nodes\n      - OVNKubernetes: Geneve 6081/udp between all nodes\n      - OpenShiftSDN (removed in 4.17): VXLAN 4789/udp — ignore on current releases\n3. Curl of `/healthz` is not a firewall matrix."
+priority_hint = ""
+impact = "maintenance-window"
+impact_scope = "security groups, ACLs, or host firewall"
+impact_detail = "Opening Geneve 6081, API, etcd, and kubelet can drop overlay or API traffic until the new rules are correct. Do not patch Network.config to open ports."
+finding_group = "overlay-ports"
+finding_group_title = "Cluster overlay and API ports"
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-network-connectivity-user-infra_installing-platform-agnostic"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-network-connectivity-user-infra_installing-platform-agnostic"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-network-connectivity-user-infra_installing-platform-agnostic"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-network-connectivity-user-infra_installing-platform-agnostic"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-network-connectivity-user-infra_installing-platform-agnostic"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-network-connectivity-user-infra_installing-platform-agnostic"
+
+[[checks]]
 check_id = "7.1.sys.auth"
 title = "Authentication configuration"
-description = "Cluster authentication determines how users and service accounts authenticate.\nThe default kubeadmin user should be removed after external identity providers\nare configured and validated.\n"
-recommendation = "Configure an external identity provider (LDAP, OIDC, or SAML), validate login, and only then remove kubeadmin. Document emergency access. Do not delete kubeadmin until that login works."
-verification = "1. List the configured identity providers on the OAuth object:\n   `oc get oauth cluster -o jsonpath='{.spec.identityProviders[*].name}{\"\\t\"}{.spec.identityProviders[*].type}{\"\\n\"}'`\n2. HTPasswd alone is a weak production IdP. LDAP, OIDC, or SAML should be configured and tested before removing kubeadmin.\n3. Confirm break-glass emergency access is documented in case the identity provider becomes unavailable."
+description = "Cluster authentication is the identity-provider list on the cluster OAuth object.\nAn empty list or only HTPasswd is WARNING. kubeadmin secret presence and token\nmax-age are not scored.\n"
+recommendation = "Configure an external identity provider (LDAP, OIDC, or SAML) and validate login. kubeadmin secret deletion and token max-age are not scored on this check."
+verification = "1. List the configured identity providers on the OAuth object. Healthy is PASS when a non-HTPasswd provider is present. Empty list or only HTPasswd is WARNING. Missing OAuth data is SKIPPED.\n   `oc get oauth cluster -o jsonpath='{.spec.identityProviders[*].name}{\"\\t\"}{.spec.identityProviders[*].type}{\"\\n\"}'`"
 priority_hint = ""
 impact = "non-disruptive"
 impact_scope = "authentication components"
@@ -135,15 +156,17 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/authentication_and_authorization/index#configuring-identity-providers"
 
 [[checks]]
-check_id = "7.1.tsr.1_5_2_3_dns_alerts"
-title = "TSR DNS alerts"
+check_id = "7.1.dns.coredns_alerts"
+title = "CoreDNS alerts"
 description = "DNS-related alerts indicate resolution failures that can cascade into pod\nscheduling issues, service discovery failures, and operator degradation. DNS\nis a foundational cluster service — any degradation must be resolved promptly.\n"
 recommendation = "Clear firing CoreDNSErrorsHigh, CoreDNSHealthCheckSlow, and CoreDNSPanicking. Fix the DNS instance that matches the alert name. Empty Prometheus output means none of those alerts are firing. Ignore Thanos DNS alert names. Fix forwarding and listen-port issues on their own rows, not by silencing these alerts."
-verification = "1. List the CoreDNS alerting rules from the PrometheusRule in openshift-dns-operator:\n   `oc get prometheusrule dns -n openshift-dns-operator -o jsonpath='{range .spec.groups[*].rules[?(@.alert)]}{.alert}{\"\\n\"}{end}'`\n      The DNS Operator ships `CoreDNSErrorsHigh`, `CoreDNSHealthCheckSlow`, and `CoreDNSPanicking`.\n2. Check which of those are currently firing:\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -s http://localhost:9090/api/v1/alerts | jq '.data.alerts[] | select(.labels.alertname | test(\"^CoreDNS\")) | {state, alertname: .labels.alertname, severity: .labels.severity}'`\n3. Investigate by alert name:\n      - `CoreDNSErrorsHigh`: SERVFAIL share >1 % for 5 min. Inspect DNS logs:\n     `oc -n openshift-dns logs -l dns.operator.openshift.io/daemonset-dns --tail=100`\n      - `CoreDNSHealthCheckSlow`: health-check p95 >10 s. Check DNS pod readiness and restarts:\n     `oc get pods -n openshift-dns`\n      - `CoreDNSPanicking`: panics in 10 min. Check the same logs, then describe the crashing pod:\n     `oc describe pod <name> -n openshift-dns`"
-priority_hint = ""
+verification = "1. List the CoreDNS alerting rules from the PrometheusRule in openshift-dns-operator:\n   `oc get prometheusrule dns -n openshift-dns-operator -o jsonpath='{range .spec.groups[*].rules[?(@.alert)]}{.alert}{\"\\n\"}{end}'`\n      The DNS Operator ships `CoreDNSErrorsHigh`, `CoreDNSHealthCheckSlow`, and `CoreDNSPanicking`.\n2. Check which of those are currently firing. Firing is FAIL for those three names. Pending is not FAIL. Missing firing_alerts is SKIPPED.\n   `oc -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -s http://localhost:9090/api/v1/alerts | jq '.data.alerts[] | select(.labels.alertname | test(\"^CoreDNS\")) | {state, alertname: .labels.alertname, severity: .labels.severity}'`\n3. Investigate by alert name:\n      - `CoreDNSErrorsHigh`: SERVFAIL share >1 % for 5 min. Inspect DNS logs:\n     `oc -n openshift-dns logs -l dns.operator.openshift.io/daemonset-dns --tail=100`\n      - `CoreDNSHealthCheckSlow`: health-check p95 >10 s. Check DNS pod readiness and restarts:\n     `oc get pods -n openshift-dns`\n      - `CoreDNSPanicking`: panics in 10 min. Check the same logs, then describe the crashing pod:\n     `oc describe pod <name> -n openshift-dns`"
+priority_hint = "P3"
 impact = "workload-shift"
 impact_scope = "CoreDNS pods and cluster name resolution"
 impact_detail = "Restoring dns.operator default rolls CoreDNS and can briefly break name resolution. It does not reboot nodes."
+finding_group = "coredns-alerts"
+finding_group_title = "CoreDNS alerts"
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_operators/index#nw-dns-operator_dns-operator"
@@ -152,6 +175,12 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_operators/index#nw-dns-operator_dns-operator"
 "4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_operators/index#nw-dns-operator_dns-operator"
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_operators/index#nw-dns-operator_dns-operator"
+
+[[checks]]
+check_id = "7.1.tsr.1_5_2_3_dns_alerts"
+title = "TSR DNS alerts"
+content_from = "7.1.dns.coredns_alerts"
+include_in_findings = false
 
 [[checks]]
 check_id = "7.1.tsr.openshift_must_gather_collection"
@@ -364,15 +393,17 @@ title = "1.4.1.2. Master CPUs"
 content_from = "7.1.tsr.1_2_subscriptions"
 include_in_findings = false
 [[checks]]
-check_id = "7.1.tsr.1_4_1_3_master_memory"
-title = "1.4.1.3. Master Memory"
-description = "Control-plane nodes require minimum 16 GiB RAM (32+ recommended for\nproduction). Insufficient memory causes OOM kills of critical components\nlike etcd and the API server. The TSR also warns when kubelet\n`systemReserved.memory` is below its size-based expectation (for example\n3 GiB reserved on a ~32 GiB node), even if capacity already meets 16 GiB.\n"
-recommendation = "Resize or replace any control-plane node whose `status.capacity.memory` is below 16 GiB. When TSR flags `systemReserved.memory` below its size-based expectation, set `spec.kubeletConfig.systemReserved.memory` via `KubeletConfig` (`spec.autoSizingReserved: false` if overriding auto-size); do not treat that reserved WARNING as a 16 GiB FAIL."
-verification = "1. Check memory capacity (`status.capacity.memory`, in Ki) on each control-plane node. **PASS** is 16 GiB (16777216 Ki) or more:\n   `oc get nodes -l node-role.kubernetes.io/master --no-headers -o custom-columns=NAME:.metadata.name,MEM:.status.capacity.memory | awk '{print ($2+0>=16777216?\"PASS\":\"FAIL\"), $1, $2}'`\n2. Print kubelet `systemReserved.memory` from each control-plane node's `configz`. This step confirms reservation and does not FAIL on the 16 GiB capacity bar. **INFO** if `systemReserved.memory` is missing.\n   `oc get nodes -l node-role.kubernetes.io/master --no-headers -o custom-columns=NAME:.metadata.name | while read -r node; do reserved=$(oc get --raw /api/v1/nodes/${node}/proxy/configz | jq -r '.kubeletconfig.systemReserved.memory // empty'); if [ -z \"$reserved\" ]; then echo \"INFO NODE=${node} systemReserved.memory missing\"; else echo \"INFO NODE=${node} systemReserved.memory=${reserved}\"; fi; done`"
+check_id = "7.1.nodes.master_mem"
+title = "Master memory"
+description = "Control-plane nodes require minimum 16 GiB RAM (32+ recommended for\nproduction). Insufficient memory causes OOM kills of critical components\nlike etcd and the API server. kubelet `systemReserved.memory` and node\n`configz` are not scored.\n"
+recommendation = "Resize or replace any control-plane node whose `status.capacity.memory` is below 16 GiB. kubelet `systemReserved.memory` is not scored on this check."
+verification = "1. Check memory capacity (`status.capacity.memory`, in Ki) on each control-plane node. Healthy is PASS at 16 GiB (16777216 Ki) or more. Below that is FAIL.\n   `oc get nodes -l node-role.kubernetes.io/master --no-headers -o custom-columns=NAME:.metadata.name,MEM:.status.capacity.memory | awk '{print ($2+0>=16777216?\"PASS\":\"FAIL\"), $1, $2}'`"
 priority_hint = ""
 impact = "maintenance-window"
 impact_scope = "control-plane nodes"
-impact_detail = "Resize or replace any control-plane node below 16 GiB. A KubeletConfig systemReserved change drains and reboots the targeted pool instead."
+impact_detail = "Resize or replace any control-plane node below 16 GiB."
+finding_group = "master-memory"
+finding_group_title = "Master memory"
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
@@ -381,6 +412,12 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
 "4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-minimum-resource-requirements_installing-platform-agnostic"
+
+[[checks]]
+check_id = "7.1.tsr.1_4_1_3_master_memory"
+title = "1.4.1.3. Master Memory"
+content_from = "7.1.nodes.master_mem"
+include_in_findings = false
 
 [[checks]]
 check_id = "7.1.tsr.1_4_1_4_master_disk"
@@ -619,21 +656,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.1.tsr.1_5_5_firewalls"
 title = "1.5.5. Firewalls"
-description = "OpenShift requires specific ports open between nodes, to external registries,\nand to cloud APIs. Missing firewall rules cause intermittent failures in\nnode communication, image pulls, and operator reconciliation.\n"
-recommendation = "Allow Geneve 6081 (OVN) plus API, etcd, and kubelet between the right nodes. `network.config` names the CNI only; it does not list ports. If overlay or API ports are blocked, change security groups, ACLs, or host firewall. Do not patch Network.config to open ports."
-verification = "1. Print the CNI plugin name from the Network config:\n   `oc get network.config cluster -o jsonpath='{.spec.networkType}{\"\\n\"}'`\n2. Confirm these ports are allowed in security groups, ACLs, or host firewall:\n      - API 6443/tcp to control-plane\n      - etcd 2379/tcp and 2380/tcp between control-plane nodes\n      - kubelet 10250/tcp to all nodes\n      - OVNKubernetes: Geneve 6081/udp between all nodes\n      - OpenShiftSDN (removed in 4.17): VXLAN 4789/udp — ignore on current releases\n3. Curl of `/healthz` is not a firewall matrix."
-priority_hint = ""
-impact = "maintenance-window"
-impact_scope = "security groups, ACLs, or host firewall"
-impact_detail = "Opening Geneve 6081, API, etcd, and kubelet can drop overlay or API traffic until the new rules are correct. Do not patch Network.config to open ports."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-network-connectivity-user-infra_installing-platform-agnostic"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_any_platform/index#installation-network-connectivity-user-infra_installing-platform-agnostic"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_any_platform/index#installation-network-connectivity-user-infra_installing-platform-agnostic"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_any_platform/index#installation-network-connectivity-user-infra_installing-platform-agnostic"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_any_platform/index#installation-network-connectivity-user-infra_installing-platform-agnostic"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_any_platform/index#installation-network-connectivity-user-infra_installing-platform-agnostic"
+content_from = "7.1.net.overlay_ports"
+include_in_findings = false
 
 [[checks]]
 check_id = "7.1.tsr.1_5_6_proxy"
@@ -910,21 +934,8 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.1.tsr.1_5_17_authentication"
 title = "1.5.17. Authentication"
-description = "Cluster authentication configuration determines identity providers, token\nlifetimes, and access controls. Production clusters should use enterprise\nidentity providers and remove the default kubeadmin account.\n"
-recommendation = "Configure and test an external identity provider, then verify that at least one externally authenticated user has functioning cluster-admin access before removing the kubeadmin secret. Do not remove kubeadmin while it remains the only verified administrative login, because removal is irreversible and can leave the cluster without recoverable administrative access. An HTPasswd provider or retained kubeadmin account may be acceptable for lab, temporary, or documented break-glass use."
-verification = "1. List the identity provider names and types on the OAuth object:\n   `oc get oauth cluster -o jsonpath='{.spec.identityProviders[*].name}{\"\\t\"}{.spec.identityProviders[*].type}{\"\\n\"}'`\n2. Print the access token maximum age if set:\n   `oc get oauth cluster -o jsonpath='{.spec.tokenConfig.accessTokenMaxAgeSeconds}{\"\\n\"}'`\n3. Check whether the kubeadmin secret still exists:\n   `oc get secret kubeadmin -n kube-system --ignore-not-found`\n4. Only after an external identity provider is validated and a cluster-admin can log in through it, remove kubeadmin:\n   `oc delete secret kubeadmin -n kube-system`"
-priority_hint = ""
-impact = "non-disruptive"
-impact_scope = "authentication components"
-impact_detail = "OAuth configuration changes roll authentication pods but do not reboot nodes or stop running workloads."
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/authentication_and_authorization/index#understanding-identity-provider"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/authentication_and_authorization/index#understanding-identity-provider"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/authentication_and_authorization/index#understanding-identity-provider"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/authentication_and_authorization/index#understanding-identity-provider"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/authentication_and_authorization/index#understanding-identity-provider"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/authentication_and_authorization/index#understanding-identity-provider"
+content_from = "7.1.sys.auth"
+include_in_findings = false
 
 [[checks]]
 check_id = "7.1.tsr.1_5_18_security_context_constraints"

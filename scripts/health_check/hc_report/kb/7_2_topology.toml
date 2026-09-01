@@ -21,6 +21,27 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/nodes/index#nodes-nodes-resources-configuring-setting_nodes-nodes-resources-configuring"
 
 [[checks]]
+check_id = "7.2.kubelet.system_reserved"
+title = "Effective kubelet systemReserved"
+description = "This check reports the kubelet’s effective `systemReserved.memory` from the node proxy configz excerpt, not from the presence of a `KubeletConfig` custom resource. OpenShift still applies defaults (`cpu=500m`, `memory=1Gi`) when no CR exists. On nodes with 64 GiB or more RAM, that default is tight guidance and is scored informational. Missing reserved memory without `autoSizingReserved` is a warning. The check never fails solely because no `KubeletConfig` CR is present.\n"
+recommendation = "Read the effective reservation on each node before creating a `KubeletConfig`. If reserved memory is the default `1Gi` on large nodes, compare it with host-level consumption (operating system, kubelet, CRI-O, networking, monitoring). Increase `spec.kubeletConfig.systemReserved.memory` or enable `autoSizingReserved: true` only when the effective default is insufficient. Do not create a CR solely because `oc get kubeletconfig` is empty."
+verification = "1. Confirm whether any `KubeletConfig` CR exists. Empty output is **INFO** — defaults still apply; it is not a missing reservation.\n   `oc get kubeletconfig`\n2. Print effective reserved memory from the first node's configz. **PASS** when the value is parseable and not the 1Gi default on a ≥64 GiB node; **INFO** for that default; **WARNING** when memory is missing and auto-sizing is not true.\n   `oc get --raw /api/v1/nodes/$(oc get nodes -o jsonpath='{.items[0].metadata.name}')/proxy/configz | jq '{systemReserved: .kubeletconfig.systemReserved, autoSizingReserved: .kubeletconfig.autoSizingReserved}'`\n3. Compare node capacity:\n   `oc get nodes -o custom-columns=NAME:.metadata.name,MEMORY:.status.capacity.memory`\n4. Change a `KubeletConfig` only after validating that the effective reservation is insufficient for the node profile."
+priority_hint = ""
+impact = "rolling-restart"
+impact_scope = "nodes in the targeted MachineConfigPool"
+impact_detail = "`KubeletConfig` changes are applied through the Machine Config Operator, which drains and reboots affected nodes one at a time and shifts workloads per MCP rollout settings. On compact 3-node clusters where all nodes serve as both control-plane and worker, this affects 100% of cluster capacity."
+finding_group = "kubelet-system-reserved-effective"
+finding_group_title = "Effective kubelet systemReserved"
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/nodes/index#nodes-nodes-resources-configuring-setting_nodes-nodes-resources-configuring"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/nodes/index#nodes-nodes-resources-configuring-setting_nodes-nodes-resources-configuring"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/nodes/index#nodes-nodes-resources-configuring-setting_nodes-nodes-resources-configuring"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/nodes/index#nodes-nodes-resources-configuring-setting_nodes-nodes-resources-configuring"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/nodes/index#nodes-nodes-resources-configuring-setting_nodes-nodes-resources-configuring"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/nodes/index#nodes-nodes-resources-configuring-setting_nodes-nodes-resources-configuring"
+
+[[checks]]
 check_id = "7.2.etcd.members"
 title = "etcd member health"
 description = "etcd requires a quorum of (n/2)+1 members to operate. A 3-member etcd cluster\ntolerates the loss of 1 member. Degraded etcd members must be investigated\nimmediately because data loss or control plane instability can follow.\n"
@@ -163,34 +184,21 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 [[checks]]
 check_id = "7.2.tsr.2_2_2_master_av_zone_labels"
 title = "2.2.2. Master AV Zone Labels"
-description = "Control plane nodes should carry topology.kubernetes.io/zone labels and be\ndistributed across at least 2 (ideally 3) distinct availability zones. Missing\nor identical zone labels indicate a single-zone control plane vulnerable to\nzone-level outages.\n"
-recommendation = "Validate the actual placement of all control-plane nodes across physical or logical failure domains—such as availability zones, racks, hypervisor hosts, or data-center fault domains—and distribute them so that the loss of any single domain does not remove etcd quorum or API availability. The absence of topology.kubernetes.io/zone labels means zone distribution cannot be verified from Kubernetes metadata. Do not add or modify topology labels merely to satisfy this check, because labels do not move nodes or improve resilience."
-verification = "1. List zone labels on master nodes (topology.kubernetes.io/zone):\n   `oc get nodes -l node-role.kubernetes.io/master -o custom-columns=NAME:.metadata.name,ZONE:.metadata.labels.topology\\.kubernetes\\.io/zone`\n2. Missing or identical values mean zone distribution cannot be confirmed from metadata alone.\n3. If all masters share one failure domain, plan machine redistribution. Adding labels without moving machines does not improve availability."
-priority_hint = ""
-impact = "non-disruptive"
-impact_scope = "control-plane node labels"
-impact_detail = "Adding topology labels does not drain nodes. Relocating control-plane machines across zones is a separate maintenance-window activity."
-finding_group = "control-plane-az"
-finding_group_title = "Control plane availability zone distribution"
-
-[checks.links]
-default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/architecture/index#about-control-planes_architecture-overview"
-"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/architecture/index#about-control-planes_architecture-overview"
-"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/architecture/index#about-control-planes_architecture-overview"
-"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/architecture/index#about-control-planes_architecture-overview"
-"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/architecture/index#about-control-planes_architecture-overview"
-"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/architecture/index#about-control-planes_architecture-overview"
+content_from = "7.2.topo.master_az"
+include_in_findings = false
 
 [[checks]]
-check_id = "7.2.tsr.2_2_3_haproxy_ha"
-title = "2.2.3. HAProxy HA"
-description = "The API and ingress load balancers (commonly HAProxy) must be highly available.\nA single load balancer is a single point of failure for all cluster traffic.\nHA is typically achieved via keepalived/VRRP or external load balancer\nredundancy.\n"
-recommendation = "Ensure the API and ingress entry points have a tested high-availability design with no single load-balancer host or appliance that can interrupt cluster access. For externally managed load balancers, verify redundant instances for API traffic on 6443 and ingress traffic on 80/443. For bare-metal IPI and similar on-premises IPI deployments, do not infer a single point of failure from a SingleReplica value alone: OpenShift commonly provides API and ingress VIP failover through keepalived/VRRP, with HAProxy serving traffic on the current VIP owner. Validate the actual keepalived and HAProxy static-pod health."
-verification = "1. Print IngressController replica counts:\n   `oc get ingresscontroller default -n openshift-ingress-operator -o custom-columns=NAME:.metadata.name,SPEC:.spec.replicas,AVAILABLE:.status.availableReplicas`\n2. Both columns at 2 or above means HA. `1` is SingleReplica. `<none>` in AVAILABLE means the operator has not reported status yet.\n3. List router pods:\n   `oc get pods -n openshift-ingress`\n4. Check the platform load-balancer implementation: bare-metal IPI uses keepalived/HAProxy in openshift-kni-infra; vSphere IPI uses openshift-vsphere-infra; external LBs need out-of-cluster validation.\n   `oc get pods -n openshift-kni-infra`\n   `oc get pods -n openshift-vsphere-infra`"
+check_id = "7.2.topo.haproxy_ha"
+title = "Ingress controller replica HA"
+description = "The default IngressController must run more than one replica for ingress HA.\nThis check scores replica and availableReplica counts only. keepalived, VRRP,\nopenshift-kni-infra, and external load balancers are not scored.\n"
+recommendation = "Set the default IngressController to two or more replicas and confirm availableReplicas is also two or more. keepalived, kni-infra, and external VIP designs are not scored on this check."
+verification = "1. Print IngressController replica counts. Healthy is PASS when spec replicas and availableReplicas are both 2 or more. Below that is WARNING. Missing IngressController data is SKIPPED.\n   `oc get ingresscontroller default -n openshift-ingress-operator -o custom-columns=NAME:.metadata.name,SPEC:.spec.replicas,AVAILABLE:.status.availableReplicas`\n2. List router pods in openshift-ingress:\n   `oc get pods -n openshift-ingress`"
 priority_hint = ""
 impact = "maintenance-window"
 impact_scope = "API and ingress load-balancer infrastructure"
-impact_detail = "Adding redundant load balancers or VIPs can interrupt 6443, 80, and 443 until failover is proven."
+impact_detail = "Adding redundant ingress replicas can interrupt 80 and 443 until the new pods are Ready."
+finding_group = "haproxy-ha"
+finding_group_title = "Ingress controller replica HA"
 
 [checks.links]
 default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#configuring-ingress-cluster-traffic-ingress-controller"
@@ -199,6 +207,33 @@ default = "https://docs.redhat.com/en/documentation/openshift_container_platform
 "4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/networking_overview/index#configuring-ingress-cluster-traffic-ingress-controller"
 "4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/networking_overview/index#configuring-ingress-cluster-traffic-ingress-controller"
 "4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/networking_overview/index#configuring-ingress-cluster-traffic-ingress-controller"
+
+[[checks]]
+check_id = "7.2.topo.keepalived"
+title = "Keepalived VIP pods"
+description = "On-premises OpenShift uses keepalived in openshift-kni-infra to float the API and ingress virtual IPs. This check scores those keepalived pods only: they must be Running with every container Ready. Zero matching pods is informational — cloud and external load-balancer designs do not run kni-infra keepalived. Ingress replica count is scored separately and is not this check.\n"
+recommendation = "Restore keepalived pods in openshift-kni-infra to Running and Ready. If the cluster uses an external or cloud load balancer, zero keepalived pods is expected and needs no kni-infra change. Do not treat IngressController replica count as VIP health.\n"
+verification = "1. List pods in openshift-kni-infra. Healthy is PASS when every pod whose name starts with keepalived- is Running and READY matches its container count. Zero keepalived- rows is INFO — cloud or external VIP, skip this check. Any keepalived- row that is not Running or not Ready is FAIL.\n   `oc get pods -n openshift-kni-infra`\n2. If a keepalived- row is FAIL, describe that pod:\n   `oc describe pod -n openshift-kni-infra <keepalived-pod>`"
+priority_hint = ""
+impact = "non-disruptive"
+impact_scope = "API and ingress virtual IPs on bare metal"
+impact_detail = "Restoring a keepalived pod in openshift-kni-infra restarts only that pod. It does not drain or reboot nodes and does not affect IngressController replicas."
+finding_group = "keepalived-vip"
+finding_group_title = "Keepalived VIP pods"
+
+[checks.links]
+default = "https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_bare_metal/index#installation-network-user-infra_installing-bare-metal"
+"4.18" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html-single/installing_on_bare_metal/index#installation-network-user-infra_installing-bare-metal"
+"4.19" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/installing_on_bare_metal/index#installation-network-user-infra_installing-bare-metal"
+"4.20" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html-single/installing_on_bare_metal/index#installation-network-user-infra_installing-bare-metal"
+"4.21" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/installing_on_bare_metal/index#installation-network-user-infra_installing-bare-metal"
+"4.22" = "https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html-single/installing_on_bare_metal/index#installation-network-user-infra_installing-bare-metal"
+
+[[checks]]
+check_id = "7.2.tsr.2_2_3_haproxy_ha"
+title = "2.2.3. HAProxy HA"
+content_from = "7.2.topo.haproxy_ha"
+include_in_findings = false
 
 [[checks]]
 check_id = "7.2.tsr.2_3_scalability"
