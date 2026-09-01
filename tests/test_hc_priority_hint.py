@@ -6,10 +6,8 @@ from hc_report.models import CheckResult
 
 QUOTA_AND_MTV_CHECK_IDS = (
     "7.6.rq",
-    "7.6.tsr.6_1_1_quota_and_resources",
-    "7.6.tsr.6_1_1_1_quota_resources_project_assignment",
-    "7.6.tsr.6_1_1_2_cluster_quota_configuration",
-    "7.4.tsr.4_8_5_1_1_quota_and_resources",
+    "7.6.quota.coverage",
+    "7.4.cnv.vm_quota",
     "7.4.tsr.4_12_1_1_1_mtv_installation_and_state",
     "7.4.tsr.4_12_1_1_2_operator_subscription_posture",
     "7.4.tsr.4_12_1_2_mtv_supported_configuration",
