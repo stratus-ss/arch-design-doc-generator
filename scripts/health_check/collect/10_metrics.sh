@@ -7,12 +7,15 @@
 # Data collected:
 #   - Node CPU and memory requests (% of allocatable) from Prometheus
 #   - etcd disk WAL fsync P99 latency per pod
+#   - etcd compaction p95 (PromQL)
+#   - etcd log phrase counts (6h, counts only; no log body)
 #   - etcd DB size and leader changes
 #   - API server request P99 latency
 #   - Certificate expiry (days to expiry)
 #   - etcd endpoint health and status via etcdctl
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
 source "${SCRIPT_DIR}/lib/common.sh"
 CATEGORY="10_metrics"
 hc_init "$CATEGORY"
@@ -165,6 +168,67 @@ hc_etcdctl() {
 }
 
 # ---------------------------------------------------------------------------
+# Helper: count three TSR etcd log phrases over 6h (counts only)
+# ---------------------------------------------------------------------------
+hc_etcd_log_phrase_counts() {
+    local category="$1"
+    local check_name="$2"
+    local output_path="${HC_RESULTS_DIR}/${category}/${check_name}.json"
+    local member_records=""
+    local pod_name
+    local log_text
+    local heartbeat_count
+    local timed_out_count
+    local rafthttp_count
+    local log_failed
+    local pod_list
+
+    hc_info "  etcd-log-phrases: ${check_name} → ${category}/${check_name}.json"
+
+    pod_list="$(oc get pod -n openshift-etcd -l app=etcd \
+        -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' 2>/dev/null || true)"
+
+    while IFS= read -r pod_name; do
+        [[ -z "$pod_name" ]] && continue
+        log_failed=0
+        log_text=""
+        if ! log_text="$(oc logs -n openshift-etcd "$pod_name" -c etcd --since=6h 2>/dev/null)"; then
+            log_failed=1
+            log_text=""
+        fi
+        heartbeat_count="$(printf '%s' "$log_text" | grep -cF 'failed to send out heartbeat on time' || true)"
+        timed_out_count="$(printf '%s' "$log_text" | grep -cF 'request timed out' || true)"
+        rafthttp_count="$(printf '%s' "$log_text" | grep -cF 'rafthttp: failed to read' || true)"
+        member_records+="${pod_name}"$'\t'"${heartbeat_count}"$'\t'"${timed_out_count}"$'\t'"${rafthttp_count}"$'\t'"${log_failed}"$'\n'
+    done <<< "$pod_list"
+
+    python3 -c "
+import json
+import sys
+from pathlib import Path
+output_path = Path(sys.argv[1])
+members = []
+for line in sys.stdin.read().splitlines():
+    if not line.strip():
+        continue
+    pod_name, heartbeat, timed_out, rafthttp, log_failed = line.split('\t')
+    member = {
+        'pod': pod_name,
+        'heartbeat': int(heartbeat),
+        'timed_out': int(timed_out),
+        'rafthttp': int(rafthttp),
+    }
+    if log_failed == '1':
+        member['_hc_error'] = True
+    members.append(member)
+payload = json.dumps({'since': '6h', 'members': members}, indent=2, ensure_ascii=False)
+output_path.write_text(payload + '\n', encoding='utf-8')
+" "$output_path" <<< "$member_records"
+
+    HC_COLLECTED=$((HC_COLLECTED + 1))
+}
+
+# ---------------------------------------------------------------------------
 # 10.1 — Node resource allocation (requests as % of allocatable)
 # ---------------------------------------------------------------------------
 
@@ -205,6 +269,11 @@ hc_prometheus_query "$CATEGORY" "etcd_proposals_failed" \
 hc_prometheus_query "$CATEGORY" "etcd_heartbeat_failures" \
     'increase(etcd_server_heartbeat_send_failures_total[1h])'
 
+hc_prometheus_query "$CATEGORY" "etcd_compaction_p95" \
+    'histogram_quantile(0.95, sum(rate(etcd_debugging_mvcc_db_compaction_total_duration_milliseconds_bucket[1h])) by (le, pod)) / 1000'
+
+hc_etcd_log_phrase_counts "$CATEGORY" "etcd_log_phrase_counts"
+
 # ---------------------------------------------------------------------------
 # 10.3 — API server performance
 # ---------------------------------------------------------------------------
@@ -241,5 +310,8 @@ hc_prometheus_query "$CATEGORY" "node_memory_working_set_pct" \
 
 hc_prometheus_query "$CATEGORY" "pvc_utilization_pct" \
     'round(kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes * 100, 1)'
+
+hc_prometheus_query "$CATEGORY" "volume_mount_p99" \
+    'histogram_quantile(0.99, sum(rate(storage_operation_duration_seconds_bucket{operation=~"volume_mount|mount"}[15m])) by (le))'
 
 hc_summary "$CATEGORY"

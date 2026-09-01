@@ -24,9 +24,9 @@ The JSON output format is identical between both paths, making downstream toolin
 | `05_components.sh` | 7.3 | Same as live path |
 | `06_layered.sh` | 7.4 | Same as live path |
 | `07_cluster_health.sh` | 7.5 | No live alerts — `firing_alerts.json` will be `_hc_not_found` |
-| `08_day2.sh` | 7.6 | No `oc adm top` — resource utilisation unavailable |
+| `08_day2.sh` | 7.6 | No `oc adm top` — resource utilisation unavailable. Node kubelet proxy image-GC stats are live-only. |
 | `09_security.sh` | 7.7 | Same as live path |
-| `10_metrics.sh` | 7.8 | Static Prometheus/etcd configs only (no live queries) |
+| `10_metrics.sh` | 7.8 | Static Prometheus/etcd configs only (no live queries). etcd compaction PromQL and etcd log phrase counts are live-only and omitted on supportshell. |
 | `11_hardware.sh` | 7.9 | Extracts DMI/CPU/memory from per-node `sysinfo.tgz` archives in the must-gather (no `oc debug node`). Disk rotational detection is unavailable offline — disk checks are omitted when disk data is absent |
 | `12_ccx.sh` | Advisory | Optional CCX payload ingestion from `HC_CCX_RULES_FILE` |
 

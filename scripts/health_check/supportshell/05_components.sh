@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # HC-05: Component Assessment — Chapter 7.3
-# Collects: operator health, etcd, registry, monitoring, ingress, storage, network
+# Collects: operator health, etcd, registry, monitoring, ingress, storage, network, nnce, volumesnapshotclass, storageprofile
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
@@ -29,6 +29,8 @@ hc_capture_json "$CATEGORY" "ingresscontroller"           get ingresscontroller 
 
 # Storage
 hc_capture_json "$CATEGORY" "storageclass"                get storageclass
+hc_capture_json "$CATEGORY" "volumesnapshotclass"         get volumesnapshotclass || true
+hc_capture_json "$CATEGORY" "storageprofile"              get storageprofile || true
 hc_capture_json "$CATEGORY" "pv"                          get pv
 hc_capture_json "$CATEGORY" "pvc"                         get pvc -A
 hc_capture_json "$CATEGORY" "csidriver"                   get csidriver
@@ -39,6 +41,7 @@ hc_capture_json "$CATEGORY" "network"                     get network cluster
 hc_capture_json "$CATEGORY" "clusternetwork"              get clusternetwork || true
 hc_capture_json "$CATEGORY" "network_operator"            get network.operator cluster
 hc_capture_json "$CATEGORY" "nncp"                        get nncp || true
+hc_capture_json "$CATEGORY" "nnce"                        get nnce || true
 hc_capture_json "$CATEGORY" "net_attach_def"              get net-attach-def -A || true
 hc_capture_json "$CATEGORY" "metallb"                     get metallb -A
 hc_capture_json "$CATEGORY" "ipsecconfig"                 get ipsecconfig -A

@@ -6,6 +6,7 @@
 # the must-gather static data.
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
 source "${SCRIPT_DIR}/lib/common.sh"
 CATEGORY="10_metrics"
 hc_init "$CATEGORY"
@@ -19,5 +20,13 @@ hc_capture_json "$CATEGORY" "prometheusrule"         get prometheusrule -n opens
 
 hc_info "NOTE: Live Prometheus queries and etcdctl commands are not available via omc."
 hc_info "      For full metrics, run the original collect scripts against a live cluster."
+hc_info "      Live-only: etcd_compaction_p95 (PromQL) is omitted on supportshell."
+hc_info "      Live-only: etcd_log_phrase_counts (container logs) is omitted on supportshell."
+hc_info "      Live-only: volume_mount_p99 (PromQL) is omitted on supportshell."
+
+# Twin of collect/10_metrics.sh hc_prometheus_query volume_mount_p99.
+# Query: histogram_quantile(0.99, sum(rate(storage_operation_duration_seconds_bucket{operation=~"volume_mount|mount"}[15m])) by (le))
+printf '{"_hc_error": true, "note": "volume_mount_p99 PromQL is live-only; omitted on supportshell", "timestamp": "%s"}\n' \
+    "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "${HC_RESULTS_DIR}/${CATEGORY}/volume_mount_p99.json"
 
 hc_summary "$CATEGORY"
