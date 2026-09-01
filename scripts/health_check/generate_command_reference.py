@@ -119,6 +119,11 @@ def generate_markdown(repo_root: Path) -> str:
                     f"| {capture.check_name} | `{_escape_md_inline(capture.command)}` | {capture.section} |"
                 )
         output.append("")
+        if entry.script_name == "08_day2.sh":
+            output.append(
+                "Live-only custom collector `node_image_gc` (kubelet HIGH + imageFs used percent) is not listed; it is not an `hc_capture_*` call."
+            )
+            output.append("")
 
     return "\n".join(output).rstrip() + "\n"
 

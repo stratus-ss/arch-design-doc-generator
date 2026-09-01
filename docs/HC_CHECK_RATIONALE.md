@@ -1,6 +1,6 @@
 # OpenShift Health Check — Check Rationale Runbook
 
-_Last updated: 2026-08-28_
+_Last updated: 2026-08-29_
 
 ## Purpose
 
@@ -20,7 +20,7 @@ Scoring matrices extracted from the Python evaluators (condition → PASS/FAIL/W
 
 This runbook documents the **rationale** behind each check's evaluation logic (thresholds, evidence, official references) — it is a reference for humans and LLMs validating a report. The **rendered report text** (recommendation, optional verification commands, documentation links, and operational impact) comes from a separate, externally editable TOML knowledge base loaded by `kb_loader.py`, not from this file. When updating a check's recommendation, verification steps, or impact rating, edit the corresponding `[[checks]]` entry in `scripts/health_check/hc_report/kb/7_N_*.toml` — numbered `oc` commands live in `verification`, not `recommendation`. See the [Knowledge Base section of the README](../README.md#knowledge-base-kb-for-recommendations-and-notes). Use this runbook to verify *why* a KB recommendation is correct, not to author the recommendation text itself.
 
-A short `[[checks]]` row that has `content_from` and little else is an **alias**, not an unfinished check. It inherits recommendation, verification, description, impact, and links from the named canonical `check_id` at `load_kb()` time. Edit that canonical row; do not duplicate the inherited fields on the alias. Prefer a native target when one exists. New CONTENT_FROM aliases set `include_in_findings = false` so Chapter 6 does not list every TSR leaf; chapter 7 still lists the alias. Title and finding flags stay local.
+A short `[[checks]]` row that has `content_from` and little else is an **alias**, not an unfinished check. It inherits recommendation, verification, description, impact, and links from the named canonical `check_id` at `load_kb()` time. Edit that canonical row; do not duplicate the inherited fields on the alias. Prefer a native target when one exists. New CONTENT_FROM aliases set `include_in_findings = false` so Chapter 6 does not list every TSR leaf. Chapter 7 tables and category stats omit aliases with non-empty `content_from`; natives stay. Title and finding flags stay local.
 
 ## Conventions
 
@@ -299,7 +299,7 @@ Pattern: `7.3.co.{name}` — one per operator in `05_components/cluster_operator
 | `7.3.network.plugin` | Network plugin recommendation (re-derived from `network.config`) | `networkType=="OVNKubernetes"` | `networkType=="OpenShiftSDN"` (deprecated OCP 4.14+, unsupported 4.17+) | — | data absent | `network.json` → `.spec.networkType` or `.status.networkType` | `oc get network.config cluster -o jsonpath='{.status.networkType}'` | [SDN support removal](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/updating_clusters/index#sdn-support-removal) |
 | `7.3.network.cluster_cidr` / `.service_cidr` | CIDR reporting (informational) | always INFO | — | — | not emitted if absent | `network.json` → `.spec.clusterNetwork`/`.serviceNetwork` | `oc get network.config cluster -o jsonpath='{.spec.clusterNetwork} {.spec.serviceNetwork}'` | N/A — informational |
 | `7.3.ingress.{name}` _(dynamic — one per IngressController)_ | Ingress controller availability and replica count | `Available=True` and `availableReplicas>=desired` | `Available=True` but under-replicated | `Available!=True` | `05_components/ingresscontroller.json` → `.items[].status` | `oc get ingresscontroller -n openshift-ingress-operator` | [IngressController API reference](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/operator_apis/ingresscontroller-operator-openshift-io-v1) — the API defines `Available` as the ingress controller deployment servicing traffic with `.status.availableReplicas == .spec.replicas`; the explicit under-replicated `WARNING` branch is a defensive field-level guard around that contract. |
-| `7.3.registry.state` | Image registry management state | `managementState!="Removed"` and `Available=True` | `managementState` unclear or `Available` unclear | — | data absent | `05_components/imageregistry.json` → `.spec.managementState`, `.status.conditions[]` type `Available` | `oc get configs.imageregistry.operator.openshift.io cluster -o jsonpath='{.spec.managementState}'` | **Engineering judgment** — Red Hat documents that some platforms intentionally bootstrap the internal registry as `Removed` until storage is configured, so warning on `Removed` is a conservative operational preference rather than a universal health rule: [Registry Operator configuration resource overview](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/registry/index#registry-operator-configuration-resource-overview_configuring-registry-operator) |
+| `7.3.registry.state` | Image registry management state. Independent of `7.3.registry.storage`. | `managementState!="Removed"` and `Available=True` | `managementState` unclear or `Available` unclear | — | data absent | `05_components/imageregistry.json` → `.spec.managementState`, `.status.conditions[]` type `Available` | `oc get configs.imageregistry.operator.openshift.io cluster -o jsonpath='{.spec.managementState}'` | **Engineering judgment** — Red Hat documents that some platforms intentionally bootstrap the internal registry as `Removed` until storage is configured, so warning on `Removed` is a conservative operational preference rather than a universal health rule: [Registry Operator configuration resource overview](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/registry/index#registry-operator-configuration-resource-overview_configuring-registry-operator) |
 | `7.3.haproxy.status` | Aggregate ingress controller availability (TSR 3.8.1) | all controllers `Available` | 1+ controller not `Available` | — | data absent | `05_components/ingresscontroller.json` → `.items[].status.conditions[]` | `oc get ingresscontroller -n openshift-ingress-operator -o wide` | [IngressController API reference](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/operator_apis/ingresscontroller-operator-openshift-io-v1) |
 | `7.3.ingress.tuning` (TSR 3.8.2) | Custom `tuningOptions` reporting (informational) | always INFO | — | — | — | `.items[].spec.tuningOptions` | `oc get ingresscontroller default -n openshift-ingress-operator -o custom-columns=NAME:.metadata.name,THREADS:.spec.tuningOptions.threadCount,MAXCONN:.spec.tuningOptions.maxConnections,CLIENT:.spec.tuningOptions.clientTimeout,SERVER:.spec.tuningOptions.serverTimeout,RELOAD:.spec.tuningOptions.reloadInterval` (`<none>` or `0s` = CRD default: threadCount 4, maxConnections 50000, client/server 30s, reloadInterval 5s) | [Ingress Controller configuration parameters](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/networking_overview/index#nw-ingress-controller-configuration-parameters_configuring-ingress) |
 | `7.3.ingress.sharding` (TSR 3.8.3) | Route/namespace-selector-based sharding | multiple controllers with selectors set, or single controller (sharding N/A) | multiple controllers, none sharded | — | — | `.items[].spec.routeSelector`/`.namespaceSelector` | Count IngressControllers; print `routeSelector`/`namespaceSelector` matchLabels and matchExpressions (`-` = admits all). 1 controller = N/A. Then count routes by `status.ingress[].routerName` and flag dual admission. Platform `hypershift.openshift.io/hosted-control-plane:DoesNotExist` on `default` is not a user shard. | **Engineering judgment** — OpenShift documents sharding as a way to balance or isolate traffic by using `routeSelector` and `namespaceSelector`, but does not require every multi-controller deployment to be sharded: [Configuring ingress cluster traffic](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/ingress_and_load_balancing/configuring-ingress-cluster-traffic) |
@@ -308,7 +308,8 @@ Pattern: `7.3.co.{name}` — one per operator in `05_components/cluster_operator
 
 | Check ID | Description | PASS | WARNING | FAIL | N-A | JSON Evidence | Live Validation | Reference |
 |----------|-------------|------|---------|------|-----|---------------|--------------------|-----------|
-| `7.3.storage.csi` (TSR 3.9.5) | CSI driver usage | 1+ CSIDriver item, or 1+ StorageClass provisioner contains `.csi.` | none contain `.csi.` and CSIDriver empty | — | StorageClass and CSIDriver absent | Prefer `05_components/csidriver.json` → `.items[].metadata.name`; fallback `storageclass.json` provisioners | `oc get csidriver`; `oc get sc -o jsonpath='{.items[*].provisioner}'` | **Engineering judgment** — CSIDriver list is authoritative when collected: [Supported CSI drivers](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/storage/index#persistent-storage-csi-drivers-supported_persistent-storage-csi) |
+| `7.3.storage.csi` (TSR 3.9.5 inventory) | CSI driver usage | 1+ CSIDriver item, or 1+ StorageClass provisioner contains `.csi.` | none contain `.csi.` and CSIDriver empty | — | StorageClass and CSIDriver absent | Prefer `05_components/csidriver.json` → `.items[].metadata.name`; fallback `storageclass.json` provisioners | `oc get csidriver`; `oc get sc -o jsonpath='{.items[*].provisioner}'` | **Engineering judgment** — CSIDriver list is authoritative when collected: [Supported CSI drivers](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/storage/index#persistent-storage-csi-drivers-supported_persistent-storage-csi) |
+| `7.3.storage.csi_cso` | CSI driver CSO allow-list | every CSIDriver name is in ClusterCSIDriver enum, or `openshift-storage.*`, or exact `lvm.csi.topolvm.io` / `topolvm.io` / `kubevirt.io.hostpath-provisioner` | zero CSIDriver items, or any third-party name | — | missing CSIDriver list → N/A; `_hc_error` or empty enum → SKIPPED | `05_components/csidriver.json` names vs CRD `clustercsidrivers.operator.openshift.io` enum containing `ebs.csi.aws.com` | `oc get csidriver`; `oc get crd clustercsidrivers.operator.openshift.io -o json` | **Engineering judgment** — TSR support-boundary is WARNING, not FAIL: [Supported CSI drivers](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/storage/index#persistent-storage-csi-drivers-supported_persistent-storage-csi) |
 | `7.3.storage.localvolume` | LocalVolume family | 1+ LocalVolume | — | — | `_hc_not_found` or empty items → N/A; `_hc_error` → SKIPPED | `05_components/localvolume.json` → `.items` | `oc get localvolume -A` | Optional product; homelab omission is N/A |
 | `7.3.storage.flexvolumes` (TSR 3.9.6) | Deprecated Flexvolume provisioner usage | — | 1+ provisioner name contains `flex` | — | none found → N/A | same as above | `oc get sc -o jsonpath='{.items[*].provisioner}' \| grep -i flex` | [Storage](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/storage/index) |
 | `7.3.storage.default_sc` | Default StorageClass presence | 1+ SC annotated `storageclass.kubernetes.io/is-default-class: "true"` | none annotated as default | — | data absent | `storageclass.json` → `.items[].metadata.annotations` | `oc get sc` (default marked with `(default)`) | [Dynamic provisioning](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/storage/index#change-default-storage-class_dynamic-provisioning) |
@@ -356,7 +357,7 @@ Pattern: `7.3.co.{name}` — one per operator in `05_components/cluster_operator
 | `7.3.crds` | CRD inventory / count | ≤500 CRDs | >500 CRDs (potential API server performance impact) | — | data absent | `05_components/crds.json` → `.items \| length`, grouped by `.spec.group` | `oc get crd --no-headers \| wc -l` | **Engineering judgment** — 500 is an internal heuristic, not an official OCP hard limit; see [Cluster maximums](https://docs.openshift.com/container-platform/latest/scalability_and_performance/planning-your-environment-according-to-object-maximums.html) |
 | `7.3.deprecated_apis` | Active usage of deprecated/removed API versions | no deprecated API with `requestsInCurrentHour > 0` | 1+ deprecated API actively used | — | data absent | `05_components/apirequestcounts.json` → `.items[].status.{removedInRelease,requestsInCurrentHour}` | `oc get apirequestcounts` | [APIRequestCount](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/metadata_apis/apirequestcount-apiserver-openshift-io-v1) and [Preparing to update a cluster](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/updating_clusters/preparing-to-update-a-cluster) |
 | `7.3.webhooks.validatingwebhooks` / `.mutatingwebhooks` | Admission webhook timeout/failurePolicy risk (two-tier) | all webhooks `timeoutSeconds<=10` and `failurePolicy!="Fail"` | 1+ webhook has `timeout>10s` or `failurePolicy=="Fail"`, but none scoped to a critical namespace | 1+ `failurePolicy=="Fail"` webhook whose `namespaceSelector` explicitly names an `openshift-*`/`kube-system`/`kube-public`/`default` namespace (TSR 3.13-aligned) | data absent | `05_components/validatingwebhooks.json` / `mutatingwebhooks.json` → `.items[].webhooks[].{timeoutSeconds,failurePolicy,namespaceSelector}` | `oc get validatingwebhookconfigurations -o json \| jq '.items[].webhooks[] | {timeoutSeconds,failurePolicy,namespaceSelector}'` | **Engineering judgment** — OpenShift documents that `failurePolicy=Fail` causes API requests to be denied when webhook calls error and that `timeoutSeconds` defaults to `10` (allowed range `1-30`), but the report's ≥10s WARNING tier and critical-namespace FAIL tier are an operational prioritization layered on top of those field semantics: [MutatingWebhookConfiguration API](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/extension_apis/mutatingwebhookconfiguration-admissionregistration-k8s-io-v1), [ValidatingWebhookConfiguration API](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/extension_apis/validatingwebhookconfiguration-admissionregistration-k8s-io-v1), and [Admission plugins](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/architecture/admission-plug-ins) |
-| `7.3.monitoring.config` | Prometheus persistent storage configuration | `cluster-monitoring-config` ConfigMap present with `volumeClaimTemplate`/`storage` in `config.yaml` | — | ConfigMap missing, or present without persistent storage (Prometheus data is ephemeral — promoted from WARNING to FAIL, since data loss on pod restart is a hard operational risk, not merely suboptimal) | — | `05_components/monitoring_config.json` → `.data."config.yaml"` (text search) | `oc get cm cluster-monitoring-config -n openshift-monitoring -o jsonpath='{.data.config\.yaml}'` | **Engineering judgment** — Red Hat strongly recommends persistent storage for production monitoring and requires it for HA multi-node clusters, but a universal `FAIL` regardless of topology is stricter than the vendor wording; this row therefore reflects a conservative operational standard: [Storing and recording data for core platform monitoring](https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/latest/html-single/configuring_core_platform_monitoring/index#configuring-a-persistent-volume-claim_storing-and-recording-data) |
+| `7.3.monitoring.config` | Prometheus persistent storage configuration. Independent of `7.3.monitoring.storage`. | `cluster-monitoring-config` ConfigMap present with `volumeClaimTemplate`/`storage` in `config.yaml` | — | ConfigMap missing, or present without persistent storage (Prometheus data is ephemeral — promoted from WARNING to FAIL, since data loss on pod restart is a hard operational risk, not merely suboptimal) | — | `05_components/monitoring_config.json` → `.data."config.yaml"` (text search) | `oc get cm cluster-monitoring-config -n openshift-monitoring -o jsonpath='{.data.config\.yaml}'` | **Engineering judgment** — Red Hat strongly recommends persistent storage for production monitoring and requires it for HA multi-node clusters, but a universal `FAIL` regardless of topology is stricter than the vendor wording; this row therefore reflects a conservative operational standard: [Storing and recording data for core platform monitoring](https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/latest/html-single/configuring_core_platform_monitoring/index#configuring-a-persistent-volume-claim_storing-and-recording-data) |
 
 ## Section 7.4 — Layered Products
 
@@ -393,6 +394,7 @@ Pattern: `7.4.{product}` — one row per entry in the `_LAYERED_PRODUCTS` table 
 | `7.4.cnv.live_migratable` | VM live-migratable status (engine; not TSR 4.8.2.1.1.3) | no VMI with `LiveMigratable=False` | 1+ VMI not live-migratable (reason/message in evidence) | — | VMI data not collected → `SKIPPED` | `06_layered/cnv_vmi.json` (LiveMigratable conditions), `06_layered/cnv_vm.json` (`evictionStrategy`) | `oc get vmi -A`; `oc describe vmi <name> -n <ns>` | **Engineering judgment** — lists KubeVirt LiveMigratable False reasons plus VM evictionStrategy; does not replace the TSR live-migration-network worksheet: [Live migration](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/virtualization/live-migration) |
 | `7.4.odf.state` | ODF StorageCluster family | Ready/Available True | — | Degraded or error conditions | `_hc_not_found` or empty items → N/A; `_hc_error` → SKIPPED | `06_layered/odf_storagecluster.json` | `oc get storagecluster -A` | Family-level only; not per-Ceph leaf |
 | `7.4.rhoso.state` | RHOSO OpenStackControlPlane family | Available True | — | Degraded | `_hc_not_found` → N/A; `_hc_error` → SKIPPED | `06_layered/rhoso_controlplane.json` | `oc get openstackcontrolplane -A` | Family-level only; lab absence is N/A |
+| `7.4.quay.pods` (TSR 4.5.2, 4.5.4.1) | Internal Quay application pods | ≥1 Running pod name containing `quay-app` or `registry-quay-app` in each registry namespace | — | any registry namespace with zero matching Running pods | no QuayRegistry → N/A; missing/`_hc_error` `quay_pods` → SKIPPED | `06_layered/quay_registry.json`, `06_layered/quay_pods.json` | `oc get quayregistry -A`; `oc get pods -n <registry-ns>` | App pods only; does not score QuayRegistry Available or supported-configuration. |
 
 ### ACM Checks (TSR 4.7.x)
 
@@ -445,7 +447,7 @@ Source: [`health.py`](../scripts/health_check/hc_report/evaluators/health.py). E
 | `7.5.node_roles` (TSR 5.6) | All nodes have a recognized role label | every node has 1+ role label | — | 1+ node has no role label | node data absent | `07_cluster_health/nodes.json` → `.items[].metadata.labels` (keys matching `node-role.kubernetes.io/*`) | `oc get nodes -o jsonpath='{.items[*].metadata.labels}'` | **Engineering judgment** — node-role labels drive MCP selection and infra placement, but the docs do not define “any node missing all `node-role.kubernetes.io/*` labels” as a universal `FAIL` threshold; this row retains that stricter implementation signal: [Creating infrastructure machine sets](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/machine_management/creating-infrastructure-machinesets), [Control plane architecture](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/architecture/control-plane) |
 | `7.5.machineset` (TSR 5.8) | MachineSet health | — | — | — | always `SKIPPED` — not in standard collection | none | `oc get machineset -n openshift-machine-api` | [Managing compute machines](https://docs.openshift.com/container-platform/latest/machine_management/creating-machineset-osp.html) |
 | `7.5.pdb` (TSR 5.9) | PodDisruptionBudget | no PDB blocking disruptions | `disruptionsAllowed==0` and `currentHealthy < desiredHealthy` | — | missing envelope or `_hc_error` → SKIPPED; empty items → INFO | `07_cluster_health/pdb.json` | `oc get pdb -A` | [Disruption budgets](https://docs.openshift.com/container-platform/latest/nodes/pods/nodes-pods-configuring.html) |
-| `7.5.vol_mount` (TSR 5.10) | Volume mount duration metrics | — | — | — | always `SKIPPED` — requires Prometheus metrics not in standard collection | none | Prometheus query `kubelet_volume_stats_*` | [Reviewing monitoring dashboards](https://docs.openshift.com/container-platform/latest/observability/monitoring/reviewing-monitoring-dashboards.html) |
+| `7.5.volume.mount_p99` (TSR 5.10) | Kubelet volume mount p99 duration | p99 ≤ 2.0s | p99 > 2.0s and ≤ 10.0s | p99 > 10.0s | missing/`_hc_error` → SKIPPED; empty Prometheus vector → INFO | `10_metrics/volume_mount_p99.json` — PromQL `histogram_quantile(0.99, sum(rate(storage_operation_duration_seconds_bucket{operation=~"volume_mount|mount"}[15m])) by (le))` | Prometheus UI: same PromQL | **Engineering judgment** — 2s is slower than healthy attach; 10s is pathological. Empty vector on lab is INFO success. TSR `7.5.tsr.5_10_volume_mount_durations` is a sparse alias. Do not scrape host mount tables. [Reviewing monitoring dashboards](https://docs.openshift.com/container-platform/latest/observability/monitoring/reviewing-monitoring-dashboards.html) |
 | `7.5.alerts.cp` (TSR 5.11.1) | Control-plane-related firing alerts (keyword match: etcd/kube/apiserver/scheduler/controller) | no matching alerts | 1+ matching alert | — | alert data absent | `07_cluster_health/firing_alerts.json` → `.data.alerts[].labels.alertname` (substring match) | `oc get prometheusrules -A` + check Alertmanager UI | **Engineering judgment** on keyword grouping — see [Managing alerts](https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/latest/html-single/managing_alerts/index) |
 | `7.5.alerts.node` (TSR 5.11.2) | Node-related firing alerts (keyword match: node/kubelet/machine) | no matching alerts | 1+ matching alert | — | alert data absent | same as above | same as above | same as above |
 | `7.5.alerts.overcommit` (TSR 5.11.3) | Resource/overcommit firing alerts (keyword match: overcommit/quota/resource/memory/cpu). Not TSR 6.1.3.2 — that check is `7.6.tsr.6_1_3_2` / `7.6.node_expected` (per-node TSR expected percents, not request/allocatable > 1.0). | no matching alerts | 1+ matching alert | — | alert data absent | same as above | same as above | same as above |
@@ -466,25 +468,25 @@ Source: [`health.py`](../scripts/health_check/hc_report/evaluators/health.py). E
 
 ## Section 7.6 — Day-2 Operations
 
-Source: [`day2.py`](../scripts/health_check/hc_report/evaluators/day2.py). Evidence root: `08_day2/`; cross-reads `05_components/` (pv, machineconfig) and `03_base_platform/` (nodes, csr).
+Source: [`day2.py`](../scripts/health_check/hc_report/evaluators/day2.py). Evidence root: `08_day2/` (includes `networkpolicy.json` and live `node_image_gc.json`); cross-reads `05_components/` (pv, machineconfig), `03_base_platform/` (nodes, csr), and `07_cluster_health/pods_all` (pod requests and netpol orphans).
 
 ### TSR 6.x Aggregate Checks
 
 | Check ID | Description | PASS | WARNING | FAIL | N-A/SKIPPED | JSON Evidence | Live Validation | Reference |
 |----------|-------------|------|---------|------|-------------|---------------|--------------------|-----------|
-| `7.6.cluster_quota` (TSR 6.1.1.2) | Cluster-level ResourceQuota presence | 1+ quota configured | — | — | none configured → N/A; data absent → N/A | `08_day2/resourcequota.json` → `.items`. Verify: `jq '.items | length' 08_day2/resourcequota.json` | `oc get resourcequota -A --no-headers | wc -l` | [Resource quotas per project](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/building_applications/index#quotas-creating-a-quota_quotas-setting-per-project)  |
-| `7.6.req_limits` (TSR 6.1.2) | LimitRange presence enforcing container defaults | 1+ real LimitRange found | no real LimitRanges found → INFO | — | data absent → `SKIPPED` | `08_day2/limitrange.json` → `.items` (filtered for `_hc_not_found` markers). Verify: `jq '.items | length' 08_day2/limitrange.json` | `oc get limitrange -A --no-headers | wc -l` | **Engineering judgment** — LimitRanges are an optional governance control; the evaluator treats absence as `INFO` rather than `WARNING`, and collection failure as `SKIPPED`: [Using quotas and limit ranges](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/scalability_and_performance/index#admin-quota-limits_using-quotas-and-limit-ranges)  |
-| `7.6.node_expected` / `7.6.tsr.6_1_3_2_node_expected_resource_consumption` (TSR 6.1.3.2) | TSR compares current pod requests to a **per-node** expected max-usage (Limits) percent it computed. Not `7.5.alerts.overcommit` / TSR 5.11.3 (`> 1.0` request/allocatable). Rec prose is in the KB. | Native evaluator always `SKIPPED` (no capacity-planning metrics in collect) | TSR HTML FAIL/WARNING when remainder shows requests above that node's expected percents | — | Native: always `SKIPPED`. Do not invent a cluster-wide percent. | none for native; TSR remainder is the scored bar | `oc describe node <name>` Allocated resources is **INFO** only, not PASS/FAIL against TSR percents | **TSR evidence** — expected percents are per node; KB holds consultant prose |
+| `7.6.cluster_quota` (inventory; TSR 6.1.1.2 aliases `7.6.quota.coverage`) | Cluster-level ResourceQuota presence (inventory only) | 1+ quota configured | — | — | none configured → N/A; data absent → N/A | `08_day2/resourcequota.json` → `.items`. Verify: `jq '.items | length' 08_day2/resourcequota.json` | `oc get resourcequota -A --no-headers | wc -l` | [Resource quotas per project](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/building_applications/index#quotas-creating-a-quota_quotas-setting-per-project)  |
+| `7.6.req_limits` (inventory; TSR 6.1.2 aliases `7.6.pod.requests`) | LimitRange presence enforcing container defaults | 1+ real LimitRange found | no real LimitRanges found → INFO | — | data absent → `SKIPPED` | `08_day2/limitrange.json` → `.items` (filtered for `_hc_not_found` markers). Verify: `jq '.items | length' 08_day2/limitrange.json` | `oc get limitrange -A --no-headers | wc -l` | **Engineering judgment** — LimitRanges are an optional governance control; the evaluator treats absence as `INFO` rather than `WARNING`, and collection failure as `SKIPPED`: [Using quotas and limit ranges](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/scalability_and_performance/index#admin-quota-limits_using-quotas-and-limit-ranges)  |
+| `7.6.node.expected_limits` (TSR 6.1.3.2 aliases this id; stub `7.6.node_expected` stays `SKIPPED`) | Cluster rollup of node CPU/memory **limits** vs allocatable from Prometheus. Not 7.8 request alloc retune. Not `oc adm top`. | all samples `< 80` | any sample `≥ 80` and none `≥ 90` | any sample `≥ 90` | both `node_cpu_limits_pct` and `node_memory_limits_pct` missing/`_hc_error` → `SKIPPED` | `10_metrics/node_cpu_limits_pct.json` and `10_metrics/node_memory_limits_pct.json` | PromQL limits/allocatable `by (node)` | TSR 90% near capacity |
 | `7.6.pv_usage` (TSR 6.1.4) | PV phase distribution (informational) | always PASS if data present | — | — | `SKIPPED` if PV data absent | `05_components/pv.json` → `.items[].status.phase` | `oc get pv` | [Understanding persistent storage](https://docs.openshift.com/container-platform/latest/storage/understanding-persistent-storage.html) |
 | `7.6.prune.builds` (TSR 6.1.5.2) | Build pruning (informational — always trusts OCP defaults) | always PASS | — | — | — | (no evidence checked — relies on platform default) | `oc get buildconfig -A -o jsonpath='{.items[*].spec.successfulBuildsHistoryLimit}'` | [Pruning objects](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/building_applications/index#pruning-objects) |
-| `7.6.prune.netpol` (TSR 6.1.5.3) | NetworkPolicy pruning/audit | — | — | — | always `SKIPPED` — not in standard collection | none | `oc get networkpolicy -A` | [About network policy](https://docs.openshift.com/container-platform/latest/networking/network_policy/about-network-policy.html) |
-| `7.6.prune.gc` / `7.6.tsr.6_1_5_5_node_garbage_collection` (TSR 6.1.5.5) | Kubelet image GC (cAdvisor disk, not Prometheus): official HIGH default **85**, LOW default **80**. TSR **>50% image disk** is an **early warning**, not the GC trigger. Rec prose is in the KB. | Native evaluator always `SKIPPED` (kubelet config not in standard collect) | TSR: images more than half of node disk (early warning; HIGH still 85) | USED% at or above applied HIGH | Native: always `SKIPPED` | none for native | KB verification: node proxy `configz` + `stats/summary` imageFs USED% vs HIGH and vs 50% | **Mixed** — 85/80 from [Freeing node resources using garbage collection](https://docs.openshift.com/container-platform/latest/nodes/nodes/nodes-nodes-garbage-collection.html); 50% is TSR evidence, not kubelet GC start |
-| `7.6.prune.ns` (TSR 6.1.5.6) | Namespace count / sprawl | `count<=100` | `count>100` | — | — | `08_day2/namespaces.json` → `.items \| length` | `oc get ns --no-headers \| wc -l` | **Engineering judgment** on the 100 threshold — no official OCP hard limit for namespace count |
+| `7.6.prune.netpol` (stub; TSR 6.1.5.3 aliases `7.6.netpol.orphan`) | NetworkPolicy pruning stub | — | — | — | always `SKIPPED` — scored native is `7.6.netpol.orphan` | `08_day2/networkpolicy.json` is collected; this stub does not score it | `oc get networkpolicy -A` | [About network policy](https://docs.openshift.com/container-platform/latest/networking/network_policy/about-network-policy.html) |
+| `7.6.prune.gc` (stub; TSR 6.1.5.5 aliases `7.6.node.image_gc`) | Kubelet image GC placeholder | — | — | — | stub always `SKIPPED`. Live native `7.6.node.image_gc` scores `node_image_gc.json` | none for this stub; see `7.6.node.image_gc` | KB verification: node proxy `configz` + `stats/summary` imageFs USED% vs HIGH and vs 50% | **Mixed** — 85/80 from [Freeing node resources using garbage collection](https://docs.openshift.com/container-platform/latest/nodes/nodes/nodes-nodes-garbage-collection.html); 50% is TSR evidence, not kubelet GC start |
+| `7.6.prune.ns` (inventory; TSR 6.1.5.6 aliases `7.6.namespaces`) | Namespace count / sprawl | `count<=100` | `count>100` | — | — | `08_day2/namespaces.json` → `.items \| length` | `oc get ns --no-headers \| wc -l` | **Engineering judgment** on the 100 threshold — no official OCP hard limit for namespace count |
 | `7.6.infra_nodes` (TSR 6.1.6) | Dedicated infra node presence | 1+ node has `node-role.kubernetes.io/infra` label | — | — | no infra nodes → N/A (workloads on workers is valid); node data absent → `SKIPPED` | `03_base_platform/nodes.json` → `.items[].metadata.labels` | `oc get nodes -l node-role.kubernetes.io/infra` | [Creating infrastructure machine sets](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/machine_management/creating-infrastructure-machinesets) |
 | `7.6.update_impact` (TSR 6.2.2) | Update-impacting workload detection | — | — | — | always `SKIPPED` — requires upgrade correlation not in standard collection | none | Manual: review `oc adm upgrade` output alongside PDB coverage | [Updating a cluster](https://docs.openshift.com/container-platform/latest/updating/updating_a_cluster/updating-cluster-cli.html) |
-| `7.6.alert_receivers` (TSR 6.3.2) | Alertmanager receiver configuration | — | — | — | always `SKIPPED` — not in standard collection | none | `oc get secret alertmanager-main -n openshift-monitoring -o jsonpath='{.data.alertmanager\.yaml}' \| base64 -d` | [Configuring alerts and notifications for core platform monitoring](https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/latest/html/configuring_core_platform_monitoring/configuring-alerts-and-notifications) |
+| `7.6.alert_receivers` (TSR 6.3.2 aliases this id) | Alertmanager receiver names from redacted collect | ≥1 name after ignoring `null`/`Default`/`Watchdog` | — | zero names after ignore | missing collect or `_hc_error` → `SKIPPED` | `08_day2/alertmanager_receivers.json` → `.receiver_names` | `jq -r '.receiver_names[]?' 08_day2/alertmanager_receivers.json` (never dump the secret YAML) | [Configuring alerts and notifications for core platform monitoring](https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/latest/html/configuring_core_platform_monitoring/configuring-alerts-and-notifications) |
 | `7.6.remote_health` (TSR 6.3.3) | Remote update retrieval verification | — | — | — | always `SKIPPED` — requires live API access | none | `oc get clusterversion -o jsonpath='{.status.availableUpdates}'` | [About remote health monitoring](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/support/remote-health-monitoring-overview) |
-| `7.6.image_mgmt` (TSR 6.2.3) | Registry allow/block-list configuration inventory | reports `INFO` with allowed/blocked registry counts when image config data is present | — | — | image config data absent → `SKIPPED` | `08_day2/image_config.json` → `.spec.registrySources.{allowedRegistries,blockedRegistries}` | `oc get image.config cluster -o jsonpath='{.spec.registrySources}'` | [Configuring image registry repository mirroring, including allowlists and blocklists](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/images/index#images-configuration-registry-mirror-images-configuration) |
+| `7.6.image_mgmt` (inventory; TSR 6.2.3 aliases `7.6.image.registry_sources`) | Registry allow/block-list configuration inventory | reports `INFO` with allowed/blocked registry counts when image config data is present | — | — | image config data absent → `SKIPPED` | `08_day2/image_config.json` → `.spec.registrySources.{allowedRegistries,blockedRegistries}` | `oc get image.config cluster -o jsonpath='{.spec.registrySources}'` | [Configuring image registry repository mirroring, including allowlists and blocklists](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/images/index#images-configuration-registry-mirror-images-configuration) |
 | `7.6.csr_pending` (TSR 6.4.1) | Pending CSRs (via shared `check_csr_pending` helper) | no pending CSRs | 1+ pending CSR | — | CSR data absent → `SKIPPED` | `03_base_platform/csr.json` → `.items[].status` | `oc get csr \| grep Pending` | [Approving certificate signing requests](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/installing_on_any_platform/index#installation-approve-csrs_installing-platform-agnostic) |
 | `7.6.custom_certs` (TSR 6.4.2) | Custom certificate resource presence (informational — both outcomes are PASS) | always PASS | — | — | — | `08_day2/certificates.json` | `oc get proxy cluster -o jsonpath='{.spec.trustedCA}'`; `oc get secret -n openshift-config \| grep -i cert` | [Adding API server certificates](https://docs.openshift.com/container-platform/latest/security/certificates/api-server.html) |
 | `7.6.node_ssh` (TSR 6.5) | Node SSH access auditing | — | — | — | always `SKIPPED` — not verifiable from standard collection | none | Manual: review bastion/jump-host SSH logs | N/A — requires external audit log access |
@@ -504,6 +506,11 @@ Source: [`day2.py`](../scripts/health_check/hc_report/evaluators/day2.py). Evide
 | `7.6.limitranges` (TSR 7.6.10) | LimitRange presence (detailed variant) | 1+ real LimitRange found | none found → INFO | — | data absent → `SKIPPED` | `08_day2/limitrange.json`. Verify: `jq '.items | length' 08_day2/limitrange.json` | `oc get limitrange -A --no-headers | wc -l` | **Engineering judgment** — LimitRanges are an optional governance control; the evaluator treats absence as `INFO`, not `WARNING`, and collection failure as `SKIPPED`: [Using quotas and limit ranges](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/scalability_and_performance/index#admin-quota-limits_using-quotas-and-limit-ranges)  |
 | `7.6.op_approval` (TSR 7.6.11) | Operator subscription approval strategy (shared `_evaluate_approval_strategy` helper — same logic as `7.1.subs.approval`) | all non-CNV subscriptions `Manual` | 1+ non-CNV `Automatic` (`engine_policy`) | — | data absent | `08_day2/subscriptions.json` → `.items[].spec.installPlanApproval`. Verify: `jq -r '[.items[].spec.installPlanApproval] | unique' 08_day2/subscriptions.json` | `oc get subs -A -o jsonpath='{.items[*].spec.installPlanApproval}'` | **Engineering judgment** — Red Hat documents both `Manual` and `Automatic` approval strategies, but does not require `Manual` universally; warning on `Automatic` remains a production-operations preference: [Install plans and approval strategy](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/operators/index#olm-installplan_olm-understanding-olm)  |
 | `7.6.deploymentconfigs` (TSR 7.6.12) | Deprecated DeploymentConfig usage | no DCs found | 1+ DC found (deprecated in OCP 4.14+) | — | DC resource unavailable on this cluster → N/A | `08_day2/deploymentconfig.json` → `.items`. Verify: `jq '.items | length' 08_day2/deploymentconfig.json` | `oc get dc -A --no-headers | wc -l` | [Comparing Deployment and DeploymentConfig objects](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/building_applications/index#deployments-comparing-deploymentconfigs_what-deployments-are)  |
+| `7.6.quota.coverage` | User project ResourceQuota or LimitRange coverage | all user namespaces have ≥1 RQ or LR | — | any user namespace with neither | no user namespaces → N/A; `_hc_error` on ns/RQ/LR → `SKIPPED`. Platform ns not scored. | `08_day2/namespaces.json` plus `resourcequota.json` / `limitrange.json` metadata.namespace | `oc get ns`; `oc get resourcequota -A`; `oc get limitrange -A` | [Resource quotas per project](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/building_applications/index#quotas-creating-a-quota_quotas-setting-per-project) |
+| `7.6.pod.requests` | User pod CPU and memory requests | all scored user active pods have both | any scored container missing CPU or memory | never FAIL | `_hc_error` → `SKIPPED`; missing/`_hc_not_found`/zero pods → N/A | `07_cluster_health/pods_all.json` → `.spec.containers[].resources.requests` | `oc get pods -A -o custom-columns=NS:.metadata.namespace,POD:.metadata.name,CPU:.spec.containers[*].resources.requests.cpu,MEM:.spec.containers[*].resources.requests.memory` | [Using quotas and limit ranges](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/scalability_and_performance/index#admin-quota-limits_using-quotas-and-limit-ranges) |
+| `7.6.netpol.orphan` | Orphan user NetworkPolicies (labeled selectors) | user policies with labeled selectors match ≥1 non-terminal pod | — | labeled selector matches zero non-terminal pods | missing networkpolicy or `pods_all` → `SKIPPED`; no user-namespace policies → INFO. Empty selector is not an orphan. | `08_day2/networkpolicy.json` + `07_cluster_health/pods_all.json` | `oc get networkpolicy -A`; `oc get pods -n <ns> -l '<selector>'` | [About network policy](https://docs.openshift.com/container-platform/latest/networking/network_policy/about-network-policy.html) |
+| `7.6.image.registry_sources` | Image `registrySources` allow/block/insecure | allow-only or block-only, no insecure | insecureRegistries non-empty | allowedRegistries and blockedRegistries both non-empty | `_hc_error` → `SKIPPED`; missing → N/A; empty allow and block → INFO | `08_day2/image_config.json` → `.spec.registrySources` | `oc get image.config cluster -o jsonpath='{.spec.registrySources}'` | [Configuring image registry repository mirroring](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/images/index#images-configuration-registry-mirror-images-configuration) |
+| `7.6.node.image_gc` | Node image filesystem vs kubelet HIGH (live collect) | all scored members `< 50%` used | `used_percent >= 50` and below HIGH | `used_percent >= high_percent` (`doc_backed` on FAIL) | missing/`_hc_error` root or no numeric `used_percent` → INFO | `08_day2/node_image_gc.json` → `.members[]` | live `oc get --raw` node proxy `configz` + `stats/summary` (not on supportshell) | [Freeing node resources using garbage collection](https://docs.openshift.com/container-platform/latest/nodes/nodes/nodes-nodes-garbage-collection.html) |
 
 ## Section 7.7 — Security and Compliance
 
@@ -527,10 +534,14 @@ Mapped catalog CVE IDs always appear on **core**. Payload match uses `12_ccx/ccx
 
 | Check ID | Description | PASS | WARNING | FAIL | N-A/SKIPPED | JSON Evidence | Live Validation | Reference |
 |----------|-------------|------|---------|------|-------------|---------------|--------------------|-----------|
-| `7.7.ccx_external.cve_2026_31431_copy_fail_in_algif_aead` | CVE-2026-31431 | runtime status | runtime | runtime | no payload match → SKIPPED | `12_ccx/ccx_rules.json` | Insights / console.redhat.com | Static map; Insights is not reconstructed from `oc get` |
-| `7.7.ccx_external.cve_2026_43284_dirty_frag` | CVE-2026-43284 | runtime status | runtime | runtime | no payload match → SKIPPED | same | same | same |
-| `7.7.ccx_external.cve_2023_3089_fips_incompliant` | CVE-2023-3089 | runtime status | runtime | runtime | no payload match → SKIPPED | same | same | same |
-| `7.7.ccx_external.cve_2025_10725_rhoai` | CVE-2025-10725 | runtime status | runtime | runtime | no payload match → SKIPPED | same | same | same |
+| `7.7.ccx_external.cve_2026_31431_copy_fail_in_algif_aead` | CVE-2026-31431 | runtime status | runtime | runtime | Insights disabled → N/A; no payload match → SKIPPED | `12_ccx/ccx_rules.json` | Insights / console.redhat.com | Static map; Insights is not reconstructed from `oc get` |
+| `7.7.ccx_external.cve_2026_43284_dirty_frag` | CVE-2026-43284 | runtime status | runtime | runtime | Insights disabled → N/A; no payload match → SKIPPED | same | same | same |
+| `7.7.ccx_external.cve_2023_3089_fips_incompliant` | CVE-2023-3089 | runtime status | runtime | runtime | Insights disabled → N/A; no payload match → SKIPPED | same | same | same |
+| `7.7.ccx_external.cve_2025_10725_rhoai` | CVE-2025-10725 | runtime status | runtime | runtime | Insights disabled → N/A; no payload match → SKIPPED | same | same | same |
+
+### Insights CCX CVE ingest (evaluate_ccx)
+
+`evaluate_ccx` scores the four static CVE ids from InsightsOperator plus optional `12_ccx/ccx_rules.json` ingest. Disabled Insights reporting is `NOT_APPLICABLE` (not a CVE hit). Missing `HC_CCX_RULES_FILE` (`_hc_not_found`) is `SKIPPED`; evidence names `HC_CCX_RULES_FILE` and Insights Available. A matching payload row keeps the existing `_status` map. Unmatched CVE ids stay `SKIPPED`. Missing file never FAILs. No Advisor HTTP scrape.
 
 ### Detailed Checks (Pre-Existing)
 
@@ -564,6 +575,31 @@ Source: [`metrics.py`](../scripts/health_check/hc_report/evaluators/metrics.py).
 | `7.8.pvc.util.critical` / `.warning` / `.ok` | PVC utilization percentage buckets | all monitored PVCs `<=75%` → single `.ok` row | 1+ PVC `>75%` and `<=90%` → `.warning` row | 1+ PVC `>90%` → `.critical` row | metric absent → N/A row `7.8.pvc_util` | `10_metrics/pvc_utilization_pct.json` — PromQL `kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes * 100`. Verify: `jq '.data.result[] | {pvc: .metric.persistentvolumeclaim, ns: .metric.namespace, pct: .value[1]}' 10_metrics/pvc_utilization_pct.json` | Prometheus UI: `kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes * 100` | **Engineering judgment** on 75%/90% thresholds — OpenShift documents how to expand persistent volumes, but not these exact warning/fail cutoffs: [Expanding CSI volumes](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/storage/index#expanding-csi-volumes_expanding-persistent-volumes), [Expanding persistent volumes](https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html-single/storage/index#expanding-persistent-volumes)  |
 
 **Important scoring nuance:** `.critical` and `.warning` and `.ok` are mutually exclusive rows generated from the *same* underlying metric — if any PVC is critical, only the `.critical` row (and possibly `.warning`) appears; the `.ok` row only appears when **zero** PVCs are in either the warning or critical bucket. Do not expect all three rows to always be present.
+
+### Native etcd worksheets (7.8.etcd.disk / compaction / log_errors / heartbeat)
+
+Source: [`metrics.py`](../scripts/health_check/hc_report/evaluators/metrics.py). Live files: `10_metrics/etcd_compaction_p95.json`, `10_metrics/etcd_log_phrase_counts.json`, existing `etcd_disk_wal_fsync_p99.json` and `etcd_heartbeat_failures.json`. Supportshell omits compaction PromQL and log phrase counts.
+
+TSR IDs `7.3.tsr.3_5_5_etcd_compaction`, `7.3.tsr.3_5_7_etcd_log_errors`, and `7.3.tsr.3_5_8_1_etcd_disk_performance` are sparse aliases (`include_in_findings = false`) onto these natives. Per-pod `7.8.etcd.wal.<pod>` FAIL bar (WAL P99 > 10 ms) is unchanged; do not treat that OpenShift HTML bar as new here.
+
+| Check ID | PASS | WARNING | FAIL | INFO | Evidence | Reference |
+|----------|------|---------|------|------|----------|-----------|
+| `7.8.etcd.disk` | all WAL P99 ≤ 10 ms | — | any WAL P99 > 10 ms (`scoring_basis=doc_backed`) | no WAL samples | reuse `etcd_disk_wal_fsync_p99` | same WAL 10 ms HTML bar as per-pod WAL |
+| `7.8.etcd.compaction` | all p95 ≤ 200 ms | any p95 > 200 ms and ≤ 900 ms | any p95 > 900 ms (`scoring_basis=doc_backed`) | metric missing or NaN | PromQL p95 on `etcd_debugging_mvcc_db_compaction_total_duration_milliseconds` over **1h**, divided by 1000 so the evaluator still sees seconds. Plan default `etcd_debugging_mvcc_db_compaction_duration_seconds` returned **zero samples** on this lab. | TSR/KCS compaction bands (~200 ms small cluster, 800–900 ms large). **Not** an OpenShift HTML SLA. Collect SHALL NOT run `etcdctl compact`. |
+| `7.8.etcd.log_errors` | all three phrase counts 0 in 6h | — | any phrase count > 0 | logs unreadable / `_hc_error` | `etcd_log_phrase_counts.json` `since=6h`; phrases: `failed to send out heartbeat on time`, `request timed out`, `rafthttp: failed to read` | TSR log-error story |
+| `7.8.etcd.heartbeat` | 1h increase == 0 | 1h increase > 0 | — | metric missing | `etcd_heartbeat_failures` PromQL `increase(etcd_server_heartbeat_send_failures_total[1h])` | existing collect file, newly scored |
+| `7.8.etcd.defrag` | all member ratios < 0.50 | any ≥ 0.50 and none ≥ 0.70 | any ≥ 0.70 | no matching samples INFO; both files missing SKIPPED | reuse `10_metrics/etcd_db_size_bytes.json` and `etcd_db_size_in_use.json`; ratio `(size-used)/size` when size > 0; match by `pod` | Engineering judgment proxy for TSR 3.5.6. Do **not** retune `7.8.etcd.db.*` 4GiB/8GiB bars. Do not scrape defrag log phrases. TSR `7.3.tsr.3_5_6_etcd_defragmentation` is a sparse alias (`include_in_findings = false`). |
+
+### Native registry and monitoring storage (7.3.registry.storage / 7.3.monitoring.storage)
+
+Source: [`components.py`](../scripts/health_check/hc_report/evaluators/components.py). Evidence: existing `05_components/imageregistry.json`, `prometheus.json`, `alertmanager.json`, `storageclass.json`. No new collect files.
+
+TSR IDs `7.3.tsr.3_6_2_registry_storage_type` and `7.3.tsr.3_7_2_monitoring_storage_type` are sparse aliases (`include_in_findings = false`) onto these natives. `7.3.registry.state` and `7.3.monitoring.config` stay independently scored. Coverage percent vs ORIG Chapter 6 is out of this change.
+
+| Check ID | PASS | WARNING | FAIL | INFO | Evidence | Reference |
+|----------|------|---------|------|------|----------|-----------|
+| `7.3.registry.storage` | object (`s3`,`azure`,`gcs`,`ibmcos`,`oss`,`swift`) or `pvc` | unknown remaining storage key | Managed or Unmanaged **and** backend `emptyDir` (`scoring_basis=doc_backed`) | payload missing/`_hc_error`, or `Removed` | `imageregistry.json` → `.spec.managementState`, `.spec.storage` (ignore `managementState` under storage) | emptyDir is not durable for the integrated registry. Do not score registry PVC access mode or file provisioner. |
+| `7.3.monitoring.storage` | all Prometheus/Alertmanager items have `volumeClaimTemplate` and RWO on a non-file provisioner (empty class name = default SC; no default = access mode only) | template present **and** (`ReadWriteMany` or provisioner contains `nfs`/`efs`/`azurefile`/`cephfs`) | any item lacks `volumeClaimTemplate` (`scoring_basis=doc_backed`) | Prometheus **and** Alertmanager payloads missing | `prometheus.json` / `alertmanager.json` → `.spec.storage.volumeClaimTemplate.spec`; `storageclass.json` provisioner | RWX/file is a WARNING, not FAIL. ConfigMap-string `7.3.monitoring.config` is a separate check. |
 
 ## Section 7.9 — Hardware Inventory
 
@@ -671,6 +707,243 @@ The following patterns generate multiple report rows from a single evaluator cod
 | Catalog expansion (TSR/CCX) | `{category}.tsr.{slug}` / `{category}.ccx_external.{slug}` | up to 598 catalog entries, minus any already covered by evaluator output | All sections + CCX | see CCX Crosswalk Catalog section above |
 
 **Predicting total check count for a given cluster:** `static_evaluator_checks (~180-220, varies by which N/A branches trigger) + node_count × (6-7 topology + up to 1 utilization + up to 4 hardware + up to 5 metrics) + operator_count + subscription_count + mcp_count + ingress_controller_count + (598 - covered_catalog_entries)`. For the example validation cluster (43 nodes, 30+ operators, several subscriptions, 2 MCPs), this produces well over 1,000 total rows, consistent with the report's observed scale.
+
+---
+
+## Native node-role labels and image GC (7.5.node_roles / 7.6.node.image_gc)
+
+Live **core** scores missing `node-role.kubernetes.io/*` labels on `7.5.node_roles` (FAIL if any node has none). That bar is unchanged. ORIG `7.5.tsr.5_6_node_role_values` is a sparse alias (`include_in_findings = false`). Taints stay on `7.5.master_taints` — this check does not score NoSchedule.
+
+`7.6.node.image_gc` is a new aggregate from live `08_day2/node_image_gc.json` (kubelet `configz` HIGH + `stats/summary` imageFs used percent; no raw proxy dumps). FAIL if any scored member `used_percent >= high_percent`. Else WARNING if any scored member `used_percent >= 50`. Else PASS. INFO when the payload is missing/`_hc_error` at the document root, or no member has numeric `used_percent`. `scoring_basis` is `doc_backed` on FAIL only. ORIG `7.6.tsr.6_1_5_5_node_garbage_collection` is a sparse alias.
+
+HIGH default and early-warning bars are named constants in `evaluators/day2.py`: `IMAGE_GC_HIGH_DEFAULT_PERCENT = 85` and `IMAGE_GC_EARLY_WARNING_PERCENT = 50`. Collect copies those numbers into JSON as `high_default_percent` / `early_warning_percent`. Changing HIGH or WARNING later is those constants plus this section plus OpenSpec — not a new JSON schema.
+
+Collect is live-only (`oc` node proxy). Supportshell omits the file. The older `7.6.prune.gc` SKIPPED placeholder is a different check_id and is not this native.
+
+Coverage percent vs ORIG Chapter 6 is not claimed here.
+
+---
+
+## Native 7.5/7.6 aliases and node-load rollup (7.5.kubelet_health / 7.5.pod_restarts / 7.5.node.utilization / 7.6.upgrade.history)
+
+Live **core** already scores kubelet Ready, per-container restarts, ClusterVersion Completed hops, and per-node `oc adm top`. This change adds native KB, sparse aliases, and a cluster rollup. Coverage percent vs ORIG Chapter 6 is not claimed here.
+
+`7.5.kubelet_health`: WARNING when any node Ready is not True. Do not FAIL Ready. ORIG `7.5.tsr.5_1_node_kubelet_health` is a sparse alias (`include_in_findings = false`).
+
+`7.5.pod_restarts`: WARNING when any `containerStatuses[].restartCount > 10` (not a pod-wide sum). ORIG `7.5.tsr.5_5_pod_frequent_restarts` is a sparse alias.
+
+`7.6.upgrade.history`: PASS if any history hop `state == Completed`; NOT_APPLICABLE if none. Do not FAIL Partial or Failed. ORIG `7.6.tsr.6_2_1_update_history` is a sparse alias.
+
+`7.5.node.utilization`: worst-of per-node `7.5.node.{short}.utilization` (WARNING > INFO > PASS). Per-node percents stay CPU **>80** / mem **>85** WARNING and CPU **>60** / mem **>70** INFO. Missing, empty, or unparseable `08_day2/top_nodes` is NOT_APPLICABLE on both `7.5.node.utilization` and `7.5.node_util`. ORIG `7.6.tsr.6_1_3_1_current_node_load` and parent `7.6.tsr.6_1_3_node_load` sparse-alias the rollup.
+
+Pruning hops `7.6.tsr.6_1_5_1_pod_pruning`, `7.6.tsr.6_1_5_4_job_pruning`, `7.6.tsr.6_1_5_6_pruning_namespaces`, and parent `7.6.tsr.6_1_5_pruning` set `include_in_findings = false`.
+
+Not aliased (wrong story): `7.6.tsr.6_1_1_1_quota_resources_project_assignment`, `7.6.tsr.6_1_2_requests_and_limits`, `7.6.tsr.6_1_5_3_network_policy_pruning`, `7.6.tsr.6_2_3_images_patch_management`.
+
+`7.6.tsr.6_3_1_active_alerts` is owned by `hc_native_alias_7_1_7_2` and is not retargeted here.
+
+---
+
+## Native 7.3 aliases and platform-operator rollup (7.3.co.platform / 7.3.crds / 7.3.ingress.sharding / 7.3.misc.mcp)
+
+Live **core** already scores per-operator `7.3.co.{name}` (including `7.3.co.kube-apiserver`), CRD count, ingress sharding, and MCP degraded/updating. This change adds native KB, sparse aliases, and a cluster rollup. Coverage percent vs ORIG Chapter 6 is not claimed here.
+
+Per-operator bars stay frozen: FAIL when the name is in `find_degraded_operators`; WARNING when Available is not True or Progressing is True; else PASS. Those rows still emit.
+
+`7.3.co.platform`: worst-of those per-operator statuses (FAIL > WARNING > PASS). Missing ClusterOperators is NOT_APPLICABLE on both `7.3.co` and `7.3.co.platform`. ORIG `7.3.tsr.3_2_1_platform_operators` and parent `7.3.tsr.3_2_operators` sparse-alias the rollup.
+
+Parked on the rollup (legal single hop, not new scorers): `7.3.tsr.3_2_2_additional_operators` and `7.7.ccx_internal.uninstalled_operators_with_leftover_resources`.
+
+`7.3.tsr.3_3_custom_resource_definitions` sparse-aliases `7.3.crds` (WARNING if count > 500). It no longer hops onto platform operators or the rollup.
+
+`7.3.ingress.sharding`: more than one IngressController with no selectors is WARNING; some selectors is PASS; one controller is INFO. Route overlap is not scored. ORIG `7.3.tsr.3_8_3_ingress_sharding` is a sparse alias.
+
+`7.3.misc.mcp`: WARNING if any MachineConfigPool is degraded or updating. Paused and count-mismatch FAIL are not scored. ORIG `7.3.tsr.3_15_machine_config_pool` and `7.5.tsr.5_2_machine_config` sparse-alias this native.
+
+`7.3.co.kube-apiserver` remains the exact per-operator KB row.
+
+---
+
+## Native CSI CSO allow-list (7.3.storage.csi_cso)
+
+Live **core** scores `7.3.storage.csi_cso`: CSIDriver names against the ClusterCSIDriver CRD enum plus listed Red Hat products outside CSO. Third-party names are WARNING, not FAIL. Inventory `7.3.storage.csi` is unchanged. ORIG `7.3.tsr.3_9_5_csi_drivers` is a sparse alias (`include_in_findings = false`). Coverage percent vs ORIG Chapter 6 is not claimed here.
+
+`_hc_error` on CSIDriver or CRDs is SKIPPED. Missing CSIDriver list is NOT_APPLICABLE. Zero CSIDriver items is WARNING. Empty enum (no list containing `ebs.csi.aws.com`) is SKIPPED. Allowed names: in-enum, `openshift-storage.` prefix, `lvm.csi.topolvm.io`, `topolvm.io`, `kubevirt.io.hostpath-provisioner`.
+
+---
+
+## Native virt NNCP, virt-default StorageClass, and OADP (7.4.cnv.nncp / 7.4.cnv.virt_storageclass / 7.4.oadp.state)
+
+Live **core** scores three natives. ORIG IDs stay as sparse aliases (`include_in_findings = false`). Coverage percent vs ORIG Chapter 6 is not claimed here.
+
+`7.4.cnv.nncp`: NOT_APPLICABLE when both NNCP and NNCE payloads are missing. Else INFO when both item lists are empty (overlay-only is expected). FAIL when any item is not healthy (`Available=True` or `SuccessfullyConfigured=True`). Else PASS. `scoring_basis` is `doc_backed` on FAIL. NAD count is not scored. `7.3.net.hwnet` is unchanged.
+
+`7.4.cnv.virt_storageclass`: NOT_APPLICABLE when HyperConverged is missing. SKIPPED when CNV is present and StorageClass payload is missing. Else PASS iff exactly one StorageClass has annotation `storageclass.kubevirt.io/is-default-virt-class` equal to `"true"`; otherwise FAIL (`doc_backed`). VolumeSnapshotClass is evidence only. Cluster `is-default-class` is `7.3.storage.default_sc`, not this check. TSR check_id `7.4.tsr.4_8_1_3_4_node_disk` is a worksheet slug; the native is `virt_storageclass`. Parent `7.4.tsr.4_8_1_4_node_disk` remains a sparse alias to `7.4.cnv.state`.
+
+`7.4.oadp.state`: NOT_APPLICABLE when there are no CSV items in `openshift-adp`, no DPA items, and no BackupStorageLocation items. FAIL when any such CSV phase is not Succeeded, any DPA is not Available, or any BackupStorageLocation phase is not Available. Else PASS. Absence is not FAIL. Collecting `oadp_dpa` also lights inventory `7.4.OADP`; that inventory bar is unchanged.
+
+---
+
+## Native virt P3 (7.4.cnv.subscription / node_placement / run_strategy / migration_network / nmstate_csv / sriov_csv / linux_bridge / vmi_phase / cdi)
+
+Live **core** scores nine natives. Matching ORIG P3 TSR IDs stay sparse aliases (`include_in_findings = false`). Coverage percent vs ORIG Chapter 6 is not claimed here. These checks SHALL NOT dump onto `7.4.cnv.state`, `7.4.cnv.nncp`, `7.4.cnv.live_migratable`, or `7.4.cnv.pods`. VMI phase uses the API, not PromQL.
+
+| Native | Frozen bars |
+|--------|-------------|
+| `7.4.cnv.subscription` | HCO missing → N/A. Else FAIL unless kubevirt-hyperconverged in `openshift-cnv` is `AtLatestKnown` with matching CSVs. |
+| `7.4.cnv.nmstate_csv` / `7.4.cnv.sriov_csv` | Zero items in operator namespace → N/A. Any phase ≠ Succeeded → FAIL. Missing operator is not FAIL. |
+| `7.4.cnv.run_strategy` | HCO or VM payload missing → SKIPPED. Zero VMs → N/A. Any `runStrategy` not `Always` → INFO. Never FAIL. |
+| `7.4.cnv.vmi_phase` | Missing VMI payload → SKIPPED. Zero items → N/A. Pending/Scheduling/Failed/Unknown → WARNING. |
+| `7.4.cnv.migration_network` | HCO missing → N/A. Empty/`<none>` network → PASS. Named network without NAD in `openshift-cnv` → FAIL. |
+| `7.4.cnv.linux_bridge` | NAD missing → SKIPPED. No `cnv-bridge`/`bridge` type → INFO (not FAIL). Invalid JSON skips that item. |
+| `7.4.cnv.node_placement` | HCO missing → N/A. DS missing → SKIPPED. READY ≠ DESIRED → FAIL. Else WARNING for unschedulable non-control-plane nodes. Compact/all-control-plane does not false-fail. Empty HCO `nodePlacement` is not FAIL. CPU `vmx`/`svm` not scored. |
+| `7.4.cnv.cdi` | Missing CR → N/A. Conditions not Available=True / Progressing=False / Degraded=False → FAIL. Else uploadproxy missing or not Ready → WARNING. |
+
+Those two parked ORIG leaves are natives in the remainder section below.
+
+---
+
+## Native virt P3 remainder (7.4.cnv.storageprofile / 7.4.cnv.vm_quota)
+
+Live **core** scores CDI StorageProfile clone strategy and VM-namespace ResourceQuota. Matching ORIG TSR IDs stay sparse aliases (`include_in_findings = false`). Coverage percent vs ORIG Chapter 6 is not claimed here. These checks SHALL NOT alias to `7.4.cnv.virt_storageclass`, `7.6.rq`, or `7.6.cluster_quota`. Missing ResourceQuota in a VM namespace is INFO, never FAIL. Used-equals-hard is string equality, not quantity math.
+
+| Native | Frozen bars |
+|--------|-------------|
+| `7.4.cnv.storageprofile` | Missing payload → N/A. Zero items → INFO. Any `status.cloneStrategy` `copy` → WARNING. Else PASS. `spec.cloneStrategy` / snapshotClass evidence only. Virt-default annotation is `7.4.cnv.virt_storageclass`. |
+| `7.4.cnv.vm_quota` | HCO missing or zero VMs → N/A. Any VM namespace with zero ResourceQuota → INFO. Else WARNING if any quota in those namespaces has a shared `status.used` / `spec.hard` key with equal strings. Else PASS. Never FAIL. Not `7.6.rq`. |
+
+---
+
+## Native virt CPU flags (7.4.cnv.cpu_virt_flag)
+
+Live **core** scores kubevirt `cpu-feature.node.kubevirt.io/vmx` and `.../svm` labels on schedulable nodes. Coverage percent vs ORIG Chapter 6 is not claimed here. This check SHALL NOT read `/proc/cpuinfo`. `7.4.tsr.4_8_1_3_2_node_cpu` stays a sparse alias of `7.4.cnv.state`.
+
+| Native | Frozen bars |
+|--------|-------------|
+| `7.4.cnv.cpu_virt_flag` | HCO missing → N/A. Nodes `_hc_error` → SKIPPED. Zero schedulable nodes with vmx or svm equal to `true` → WARNING. Else PASS. Never FAIL. Either flag is enough. |
+
+---
+
+## Native CNV firing alerts (7.4.cnv.alerts)
+
+Live **core** scores virt-matching firing and pending alerts from existing `07_cluster_health/firing_alerts`. Coverage percent vs ORIG Chapter 6 is not claimed here. `7.5.alerts.critical` is unchanged. `7.4.tsr.4_8_5_2_1_active_alerts` is a sparse alias (`include_in_findings = false`).
+
+| Native | Frozen bars |
+|--------|-------------|
+| `7.4.cnv.alerts` | Missing firing_alerts → SKIPPED. Any firing or pending alert whose alertname or namespace contains kubevirt, cdi, ssp, hco, hyperconverged, openshift-cnv, or nmstate → FAIL. Else PASS. Never WARNING. |
+
+---
+
+## Native 7.1/7.2 aliases and CoreDNS alerts (7.1.nodes.master_mem / 7.1.sys.auth / 7.1.dns.coredns_alerts / 7.2.topo.master_az / 7.2.topo.haproxy_ha)
+
+Live **core** already scores master capacity memory, IdP list, AZ labels, and IngressController replica HA. This change adds missing native KB, sparse aliases, and a CoreDNS-named firing-alert check. Coverage percent vs ORIG Chapter 6 is not claimed here.
+
+`7.1.nodes.master_mem`: FAIL when any master `status.capacity.memory` is below 16 GiB. `systemReserved` / `configz` are not scored. ORIG `7.1.tsr.1_4_1_3_master_memory` is a sparse alias (`include_in_findings = false`).
+
+`7.1.sys.auth`: WARNING when no IdPs or all HTPasswd. kubeadmin secret deletion and token max-age are not scored. ORIG `7.1.tsr.1_5_17_authentication` is a sparse alias.
+
+`7.1.dns.coredns_alerts`: FAIL if any Prometheus alert with `state` firing has `alertname` exactly `CoreDNSErrorsHigh`, `CoreDNSHealthCheckSlow`, or `CoreDNSPanicking`. Pending does not FAIL. Missing `firing_alerts` is SKIPPED. ORIG `7.1.tsr.1_5_2_3_dns_alerts` and `7.7.ccx_internal.high_core_dns_errors_high_alerts` sparse-alias this native.
+
+Parked on `7.5.alerts.critical` (legal single hop, not CoreDNS): `7.7.ccx_internal.high_severity_alerts`, `7.3.tsr.3_5_9_etcd_alerts`, `7.5.tsr.5_11_health_related_alerts`, `7.5.tsr.5_11_2_node_alerts`, `7.5.tsr.5_11_3_overcommit_alerts`, `7.6.tsr.6_3_1_active_alerts`.
+
+`7.2.topo.master_az`: WARNING when fewer than 3 distinct zones or no zone labels. ORIG `7.2.tsr.2_2_2_master_av_zone_labels` is a sparse alias.
+
+`7.2.topo.haproxy_ha`: WARNING when IngressController replicas or availableReplicas are less than 2. keepalived / kni-infra are not scored. ORIG `7.2.tsr.2_2_3_haproxy_ha` is a sparse alias.
+
+`7.1.tsr.1_5_5_firewalls` is a sparse alias of `7.1.net.overlay_ports` (not `7.1.sys.firewall`). Native `7.1.sys.firewall` remains cluster-wide proxy presence (WARNING when a proxy is configured) and is a different story.
+
+---
+
+## Native overlay ports (7.1.net.overlay_ports)
+
+TSR firewalls is Geneve/API/etcd/kubelet between nodes. This native reads `05_components/network.json` `spec.networkType` only. Ports are not probed. Host iptables and cloud security-group inventory are out. Coverage percent vs ORIG Chapter 6 is not claimed here.
+
+| Status | When |
+|--------|------|
+| SKIPPED | `_hc_error` on `network` |
+| NOT_APPLICABLE | missing or `_hc_not_found` |
+| PASS | `OVNKubernetes` — evidence names 6081/udp all nodes, 6443/tcp control-plane, 2379/tcp and 2380/tcp control-plane, 10250/tcp all nodes, and `ports not probed` |
+| WARNING | `OpenShiftSDN` |
+| INFO | any other non-empty `networkType` |
+| FAIL | never |
+
+`7.1.tsr.1_5_5_firewalls` sparse-aliases this native (`include_in_findings = false`). Do not alias it to `7.1.sys.firewall`.
+
+---
+
+## Native quota coverage (7.6.quota.coverage)
+
+Live **core** scores `7.6.quota.coverage`: user projects with neither ResourceQuota nor LimitRange FAIL. Covered means at least one RQ or one LR. Platform namespaces (`openshift-*`, `kube-*`, `default`, `openshift`) are not scored. Missing namespace, RQ, or LR payload is SKIPPED. Zero user namespaces is NOT_APPLICABLE. Project-request template is not scored. `7.6.rq` is unchanged. ORIG `7.6.tsr.6_1_1_1_quota_resources_project_assignment` and parents `7.6.tsr.6_1_1_quota_and_resources` / `7.6.tsr.6_1_1_2_cluster_quota_configuration` sparse-alias the native (`include_in_findings = false`). Coverage percent vs ORIG Chapter 6 is not claimed here.
+
+---
+
+## Native pod requests (7.6.pod.requests)
+
+Live **core** scores `7.6.pod.requests`: user Running/Pending pods whose containers lack CPU or memory requests are WARNING, never FAIL. Init containers, Succeeded/Failed pods, and platform namespaces are not scored. `_hc_error` is SKIPPED; missing/`_hc_not_found`/zero items is NOT_APPLICABLE. `7.6.limitranges` / `7.6.req_limits` are unchanged. ORIG `7.6.tsr.6_1_2_requests_and_limits` is a sparse alias (`include_in_findings = false`). Coverage percent vs ORIG Chapter 6 is not claimed here.
+
+---
+
+## Native netpol orphan (7.6.netpol.orphan)
+
+Live **core** scores `7.6.netpol.orphan` from collected `networkpolicy` plus `pods_all`. Missing networkpolicy or missing `pods_all` is SKIPPED (do not treat an empty pod list as every labeled selector being orphaned). Labeled `podSelector` matching zero non-terminal pods in that namespace is FAIL. Empty selector is not an orphan. Zero user-namespace policies is INFO. `matchExpressions` without `matchLabels` skips that policy. `7.6.prune.netpol` remains SKIPPED. ORIG `7.6.tsr.6_1_5_3_network_policy_pruning` is a sparse alias (`include_in_findings = false`). Coverage percent vs ORIG Chapter 6 is not claimed here.
+
+---
+
+## Native image registry sources (7.6.image.registry_sources)
+
+Live **core** scores `7.6.image.registry_sources` from `image.config` `spec.registrySources`. Allowed and blocked both non-empty is FAIL. Else insecure non-empty is WARNING. Else empty allow and block is INFO. Else allow-only or block-only is PASS. `_hc_error` is SKIPPED; missing is NOT_APPLICABLE. `7.6.image_mgmt` INFO counts are unchanged. ORIG `7.6.tsr.6_2_3_images_patch_management` is a sparse alias (`include_in_findings = false`). Coverage percent vs ORIG Chapter 6 is not claimed here.
+
+---
+
+## Native keepalived VIP (7.2.topo.keepalived)
+
+Live **core** scores `7.2.topo.keepalived` from `07_cluster_health/pods_all`. Keepalived pods are namespace `openshift-kni-infra` with name prefix `keepalived-`. Missing or `_hc_error` `pods_all` is SKIPPED. Zero matching pods is INFO (cloud or external VIP). Any matching pod not Running or with containers not all Ready is FAIL. Else PASS. `7.2.topo.haproxy_ha` replica bars are unchanged. ORIG `7.2.tsr.2_2_3_haproxy_ha` stays a sparse alias of `7.2.topo.haproxy_ha`. Coverage percent vs ORIG Chapter 6 is not claimed here.
+
+---
+
+## Native effective systemReserved (7.2.kubelet.system_reserved)
+
+Live **core** scores `7.2.kubelet.system_reserved` from `08_day2/node_image_gc.json` member excerpts (`system_reserved_memory`, `auto_sizing_reserved`) plus node capacity from `04_topology/nodes.json`. Missing reserved memory when `auto_sizing_reserved` is not true is WARNING. Else default `1Gi`/`1G` on a node ≥64 GiB RAM is INFO. Else all parseable reserved values PASS. Never FAIL. `_hc_error` with empty members is SKIPPED; zero members is NOT_APPLICABLE. Raw configz is not stored. Per-node `7.2.node.*.sysreserved` / `_check_system_reserved` CR-based WARNING bars are unchanged. No TSR alias. Coverage percent vs ORIG Chapter 6 is not claimed here.
+
+---
+
+## Native OLM failed CSV (7.3.olm.failed_csv)
+
+Live **core** scores `7.3.olm.failed_csv` from `03_base_platform/csv`. Any `status.phase` `Failed` is FAIL. Else a non-empty phase that is not `Succeeded` is WARNING. Succeeded copied CSVs are PASS. Empty phase is not a leftover. `_hc_error` is SKIPPED. Missing payload or zero items is NOT_APPLICABLE. `7.3.co.platform` is unchanged. ORIG `7.3.tsr.3_2_2_additional_operators` stays a sparse alias of `7.3.co.platform`. Insights leftover CRDs are not aliased. Coverage percent vs ORIG Chapter 6 is not claimed here.
+
+---
+
+## Chapter 7 alias hide (content_from)
+
+Chapter 7 check-result tables and category stats omit a check when its KB entry has a non-empty `content_from`. Natives (`content_from` empty) and checks with no KB entry stay. CCX rows without `content_from` stay. Chapter 6 still uses `include_in_findings` only. `--omit-check-ids` is unchanged. Coverage percent vs ORIG Chapter 6 is not claimed here.
+
+---
+
+## Native node expected limits (7.6.node.expected_limits)
+
+Live **core** scores `7.6.node.expected_limits` from `10_metrics/node_cpu_limits_pct.json` and `10_metrics/node_memory_limits_pct.json` Prometheus vectors (`by (node)`). Missing both payloads is SKIPPED. Any sample ≥90 is FAIL. Else any sample ≥80 is WARNING. Else PASS. One cluster rollup; no per-node check_ids. Stub `7.6.node_expected` stays SKIPPED. ORIG `7.6.tsr.6_1_3_2_node_expected_resource_consumption` is a sparse alias. Do not retune `7.8.node.*.alloc`. Do not use `oc adm top`. Coverage percent vs ORIG Chapter 6 is not claimed here.
+
+---
+
+## Native upgrade failed hops (7.6.upgrade.failed_hops)
+
+Live **core** scores `7.6.upgrade.failed_hops` from `08_day2/clusterversion.json` `status.history`. Any hop `state` of `Partial` or `Failed` (case-sensitive) is FAIL. Else history present is PASS. Empty history, missing payload, or `_hc_not_found` is NOT_APPLICABLE. `_hc_error` is SKIPPED. Never WARNING. `7.6.upgrade.history` stays Completed-only and does not FAIL these hops. ORIG `7.6.tsr.6_2_1_update_history` remains a sparse alias of `7.6.upgrade.history`. Coverage percent vs ORIG Chapter 6 is not claimed here.
+
+---
+
+## ORIG priority drift fix (priority_hint)
+
+These 7 native KB rows had a live Chapter 6 finding priority that did not match the ORIG TSR grade. `priority_hint` now pins the bucket; scoring and evidence are unchanged.
+
+| Native check_id | KB file | Live P (current) | ORIG P | `priority_hint` value |
+|---|---|---|---|---|
+| `7.8.etcd.compaction` | `7_8_metrics.toml` | P3 | P1 | `"P1"` |
+| `7.6.node.image_gc` | `7_6_day2.toml` | P3 | P1 | `"P1"` |
+| `7.4.cnv.virt_storageclass` | `7_4_layered.toml` | P1 | P2 | `"P2"` |
+| `7.3.webhooks.mutatingwebhooks` | `7_3_components.toml` | P1 | P3 | `"P3"` |
+| `7.1.dns.coredns_alerts` | `7_1_base_platform.toml` | P1 | P3 | `"P3"` |
+| `7.6.pod.requests` | `7_6_day2.toml` | P2 | P3 | `"P3"` |
+| `7.6.netpol.orphan` | `7_6_day2.toml` | P1 | P3 | `"P3"` |
 
 ---
 

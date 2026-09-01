@@ -47,6 +47,8 @@ Generated from `scripts/health_check/collect/[0-9][0-9]_*.sh`.
 | alertmanager | `oc get alertmanager -n openshift-monitoring -o json` | 7.3 |
 | ingresscontroller | `oc get ingresscontroller -n openshift-ingress-operator -o json` | 7.3 |
 | storageclass | `oc get storageclass -o json` | 7.3 |
+| volumesnapshotclass | `oc get volumesnapshotclass -o json` | 7.3 |
+| storageprofile | `oc get storageprofile -o json` | 7.3 |
 | pv | `oc get pv -o json` | 7.3 |
 | pvc | `oc get pvc -A -o json` | 7.3 |
 | csidriver | `oc get csidriver -o json` | 7.3 |
@@ -55,6 +57,7 @@ Generated from `scripts/health_check/collect/[0-9][0-9]_*.sh`.
 | clusternetwork | `oc get clusternetwork -o json` | 7.3 |
 | network_operator | `oc get network.operator cluster -o json` | 7.3 |
 | nncp | `oc get nncp -o json` | 7.3 |
+| nnce | `oc get nnce -o json` | 7.3 |
 | net_attach_def | `oc get net-attach-def -A -o json` | 7.3 |
 | metallb | `oc get metallb -A -o json` | 7.3 |
 | ipsecconfig | `oc get ipsecconfig -A -o json` | 7.3 |
@@ -79,6 +82,8 @@ Generated from `scripts/health_check/collect/[0-9][0-9]_*.sh`.
 | cnv_pods | `oc get pods -n openshift-cnv -o json` | 7.4 |
 | cnv_vm | `oc get vm -A -o json` | 7.4 |
 | cnv_vmi | `oc get vmi -A -o json` | 7.4 |
+| cnv_cdi | `oc get cdi -n openshift-cnv -o json` | 7.4 |
+| cnv_virt_handler_ds | `oc get ds virt-handler -n openshift-cnv -o json` | 7.4 |
 | acm_multiclusterhub | `oc get multiclusterhub -n open-cluster-management -o json` | 7.4 |
 | acm_pods | `oc get pods -n open-cluster-management -o json` | 7.4 |
 | acs_central | `oc get central -n stackrox -o json` | 7.4 |
@@ -97,6 +102,9 @@ Generated from `scripts/health_check/collect/[0-9][0-9]_*.sh`.
 | odf_storagecluster | `oc get storagecluster -A -o json` | 7.4 |
 | rhoso_controlplane | `oc get openstackcontrolplane -A -o json` | 7.4 |
 | mtv_controller | `oc get forkliftcontroller -A -o json` | 7.4 |
+| oadp_dpa | `oc get dataprotectionapplication -A -o json` | 7.4 |
+| oadp_csv | `oc get csv -n openshift-adp -o json` | 7.4 |
+| backupstoragelocation | `oc get backupstoragelocation -A -o json` | 7.4 |
 
 ## 07_cluster_health.sh — Chapter 7.5: Cluster Health Assessment
 
@@ -119,6 +127,7 @@ Generated from `scripts/health_check/collect/[0-9][0-9]_*.sh`.
 |------------|---------|----------------|
 | resourcequota | `oc get resourcequota -A -o json` | 7.6 |
 | limitrange | `oc get limitrange -A -o json` | 7.6 |
+| networkpolicy | `oc get networkpolicy -A -o json` | 7.6 |
 | image_config | `oc get image.config.openshift.io cluster -o json` | 7.6 |
 | clusterversion | `oc get clusterversion -o json` | 7.6 |
 | top_nodes | `oc adm top nodes` | 7.6 |
@@ -129,6 +138,8 @@ Generated from `scripts/health_check/collect/[0-9][0-9]_*.sh`.
 | subscriptions | `oc get subscriptions -A -o json` | 7.6 |
 | deploymentconfig | `oc get dc -A -o json` | 7.6 |
 | certificates | `oc get certificates -A -o json` | 7.6 |
+
+Live-only custom collector `node_image_gc` (kubelet HIGH + imageFs used percent) is not listed; it is not an `hc_capture_*` call.
 
 ## 09_security.sh — Chapter 7.7: Security and Compliance Assessment
 
