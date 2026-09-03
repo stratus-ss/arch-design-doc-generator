@@ -1,0 +1,4 @@
+- [x] Add `Finding.tsr_ref` and populate it from dotted `CheckResult.tsr_ref` values
+- [x] Print `finding.tsr_ref` (or `n/a`) on the §6.2 TSR ref line
+- [x] Allowlisted tests in `tests/test_hc_ch6_tsr_ref.py`
+- [x] Docs + archive this change into `openspec/specs/hc-report-engine/spec.md`

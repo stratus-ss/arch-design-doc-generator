@@ -33,3 +33,4 @@ class Finding:
     kcs_refs: list[str] = field(default_factory=list)
     check_id: str = ""    # CheckResult.check_id this finding was derived from
     member_check_ids: tuple[str, ...] = field(default_factory=tuple)
+    tsr_ref: str = ""     # dotted TSR HTML section numbers, space-separated; empty means n/a

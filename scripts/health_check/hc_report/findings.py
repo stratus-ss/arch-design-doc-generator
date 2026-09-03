@@ -31,6 +31,22 @@ _UNMAPPED_CCX_RECOMMENDATION = (
     "Confirm the Insights message in Observation, then remediate or document "
     "why it is accepted."
 )
+_TSR_SECTION_REF_RE = re.compile(r"^\d+(?:\.\d+)+$")
+
+
+def _section_lookup_refs(members: list[CheckResult]) -> str:
+    """Unique dotted TSR HTML section numbers from members, first-seen order."""
+    seen: set[str] = set()
+    kept: list[str] = []
+    for member in members:
+        section_number = member.tsr_ref.strip()
+        if not _TSR_SECTION_REF_RE.fullmatch(section_number):
+            continue
+        if section_number in seen:
+            continue
+        seen.add(section_number)
+        kept.append(section_number)
+    return " ".join(kept)
 
 
 def _include_in_findings(check: CheckResult) -> bool:
@@ -76,6 +92,7 @@ def _make_finding(
         impact_scope=impact_scope,
         impact_detail=impact_detail,
         check_id=check.check_id,
+        tsr_ref=_section_lookup_refs([check]),
     )
 
 
@@ -123,6 +140,7 @@ def _make_grouped_finding(
         impact_detail=impact_detail,
         check_id=primary.check_id,
         member_check_ids=member_check_ids,
+        tsr_ref=_section_lookup_refs(sorted_members),
     )
 
 

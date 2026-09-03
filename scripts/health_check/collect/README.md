@@ -744,7 +744,7 @@ Each target below runs one discrete step and can be re-run on its own — useful
 | `clean-hc`                    | Remove health check pipeline output                                                                                                                                                                                                                 |
 | `check-hc-sync`               | Verify `collect/` and `supportshell/` shared scripts 03–09 are in sync                                                                                                                                                                              |
 
-**Report ID conventions:** Finding IDs (`6.2.x.y`) appear in §6.1/§6.2 headings and are used with `FINDING_ID=...`. Machine Check IDs (e.g. `7.3.etcd.log_errors`) appear under each §6.2 heading as `**Check ID:**` and are used with `CHECK_ID=...`. TSR ref (e.g. `3.5.7`) is the human-readable section label for cross-referencing the TSR report.
+**Report ID conventions:** Finding IDs (`6.2.x.y`) appear in §6.1/§6.2 headings and are used with `FINDING_ID=...`. Machine Check IDs (e.g. `7.3.etcd.log_errors`) appear under each §6.2 heading as `**Check ID:**` and are used with `CHECK_ID=...`. TSR ref (e.g. `3.5.7`) is the TSR HTML tree section number from `CheckResult.tsr_ref` (plain text, `n/a` when none, space-separated when grouped) — not parsed from the finding title.
 
 ###### KB maintenance targets
 

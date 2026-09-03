@@ -445,11 +445,11 @@ Traces a finding or check from the generated report back to the exact raw collec
 
 The rendered report uses three identifier types:
 
-| ID type        | Example               | Used by                                                                            |
-|----------------|-----------------------|------------------------------------------------------------------------------------|
-| **Finding ID** | `6.2.2.3`             | Report §6.1 table "Finding" column; `make hc-investigate FINDING_ID=6.2.2.3`       |
-| **Check ID**   | `7.3.etcd.log_errors` | Evaluator-assigned machine key; `make hc-investigate CHECK_ID=7.3.etcd.log_errors` |
-| **TSR ref**    | `3.5.7`               | Human/TSR section label shown under the finding heading for cross-reference        |
+| ID type        | Example               | Used by                                                                                                                                                                                                                                                                                                     |
+|----------------|-----------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Finding ID** | `6.2.2.3`             | Report §6.1 table "Finding" column; `make hc-investigate FINDING_ID=6.2.2.3`                                                                                                                                                                                                                                |
+| **Check ID**   | `7.3.etcd.log_errors` | Evaluator-assigned machine key; `make hc-investigate CHECK_ID=7.3.etcd.log_errors`                                                                                                                                                                                                                          |
+| **TSR ref**    | `3.5.7`               | TSR HTML tree section number from `CheckResult.tsr_ref` (plain text for manual lookup). Printed as `**TSR ref:**` under the §6.2 heading. `n/a` when no dotted section number exists. Multiple numbers are space-separated when a grouped finding has more than one leaf. Not taken from the finding title. |
 
 In the §6.1 Critical Findings table, the Finding column format is `{finding_id} — {display_title}`. In §6.2 each finding heading is `#### {finding_id}. {display_title}` with **Check ID** and **TSR ref** lines immediately below.
 
@@ -488,7 +488,7 @@ Each target below runs one discrete step and can be re-run on its own — useful
 | `clean-hc`                    | Remove health check pipeline output                                                                                                                                                                                                                 |
 | `check-hc-sync`               | Verify `collect/` and `supportshell/` shared scripts 03–09 are in sync                                                                                                                                                                              |
 
-**Report ID conventions:** Finding IDs (`6.2.x.y`) appear in §6.1/§6.2 headings and are used with `FINDING_ID=...`. Machine Check IDs (e.g. `7.3.etcd.log_errors`) appear under each §6.2 heading as `**Check ID:**` and are used with `CHECK_ID=...`. TSR ref (e.g. `3.5.7`) is the human-readable section label for cross-referencing the TSR report.
+**Report ID conventions:** Finding IDs (`6.2.x.y`) appear in §6.1/§6.2 headings and are used with `FINDING_ID=...`. Machine Check IDs (e.g. `7.3.etcd.log_errors`) appear under each §6.2 heading as `**Check ID:**` and are used with `CHECK_ID=...`. TSR ref (e.g. `3.5.7`) is the TSR HTML tree section number from `CheckResult.tsr_ref` (plain text, `n/a` when none, space-separated when grouped) — not parsed from the finding title.
 
 ###### KB maintenance targets
 

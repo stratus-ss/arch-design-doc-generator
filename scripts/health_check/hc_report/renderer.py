@@ -436,7 +436,7 @@ def _build_findings_sections(findings: list[Finding], ocp_version: str = "latest
             continue
         sections.append(f"### {labels[priority]}\n")
         for finding in priority_findings:
-            display, tsr = _split_finding_title(finding.title)
+            display, _unused_title_tsr = _split_finding_title(finding.title)
             check_id = finding.check_id or "n/a"
             sections.append(f"#### {finding.id}. {display}\n")
             if finding.member_check_ids:
@@ -444,7 +444,7 @@ def _build_findings_sections(findings: list[Finding], ocp_version: str = "latest
                 sections.append(f"**Check ID:** {member_ids}")
             else:
                 sections.append(f"**Check ID:** `{check_id}`")
-            sections.append(f"**TSR ref:** {tsr}\n")
+            sections.append(f"**TSR ref:** {finding.tsr_ref.strip() or 'n/a'}\n")
             kb_desc = knowledge_base.get_description(check_id) if check_id != "n/a" else ""
             if kb_desc:
                 sections.append(f"**Description:**\n\n{kb_desc}\n")

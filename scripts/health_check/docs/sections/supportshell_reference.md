@@ -71,6 +71,6 @@ The rendered report uses three identifier types:
 |---------|---------|---------|
 | **Finding ID** | `6.2.2.3` | Report §6.1 table "Finding" column; `make hc-investigate FINDING_ID=6.2.2.3` |
 | **Check ID** | `7.3.etcd.log_errors` | Evaluator-assigned machine key; `make hc-investigate CHECK_ID=7.3.etcd.log_errors` |
-| **TSR ref** | `3.5.7` | Human/TSR section label shown under the finding heading for cross-reference |
+| **TSR ref** | `3.5.7` | TSR HTML tree section number from `CheckResult.tsr_ref` (plain text for manual lookup). Printed as `**TSR ref:**` under the §6.2 heading. `n/a` when no dotted section number exists. Multiple numbers are space-separated when a grouped finding has more than one leaf. Not taken from the finding title. |
 
 In the §6.1 Critical Findings table, the Finding column format is `{finding_id} — {display_title}`. In §6.2 each finding heading is `#### {finding_id}. {display_title}` with **Check ID** and **TSR ref** lines immediately below.

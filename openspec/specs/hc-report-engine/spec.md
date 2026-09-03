@@ -2,7 +2,7 @@
 
 > **Canonical spec:** this file (`openspec/specs/hc-report-engine/spec.md`). Do not recreate `agent_planning/openspec/specs/`.
 >
-> **Baseline date:** 2026-08-21 (landed Chunks A–G). Chunk H deltas live in `openspec/changes/hc-feedback-chunk-h/` until archived. `hc-omit-findings` is archived here (2026-08-25). Scoring veracity (`scoring_basis`, native FAIL/WARNING honesty vs OCP 4.22) is archived here (2026-08-25). `hc-tsr-pass-host-condense` is archived here (2026-08-26). `hc-tsr-inventory-condense` is archived here (2026-08-26). `hc-html-pdf-report-file` is archived here (2026-08-26). `hc-narrative-paragraph-spacing` is archived here (2026-08-26). `hc-toc-chapter-links` is archived here (2026-08-26). `hc-tsr-filter-nonok-result` is archived here (2026-09-01). `hc-catalog-skip-group-headers` is archived here (2026-09-03).
+> **Baseline date:** 2026-08-21 (landed Chunks A–G). Chunk H deltas live in `openspec/changes/hc-feedback-chunk-h/` until archived. `hc-omit-findings` is archived here (2026-08-25). Scoring veracity (`scoring_basis`, native FAIL/WARNING honesty vs OCP 4.22) is archived here (2026-08-25). `hc-tsr-pass-host-condense` is archived here (2026-08-26). `hc-tsr-inventory-condense` is archived here (2026-08-26). `hc-html-pdf-report-file` is archived here (2026-08-26). `hc-narrative-paragraph-spacing` is archived here (2026-08-26). `hc-toc-chapter-links` is archived here (2026-08-26). `hc-tsr-filter-nonok-result` is archived here (2026-09-01). `hc-catalog-skip-group-headers` is archived here (2026-09-03). `hc-ch6-tsr-ref-correctness` is archived here (2026-09-03).
 
 ## Purpose
 
@@ -458,6 +458,25 @@ Chapter 7 SHALL show a Scoring row only for FAIL and WARNING.
 - WHEN the finding and chapter 7 Check cell are rendered
 - THEN both use that title
 - AND they do not keep a TSR HTML "Node Disk" heading in preference to the KB title
+
+### Requirement: §6.2 TSR ref is the TSR HTML section number
+§6.2 SHALL print `**TSR ref:**` followed by dotted section number(s) from member `CheckResult.tsr_ref` values that match `^\d+(?:\.\d+)+$`, unique, first-seen order, space-separated. If none match, SHALL print `n/a`. SHALL NOT parse the finding title for this line. SHALL NOT emit a hyperlink.
+
+#### Scenario: KB title without numeric prefix
+- GIVEN check `7.4.tsr.4_8_1_1_1_identification_and_state` with `tsr_ref` `4.8.1.1.1` and KB title `TSR CNV identification and state`
+- WHEN §6.2 is rendered
+- THEN the line is `**TSR ref:** 4.8.1.1.1`
+- AND the line is not `n/a`
+
+#### Scenario: CCX or deterministic
+- GIVEN `tsr_ref` empty or `CCX:internal`
+- WHEN §6.2 is rendered
+- THEN the line is `**TSR ref:** n/a`
+
+#### Scenario: grouped distinct leaves
+- GIVEN two members with `tsr_ref` `4.5.2` and `4.5.4.1`
+- WHEN §6.2 is rendered
+- THEN the line is `**TSR ref:** 4.5.2 4.5.4.1`
 
 ### Requirement: TSR Result length
 TSR Result HTML SHALL NOT be sliced at 2000 characters. After HTML strip: if check Status is PASS, INFO, SKIPPED, or NOT_APPLICABLE, parsed evidence SHALL be condensed (PASS host groups and inventory dumps) and then clipped at 32_000 characters with a truncation marker. If check Status is FAIL or WARNING, evidence SHALL keep important Result lines first, then apply node-status and unhealthy-pod condensation, then clip at 32_000.
