@@ -84,9 +84,45 @@ _NOT_OK_BODY_TOKENS = (
     "[SKIP]",
     "[SKIPPED]",
     "[NOT_APPLICABLE]",
+    "[NOT APPLICABLE]",
     "[NA]",
 )
+# Host-condensation tokens: every bracketed status that can appear inside a
+# host body.  _IMPORTANT_RESULT_TOKENS / _DROPPED_RESULT_TOKENS (below) are
+# the filter-path equivalents — keep both registries in sync when adding a
+# new token.
 _RESULT_STATUS_TOKENS = _OK_BODY_TOKENS + _NOT_OK_BODY_TOKENS
+
+_UNFILTERED_CHECK_STATUSES = frozenset(
+    {"PASS", "INFO", "SKIPPED", "NOT_APPLICABLE"}
+)
+_IMPORTANT_RESULT_TOKENS = frozenset(
+    {
+        "[FAIL]",
+        "[WARNING]",
+        "[WARN]",
+        "[LIMITATION]",
+        "[SUPPORT LIMITATION]",
+    }
+)
+_DROPPED_RESULT_TOKENS = frozenset(
+    {
+        "[PASS]",
+        "[INFO]",
+        "[SKIP]",
+        "[SKIPPED]",
+        "[NA]",
+        "[NOT_APPLICABLE]",
+        "[NOT APPLICABLE]",
+    }
+)
+_FILTER_TOKENS_BY_LENGTH = tuple(
+    sorted(
+        _IMPORTANT_RESULT_TOKENS | _DROPPED_RESULT_TOKENS,
+        key=len,
+        reverse=True,
+    )
+)
 
 
 def _is_section_header(line: str) -> bool:
@@ -139,6 +175,139 @@ def _is_field_label(line: str) -> bool:
     if not line or _is_section_header(line) or _is_host_line(line):
         return False
     return not _line_has_result_status(line)
+
+
+def _check_status_keeps_full_result(status: str) -> bool:
+    return status in _UNFILTERED_CHECK_STATUSES
+
+
+def _line_has_important_result_token(line: str) -> bool:
+    return any(token in line for token in _IMPORTANT_RESULT_TOKENS)
+
+
+def _line_has_dropped_result_token(line: str) -> bool:
+    if _line_has_important_result_token(line):
+        return False
+    return any(token in line for token in _DROPPED_RESULT_TOKENS)
+
+
+def _token_start_indexes(line: str) -> list[int]:
+    """Start indexes of filter tokens; longer tokens win overlapping matches."""
+    starts: list[int] = []
+    occupied_ranges: list[tuple[int, int]] = []
+    for token in _FILTER_TOKENS_BY_LENGTH:
+        search_from = 0
+        while True:
+            found = line.find(token, search_from)
+            if found < 0:
+                break
+            token_end = found + len(token)
+            overlaps = False
+            for range_start, range_end in occupied_ranges:
+                if found < range_end and token_end > range_start:
+                    overlaps = True
+                    break
+            if overlaps:
+                search_from = found + 1
+                continue
+            occupied_ranges.append((found, token_end))
+            starts.append(found)
+            search_from = token_end
+    starts.sort()
+    return starts
+
+
+def _split_line_on_result_tokens(line: str) -> list[str]:
+    """Break a space-joined Result blob into one segment per status token."""
+    if not line:
+        return []
+    starts = _token_start_indexes(line)
+    if len(starts) <= 1:
+        return [line]
+    segments: list[str] = []
+    for index, start in enumerate(starts):
+        end = starts[index + 1] if index + 1 < len(starts) else len(line)
+        chunk_start = 0 if index == 0 else start
+        chunk = line[chunk_start:end].strip()
+        if chunk:
+            segments.append(chunk)
+    return segments
+
+
+def _host_block_end_index(lines: list[str], start: int) -> int:
+    end = start + 1
+    while end < len(lines):
+        next_line = lines[end]
+        if _is_section_header(next_line) or _is_node_group_header(next_line):
+            break
+        if _is_host_line(next_line) or _is_field_label(next_line):
+            break
+        end += 1
+    return end
+
+
+def _field_label_end_index(lines: list[str], start: int) -> int:
+    end = start + 1
+    while end < len(lines):
+        next_line = lines[end]
+        if _is_section_header(next_line) or _is_node_group_header(next_line):
+            break
+        if _is_field_label(next_line):
+            break
+        end += 1
+    return end
+
+
+def _filter_line_group(lines: list[str]) -> list[str]:
+    output: list[str] = []
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        if _line_has_important_result_token(line):
+            output.append(line)
+            index += 1
+            continue
+        if _line_has_dropped_result_token(line):
+            index += 1
+            continue
+        if _is_node_group_header(line) or _is_section_header(line):
+            end = _group_end_index(lines, index)
+            inner = _filter_line_group(lines[index + 1 : end])
+            if inner:
+                output.append(line)
+                output.extend(inner)
+            index = end
+            continue
+        if _is_host_line(line):
+            end = _host_block_end_index(lines, index)
+            inner = _filter_line_group(lines[index + 1 : end])
+            if inner:
+                output.append(line)
+                output.extend(inner)
+            index = end
+            continue
+        if _is_field_label(line):
+            end = _field_label_end_index(lines, index)
+            inner = _filter_line_group(lines[index + 1 : end])
+            if inner:
+                output.append(line)
+                output.extend(inner)
+            index = end
+            continue
+        index += 1
+    return output
+
+
+def _keep_important_result_lines(text: str) -> str:
+    if not text:
+        return ""
+    lines: list[str] = []
+    for raw_line in text.split("\n"):
+        stripped = raw_line.strip()
+        if not stripped:
+            continue
+        lines.extend(_split_line_on_result_tokens(stripped))
+    return "\n".join(_filter_line_group(lines))
 
 
 def _host_body_is_ok(body: str) -> bool:
@@ -535,9 +704,14 @@ def _extract_leaf_check(
     evidence = ""
     result_match = re.search(r">Result</td>\s*<td[^>]*>(.*?)</td>", leaf_html, re.S | re.I)
     if result_match:
-        evidence = _clip_evidence(
-            _condense_result_evidence(_strip_html(result_match.group(1)))
-        )
+        stripped = _strip_html(result_match.group(1))
+        if _check_status_keeps_full_result(status):
+            prepared = _condense_result_evidence(stripped)
+        else:
+            prepared = _keep_important_result_lines(stripped)
+            prepared = _condense_repeated_node_status_lines(prepared)
+            prepared = _condense_unhealthy_workload_pods(prepared)
+        evidence = _clip_evidence(prepared)
 
     ref_match = re.match(r"^(\d+(?:\.\d+)*)", title)
     tsr_ref = ref_match.group(1) if ref_match else section_number

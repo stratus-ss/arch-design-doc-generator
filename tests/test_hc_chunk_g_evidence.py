@@ -8,6 +8,7 @@ from hc_report.evaluators.health import (
     annotate_pod_restart_collection_gap,
     _evaluate_health_registry,
 )
+from hc_report.build_crosswalk_catalog import _collect_tsr_sections
 from hc_report.evaluators.layered import evaluate_layered
 from hc_report.findings import derive_findings
 from hc_report.models import CheckResult
@@ -35,7 +36,7 @@ def test_tsr_html_result_keeps_text_past_2000_characters() -> None:
         <table>
           <tbody>
             <tr><td>Check</td><td>1.99 Long Result Fixture</td></tr>
-            <tr><td>Status</td><td><b>WARNING</b></td></tr>
+            <tr><td>Status</td><td><b>PASS</b></td></tr>
             <tr><td>Result</td><td>{result_text}</td></tr>
           </tbody>
         </table>
@@ -154,6 +155,33 @@ def test_kb_title_used_for_chapter_seven_and_finding() -> None:
     assert "Default virtualization StorageClass" in table
 
 
+def test_catalog_fallback_evidence_omitted_from_chapter_seven_result() -> None:
+    # Bug: operator debug ("was not found in the supplied TSR HTML export") shown in client Result
+    # Mutant: skip fallback blanking in _clean_evidence_for_cell
+    # Contract: public
+    check = CheckResult(
+        category_id="7.1",
+        category_name="Base Platform Checks",
+        check_id="7.1.tsr.openshift_must_gather_collection",
+        description="OpenShift Must Gather Collection",
+        status="SKIPPED",
+        evidence=(
+            "'OpenShift Must Gather Collection' was not found in the supplied "
+            "TSR HTML export (output/Health_Check_Report/tsr_parsed_runtime.json). "
+            "This check is mapped in the TSR/CCX catalog but has no native "
+            "deterministic evaluator yet, and the TSR export did not contain a "
+            "matching entry — verify the TSR HTML corresponds to this "
+            "cluster/session, or check for a title mismatch."
+        ),
+        source="tsr",
+    )
+    table = _build_check_results_table([check], "7.1")
+    assert "was not found in the supplied TSR HTML export" not in table
+    assert "no native deterministic evaluator" not in table
+    assert "tsr_parsed_runtime.json" not in table
+    assert "**Result**" in table
+
+
 def test_unmanaged_registry_is_info_and_p3_finding() -> None:
     # Bug: Unmanaged still WARNING or INFO with no Chapter 6 finding
     # Mutant: Skip finding_on_info
@@ -249,7 +277,7 @@ def test_pod_restart_gap_when_tsr_pod_missing_from_collection() -> None:
     assert "1" in engine_check.evidence
 
 
-def tsr_leaf_html(result_text: str) -> str:
+def tsr_leaf_html(result_text: str, status: str = "PASS") -> str:
     """Minimal TSR leaf HTML wrapping a Result cell (public parse_tsr_html tests)."""
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -260,7 +288,7 @@ def tsr_leaf_html(result_text: str) -> str:
         <table>
           <tbody>
             <tr><td>Check</td><td>1.5.7.2. Chrony</td></tr>
-            <tr><td>Status</td><td><b>WARNING</b></td></tr>
+            <tr><td>Status</td><td><b>{status}</b></td></tr>
             <tr><td>Result</td><td>{result_text}</td></tr>
           </tbody>
         </table>
@@ -306,8 +334,8 @@ def test_identical_pass_hosts_collapse_to_all_nodes() -> None:
 
 
 def test_non_pass_hosts_remain_named_when_siblings_collapse() -> None:
-    # Bug: SUPPORT LIMITATION host dropped or collapsed
-    # Mutant: Treat LIMITATION as ok
+    # Bug: SUPPORT LIMITATION host dropped; or RHCOS PASS workers still dumped / PASS NODES emitted on WARNING
+    # Mutant: Skip filter or keep PASS NODES
     # Contract: public
     result_text = (
         f"MASTER NODES:::<br>"
@@ -317,17 +345,18 @@ def test_non_pass_hosts_remain_named_when_siblings_collapse() -> None:
         f"{_WORKER_ONE}:<br>{_PASS_BODY}<br>"
         f"{_WORKER_TWO}:<br>{_PASS_BODY}"
     )
-    evidence = _first_evidence(tsr_leaf_html(result_text))
+    evidence = _first_evidence(tsr_leaf_html(result_text, status="WARNING"))
     assert _MASTER_LIMITED in evidence
     assert "[SUPPORT LIMITATION]" in evidence
-    assert "RHCOS NODES::>ALL NODES:" in evidence
     assert _WORKER_ONE not in evidence
     assert _WORKER_TWO not in evidence
+    assert "ALL NODES" not in evidence
+    assert "PASS NODES" not in evidence
 
 
 def test_mixed_group_does_not_emit_all_nodes() -> None:
-    # Bug: PASS siblings become ALL NODES while WARNING hosts remain
-    # Mutant: Label mixed ok hosts ALL NODES
+    # Bug: PASS NODES or PASS hostnames remain on WARNING
+    # Mutant: Keep _emit_collapsed_group on filtered path
     # Contract: public
     result_text = (
         f"RHCOS NODES:::<br>"
@@ -336,12 +365,13 @@ def test_mixed_group_does_not_emit_all_nodes() -> None:
         f"{_WORKER_TWO}:<br>{_PASS_BODY}<br>"
         f"{_WORKER_THREE}:<br>{_PASS_BODY}"
     )
-    evidence = _first_evidence(tsr_leaf_html(result_text))
-    assert "RHCOS NODES::>ALL NODES:" not in evidence
-    assert "PASS NODES" in evidence
+    evidence = _first_evidence(tsr_leaf_html(result_text, status="WARNING"))
+    assert "ALL NODES" not in evidence
+    assert "PASS NODES" not in evidence
     assert _WORKER_ONE in evidence
     assert _WORKER_TWO not in evidence
     assert _WORKER_THREE not in evidence
+    assert "[WARNING]" in evidence
 
 
 def test_unique_pass_bodies_are_not_collapsed() -> None:
@@ -587,8 +617,8 @@ def test_qualified_node_status_lines_collapse() -> None:
 
 
 def test_mixed_host_group_emits_pass_nodes_not_all_nodes() -> None:
-    # Bug: Mixed group keeps all PASS hostnames or uses ALL NODES
-    # Mutant: Keep old mixed no-collapse, or label ALL NODES
+    # Bug: Mixed FQDN group keeps PASS hostnames or PASS NODES on WARNING
+    # Mutant: Keep PASS NODES
     # Contract: public
     result_text = (
         f"{_WORKER_ONE}<br>"
@@ -598,8 +628,8 @@ def test_mixed_host_group_emits_pass_nodes_not_all_nodes() -> None:
         f"{_WORKER_THREE}<br>"
         "KubeletReady:   [PASS]   - kubelet is posting ready status"
     )
-    evidence = _first_evidence(tsr_leaf_html(result_text))
-    assert "PASS NODES" in evidence
+    evidence = _first_evidence(tsr_leaf_html(result_text, status="WARNING"))
+    assert "PASS NODES" not in evidence
     assert "ALL NODES::>ALL NODES:" not in evidence
     assert _WORKER_ONE in evidence
     assert _WORKER_TWO not in evidence
@@ -618,3 +648,140 @@ def test_unhealthy_pods_collapse_by_workload() -> None:
     assert evidence.count("[WARNING]") == 1
     assert "(1 more pods)" in evidence
     assert "app-cfcfd6486-5n9mb" not in evidence
+
+
+def test_warning_result_keeps_only_important_lines() -> None:
+    # Bug: PASS/INFO/SKIP/NA and inventory survive on WARNING; LIMITATION/WARNING lost
+    # Mutant: No-op filter
+    # Contract: public
+    result_text = (
+        f"{_MASTER_LIMITED}:<br>"
+        "number of time-servers:   [SUPPORT LIMITATION]   - reason: two entries<br>"
+        f"{_WORKER_ONE}:<br>"
+        "high availability:   [WARNING]   - reason: single NIC<br>"
+        "status check:   [PASS]   - reason: leap is Normal<br>"
+        "catalog:   [INFO]   - source listed<br>"
+        "job:   [SKIPPED]   - not collected<br>"
+        "quota:   [NOT APPLICABLE]   - none<br>"
+        "NAMESPACE · VMI · LIVEMIGRATABLE<br>"
+        "examplens · examplevm-a · true<br>"
+        "examplens · examplevm-b · true<br>"
+        "examplens · examplevm-c · true<br>"
+        f"RHCOS NODES:::<br>"
+        f"{_WORKER_TWO}:<br>{_PASS_BODY}<br>"
+        f"{_WORKER_THREE}:<br>{_PASS_BODY}"
+    )
+    evidence = _first_evidence(tsr_leaf_html(result_text, status="WARNING"))
+    assert "[SUPPORT LIMITATION]" in evidence
+    assert "[WARNING]" in evidence
+    assert "[PASS]" not in evidence
+    assert "[INFO]" not in evidence
+    assert "[SKIPPED]" not in evidence
+    assert "[NOT APPLICABLE]" not in evidence
+    assert "examplevm-a" not in evidence
+    assert "PASS NODES" not in evidence
+    assert "ALL NODES" not in evidence
+
+
+def test_unfiltered_status_keeps_pass_and_info_lines() -> None:
+    # Bug: Filter wrongly applied to PASS or NOT_APPLICABLE
+    # Mutant: Gate always-on
+    # Contract: public
+    result_text = (
+        "status check:   [PASS]   - reason: leap is Normal<br>"
+        "catalog:   [INFO]   - source listed"
+    )
+    pass_evidence = _first_evidence(tsr_leaf_html(result_text, status="PASS"))
+    not_applicable_evidence = _first_evidence(
+        tsr_leaf_html(result_text, status="NOT_APPLICABLE")
+    )
+    assert "[PASS]" in pass_evidence
+    assert "[INFO]" in pass_evidence
+    assert "[PASS]" in not_applicable_evidence
+    assert "[INFO]" in not_applicable_evidence
+
+
+def test_not_applicable_space_variant_recognised_as_status() -> None:
+    # Bug: [NOT APPLICABLE] (with space) missing from _NOT_OK_BODY_TOKENS
+    #      → _is_field_label misclassifies it → group boundary breaks early
+    # Mutant: Remove [NOT APPLICABLE] from _NOT_OK_BODY_TOKENS
+    # Contract: public
+    result_text = (
+        f"RHCOS NODES:::<br>"
+        f"{_MASTER_LIMITED}:<br>"
+        "quota:   [NOT APPLICABLE]   - none<br>"
+        f"{_WORKER_ONE}:<br>"
+        "status check:   [PASS]   - reason: ok<br>"
+        f"{_WORKER_TWO}:<br>"
+        "status check:   [PASS]   - reason: ok"
+    )
+    evidence = _first_evidence(tsr_leaf_html(result_text))
+    assert _MASTER_LIMITED in evidence
+    assert "[NOT APPLICABLE]" in evidence
+    assert "PASS NODES" in evidence
+    assert _WORKER_ONE not in evidence
+    assert _WORKER_TWO not in evidence
+
+
+def test_warning_result_splits_same_line_status_tokens() -> None:
+    # Bug: HTML-stripped Result keeps [PASS]/[INFO]/[NOT APPLICABLE] on the same line as WARNING/FAIL
+    # Mutant: Skip _split_line_on_result_tokens
+    # Contract: public
+    result_text = (
+        "identity providers configured:   [PASS]   - reason: types configured.   "
+        "HTPasswd: my_htpasswd_provider:   [WARNING]   - reason: do not use htpasswd in production"
+        "<br>"
+        "FileSystem Type:   [FAIL]   reason: emptyDir   "
+        "Registry storage checks:   [NOT APPLICABLE]   - reason: no registry PV"
+        "<br>"
+        "deploymentconfig:   [NOT APPLICABLE]   - none   "
+        "[INFO]   DEPLOYMENTS   "
+        "[WARNING]   | istio-system   | istio-egressgateway"
+    )
+    evidence = _first_evidence(tsr_leaf_html(result_text, status="WARNING"))
+    assert "[WARNING]" in evidence
+    assert "[FAIL]" in evidence
+    assert "htpasswd" in evidence.lower()
+    assert "emptyDir" in evidence
+    assert "istio-egressgateway" in evidence
+    assert "[PASS]" not in evidence
+    assert "[INFO]" not in evidence
+    assert "[NOT APPLICABLE]" not in evidence
+
+
+def test_catalog_builder_excludes_group_headers() -> None:
+    # Bug: tree-view dropdown group headers ("Other Basic Checks") become catalog entries
+    # Mutant: remove _node_text_is_group_header lookahead skip
+    # Contract: public
+    tsr_html = """<!DOCTYPE html>
+<html lang="en">
+<body>
+  <div id="1. Basic Checks-panel">
+    <li>
+      <div class="pf-v6-c-tree-view__content">
+        <button>
+          <span class="pf-v6-c-tree-view__node-toggle"></span>
+          <span class="pf-v6-c-tree-view__node-text">1.5. Other Basic Checks</span>
+          <span><div class="chip chip-pass">Pass 1</div></span>
+        </button>
+        <ul class="pf-v6-c-tree-view__list" role="group">
+          <li>
+            <div class="pf-v6-c-tree-view__content">
+              <button>
+                <span class="pf-v6-c-tree-view__node-text">1.5.7.2. Chrony</span>
+                <span><div class="chip chip-pass">Pass 1</div></span>
+              </button>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </li>
+  </div>
+  <div id="2. Topology Checks-btn"></div>
+</body>
+</html>
+"""
+    entries = _collect_tsr_sections(tsr_html)
+    titles = [entry["title"] for entry in entries]
+    assert "1.5. Other Basic Checks" not in titles
+    assert "1.5.7.2. Chrony" in titles

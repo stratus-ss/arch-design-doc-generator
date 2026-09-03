@@ -31,6 +31,17 @@ _SUMMARY_MAX_LENGTH = 220
 _SUMMARY_MIN_SENTENCE_CHARS = 40
 _SUMMARY_MIN_USABLE_CHARS = 8
 _UNUSABLE_SUMMARY_VALUES = frozenset({"n/a", "none", "unknown", "na"})
+# Operator-facing catalog-fallback sentences emitted by parity.py
+# (expand_with_parity_checks / _resolve_ccx_status).  They stay on
+# CheckResult.evidence (audit JSON) but must not appear in Chapter 7 Result.
+# Keep in sync with parity.py — search for these literals there when adding
+# a new fallback message.
+_CATALOG_FALLBACK_MARKERS = (
+    "No TSR runtime data supplied",
+    "was not found in the supplied TSR HTML export",
+    "--ccx-baseline-status is enabled",
+    "has no live data available",
+)
 
 
 def _md_table_cell(text: str) -> str:
@@ -99,6 +110,9 @@ def _clean_evidence_for_cell(text: str) -> str:
     """
     if not text:
         return ""
+    for marker in _CATALOG_FALLBACK_MARKERS:
+        if marker in text:
+            return ""
     body = _normalize_evidence_body(text)
     cleaned_lines: list[str] = []
     for line in body.splitlines():

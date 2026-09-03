@@ -2,7 +2,7 @@
 
 > **Canonical spec:** this file (`openspec/specs/hc-report-engine/spec.md`). Do not recreate `agent_planning/openspec/specs/`.
 >
-> **Baseline date:** 2026-08-21 (landed Chunks A–G). Chunk H deltas live in `openspec/changes/hc-feedback-chunk-h/` until archived. `hc-omit-findings` is archived here (2026-08-25). Scoring veracity (`scoring_basis`, native FAIL/WARNING honesty vs OCP 4.22) is archived here (2026-08-25). `hc-tsr-pass-host-condense` is archived here (2026-08-26). `hc-tsr-inventory-condense` is archived here (2026-08-26). `hc-html-pdf-report-file` is archived here (2026-08-26). `hc-narrative-paragraph-spacing` is archived here (2026-08-26). `hc-toc-chapter-links` is archived here (2026-08-26).
+> **Baseline date:** 2026-08-21 (landed Chunks A–G). Chunk H deltas live in `openspec/changes/hc-feedback-chunk-h/` until archived. `hc-omit-findings` is archived here (2026-08-25). Scoring veracity (`scoring_basis`, native FAIL/WARNING honesty vs OCP 4.22) is archived here (2026-08-25). `hc-tsr-pass-host-condense` is archived here (2026-08-26). `hc-tsr-inventory-condense` is archived here (2026-08-26). `hc-html-pdf-report-file` is archived here (2026-08-26). `hc-narrative-paragraph-spacing` is archived here (2026-08-26). `hc-toc-chapter-links` is archived here (2026-08-26). `hc-tsr-filter-nonok-result` is archived here (2026-09-01). `hc-catalog-skip-group-headers` is archived here (2026-09-03).
 
 ## Purpose
 
@@ -460,39 +460,39 @@ Chapter 7 SHALL show a Scoring row only for FAIL and WARNING.
 - AND they do not keep a TSR HTML "Node Disk" heading in preference to the KB title
 
 ### Requirement: TSR Result length
-TSR Result HTML SHALL NOT be sliced at 2000 characters. Parsed evidence SHALL be condensed (PASS host groups and inventory dumps) and then clipped at 32_000 characters with a truncation marker.
+TSR Result HTML SHALL NOT be sliced at 2000 characters. After HTML strip: if check Status is PASS, INFO, SKIPPED, or NOT_APPLICABLE, parsed evidence SHALL be condensed (PASS host groups and inventory dumps) and then clipped at 32_000 characters with a truncation marker. If check Status is FAIL or WARNING, evidence SHALL keep important Result lines first, then apply node-status and unhealthy-pod condensation, then clip at 32_000.
 
 #### Scenario: Text past 2000 characters is kept
-- GIVEN TSR HTML whose Result cell exceeds 2000 characters and is under 32_000
+- GIVEN TSR HTML whose check Status is PASS and whose Result cell exceeds 2000 characters and is under 32_000
 - WHEN it is parsed
 - THEN characters after offset 2000 remain in evidence
 
 #### Scenario: Oversized Result is clipped
-- GIVEN TSR HTML whose Result cell exceeds 32_000 characters
+- GIVEN TSR HTML whose Result cell exceeds 32_000 characters after the Status-gated prepare step
 - WHEN it is parsed
 - THEN evidence length is at most 32_000
 - AND the evidence ends with the truncation marker
 
 ### Requirement: TSR identical pass-host condensation
-TSR leaf Result text SHALL collapse fully-ok per-host blocks inside a role node group (`MASTER NODES:::`, `RHCOS NODES:::`, and the same `* NODES` header shape) before clipping. A host entry MAY be `hostname:` plus following status lines, or `hostname:   [PASS]   - reason: …` on one line. A body is fully ok when it has `[PASS]` or `[INFO]` and none of `[FAIL]`, `[WARNING]`, `[WARN]`, `[LIMITATION]`, `[SUPPORT LIMITATION]`, `[SKIP]`, `[SKIPPED]`, `[NOT_APPLICABLE]`, `[NA]`. `{group label}::>ALL NODES:` SHALL be emitted only when every host in that group is fully ok (two or more hosts). A mixed group with two or more fully-ok hosts and at least one non-ok host SHALL emit `{group label}::>PASS NODES:` plus one ok body, SHALL keep every non-ok hostname, and SHALL NOT emit ALL NODES. When every host is fully ok, differing PASS/INFO reason text MAY still collapse to one representative body. Groups that already contain `>ALL NODES:` SHALL be left unchanged. Bare `NODES::` SHALL NOT be a collapse group. After at least one host in a group, a non-empty line with no result-status token (`mtu`, `ipv4.enabled`) SHALL end that group so later `MASTER NODES:::` / `RHCOS NODES:::` blocks still collapse. CCX Message cells SHALL NOT be condensed. Check `status` SHALL NOT change because of condensation.
+When check Status is PASS, INFO, SKIPPED, or NOT_APPLICABLE, TSR leaf Result text SHALL collapse fully-ok per-host blocks inside a role node group (`MASTER NODES:::`, `RHCOS NODES:::`, and the same `* NODES` header shape) before clipping. A host entry MAY be `hostname:` plus following status lines, or `hostname:   [PASS]   - reason: …` on one line. A body is fully ok when it has `[PASS]` or `[INFO]` and none of `[FAIL]`, `[WARNING]`, `[WARN]`, `[LIMITATION]`, `[SUPPORT LIMITATION]`, `[SKIP]`, `[SKIPPED]`, `[NOT_APPLICABLE]`, `[NA]`. `{group label}::>ALL NODES:` SHALL be emitted only when every host in that group is fully ok (two or more hosts). A mixed group with two or more fully-ok hosts and at least one non-ok host SHALL emit `{group label}::>PASS NODES:` plus one ok body, SHALL keep every non-ok hostname, and SHALL NOT emit ALL NODES — **only on this unfiltered Status path**. When every host is fully ok, differing PASS/INFO reason text MAY still collapse to one representative body. Groups that already contain `>ALL NODES:` SHALL be left unchanged. Bare `NODES::` SHALL NOT be a collapse group. After at least one host in a group, a non-empty line with no result-status token (`mtu`, `ipv4.enabled`) SHALL end that group so later `MASTER NODES:::` / `RHCOS NODES:::` blocks still collapse. CCX Message cells SHALL NOT be condensed. Check `status` SHALL NOT change because of condensation.
 
 #### Scenario: Identical worker PASS hosts collapse
-- GIVEN a TSR Result with `RHCOS NODES:::` and two or more hosts whose bodies are identical PASS-only lines
+- GIVEN check Status PASS and a TSR Result with `RHCOS NODES:::` and two or more hosts whose bodies are identical PASS-only lines
 - WHEN the leaf Result is parsed
 - THEN evidence contains `RHCOS NODES::>ALL NODES:`
 - AND it contains one copy of that PASS body
 - AND it does not list each of those worker hostnames
 
-#### Scenario: Mixed group emits PASS NODES not ALL NODES
-- GIVEN a role node group with three hosts where one has `[WARNING]` or `[SUPPORT LIMITATION]` and the other two have PASS-only bodies
+#### Scenario: Mixed WARNING Result omits PASS NODES
+- GIVEN check Status WARNING and a role node group with three hosts where one has `[WARNING]` or `[SUPPORT LIMITATION]` and the other two have PASS-only bodies
 - WHEN the leaf Result is parsed
-- THEN evidence contains `PASS NODES`
+- THEN evidence does not contain `PASS NODES`
+- AND evidence does not contain `ALL NODES`
 - AND the non-ok hostname remains
 - AND the PASS hostnames are absent
-- AND that group has no ALL NODES line
 
 #### Scenario: Independent groups collapse independently
-- GIVEN `MASTER NODES:::` with a `[SUPPORT LIMITATION]` host and `RHCOS NODES:::` with identical PASS-only hosts
+- GIVEN check Status PASS, `MASTER NODES:::` with a `[SUPPORT LIMITATION]` host and `RHCOS NODES:::` with identical PASS-only hosts
 - WHEN the leaf Result is parsed
 - THEN the MASTER LIMITATION hostname remains
 - AND RHCOS PASS hosts collapse to `RHCOS NODES::>ALL NODES:`
@@ -528,11 +528,35 @@ TSR leaf Result text SHALL collapse fully-ok per-host blocks inside a role node 
 - AND each role group collapses independently
 - AND worker hostnames are absent
 
+### Requirement: TSR FAIL/WARNING Result line filter
+When check Status is FAIL or WARNING, TSR leaf Result text SHALL keep only lines that contain `[FAIL]`, `[WARNING]`, `[WARN]`, `[LIMITATION]`, or `[SUPPORT LIMITATION]`, plus section/host/field wrappers that still have a kept child. Lines containing `[PASS]`, `[INFO]`, `[SKIP]`, `[SKIPPED]`, `[NA]`, `[NOT_APPLICABLE]`, or `[NOT APPLICABLE]` SHALL be dropped. Status-less inventory (` · ` tables), config dumps, and nconnect lines SHALL be dropped. `ALL NODES` and `PASS NODES` SHALL NOT be emitted. After that filter, repeated node-status lines and unhealthy-pod groups MAY still condense. CCX Message cells SHALL NOT use this filter. Check `status` SHALL NOT change.
+
+#### Scenario: WARNING Result keeps only important lines
+- GIVEN check Status WARNING, Result text with `[SUPPORT LIMITATION]`, `[WARNING]`, `[PASS]`, `[INFO]`, `[SKIPPED]`, `[NOT APPLICABLE]`, a ` · ` inventory table, and PASS-only RHCOS hosts
+- WHEN the leaf Result is parsed
+- THEN evidence contains the LIMITATION and WARNING text
+- AND evidence does not contain `[PASS]`, `[INFO]`, `[SKIPPED]`, or `[NOT APPLICABLE]`
+- AND evidence does not contain inventory identity names such as `examplevm-a`
+- AND evidence does not contain `PASS NODES` or `ALL NODES`
+
+#### Scenario: Unfiltered Status keeps PASS and INFO lines
+- GIVEN the same Result lines with `[PASS]` and `[INFO]` and no WARNING
+- WHEN parsed with check Status PASS
+- THEN evidence contains `[PASS]` and `[INFO]`
+- WHEN parsed with check Status NOT_APPLICABLE
+- THEN evidence contains `[PASS]` and `[INFO]`
+
+#### Scenario: Same-line status tokens split before keep/drop
+- GIVEN check Status WARNING and one Result line that contains `[PASS]` then `[WARNING]`, or `[FAIL]` then `[NOT APPLICABLE]`, or `[INFO]` then `[WARNING]`
+- WHEN the leaf Result is parsed
+- THEN evidence contains the WARNING/FAIL segment
+- AND evidence does not contain `[PASS]`, `[INFO]`, or `[NOT APPLICABLE]`
+
 ### Requirement: TSR inventory dump condensation
-After host condensation and before the 32_000-character clip, TSR leaf Result text SHALL condense inventory dumps. A ` · ` header is a line whose fields all match `^[A-Z][A-Z0-9 /._-]*$`. Data rows contain ` · `, are not headers, and have no result-status token. Signature is fields after the first two. Groups of two or more identical signatures SHALL keep the header (when present), the first row, and `({n} more)`. A run of two or more data rows with no ALL-CAPS header SHALL still group by signature. A non-data line SHALL end the current run; later data rows SHALL form a new run and MAY collapse without a new header. A line containing `(nconnect=` SHALL group by that token; two or more SHALL keep the first line and `({n} more NFS mounts with {token})`. A `node <hostname>:` or `node <hostname> <qualifier>:` line with a result-status token, or the exact trailer `nfs-slot-tuning.service: not active or missing`, SHALL group by qualifier plus status body; two or more SHALL emit `({n} nodes):   {body}` for unqualified lines and `({n} nodes) <qualifier>:   {body}` for qualified lines, and SHALL NOT emit ALL NODES. A line matching `<ns>:<name>   [WARNING]   - looks unhealthy` SHALL group by namespace plus name with trailing `-[a-z0-9]+-[a-z0-9]{5}` stripped; two or more SHALL keep the first line and `({n} more pods)`. Unique rows stay. Check `status` SHALL NOT change.
+When check Status is PASS, INFO, SKIPPED, or NOT_APPLICABLE, after host condensation and before the 32_000-character clip, TSR leaf Result text SHALL condense inventory dumps. A ` · ` header is a line whose fields all match `^[A-Z][A-Z0-9 /._-]*$`. Data rows contain ` · `, are not headers, and have no result-status token. Signature is fields after the first two. Groups of two or more identical signatures SHALL keep the header (when present), the first row, and `({n} more)`. A run of two or more data rows with no ALL-CAPS header SHALL still group by signature. A non-data line SHALL end the current run; later data rows SHALL form a new run and MAY collapse without a new header. A line containing `(nconnect=` SHALL group by that token; two or more SHALL keep the first line and `({n} more NFS mounts with {token})`. A `node <hostname>:` or `node <hostname> <qualifier>:` line with a result-status token, or the exact trailer `nfs-slot-tuning.service: not active or missing`, SHALL group by qualifier plus status body; two or more SHALL emit `({n} nodes):   {body}` for unqualified lines and `({n} nodes) <qualifier>:   {body}` for qualified lines, and SHALL NOT emit ALL NODES. A line matching `<ns>:<name>   [WARNING]   - looks unhealthy` SHALL group by namespace plus name with trailing `-[a-z0-9]+-[a-z0-9]{5}` stripped; two or more SHALL keep the first line and `({n} more pods)`. Unique rows stay. Check `status` SHALL NOT change.
 
 #### Scenario: Identical table remainders collapse
-- GIVEN a `NAMESPACE · VMI · LIVEMIGRATABLE` header and three data rows that share remainder `true`
+- GIVEN check Status PASS, a `NAMESPACE · VMI · LIVEMIGRATABLE` header and three data rows that share remainder `true`
 - WHEN the leaf Result is parsed
 - THEN evidence contains the header and one data row
 - AND evidence contains `(2 more)`
@@ -632,6 +656,24 @@ Extended/advisory catalog rows SHALL be SKIPPED when TSR HTML or live Insights d
 - GIVEN `--check-profile extended` and no TSR HTML runtime
 - WHEN expansion runs
 - THEN catalog rows are SKIPPED rather than invented PASS/FAIL
+
+### Requirement: Catalog-fallback evidence stays out of Chapter 7 Result
+When a catalog row is SKIPPED because TSR HTML or live Insights data is missing or unmatched, operator-facing fallback evidence (no TSR runtime, title not found in the supplied TSR HTML export, no live CCX data, or `--ccx-baseline-status` applied) SHALL NOT appear in the Chapter 7 Result cell. Audit JSON MAY still retain that evidence on the check record.
+
+#### Scenario: Unmatched TSR catalog title blanks Result
+- GIVEN a SKIPPED TSR catalog check whose evidence contains `was not found in the supplied TSR HTML export`
+- WHEN Chapter 7 is rendered
+- THEN the Result cell does not contain that phrase
+- AND the Result cell does not contain `tsr_parsed_runtime.json`
+
+### Requirement: TSR crosswalk catalog contains only leaf checks
+`build_crosswalk_catalog.py` SHALL exclude tree-view group/dropdown headers (parent nodes whose `</button>` is followed by a child `<ul class="pf-v6-c-tree-view__list">`) from the TSR catalog entries it emits. Only leaf check nodes (no child `<ul>` after `</button>`) SHALL become catalog rows.
+
+#### Scenario: Group header is not a catalog entry
+- GIVEN TSR tree-view HTML where a node titled "1.5. Other Basic Checks" has a child `<ul>` list containing leaf check nodes
+- WHEN `_collect_tsr_sections` runs
+- THEN no catalog entry has that title
+- AND leaf check titles inside that group's `<ul>` still become catalog entries
 
 ### Requirement: Documentation links are out of band
 This capability SHALL NOT require rewriting existing KB `[checks.links]` URLs. Link review is a separate CLI (`make hc-link-apply`).

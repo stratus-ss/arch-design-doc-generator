@@ -23,6 +23,7 @@ python3 scripts/health_check/hc_report/build_crosswalk_catalog.py \
 ## Notes
 
 - Catalog entries are additive metadata and do not remove/rename existing deterministic checks.
+- TSR section entries are **leaf checks only**. Tree-view group/dropdown headers (nodes with a child list, e.g. "1.5. Other Basic Checks") are skipped by `build_crosswalk_catalog.py`.
 - TSR entries default to `SKIPPED` unless a matching TSR HTML export supplies a real status.
 - CCX entries use live `12_ccx/ccx_rules.json` or CCX records parsed from TSR HTML. Without that data they stay SKIPPED unless `--ccx-baseline-status` is enabled.
 - Report profiles (`health_check.check_profile` in `project.yaml`: `core`, `extended`, `advisory`) control whether parity/CCX expansion runs. Default is `advisory`.

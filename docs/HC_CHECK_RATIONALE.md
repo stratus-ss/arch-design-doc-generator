@@ -619,7 +619,7 @@ Each of the 598 entries has these fields:
 
 ### Validating CCX/TSR Parity Rows
 
-To check whether a specific `7.x.tsr.*` or `7.x.ccx_external.*` row in a report came from the catalog fallback path vs. a genuine runtime source, inspect its evidence text: catalog-fallback rows contain phrases such as `"No TSR runtime data supplied"`, `"was not found in the supplied TSR HTML export"`, `"--ccx-baseline-status is enabled"`, or `"has no live data available"`. Genuine runtime-sourced rows do not contain these fallback phrases.
+To check whether a specific `7.x.tsr.*` or `7.x.ccx_external.*` row came from the catalog fallback path vs. a genuine runtime source, inspect **audit JSON** `evidence` (not Chapter 7 Result): catalog-fallback rows contain phrases such as `"No TSR runtime data supplied"`, `"was not found in the supplied TSR HTML export"`, `"--ccx-baseline-status is enabled"`, or `"has no live data available"`. Genuine runtime-sourced rows do not contain these fallback phrases. Chapter 7 Result omits those sentences so HTML/PDF stay client-safe.
 
 ```bash
 jq '.entries[] | select(.source=="ccx")' scripts/health_check/hc_report/catalogs/tsr_ccx_crosswalk.json

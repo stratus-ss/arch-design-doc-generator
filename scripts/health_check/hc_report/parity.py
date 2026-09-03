@@ -267,6 +267,9 @@ def expand_with_parity_checks(
         tsr_ref = str(entry.get("tsr_ref", ""))
 
         status = "SKIPPED"
+        # Fallback evidence sentences below are detected by
+        # renderer._CATALOG_FALLBACK_MARKERS to suppress them from the
+        # client-facing Chapter 7 Result column.  Keep both sides in sync.
         if tsr_runtime_path is None:
             evidence = (
                 f"No TSR runtime data supplied for '{title}'. This check is mapped in the "

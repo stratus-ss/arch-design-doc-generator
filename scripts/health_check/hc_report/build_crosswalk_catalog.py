@@ -46,8 +46,36 @@ _SECTION_MAP = [
 _CCX_STATUS_MAP = {"fail": "FAIL", "pass": "PASS", "info": "INFO", "skip": "SKIPPED", "warning": "WARNING"}
 
 
+# Measured gap from </button> to the child <ul> in a real TSR export is 63
+# chars; 100 leaves margin for whitespace/formatting drift across TSR
+# versions without reaching into a sibling node's own <ul> (siblings are
+# separated by the sibling's full button markup, hundreds of chars away).
+_GROUP_HEADER_LOOKAHEAD_CHARS = 100
+
+
+def _node_text_is_group_header(section: str, node_text_end_index: int) -> bool:
+    """True when a tree-view node's button closes into a child `<ul>` list.
+
+    The TSR HTML tree view nests dropdown group headers (e.g. "1.5. Other
+    Basic Checks") above their leaf checks using the same
+    `pf-v6-c-tree-view__node-text` span markup. A group header's `</button>`
+    is immediately followed by a child `<ul class="pf-v6-c-tree-view__list">`;
+    a leaf check's `</button>` is not. Group headers are never real checks
+    and have no matching `leaf-extra` entry in tsr_parser.py, so they must
+    not become catalog rows.
+    """
+    button_close_index = section.find("</button>", node_text_end_index)
+    if button_close_index < 0:
+        return False
+    lookahead = section[button_close_index:button_close_index + _GROUP_HEADER_LOOKAHEAD_CHARS]
+    return "<ul" in lookahead
+
+
 def _collect_tsr_sections(tsr_html: str) -> list[dict]:
-    """Extract catalog entries from TSR sections 1–7."""
+    """Extract leaf-check catalog entries from TSR sections 1–7.
+
+    Skips tree-view group/dropdown headers (see _node_text_is_group_header).
+    """
     results: list[dict] = []
     marker = 'pf-v6-c-tree-view__node-text">'
     for panel_id, next_btn, category_id, category_name, ref in _SECTION_MAP:
@@ -69,7 +97,7 @@ def _collect_tsr_sections(tsr_html: str) -> list[dict]:
             title = section[index + len(marker):end_index]
             title = re.sub(r"<[^>]+>", "", title)
             title = re.sub(r"\s+", " ", title).strip()
-            if title:
+            if title and not _node_text_is_group_header(section, end_index):
                 title_match = re.match(r"^(\d+(?:\.\d+)+)", title)
                 tsr_ref = title_match.group(1) if title_match else ref
                 results.append(

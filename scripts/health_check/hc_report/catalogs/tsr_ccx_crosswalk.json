@@ -2,28 +2,6 @@
   "schema_version": 1,
   "entries": [
     {
-      "check_id": "7.1.tsr.openshift_must_gather_collection",
-      "category_id": "7.1",
-      "category_name": "Base Platform Checks",
-      "source": "tsr",
-      "group": "pre",
-      "title": "OpenShift Must Gather Collection",
-      "status_hint": "INFO",
-      "tsr_ref": "pre",
-      "tags": []
-    },
-    {
-      "check_id": "7.1.tsr.openshift_must_gather_data_capture_timestamps",
-      "category_id": "7.1",
-      "category_name": "Base Platform Checks",
-      "source": "tsr",
-      "group": "pre",
-      "title": "OpenShift Must Gather Data Capture Timestamps",
-      "status_hint": "INFO",
-      "tsr_ref": "pre",
-      "tags": []
-    },
-    {
       "check_id": "7.1.tsr.1_1_identification_and_state",
       "category_id": "7.1",
       "category_name": "Base Platform Checks",
@@ -46,17 +24,6 @@
       "tags": []
     },
     {
-      "check_id": "7.1.tsr.1_3_infrastructure_requirements",
-      "category_id": "7.1",
-      "category_name": "Base Platform Checks",
-      "source": "tsr",
-      "group": "section1",
-      "title": "1.3. Infrastructure Requirements",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "1.3",
-      "tags": []
-    },
-    {
       "check_id": "7.1.tsr.1_3_1_installer",
       "category_id": "7.1",
       "category_name": "Base Platform Checks",
@@ -65,17 +32,6 @@
       "title": "1.3.1. Installer",
       "status_hint": "SKIPPED",
       "tsr_ref": "1.3.1",
-      "tags": []
-    },
-    {
-      "check_id": "7.1.tsr.1_3_2_platform_hypervisor",
-      "category_id": "7.1",
-      "category_name": "Base Platform Checks",
-      "source": "tsr",
-      "group": "section1",
-      "title": "1.3.2. Platform/Hypervisor",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "1.3.2",
       "tags": []
     },
     {
@@ -109,28 +65,6 @@
       "title": "1.3.3. Restricted Network",
       "status_hint": "SKIPPED",
       "tsr_ref": "1.3.3",
-      "tags": []
-    },
-    {
-      "check_id": "7.1.tsr.1_4_minimum_hardware_requirements",
-      "category_id": "7.1",
-      "category_name": "Base Platform Checks",
-      "source": "tsr",
-      "group": "section1",
-      "title": "1.4. Minimum Hardware Requirements",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "1.4",
-      "tags": []
-    },
-    {
-      "check_id": "7.1.tsr.1_4_1_master_nodes",
-      "category_id": "7.1",
-      "category_name": "Base Platform Checks",
-      "source": "tsr",
-      "group": "section1",
-      "title": "1.4.1. Master Nodes",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "1.4.1",
       "tags": []
     },
     {
@@ -200,50 +134,6 @@
       "tags": []
     },
     {
-      "check_id": "7.1.tsr.1_4_2_non_master_nodes",
-      "category_id": "7.1",
-      "category_name": "Base Platform Checks",
-      "source": "tsr",
-      "group": "section1",
-      "title": "1.4.2. Non-Master Nodes",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "1.4.2",
-      "tags": []
-    },
-    {
-      "check_id": "7.1.tsr.1_4_2_1_operating_system_version",
-      "category_id": "7.1",
-      "category_name": "Base Platform Checks",
-      "source": "tsr",
-      "group": "section1",
-      "title": "1.4.2.1. Operating System Version",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "1.4.2.1",
-      "tags": []
-    },
-    {
-      "check_id": "7.1.tsr.1_4_2_2_node_cpus",
-      "category_id": "7.1",
-      "category_name": "Base Platform Checks",
-      "source": "tsr",
-      "group": "section1",
-      "title": "1.4.2.2. Node CPUs",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "1.4.2.2",
-      "tags": []
-    },
-    {
-      "check_id": "7.1.tsr.1_4_2_3_node_memory",
-      "category_id": "7.1",
-      "category_name": "Base Platform Checks",
-      "source": "tsr",
-      "group": "section1",
-      "title": "1.4.2.3. Node Memory",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "1.4.2.3",
-      "tags": []
-    },
-    {
       "check_id": "7.1.tsr.1_4_2_4_node_disk",
       "category_id": "7.1",
       "category_name": "Base Platform Checks",
@@ -266,17 +156,6 @@
       "tags": []
     },
     {
-      "check_id": "7.1.tsr.1_5_other_basic_checks",
-      "category_id": "7.1",
-      "category_name": "Base Platform Checks",
-      "source": "tsr",
-      "group": "section1",
-      "title": "1.5. Other Basic Checks",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "1.5",
-      "tags": []
-    },
-    {
       "check_id": "7.1.tsr.1_5_1_selinux",
       "category_id": "7.1",
       "category_name": "Base Platform Checks",
@@ -285,17 +164,6 @@
       "title": "1.5.1. SELinux",
       "status_hint": "SKIPPED",
       "tsr_ref": "1.5.1",
-      "tags": []
-    },
-    {
-      "check_id": "7.1.tsr.1_5_2_dns",
-      "category_id": "7.1",
-      "category_name": "Base Platform Checks",
-      "source": "tsr",
-      "group": "section1",
-      "title": "1.5.2. DNS",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "1.5.2",
       "tags": []
     },
     {
@@ -373,17 +241,6 @@
       "title": "1.5.6. Proxy",
       "status_hint": "SKIPPED",
       "tsr_ref": "1.5.6",
-      "tags": []
-    },
-    {
-      "check_id": "7.1.tsr.1_5_7_time",
-      "category_id": "7.1",
-      "category_name": "Base Platform Checks",
-      "source": "tsr",
-      "group": "section1",
-      "title": "1.5.7. Time",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "1.5.7",
       "tags": []
     },
     {
@@ -552,17 +409,6 @@
       "tags": []
     },
     {
-      "check_id": "7.2.tsr.2_1_consistency",
-      "category_id": "7.2",
-      "category_name": "Topology Checks",
-      "source": "tsr",
-      "group": "section2",
-      "title": "2.1. Consistency",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "2.1",
-      "tags": []
-    },
-    {
       "check_id": "7.2.tsr.2_1_1_consistent_ocp_release",
       "category_id": "7.2",
       "category_name": "Topology Checks",
@@ -582,17 +428,6 @@
       "title": "2.1.2. Consistent OS Release",
       "status_hint": "SKIPPED",
       "tsr_ref": "2.1.2",
-      "tags": []
-    },
-    {
-      "check_id": "7.2.tsr.2_2_high_availability",
-      "category_id": "7.2",
-      "category_name": "Topology Checks",
-      "source": "tsr",
-      "group": "section2",
-      "title": "2.2. High Availability",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "2.2",
       "tags": []
     },
     {
@@ -626,17 +461,6 @@
       "title": "2.2.3. HAProxy HA",
       "status_hint": "SKIPPED",
       "tsr_ref": "2.2.3",
-      "tags": []
-    },
-    {
-      "check_id": "7.2.tsr.2_3_scalability",
-      "category_id": "7.2",
-      "category_name": "Topology Checks",
-      "source": "tsr",
-      "group": "section2",
-      "title": "2.3. Scalability",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "2.3",
       "tags": []
     },
     {
@@ -681,17 +505,6 @@
       "title": "3.1. Cluster Version",
       "status_hint": "SKIPPED",
       "tsr_ref": "3.1",
-      "tags": []
-    },
-    {
-      "check_id": "7.3.tsr.3_2_operators",
-      "category_id": "7.3",
-      "category_name": "Component Checks",
-      "source": "tsr",
-      "group": "section3",
-      "title": "3.2. Operators",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "3.2",
       "tags": []
     },
     {
@@ -747,17 +560,6 @@
       "title": "3.4. Master Configuration",
       "status_hint": "SKIPPED",
       "tsr_ref": "3.4",
-      "tags": []
-    },
-    {
-      "check_id": "7.3.tsr.3_5_etcd",
-      "category_id": "7.3",
-      "category_name": "Component Checks",
-      "source": "tsr",
-      "group": "section3",
-      "title": "3.5. ETCD",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "3.5",
       "tags": []
     },
     {
@@ -838,17 +640,6 @@
       "tags": []
     },
     {
-      "check_id": "7.3.tsr.3_5_8_etcd_performance",
-      "category_id": "7.3",
-      "category_name": "Component Checks",
-      "source": "tsr",
-      "group": "section3",
-      "title": "3.5.8. ETCD Performance",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "3.5.8",
-      "tags": []
-    },
-    {
       "check_id": "7.3.tsr.3_5_8_1_etcd_disk_performance",
       "category_id": "7.3",
       "category_name": "Component Checks",
@@ -893,17 +684,6 @@
       "tags": []
     },
     {
-      "check_id": "7.3.tsr.3_6_registry",
-      "category_id": "7.3",
-      "category_name": "Component Checks",
-      "source": "tsr",
-      "group": "section3",
-      "title": "3.6. Registry",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "3.6",
-      "tags": []
-    },
-    {
       "check_id": "7.3.tsr.3_6_1_registry_scaled",
       "category_id": "7.3",
       "category_name": "Component Checks",
@@ -926,17 +706,6 @@
       "tags": []
     },
     {
-      "check_id": "7.3.tsr.3_7_monitoring",
-      "category_id": "7.3",
-      "category_name": "Component Checks",
-      "source": "tsr",
-      "group": "section3",
-      "title": "3.7. Monitoring",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "3.7",
-      "tags": []
-    },
-    {
       "check_id": "7.3.tsr.3_7_1_monitoring_installed",
       "category_id": "7.3",
       "category_name": "Component Checks",
@@ -956,17 +725,6 @@
       "title": "3.7.2. Monitoring Storage Type",
       "status_hint": "SKIPPED",
       "tsr_ref": "3.7.2",
-      "tags": []
-    },
-    {
-      "check_id": "7.3.tsr.3_8_ingress_controller",
-      "category_id": "7.3",
-      "category_name": "Component Checks",
-      "source": "tsr",
-      "group": "section3",
-      "title": "3.8. Ingress Controller",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "3.8",
       "tags": []
     },
     {
@@ -1000,17 +758,6 @@
       "title": "3.8.3. Ingress Sharding",
       "status_hint": "SKIPPED",
       "tsr_ref": "3.8.3",
-      "tags": []
-    },
-    {
-      "check_id": "7.3.tsr.3_9_storage",
-      "category_id": "7.3",
-      "category_name": "Component Checks",
-      "source": "tsr",
-      "group": "section3",
-      "title": "3.9. Storage",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "3.9",
       "tags": []
     },
     {
@@ -1080,17 +827,6 @@
       "tags": []
     },
     {
-      "check_id": "7.3.tsr.3_10_kubernetes",
-      "category_id": "7.3",
-      "category_name": "Component Checks",
-      "source": "tsr",
-      "group": "section3",
-      "title": "3.10. Kubernetes",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "3.10",
-      "tags": []
-    },
-    {
       "check_id": "7.3.tsr.3_10_1_kubeproxy",
       "category_id": "7.3",
       "category_name": "Component Checks",
@@ -1157,17 +893,6 @@
       "tags": []
     },
     {
-      "check_id": "7.3.tsr.3_14_load_balancer",
-      "category_id": "7.3",
-      "category_name": "Component Checks",
-      "source": "tsr",
-      "group": "section3",
-      "title": "3.14. Load Balancer",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "3.14",
-      "tags": []
-    },
-    {
       "check_id": "7.3.tsr.3_14_1_platform_load_balancer",
       "category_id": "7.3",
       "category_name": "Component Checks",
@@ -1176,17 +901,6 @@
       "title": "3.14.1. Platform Load Balancer",
       "status_hint": "SKIPPED",
       "tsr_ref": "3.14.1",
-      "tags": []
-    },
-    {
-      "check_id": "7.3.tsr.3_14_2_metallb",
-      "category_id": "7.3",
-      "category_name": "Component Checks",
-      "source": "tsr",
-      "group": "section3",
-      "title": "3.14.2. MetalLB",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "3.14.2",
       "tags": []
     },
     {
@@ -1212,17 +926,6 @@
       "tags": []
     },
     {
-      "check_id": "7.3.tsr.3_14_2_3_metallb_l2_arp_ndp",
-      "category_id": "7.3",
-      "category_name": "Component Checks",
-      "source": "tsr",
-      "group": "section3",
-      "title": "3.14.2.3. MetalLB L2 ARP/NDP",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "3.14.2.3",
-      "tags": []
-    },
-    {
       "check_id": "7.3.tsr.3_15_machine_config_pool",
       "category_id": "7.3",
       "category_name": "Component Checks",
@@ -1242,17 +945,6 @@
       "title": "3.16. Stream Control Transmission Protocol (SCTP)",
       "status_hint": "SKIPPED",
       "tsr_ref": "3.16",
-      "tags": []
-    },
-    {
-      "check_id": "7.3.tsr.3_17_network",
-      "category_id": "7.3",
-      "category_name": "Component Checks",
-      "source": "tsr",
-      "group": "section3",
-      "title": "3.17. Network",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "3.17",
       "tags": []
     },
     {
@@ -1377,17 +1069,6 @@
       "tags": []
     },
     {
-      "check_id": "7.3.tsr.3_22_workload_partitioning",
-      "category_id": "7.3",
-      "category_name": "Component Checks",
-      "source": "tsr",
-      "group": "section3",
-      "title": "3.22. Workload Partitioning",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "3.22",
-      "tags": []
-    },
-    {
       "check_id": "7.3.tsr.3_22_1_workload_partitioning_enabled",
       "category_id": "7.3",
       "category_name": "Component Checks",
@@ -1432,17 +1113,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_1_openshift_logging",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.1. OpenShift Logging",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.1",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_1_1_logging_supported_configuration",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -1484,17 +1154,6 @@
       "title": "4.1.4. Logging Pod Status",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.1.4",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_1_5_logging_health",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.1.5. Logging Health",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.1.5",
       "tags": []
     },
     {
@@ -1553,39 +1212,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_2_openshift_data_foundation",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.2. OpenShift Data Foundation",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.2",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_2_1_basic_checks",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.2.1. Basic checks",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.2.1",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_2_1_1_identification_and_state",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.2.1.1. Identification and State",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.2.1.1",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_2_1_1_1_identification_and_state",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -1641,14 +1267,14 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_2_1_2_versions",
+      "check_id": "7.4.tsr.4_2_1_2_1_minimum_odf_version",
       "category_id": "7.4",
       "category_name": "Layered Products",
       "source": "tsr",
       "group": "section4",
-      "title": "4.2.1.2. Versions",
+      "title": "4.2.1.2.1. Minimum ODF Version",
       "status_hint": "SKIPPED",
-      "tsr_ref": "4.2.1.2",
+      "tsr_ref": "4.2.1.2.1",
       "tags": []
     },
     {
@@ -1660,17 +1286,6 @@
       "title": "4.2.1.2.2. OCP Version",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.2.1.2.2",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_2_1_3_minimum_hardware_requirements",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.2.1.3. Minimum Hardware Requirements",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.2.1.3",
       "tags": []
     },
     {
@@ -1707,28 +1322,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_2_1_4_other_basic_checks",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.2.1.4. Other Basic Checks",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.2.1.4",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_2_1_4_1_limits",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.2.1.4.1. Limits",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.2.1.4.1",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_2_1_4_1_1_odf_limits",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -1751,17 +1344,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_2_1_4_2_usage",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.2.1.4.2. Usage",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.2.1.4.2",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_2_1_4_2_1_odf_cluster_usage",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -1770,17 +1352,6 @@
       "title": "4.2.1.4.2.1. ODF Cluster Usage",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.2.1.4.2.1",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_2_1_4_3_events_and_alerts",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.2.1.4.3. Events and Alerts",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.2.1.4.3",
       "tags": []
     },
     {
@@ -1806,17 +1377,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_2_1_4_4_sccs",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.2.1.4.4. SCCs",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.2.1.4.4",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_2_1_4_4_1_odf_anyuid_scc",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -1836,17 +1396,6 @@
       "title": "4.2.1.4.4.2. ODF Scc Default",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.2.1.4.4.2",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_2_1_4_5_odf_pods",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.2.1.4.5. ODF Pods",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.2.1.4.5",
       "tags": []
     },
     {
@@ -1872,17 +1421,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_2_1_4_6_crashes",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.2.1.4.6. Crashes",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.2.1.4.6",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_2_1_4_6_1_ceph_crashes",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -1902,17 +1440,6 @@
       "title": "4.2.1.4.6.2. ODF Node Crash",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.2.1.4.6.2",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_2_1_4_7_networking",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.2.1.4.7. Networking",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.2.1.4.7",
       "tags": []
     },
     {
@@ -1960,17 +1487,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_2_1_4_8_monitoring",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.2.1.4.8. Monitoring",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.2.1.4.8",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_2_1_4_8_1_openshift_odf_monitoring",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -1990,39 +1506,6 @@
       "title": "4.2.1.4.8.2. OpenShift ODF OCS Metrics Pod",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.2.1.4.8.2",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_2_2_component_checks",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.2.2. Component Checks",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.2.2",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_2_2_1_operators",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.2.2.1. Operators",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.2.2.1",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_2_2_1_1_odf_operator",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.2.2.1.1. ODF Operator",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.2.2.1.1",
       "tags": []
     },
     {
@@ -2048,17 +1531,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_2_2_1_2_rook_operator",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.2.2.1.2. Rook Operator",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.2.2.1.2",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_2_2_1_2_1_odf_rook_operator_basics",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -2067,17 +1539,6 @@
       "title": "4.2.2.1.2.1. ODF Rook Operator Basics",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.2.2.1.2.1",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_2_2_1_3_mcg_operator",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.2.2.1.3. MCG Operator",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.2.2.1.3",
       "tags": []
     },
     {
@@ -2213,17 +1674,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_2_2_1_4_ocs_operator",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.2.2.1.4. OCS Operator",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.2.2.1.4",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_2_2_1_4_1_ocs_operator_basics",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -2257,17 +1707,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_2_2_1_5_ocs_client_operator",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.2.2.1.5. OCS Client Operator",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.2.2.1.5",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_2_2_1_5_1_odf_ocs_storage_client_basics",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -2279,17 +1718,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_2_2_1_6_dr_operator",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.2.2.1.6. DR Operator",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.2.2.1.6",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_2_2_1_6_1_odf_dr_operators_basics",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -2298,17 +1726,6 @@
       "title": "4.2.2.1.6.1. ODF DR Operators Basics",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.2.2.1.6.1",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_2_2_2_csi_drivers",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.2.2.2. CSI Drivers",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.2.2.2",
       "tags": []
     },
     {
@@ -2364,28 +1781,6 @@
       "title": "4.2.2.2.5. CSI CephConnection Monitor Port",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.2.2.2.5",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_2_2_3_ceph",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.2.2.3. Ceph",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.2.2.3",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_2_2_3_1_rbd",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.2.2.3.1. RBD",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.2.2.3.1",
       "tags": []
     },
     {
@@ -2477,17 +1872,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_2_2_3_2_pools",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.2.2.3.2. Pools",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.2.2.3.2",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_2_2_3_2_1_pools_basics",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -2529,17 +1913,6 @@
       "title": "4.2.2.3.2.4. ODF Pool PG Analysis",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.2.2.3.2.4",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_2_2_3_3_osd",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.2.2.3.3. OSD",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.2.2.3.3",
       "tags": []
     },
     {
@@ -2730,17 +2103,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_2_2_3_4_mds_cephfs",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.2.2.3.4. MDS/CephFS",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.2.2.3.4",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_2_2_3_4_1_mds_basics",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -2873,17 +2235,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_2_2_3_5_mons",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.2.2.3.5. MONs",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.2.2.3.5",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_2_2_3_5_1_mon_basics",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -2961,17 +2312,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_2_2_3_6_nfs",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.2.2.3.6. NFS",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.2.2.3.6",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_2_2_3_6_1_nfs_basics",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -2991,17 +2331,6 @@
       "title": "4.2.2.3.6.2. Avoid Upgrades to ODF 4.18.3",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.2.2.3.6.2",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_2_2_3_7_rgw",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.2.2.3.7. RGW",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.2.2.3.7",
       "tags": []
     },
     {
@@ -3049,17 +2378,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_2_2_4_pvs_pvcs",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.2.2.4. PVs/PVCs",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.2.2.4",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_2_2_4_1_pv_basics",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -3104,17 +2422,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_2_2_5_obs_obcs",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.2.2.5. OBs/OBCs",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.2.2.5",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_2_2_5_1_obc_basics",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -3134,61 +2441,6 @@
       "title": "4.2.2.5.2. OBCs for Loki",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.2.2.5.2",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_3_openshift_service_mesh",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.3. OpenShift Service Mesh",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.3",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_3_2_service_mesh_pods",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.3.2. Service Mesh Pods",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.3.2",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_3_2_service_mesh_projects",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.3.2. Service Mesh Projects",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.3.2",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_3_3_servicemesh_members",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.3.3. ServiceMesh Members",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.3.3",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_4_openshift_serverless",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.4. OpenShift Serverless",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.4",
       "tags": []
     },
     {
@@ -3214,28 +2466,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_5_openshift_quay",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.5. OpenShift Quay",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.5",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_5_1_quay_basic_checks",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.5.1. Quay Basic Checks",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.5.1",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_5_1_1_quay_supported_configuration",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -3258,17 +2488,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_5_2_quay_topology_checks",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.5.2. Quay Topology Checks",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.5.2",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_5_2_1_openshift_quay_high_availability",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -3277,17 +2496,6 @@
       "title": "4.5.2.1. OpenShift Quay High Availability",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.5.2.1",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_5_3_quay_components",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.5.3. Quay Components",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.5.3",
       "tags": []
     },
     {
@@ -3324,17 +2532,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_5_4_quay_health",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.5.4. Quay Health",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.5.4",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_5_4_1_quay_pods",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -3343,17 +2540,6 @@
       "title": "4.5.4.1. Quay Pods",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.5.4.1",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_6_openshift_container_security",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.6. OpenShift Container Security",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.6",
       "tags": []
     },
     {
@@ -3379,28 +2565,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_7_red_hat_advanced_cluster_manager_rhacm",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.7. Red Hat Advanced Cluster Manager (RHACM)",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.7",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_7_1_rhacm_basic_checks",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.7.1. RHACM Basic Checks",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.7.1",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_7_1_1_rhacm_supported_config",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -3420,28 +2584,6 @@
       "title": "4.7.1.2. RHACM Agent",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.7.1.2",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_7_1_3_rhacm_minimum_hardware_requirements",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.7.1.3. RHACM Minimum Hardware Requirements",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.7.1.3",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_7_1_3_2_rhacm_compute_nodes",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.7.1.3.2. RHACM Compute Nodes",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.7.1.3.2",
       "tags": []
     },
     {
@@ -3478,17 +2620,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_7_1_4_rhacm_other_basic_checks",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.7.1.4. RHACM Other Basic Checks",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.7.1.4",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_7_1_4_1_rhacm_hub_self_management_status",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -3522,28 +2653,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_7_2_rhacm_topology",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.7.2. RHACM Topology",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.7.2",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_7_2_2_rhacm_high_availability",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.7.2.2. RHACM High Availability",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.7.2.2",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_7_2_2_1_rhacm_availability_config",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -3552,28 +2661,6 @@
       "title": "4.7.2.2.1. RHACM Availability Config",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.7.2.2.1",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_7_3_rhacm_components",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.7.3. RHACM Components",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.7.3",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_7_3_1_rhacm_app_lifecycle",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.7.3.1. RHACM App Lifecycle",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.7.3.1",
       "tags": []
     },
     {
@@ -3599,17 +2686,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_7_3_2_rhacm_cluster_backup",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.7.3.2. RHACM Cluster Backup",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.7.3.2",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_7_3_2_1_rhacm_cluster_backup_status",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -3629,17 +2705,6 @@
       "title": "4.7.3.2.2. RHACM Cluster Backup Config Override",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.7.3.2.2",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_7_3_3_rhacm_cluster_lifecycle",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.7.3.3. RHACM Cluster Lifecycle",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.7.3.3",
       "tags": []
     },
     {
@@ -3665,17 +2730,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_7_3_4_rhacm_cluster_permission",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.7.3.4. RHACM Cluster Permission",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.7.3.4",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_7_3_4_1_rhacm_cluster_permission_status",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -3695,17 +2749,6 @@
       "title": "4.7.3.4.2. RHACM Cluster Permission Config Override",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.7.3.4.2",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_7_3_5_rhacm_console",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.7.3.5. RHACM Console",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.7.3.5",
       "tags": []
     },
     {
@@ -3731,17 +2774,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_7_3_6_rhacm_edge_manager_preview",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.7.3.6. RHACM Edge Manager Preview",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.7.3.6",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_7_3_6_1_rhacm_edge_manager_preview_status",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -3761,17 +2793,6 @@
       "title": "4.7.3.6.2. RHACM Edge Manager Preview Config Override",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.7.3.6.2",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_7_3_7_rhacm_grc",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.7.3.7. RHACM GRC",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.7.3.7",
       "tags": []
     },
     {
@@ -3797,17 +2818,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_7_3_8_rhacm_insights",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.7.3.8. RHACM Insights",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.7.3.8",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_7_3_8_1_rhacm_insights_status",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -3827,17 +2837,6 @@
       "title": "4.7.3.8.2. RHACM Insights Config Override",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.7.3.8.2",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_7_3_9_rhacm_multicluster_engine",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.7.3.9. RHACM MultiCluster Engine",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.7.3.9",
       "tags": []
     },
     {
@@ -3874,17 +2873,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_7_3_10_rhacm_multicluster_observability",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.7.3.10. RHACM MultiCluster Observability",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.7.3.10",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_7_3_10_1_rhacm_multicluster_observability_status",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -3904,17 +2892,6 @@
       "title": "4.7.3.10.2. RHACM MultiCluster Observability Config Override",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.7.3.10.2",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_7_3_11_rhacm_search",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.7.3.11. RHACM Search",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.7.3.11",
       "tags": []
     },
     {
@@ -3940,17 +2917,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_7_3_12_rhacm_siteconfig",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.7.3.12. RHACM SiteConfig",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.7.3.12",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_7_3_12_1_rhacm_siteconfig_status",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -3970,17 +2936,6 @@
       "title": "4.7.3.12.2. RHACM SiteConfig Config Override",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.7.3.12.2",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_7_3_13_rhacm_submariner_addon",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.7.3.13. RHACM Submariner Addon",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.7.3.13",
       "tags": []
     },
     {
@@ -4006,17 +2961,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_7_3_14_rhacm_volsync",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.7.3.14. RHACM VolSync",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.7.3.14",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_7_3_14_1_rhacm_volsync_status",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -4036,28 +2980,6 @@
       "title": "4.7.3.14.2. VolSync Config Override",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.7.3.14.2",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_7_4_rhacm_health",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.7.4. RHACM Health",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.7.4",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_7_4_1_rhacm_operators",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.7.4.1. RHACM Operators",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.7.4.1",
       "tags": []
     },
     {
@@ -4116,17 +3038,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_7_5_rhacm_day_2_operations",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.7.5. RHACM Day-2 Operations",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.7.5",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_7_5_1_rhacm_persistent_volume_usage",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -4146,39 +3057,6 @@
       "title": "4.7.5.2. RHACM Placement Tolerations",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.7.5.2",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_8_red_hat_openshift_virtualization",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.8. Red Hat OpenShift Virtualization",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.8",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_8_1_basic_checks",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.8.1. Basic Checks",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.8.1",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_8_1_1_installation",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.8.1.1. Installation",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.8.1.1",
       "tags": []
     },
     {
@@ -4204,17 +3082,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_8_1_2_infrastructure_requirements",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.8.1.2. Infrastructure Requirements",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.8.1.2",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_8_1_2_1_platform_hypervisor",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -4223,17 +3090,6 @@
       "title": "4.8.1.2.1. Platform Hypervisor",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.8.1.2.1",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_8_1_3_minimum_hardware_requirements",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.8.1.3. Minimum Hardware Requirements",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.8.1.3",
       "tags": []
     },
     {
@@ -4281,17 +3137,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_8_1_4_node_disk",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.8.1.4. Node Disk",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.8.1.4",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_8_1_4_1_cpu_physical_resource_overhead_requirements",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -4322,28 +3167,6 @@
       "title": "4.8.1.4.3. Storage Physical Resource Overhead Requirements",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.8.1.4.3",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_8_1_5_other_basic_checks",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.8.1.5. Other Basic Checks",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.8.1.5",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_8_1_5_1_node_placement_rules",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.8.1.5.1. Node Placement Rules",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.8.1.5.1",
       "tags": []
     },
     {
@@ -4380,17 +3203,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_8_1_5_2_drivers",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.8.1.5.2. Drivers",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.8.1.5.2",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_8_1_5_2_1_qemu_guest_agent",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -4410,17 +3222,6 @@
       "title": "4.8.1.5.2.2. VirtIO Drivers",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.8.1.5.2.2",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_8_1_5_3_monitoring",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.8.1.5.3. Monitoring",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.8.1.5.3",
       "tags": []
     },
     {
@@ -4454,39 +3255,6 @@
       "title": "4.8.1.5.3.3. DPDK Checkup",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.8.1.5.3.3",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_8_2_topology_checks",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.8.2. Topology Checks",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.8.2",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_8_2_1_high_availability",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.8.2.1. High Availability",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.8.2.1",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_8_2_1_1_live_migrations_requirements",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.8.2.1.1. Live Migrations Requirements",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.8.2.1.1",
       "tags": []
     },
     {
@@ -4556,28 +3324,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_8_3_component_checks",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.8.3. Component Checks",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.8.3",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_8_3_1_storage_configurations",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.8.3.1. Storage Configurations",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.8.3.1",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_8_3_1_1_storage_profiles",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -4611,14 +3357,14 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_8_3_2_network_configurations",
+      "check_id": "7.4.tsr.4_8_3_1_5_multipath_cnv_storage_posture",
       "category_id": "7.4",
       "category_name": "Layered Products",
       "source": "tsr",
       "group": "section4",
-      "title": "4.8.3.2. Network Configurations",
+      "title": "4.8.3.1.5. Multipath CNV Storage Posture",
       "status_hint": "SKIPPED",
-      "tsr_ref": "4.8.3.2",
+      "tsr_ref": "4.8.3.1.5",
       "tags": []
     },
     {
@@ -4655,14 +3401,14 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_8_4_virtualization_health",
+      "check_id": "7.4.tsr.4_8_3_2_5_cudn_localnet_nad_scale",
       "category_id": "7.4",
       "category_name": "Layered Products",
       "source": "tsr",
       "group": "section4",
-      "title": "4.8.4. Virtualization Health",
+      "title": "4.8.3.2.5. CUDN Localnet NAD Scale",
       "status_hint": "SKIPPED",
-      "tsr_ref": "4.8.4",
+      "tsr_ref": "4.8.3.2.5",
       "tags": []
     },
     {
@@ -4787,25 +3533,124 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_8_5_day_2_operations",
+      "check_id": "7.4.tsr.4_8_4_12_windows_machine_type_posture",
       "category_id": "7.4",
       "category_name": "Layered Products",
       "source": "tsr",
       "group": "section4",
-      "title": "4.8.5. Day-2 Operations",
+      "title": "4.8.4.12. Windows Machine Type Posture",
       "status_hint": "SKIPPED",
-      "tsr_ref": "4.8.5",
+      "tsr_ref": "4.8.4.12",
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_8_5_1_capacity_management",
+      "check_id": "7.4.tsr.4_8_4_13_windows_legacy_nic_posture",
       "category_id": "7.4",
       "category_name": "Layered Products",
       "source": "tsr",
       "group": "section4",
-      "title": "4.8.5.1. Capacity Management",
+      "title": "4.8.4.13. Windows Legacy NIC Posture",
       "status_hint": "SKIPPED",
-      "tsr_ref": "4.8.5.1",
+      "tsr_ref": "4.8.4.13",
+      "tags": []
+    },
+    {
+      "check_id": "7.4.tsr.4_8_4_14_arch_capabilities_cpu_posture",
+      "category_id": "7.4",
+      "category_name": "Layered Products",
+      "source": "tsr",
+      "group": "section4",
+      "title": "4.8.4.14. Arch-Capabilities CPU Posture",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "4.8.4.14",
+      "tags": []
+    },
+    {
+      "check_id": "7.4.tsr.4_8_4_15_amd_microcode_posture",
+      "category_id": "7.4",
+      "category_name": "Layered Products",
+      "source": "tsr",
+      "group": "section4",
+      "title": "4.8.4.15. AMD Microcode Posture",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "4.8.4.15",
+      "tags": []
+    },
+    {
+      "check_id": "7.4.tsr.4_8_4_16_virtio_blk_multiqueue_posture",
+      "category_id": "7.4",
+      "category_name": "Layered Products",
+      "source": "tsr",
+      "group": "section4",
+      "title": "4.8.4.16. virtio-blk Multiqueue Posture",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "4.8.4.16",
+      "tags": []
+    },
+    {
+      "check_id": "7.4.tsr.4_8_4_17_wsl_nested_virt_annotation_posture",
+      "category_id": "7.4",
+      "category_name": "Layered Products",
+      "source": "tsr",
+      "group": "section4",
+      "title": "4.8.4.17. WSL Nested Virt Annotation Posture",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "4.8.4.17",
+      "tags": []
+    },
+    {
+      "check_id": "7.4.tsr.4_8_4_18_windows_template_instancetype_posture",
+      "category_id": "7.4",
+      "category_name": "Layered Products",
+      "source": "tsr",
+      "group": "section4",
+      "title": "4.8.4.18. Windows Template Instancetype Posture",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "4.8.4.18",
+      "tags": []
+    },
+    {
+      "check_id": "7.4.tsr.4_8_4_19_tsc_frequency_consistency",
+      "category_id": "7.4",
+      "category_name": "Layered Products",
+      "source": "tsr",
+      "group": "section4",
+      "title": "4.8.4.19. TSC Frequency Consistency",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "4.8.4.19",
+      "tags": []
+    },
+    {
+      "check_id": "7.4.tsr.4_8_4_20_vmi_paused_io_error_posture",
+      "category_id": "7.4",
+      "category_name": "Layered Products",
+      "source": "tsr",
+      "group": "section4",
+      "title": "4.8.4.20. VMI Paused IO Error Posture",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "4.8.4.20",
+      "tags": []
+    },
+    {
+      "check_id": "7.4.tsr.4_8_4_21_nfs_virt_handler_domain_watcher",
+      "category_id": "7.4",
+      "category_name": "Layered Products",
+      "source": "tsr",
+      "group": "section4",
+      "title": "4.8.4.21. NFS virt-handler Domain Watcher",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "4.8.4.21",
+      "tags": []
+    },
+    {
+      "check_id": "7.4.tsr.4_8_4_25_ephemeral_hotplug_volume_posture",
+      "category_id": "7.4",
+      "category_name": "Layered Products",
+      "source": "tsr",
+      "group": "section4",
+      "title": "4.8.4.25. Ephemeral Hotplug Volume Posture",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "4.8.4.25",
       "tags": []
     },
     {
@@ -4828,17 +3673,6 @@
       "title": "4.8.1.5.1.5. VM Run Strategy and Availability",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.8.1.5.1.5",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_8_5_2_alert_management",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.8.5.2. Alert Management",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.8.5.2",
       "tags": []
     },
     {
@@ -4872,17 +3706,6 @@
       "title": "4.8.5.2.4. Prometheus Duplicate ServiceMonitor",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.8.5.2.4",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_8_5_3_virtual_machine_backup_and_restore",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.8.5.3. Virtual Machine Backup and Restore",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.8.5.3",
       "tags": []
     },
     {
@@ -4941,17 +3764,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_8_5_4_migration_toolkit_for_virtualization",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.8.5.4. Migration Toolkit for Virtualization",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.8.5.4",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_8_5_4_1_mtv",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -4963,14 +3775,14 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_8_6_security",
+      "check_id": "7.4.tsr.4_8_5_5_2_capacity_headroom_node_pressure",
       "category_id": "7.4",
       "category_name": "Layered Products",
       "source": "tsr",
       "group": "section4",
-      "title": "4.8.6. Security",
+      "title": "4.8.5.5.2. Capacity Headroom Node Pressure",
       "status_hint": "SKIPPED",
-      "tsr_ref": "4.8.6",
+      "tsr_ref": "4.8.5.5.2",
       "tags": []
     },
     {
@@ -4985,17 +3797,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_9_red_hat_openshift_ai_self_managed",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.9. Red Hat OpenShift AI Self-Managed",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.9",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_9_1_openshift_ai_self_managed_supported_configuration",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -5007,28 +3808,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_10_red_hat_openstack_rhoso",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.10. Red Hat Openstack (RHOSO)",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.10",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_10_1_rhoso_basic_checks",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.10.1. RHOSO Basic Checks",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.10.1",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_10_1_1_rhoso_openstack_supported_configuration",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -5037,28 +3816,6 @@
       "title": "4.10.1.1. RHOSO OpenStack Supported Configuration",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.10.1.1",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_10_1_4_rhoso_minimum_hardware",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.10.1.4. RHOSO Minimum Hardware",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.10.1.4",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_10_1_4_1_rhoso_control_plane",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.10.1.4.1. RHOSO Control Plane",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.10.1.4.1",
       "tags": []
     },
     {
@@ -5106,17 +3863,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_10_1_4_2_rhoso_worker_nodes",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.10.1.4.2. RHOSO Worker Nodes",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.10.1.4.2",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_10_1_4_2_1_rhoso_worker_node_cpu",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -5150,28 +3896,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_10_3_rhoso_components",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.10.3. RHOSO Components",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.10.3",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_10_3_2_rhoso_operators",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.10.3.2. RHOSO Operators",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.10.3.2",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_10_3_2_1_rhoso_multus_cni_status",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -5191,17 +3915,6 @@
       "title": "4.10.3.2.2. RHOSO Kubernetes NMState Operator",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.10.3.2.2",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_10_3_2_3_rhoso_metallb",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.10.3.2.3. RHOSO MetalLB",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.10.3.2.3",
       "tags": []
     },
     {
@@ -5260,17 +3973,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_10_3_3_rhoso_storage",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.10.3.3. RHOSO Storage",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.10.3.3",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_10_3_3_1_dynamic_storage_provisioners",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -5279,17 +3981,6 @@
       "title": "4.10.3.3.1. Dynamic Storage Provisioners",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.10.3.3.1",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_10_3_5_rhoso_cinder",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.10.3.5. RHOSO Cinder",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.10.3.5",
       "tags": []
     },
     {
@@ -5326,17 +4017,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_10_3_6_rhoso_designate",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.10.3.6. RHOSO Designate",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.10.3.6",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_10_3_6_1_rhoso_designate_status",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -5359,17 +4039,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_10_3_10_rhoso_heat",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.10.3.10. RHOSO Heat",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.10.3.10",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_10_3_10_1_rhoso_heat_status",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -5389,17 +4058,6 @@
       "title": "4.10.3.10.2. RHOSO Heat API Override",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.10.3.10.2",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_10_3_11_rhoso_horizon",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.10.3.11. RHOSO Horizon",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.10.3.11",
       "tags": []
     },
     {
@@ -5436,17 +4094,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_10_3_12_rhoso_ironic",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.10.3.12. RHOSO Ironic",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.10.3.12",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_10_3_12_1_rhoso_ironic_status",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -5466,17 +4113,6 @@
       "title": "4.10.3.12.2. RHOSO Ironic API Override",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.10.3.12.2",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_10_3_13_rhoso_keystone",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.10.3.13. RHOSO Keystone",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.10.3.13",
       "tags": []
     },
     {
@@ -5513,17 +4149,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_10_3_14_rhoso_manila",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.10.3.14. RHOSO Manila",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.10.3.14",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_10_3_14_1_rhoso_manila_status",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -5546,17 +4171,6 @@
       "tags": []
     },
     {
-      "check_id": "7.4.tsr.4_10_3_15_rhoso_memcached",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.10.3.15. RHOSO Memcached",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.10.3.15",
-      "tags": []
-    },
-    {
       "check_id": "7.4.tsr.4_10_3_15_1_rhoso_memcached_status",
       "category_id": "7.4",
       "category_name": "Layered Products",
@@ -5576,39 +4190,6 @@
       "title": "4.10.3.15.2. RHOSO Memcached Pods",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.10.3.15.2",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_12_migration_toolkit_for_virtualization",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.12. Migration Toolkit for Virtualization",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.12",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_12_1_mtv_basic_checks",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.12.1. MTV Basic Checks",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.12.1",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_12_1_1_mtv_installation",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.12.1.1. MTV Installation",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.12.1.1",
       "tags": []
     },
     {
@@ -5642,17 +4223,6 @@
       "title": "4.12.1.2. MTV Supported Configuration",
       "status_hint": "SKIPPED",
       "tsr_ref": "4.12.1.2",
-      "tags": []
-    },
-    {
-      "check_id": "7.4.tsr.4_12_5_mtv_day_2_operations",
-      "category_id": "7.4",
-      "category_name": "Layered Products",
-      "source": "tsr",
-      "group": "section4",
-      "title": "4.12.5. MTV Day-2 Operations",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "4.12.5",
       "tags": []
     },
     {
@@ -5799,17 +4369,6 @@
       "tags": []
     },
     {
-      "check_id": "7.5.tsr.5_11_health_related_alerts",
-      "category_id": "7.5",
-      "category_name": "Cluster Health",
-      "source": "tsr",
-      "group": "section5",
-      "title": "5.11. Health Related Alerts",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "5.11",
-      "tags": []
-    },
-    {
       "check_id": "7.5.tsr.5_11_1_control_plane_alerts",
       "category_id": "7.5",
       "category_name": "Cluster Health",
@@ -5854,28 +4413,6 @@
       "tags": []
     },
     {
-      "check_id": "7.6.tsr.6_1_capacity_management",
-      "category_id": "7.6",
-      "category_name": "Day-2 Operations",
-      "source": "tsr",
-      "group": "section6",
-      "title": "6.1. Capacity Management",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "6.1",
-      "tags": []
-    },
-    {
-      "check_id": "7.6.tsr.6_1_1_quota_and_resources",
-      "category_id": "7.6",
-      "category_name": "Day-2 Operations",
-      "source": "tsr",
-      "group": "section6",
-      "title": "6.1.1. Quota and Resources",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "6.1.1",
-      "tags": []
-    },
-    {
       "check_id": "7.6.tsr.6_1_1_1_quota_resources_project_assignment",
       "category_id": "7.6",
       "category_name": "Day-2 Operations",
@@ -5909,17 +4446,6 @@
       "tags": []
     },
     {
-      "check_id": "7.6.tsr.6_1_3_node_load",
-      "category_id": "7.6",
-      "category_name": "Day-2 Operations",
-      "source": "tsr",
-      "group": "section6",
-      "title": "6.1.3. Node Load",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "6.1.3",
-      "tags": []
-    },
-    {
       "check_id": "7.6.tsr.6_1_3_1_current_node_load",
       "category_id": "7.6",
       "category_name": "Day-2 Operations",
@@ -5950,17 +4476,6 @@
       "title": "6.1.4. Persistent Volume Usage",
       "status_hint": "SKIPPED",
       "tsr_ref": "6.1.4",
-      "tags": []
-    },
-    {
-      "check_id": "7.6.tsr.6_1_5_pruning",
-      "category_id": "7.6",
-      "category_name": "Day-2 Operations",
-      "source": "tsr",
-      "group": "section6",
-      "title": "6.1.5. Pruning",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "6.1.5",
       "tags": []
     },
     {
@@ -6052,17 +4567,6 @@
       "tags": []
     },
     {
-      "check_id": "7.6.tsr.6_2_patch_management",
-      "category_id": "7.6",
-      "category_name": "Day-2 Operations",
-      "source": "tsr",
-      "group": "section6",
-      "title": "6.2. Patch Management",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "6.2",
-      "tags": []
-    },
-    {
       "check_id": "7.6.tsr.6_2_1_update_history",
       "category_id": "7.6",
       "category_name": "Day-2 Operations",
@@ -6093,17 +4597,6 @@
       "title": "6.2.3. Images Patch Management",
       "status_hint": "SKIPPED",
       "tsr_ref": "6.2.3",
-      "tags": []
-    },
-    {
-      "check_id": "7.6.tsr.6_3_alert_management",
-      "category_id": "7.6",
-      "category_name": "Day-2 Operations",
-      "source": "tsr",
-      "group": "section6",
-      "title": "6.3. Alert Management",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "6.3",
       "tags": []
     },
     {
@@ -6140,17 +4633,6 @@
       "tags": []
     },
     {
-      "check_id": "7.6.tsr.6_4_certificate_management",
-      "category_id": "7.6",
-      "category_name": "Day-2 Operations",
-      "source": "tsr",
-      "group": "section6",
-      "title": "6.4. Certificate Management",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "6.4",
-      "tags": []
-    },
-    {
       "check_id": "7.6.tsr.6_4_1_pending_certificate_requests",
       "category_id": "7.6",
       "category_name": "Day-2 Operations",
@@ -6184,17 +4666,6 @@
       "tags": []
     },
     {
-      "check_id": "7.6.tsr.6_6_upgrade_management",
-      "category_id": "7.6",
-      "category_name": "Day-2 Operations",
-      "source": "tsr",
-      "group": "section6",
-      "title": "6.6. Upgrade Management",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "6.6",
-      "tags": []
-    },
-    {
       "check_id": "7.6.tsr.6_6_1_machine_config_pool_max_unavailable",
       "category_id": "7.6",
       "category_name": "Day-2 Operations",
@@ -6203,17 +4674,6 @@
       "title": "6.6.1. Machine Config Pool Max Unavailable",
       "status_hint": "SKIPPED",
       "tsr_ref": "6.6.1",
-      "tags": []
-    },
-    {
-      "check_id": "7.7.tsr.7_1_security",
-      "category_id": "7.7",
-      "category_name": "Security and Compliance",
-      "source": "tsr",
-      "group": "section7",
-      "title": "7.1. Security",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "7.1",
       "tags": []
     },
     {
@@ -6283,28 +4743,6 @@
       "tags": []
     },
     {
-      "check_id": "7.7.tsr.7_2_compliance",
-      "category_id": "7.7",
-      "category_name": "Security and Compliance",
-      "source": "tsr",
-      "group": "section7",
-      "title": "7.2. Compliance",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "7.2",
-      "tags": []
-    },
-    {
-      "check_id": "7.7.tsr.7_2_1_compliance_check",
-      "category_id": "7.7",
-      "category_name": "Security and Compliance",
-      "source": "tsr",
-      "group": "section7",
-      "title": "7.2.1. Compliance Check",
-      "status_hint": "SKIPPED",
-      "tsr_ref": "7.2.1",
-      "tags": []
-    },
-    {
       "check_id": "7.7.tsr.7_2_1_1_compliance_scans",
       "category_id": "7.7",
       "category_name": "Security and Compliance",
@@ -6338,6 +4776,28 @@
       "tags": []
     },
     {
+      "check_id": "7.1.tsr.openshift_must_gather_collection",
+      "category_id": "7.1",
+      "category_name": "Base Platform Checks",
+      "source": "tsr",
+      "group": "pre",
+      "title": "OpenShift Must Gather Collection",
+      "status_hint": "INFO",
+      "tsr_ref": "pre",
+      "tags": []
+    },
+    {
+      "check_id": "7.1.tsr.openshift_must_gather_data_capture_timestamps",
+      "category_id": "7.1",
+      "category_name": "Base Platform Checks",
+      "source": "tsr",
+      "group": "pre",
+      "title": "OpenShift Must Gather Data Capture Timestamps",
+      "status_hint": "INFO",
+      "tsr_ref": "pre",
+      "tags": []
+    },
+    {
       "check_id": "7.7.ccx_external.cve_2026_31431_copy_fail_in_algif_aead",
       "category_id": "7.7",
       "category_name": "Security and Compliance",
@@ -6347,8 +4807,8 @@
       "status_hint": "FAIL",
       "tsr_ref": "CCX:external",
       "tags": [
-        "upgrade",
-        "security"
+        "security",
+        "upgrade"
       ]
     },
     {
@@ -6361,21 +4821,8 @@
       "status_hint": "FAIL",
       "tsr_ref": "CCX:external",
       "tags": [
-        "upgrade",
-        "security"
-      ]
-    },
-    {
-      "check_id": "7.7.ccx_internal.high_severity_alerts",
-      "category_id": "7.7",
-      "category_name": "Security and Compliance",
-      "source": "ccx",
-      "group": "internal",
-      "title": "High Severity Alerts",
-      "status_hint": "FAIL",
-      "tsr_ref": "CCX:internal",
-      "tags": [
-        "alert"
+        "security",
+        "upgrade"
       ]
     },
     {
@@ -6406,16 +4853,18 @@
       ]
     },
     {
-      "check_id": "7.7.ccx_internal.certificates_expiring_soon",
+      "check_id": "7.7.ccx_internal.pvc_phase_check",
       "category_id": "7.7",
       "category_name": "Security and Compliance",
       "source": "ccx",
       "group": "internal",
-      "title": "Certificates Expiring Soon",
-      "status_hint": "FAIL",
+      "title": "Pvc Phase Check",
+      "status_hint": "PASS",
       "tsr_ref": "CCX:internal",
       "tags": [
-        "etcd"
+        "ocs",
+        "pvc",
+        "persistent-volume-claim"
       ]
     },
     {
@@ -6428,10 +4877,10 @@
       "status_hint": "INFO",
       "tsr_ref": "CCX:internal",
       "tags": [
-        "infra",
-        "clusterserviceversion",
+        "shift",
         "csv",
-        "shift"
+        "clusterserviceversion",
+        "infra"
       ]
     },
     {
@@ -6444,9 +4893,9 @@
       "status_hint": "INFO",
       "tsr_ref": "CCX:internal",
       "tags": [
+        "shift",
         "machineset",
-        "machine",
-        "shift"
+        "machine"
       ]
     },
     {
@@ -6459,8 +4908,8 @@
       "status_hint": "INFO",
       "tsr_ref": "CCX:internal",
       "tags": [
-        "network",
-        "shift"
+        "shift",
+        "network"
       ]
     },
     {
@@ -6473,12 +4922,12 @@
       "status_hint": "PASS",
       "tsr_ref": "CCX:internal",
       "tags": [
-        "machineconfigpool",
+        "mcp",
         "shift",
-        "shift_node",
         "nodenotready",
-        "node",
-        "mcp"
+        "machineconfigpool",
+        "shift_node",
+        "node"
       ]
     },
     {
@@ -6491,8 +4940,8 @@
       "status_hint": "INFO",
       "tsr_ref": "CCX:internal",
       "tags": [
-        "operator",
-        "shift"
+        "shift",
+        "operator"
       ]
     },
     {
@@ -6505,10 +4954,10 @@
       "status_hint": "FAIL",
       "tsr_ref": "CCX:internal",
       "tags": [
-        "master",
-        "etcd",
+        "mutating",
         "webhook",
-        "mutating"
+        "etcd",
+        "master"
       ]
     },
     {
@@ -6534,8 +4983,8 @@
       "status_hint": "PASS",
       "tsr_ref": "CCX:internal",
       "tags": [
-        "master",
-        "scheduling"
+        "scheduling",
+        "master"
       ]
     },
     {
@@ -6561,8 +5010,8 @@
       "status_hint": "PASS",
       "tsr_ref": "CCX:internal",
       "tags": [
-        "monitoring",
         "shift_node",
+        "monitoring",
         "node"
       ]
     },
@@ -6573,7 +5022,7 @@
       "source": "ccx",
       "group": "internal",
       "title": "Operators Check",
-      "status_hint": "FAIL",
+      "status_hint": "PASS",
       "tsr_ref": "CCX:internal",
       "tags": [
         "shift"
@@ -6615,8 +5064,8 @@
       "status_hint": "FAIL",
       "tsr_ref": "CCX:internal",
       "tags": [
-        "operator",
-        "olm"
+        "olm",
+        "operator"
       ]
     },
     {
@@ -6629,8 +5078,8 @@
       "status_hint": "PASS",
       "tsr_ref": "CCX:internal",
       "tags": [
-        "clusterversion",
-        "cluster-version"
+        "cluster-version",
+        "clusterversion"
       ]
     },
     {
@@ -6685,6 +5134,2151 @@
         "etcd",
         "apiserver"
       ]
+    },
+    {
+      "check_id": "7.7.ccx_skip.acm_argocd_certificate_verification_failure",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Acm Argocd Certificate Verification Failure",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.auth_operator_with_incorrect_scc",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Auth Operator With Incorrect Scc",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.aws_efs_operator_migration_is_required",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Aws Efs Operator Migration Is Required",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.azure_ssh_not_work",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Azure Ssh Not Work",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.bootstrap_ip_not_assigned",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Bootstrap IP Not Assigned",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.canary_check_repeat_fail",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Canary Check Repeat Fail",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.cannot_access_aws_s3_bucket",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Cannot Access Aws S3 Bucket",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.cant_resolve_interceptor_url",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Cant Resolve Interceptor URL",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.cao_degraded_due_to_default_ingress_controller_cert_expired",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Cao Degraded Due To Default Ingress Controller Cert Expired",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.cao_not_upgradeable_due_to_legacy_certificate_in_ldap_server",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Cao Not Upgradeable Due To Legacy Certificate In Ldap Server",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.catalog_operator_upgrade_fail_for_catalog_source",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Catalog Operator Upgrade Fail For Catalog Source",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.ceph_cluster_full_ratio",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Ceph Cluster Full Ratio",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.ceph_cluster_health",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Ceph Cluster Health",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.ceph_cluster_noout_flag_set",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Ceph Cluster Noout Flag Set",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.ceph_daemon_with_old_version",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Ceph Daemon With Old Version",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.ceph_locking_related_issue",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Ceph Locking Related Issue",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.ceph_mon_clock_skew",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Ceph Mon Clock Skew",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.ceph_mon_disk_low_backed_by_host_filesystem",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Ceph Mon Disk Low Backed By Host Filesystem",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.ceph_pg_availability_warning_for_peering",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Ceph Pg Availability Warning For Peering",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.cephfs_kernel_client_panics",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Cephfs Kernel Client Panics",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.cephfs_report_large_omap_objects_due_to_snap",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Cephfs Report Large Omap Objects Due To Snap",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.cephfs_selinux_relabel_failed",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Cephfs Selinux Relabel Failed",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.certificates_expired",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Certificates Expired",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.certificates_expiring_soon",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Certificates Expiring Soon",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.certificates_not_approved",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Certificates Not Approved",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.check_dns_requirements_for_upi_installation",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Check Dns Requirements For Upi Installation",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.check_egress_firewall",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Check Egress Firewall",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.check_network_diagnostics_are_disabled",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Check Network Diagnostics Are Disabled",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.check_node_not_ready",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Check Node Not Ready",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.check_noobaa_disabled",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Check Noobaa Disabled",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.check_ocs_ceph_monitor_quorum",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Check OCS Ceph Monitor Quorum",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.check_ocs_version",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Check OCS Version",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.check_openshift_namespaces_contain_workloads_partitioning_annotation",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Check Openshift Namespaces Contain Workloads Partitioning Annotation",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.check_openshift_pods_contain_the_workloads_partitioning_annotation",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Check Openshift Pods Contain The Workloads Partitioning Annotation",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.check_sap_sdi_observer_pods",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Check Sap Sdi Observer Pods",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.cluster_logging_operator_metrics_targets_unreachable",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Cluster Logging Operator Metrics Targets Unreachable",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.cluster_role_cluster_manager_admin",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Cluster Role Cluster Manager Admin",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.cluster_upgrade_breaks_when_fips_enabled",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Cluster Upgrade Breaks When Fips Enabled",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.cluster_upgrade_stalls_on_orphan_machine_configs",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Cluster Upgrade Stalls On Orphan Machine Configs",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.cmmc_auth_fail_due_to_invalid_credentials",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Cmmc Auth Fail Due To Invalid Credentials",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.cmmc_auth_fail_due_to_secret_not_found",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Cmmc Auth Fail Due To Secret Not Found",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.cmmc_auth_fail_due_to_token_undefined",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Cmmc Auth Fail Due To Token Undefined",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.cmmc_source_fail_to_register_due_to_credential_not_authorized",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Cmmc Source Fail To Register Due To Credential Not Authorized",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.cmmc_source_fail_to_register_due_to_name_conflict",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Cmmc Source Fail To Register Due To Name Conflict",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.cmo_container_run_as_non_root",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Cmo Container Run As Non Root",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.cmo_upgradeable_not_set_correctly",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Cmo Upgradeable Not Set Correctly",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.collector_pods_keep_restarting",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Collector Pods Keep Restarting",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.compliance_missing_service_account",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Compliance Missing Service Account",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.compliance_operator_failed_for_oom",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Compliance Operator Failed For Oom",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.config_build_strategy_incorrect",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Config Build Strategy Incorrect",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.configmap_gateway_mode_config_exists",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Configmap Gateway Mode Config Exists",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.console_operator_management_state_is_removed",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Console Operator Management State Is Removed",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.console_operator_missing_management_state",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Console Operator Missing Management State",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.console_operator_not_disabled_for_du_workloads",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Console Operator Not Disabled For Du Workloads",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.console_uninstall_operator_failed_listing_operands",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Console Uninstall Operator Failed Listing Operands",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.control_plane_replicas",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Control Plane Replicas",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.crashkernel_not_512m",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Crashkernel Not 512m",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.create_smcp_under_operator_ns",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Create Smcp Under Operator Ns",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.crio_panics_with_closed_channel",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Crio Panics With Closed Channel",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.crio_pid_leak",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Crio Pid Leak",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.crio_unexpected_conmon_path",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Crio Unexpected Conmon Path",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.cron_job_failed_mount_not_registered_object",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Cron Job Failed Mount Not Registered Object",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.cso_or_csi_sco_using_dynatrace_scc",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Cso Or Csi Sco Using Dynatrace Scc",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.cve_2023_3089_fips_incompliant",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Cve 2023 3089 Fips Incompliant",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.cve_2025_10725_rhoai",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Cve 2025 10725 Rhoai",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.cvo_not_retrieve_updates",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Cvo Not Retrieve Updates",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.deprecating_support_for_cri_o_parameters",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Deprecating Support For Cri O Parameters",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.disable_dex_is_deprecated",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Disable Dex Is Deprecated",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.disconnected_cluster_missing_image_content_source_policy",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Disconnected Cluster Missing Image Content Source Policy",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.disk_low_throughput_in_azure",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Disk Low Throughput In Azure",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.dnsmasq_service_fail_to_read_resolv_conf",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Dnsmasq Service Fail To Read Resolv Conf",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.dynatrace_oneagent_deprecated",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Dynatrace Oneagent Deprecated",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.ec2_vcpu_limits_stop_machine_creation",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Ec2 Vcpu Limits Stop Machine Creation",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.egress_ip_deadlock",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Egress IP Deadlock",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.elasticsearch_exceed_index_limit",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Elasticsearch Exceed Index Limit",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.elasticsearch_fail_to_start_for_fips",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Elasticsearch Fail To Start For Fips",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.elasticsearch_serviceaccounts_has_cluster_admin_role",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Elasticsearch Serviceaccounts Has Cluster Admin Role",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.error_setting_default_gateway_in_cache",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Error Setting Default Gateway In Cache",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.etcd_operator_degraded_with_etcdcertsignercontroller_error",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "ETCD Operator Degraded With Etcdcertsignercontroller Error",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.etcd_pods_crash_with_crashloop_backoff",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "ETCD Pods Crash With Crashloop Backoff",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.event_listener_deprecated_fields",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Event Listener Deprecated Fields",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.exceeded_nodes_custom_search_domains",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Exceeded Nodes Custom Search Domains",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.fail_to_start_kubelet_container_manager",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Fail To Start Kubelet Container Manager",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.failed_to_reclaim_orphaned_pod_volume",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Failed To Reclaim Orphaned Pod Volume",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.false_alert_csi_with_old_vsphere_hw_version",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "False Alert Csi With Old Vsphere Hw Version",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.fluentd_buffer_queue_length_burst",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Fluentd Buffer Queue Length Burst",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.fluentd_parsererror_for_not_json_logs",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Fluentd Parsererror For Not Json Logs",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.garbage_collection_failed",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Garbage Collection Failed",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.haproxy_exporter_server_threshold_exceeded",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Haproxy Exporter Server Threshold Exceeded",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.ibm_storage_fusion_detected",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Ibm Storage Fusion Detected",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.image_registry_invalid_configuration_in_azure",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Image Registry Invalid Configuration In Azure",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.image_registry_missing_ca_configmap",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Image Registry Missing Ca Configmap",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.ingress_controller_failed_to_reconcile",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Ingress Controller Failed To Reconcile",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.ingress_degraded_for_missing_permission_on_aws",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Ingress Degraded For Missing Permission On Aws",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.ingress_op_degraded_unmatched_hosted_zone",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Ingress Op Degraded Unmatched Hosted Zone",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.installation_error_opentelemetry_cli",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Installation Error Opentelemetry Cli",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.internal_server_error_for_ldap_users",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Internal Server Error For Ldap Users",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.invalid_maxunavailable_in_mcp",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Invalid Maxunavailable In Mcp",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.job_reached_backoff_limit",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Job Reached Backoff Limit",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.kube_scheduler_pod_crashing",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Kube Scheduler Pod Crashing",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.liveness_readiness_probe_failures",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Liveness Readiness Probe Failures",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.logging_encoding_bad_characters",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Logging Encoding Bad Characters",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.logging_indices_migration_failed",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Logging Indices Migration Failed",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.lost_admin_access_to_hub",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Lost Admin Access To Hub",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.machine_stuck_on_provision_on_azure",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Machine Stuck On Provision On Azure",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.machines_in_failed_phase",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Machines In Failed Phase",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.modify_vsphere_conf_after_assisted_install",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Modify Vsphere Conf After Assisted Install",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.monitoring_misconfigured_du_workloads",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Monitoring Misconfigured Du Workloads",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.multiple_kubeletconfig_per_machineconfigpool",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Multiple Kubeletconfig Per Machineconfigpool",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.namespaces_with_overlapping_uid_ranges",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Namespaces With Overlapping Uid Ranges",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.network_node_state_syncstatus_not_suceeded",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Network Node State Syncstatus Not Suceeded",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.networksecurity_api_not_enabled_on_gcp",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Networksecurity API Not Enabled On Gcp",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.node_degraded_due_to_deleted_rendered_config",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Node Degraded Due To Deleted Rendered Config",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.node_irq_affinities_misconfiguration",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Node Irq Affinities Misconfiguration",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.node_thread_affinities_overlap",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Node Thread Affinities Overlap",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.nodes_container_runtime_version_check",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Nodes Container Runtime Version Check",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.nodes_under_same_mcp_topology_consistency_check",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Nodes Under Same Mcp Topology Consistency Check",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.non_isolated_pod",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Non Isolated Pod",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.oadp_operator_incompatible_with_ocp",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Oadp Operator Incompatible With OCP",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.ocs_check_for_hdd",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "OCS Check For HDD",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.ocs_check_for_mixed_size_osd",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "OCS Check For Mixed Size Osd",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.ocs_device_class_inconsistency",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "OCS Device Class Inconsistency",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.ocs_mds_cache_too_large",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "OCS MDS Cache Too Large",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.ocs_not_find_attached_vmdk",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "OCS Not Find Attached Vmdk",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.ocs_storage_node_runs_out_of_memory",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "OCS Storage Node Runs Out Of Memory",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.odf415_requires_postgresql15_for_noobaa_db",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Odf415 Requires Postgresql15 For Noobaa Db",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.odf_deprecated_holder_pods",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "ODF Deprecated Holder Pods",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.odf_false_persistent_volume_inodes_filled_alert",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "ODF False Persistent Volume Inodes Filled Alert",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.openshift_builds_failed_for_incorrect_overlayfs_options",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Openshift Builds Failed For Incorrect Overlayfs Options",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.openshift_logging_end_of_life",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Openshift Logging End Of Life",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.openshift_pipelines_packaging_issue",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Openshift Pipelines Packaging Issue",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.openshift_samples_is_creation_prevented",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Openshift Samples Is Creation Prevented",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.openshift_sdn_egress_ip_in_multiple_hostsubnets",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Openshift Sdn Egress IP In Multiple Hostsubnets",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.openshift_sdn_egress_ip_in_no_hostsubnet",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Openshift Sdn Egress IP In No Hostsubnet",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.openshift_vmware_machine_stuck_on_provision_state",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Openshift Vmware Machine Stuck On Provision State",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.operator_phase_check",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Operator Phase Check",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.operator_uses_unsupported_config_override",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Operator Uses Unsupported Config Override",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.operators_catalog_incident_20260203",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Operators Catalog Incident 20260203",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.ovn_lsp_register_race_failed_to_bind_port",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Ovn Lsp Register Race Failed To Bind Port",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.ovn_stale_ports_in_ovn_db",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Ovn Stale Ports In Ovn Db",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.pdbs_prevent_disruptions",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Pdbs Prevent Disruptions",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.performance_profile_cpu_misconfiguration",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Performance Profile Cpu Misconfiguration",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.performance_profile_hugepages_misconfiguration",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Performance Profile Hugepages Misconfiguration",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.performance_profile_isolated_cpu_misconfiguration",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Performance Profile Isolated Cpu Misconfiguration",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.performance_profile_real_time_kernel_check",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Performance Profile Real Time Kernel Check",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.performance_profile_reserved_cpus_node_misconfiguration",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Performance Profile Reserved Cpus Node Misconfiguration",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.performance_profile_sibling_cpus_misconfiguration",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Performance Profile Sibling Cpus Misconfiguration",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.performance_profile_with_degraded_condition",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Performance Profile With Degraded Condition",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.persistentvolume_claimref_binding_issue",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Persistentvolume Claimref Binding Issue",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.pipelines_facing_conversion_webhook_failure",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Pipelines Facing Conversion Webhook Failure",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.pod_fail_with_outofcpu_outofmemory",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Pod Fail With Outofcpu Outofmemory",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.pod_failed_run_due_to_missing_backingfsblockdev_file",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Pod Failed Run Due To Missing Backingfsblockdev File",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.pod_has_localhost_localdomain_lease",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Pod Has Localhost Localdomain Lease",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.pod_stuck_for_whereabouts_ip_assigned",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Pod Stuck For Whereabouts IP Assigned",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.pod_traffic_failure_in_ovnkubernetes_with_ipsec",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Pod Traffic Failure In Ovnkubernetes With Ipsec",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.prometheus_backed_by_pvc",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Prometheus Backed By Pvc",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.prometheus_pod_logs_show_sigbus_error",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Prometheus Pod Logs Show Sigbus Error",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.psp_installed",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Psp Installed",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.ptp_config_scheduling_policy_not_fifo_du_workloads",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Ptp Config Scheduling Policy Not Fifo Du Workloads",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.required_operator_for_du_workloads_not_installed",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Required Operator For Du Workloads Not Installed",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.reserved_cpus_quantity_misconfiguration",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Reserved Cpus Quantity Misconfiguration",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.rhcos_wrong_selinux_context",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Rhcos Wrong Selinux Context",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.rhoso_neutron_disable_dhcp_agent_notifier",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Rhoso Neutron Disable Dhcp Agent Notifier",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.rhoso_neutron_ml2_ovn_incompatible_vlan_and_pf_setting",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Rhoso Neutron Ml2 Ovn Incompatible Vlan And Pf Setting",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.rhoso_neutron_ovn_metadata_workers",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Rhoso Neutron Ovn Metadata Workers",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.rhoso_ovn_monitor_all",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Rhoso Ovn Monitor All",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.same_egress_ip_in_multiple_netnamespaces",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Same Egress IP In Multiple Netnamespaces",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.sap_data_intelligence_permissions",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Sap Data Intelligence Permissions",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.sap_sdi_backup_not_enabled",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Sap Sdi Backup Not Enabled",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.serverless_dashboard_not_found",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Serverless Dashboard Not Found",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.service_ca_blocks_cluster_upgrade",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Service Ca Blocks Cluster Upgrade",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.sriov_network_duplicated_physical_functions",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Sriov Network Duplicated Physical Functions",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.system_memory_exceed_reservation",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "System Memory Exceed Reservation",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.systemd_pstore_missing",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Systemd Pstore Missing",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.third_party_vsphere_csi_driver_exists",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Third Party Vsphere Csi Driver Exists",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.tls_handshake_fails_in_azure",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Tls Handshake Fails In Azure",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.unbound_dnssec_trust_anchor_ocp",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Unbound Dnssec Trust Anchor OCP",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.unset_cpu_requirements",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Unset Cpu Requirements",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.unset_memory_requirements",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Unset Memory Requirements",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.unsupported_bond_mode_detected",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Unsupported Bond Mode Detected",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.unsupported_nfs_volumes",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Unsupported Nfs Volumes",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.upgrade_failed_for_network_operator",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Upgrade Failed For Network Operator",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.upgrade_to_ocp47_fails_on_vsphere",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Upgrade To Ocp47 Fails On Vsphere",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.upgrading_disconnected_ocp_cluster_got_stuck",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Upgrading Disconnected OCP Cluster Got Stuck",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.vcenter_account_missing_required_privileges",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Vcenter Account Missing Required Privileges",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.vector_resource_usage_increasing_over_time",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Vector Resource Usage Increasing Over Time",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.virtualization_tab_missing_after_operator_upgrade",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Virtualization Tab Missing After Operator Upgrade",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.vmdk_disk_is_deleted_incorrectly",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Vmdk Disk Is Deleted Incorrectly",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.vsphere_csi_frequently_query_storage_policy",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Vsphere Csi Frequently Query Storage Policy",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.vsphere_failed_to_list_tasks_and_datastores",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Vsphere Failed To List Tasks And Datastores",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.vsphere_nodes_with_old_hw_version",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Vsphere Nodes With Old Hw Version",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.vsphere_problem_detector_controller_syncerror",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Vsphere Problem Detector Controller Syncerror",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.vsphere_upi_machine_is_in_phase",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Vsphere Upi Machine Is In Phase",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.vsphere_vm_disk_enableuuid_not_set_to_true",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Vsphere Vm Disk Enableuuid Not Set To True",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
+    },
+    {
+      "check_id": "7.7.ccx_skip.webhook_timeout_is_larger_than_default",
+      "category_id": "7.7",
+      "category_name": "Security and Compliance",
+      "source": "ccx",
+      "group": "skip",
+      "title": "Webhook Timeout Is Larger Than Default",
+      "status_hint": "SKIPPED",
+      "tsr_ref": "CCX:skip",
+      "tags": []
     }
   ]
 }

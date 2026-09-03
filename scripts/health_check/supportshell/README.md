@@ -544,7 +544,7 @@ scripts/health_check/hc_report/
                      (`platform`, `topology`, `components` plus infra/network/misc helpers,
                      `layered`, `health`, `day2`, `security`, `metrics`, `hardware`)
   parity.py        — TSR/CCX additive parity expansion
-  tsr_parser.py    — parse TSR HTML exports into parity status inputs
+  tsr_parser.py    — parse TSR HTML exports into parity status inputs; FAIL/WARNING Result keeps only important status lines before the 32_000 clip
   catalogs/        — tsr_ccx_crosswalk.json (+ README)
   kb/               — external TOML knowledge base: descriptions, recommendations,
                        optional verification, impact metadata, and version-aware doc
@@ -554,7 +554,7 @@ scripts/health_check/hc_report/
                        get_recommendation() joins optional verification with a bold
                        **Verification:** line; get_links()/get_impact()
   link_review/      — suggest + HTTP-check KB documentation URLs (does not rewrite TOMLs)
-  build_crosswalk_catalog.py — regenerates catalogs/tsr_ccx_crosswalk.json
+  build_crosswalk_catalog.py — regenerates catalogs/tsr_ccx_crosswalk.json (leaf checks only; skips tree-view group headers)
   findings.py      — derive_findings() / derive_findings_with_tsr(); recommendation/impact via kb_loader.py
   omit_findings.py — optional Chapter 6 filter → `{stem}_pruned.md`
   renderer.py      — render_report() template slot substitution; emits a conditional

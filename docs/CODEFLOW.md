@@ -282,6 +282,7 @@ Key flow details:
 - `cli.main()` runs load → evaluate → findings → render once for a single results dir, or once per cluster when `resolve_cluster_targets` finds multiple children. Multi-cluster writes `output/Health_Check_Report/<cluster>/`.
 - Native evaluators are registry-driven (`hc_report/registry.py`): platform, topology, components (plus `components_infra` / `components_network` / `components_misc`), layered, health, day2, security, metrics, hardware. Category `12` CCX JSON is not a native registry evaluator; advisory profile expands CCX via `parity.py` (and findings may add scored CCX rows).
 - Check profiles: `core` (native evaluators only), `extended` (core + TSR catalog rows), `advisory` (extended + CCX; Makefile default `HC_CHECK_PROFILE`). Missing HTML or Insights data → SKIPPED.
+- TSR leaf Result (`hc_report/tsr_parser.py`): FAIL/WARNING keeps only important status lines before the 32_000 clip; PASS/INFO/SKIPPED/NOT_APPLICABLE still condense hosts/inventory then clip.
 - Findings: CLI calls `derive_findings_with_tsr()`, which calls `derive_findings()`. KB `include_in_findings = false` omits a row from Chapter 6; `finding_group` merges rows into one §6.2 finding. Chapter 7 still lists every check.
 - Omit: when `HC_OMIT_CHECK_IDS` is a non-empty list, `omit_findings.py` filters those Chapter 6 findings and a second `render_report` writes `{stem}_pruned.md` (filter-then-render; checks are not re-evaluated). Chapter 7 stays full.
 - Report prose comes from `hc_report/kb/` via `kb_loader.py` (`content_from` aliases inherit canonical recommendation, verification, description, impact, and links). `get_recommendation` joins optional `verification` with a bold `**Verification:**` line inside the Recommendation block. See [README Knowledge Base](../README.md#knowledge-base-kb-for-recommendations-and-notes).
@@ -289,7 +290,7 @@ Key flow details:
 - Outputs: markdown report and `*_audit_*.json` under `output/Health_Check_Report/`.
 - `HC_DRY_RUN=1` on `make hc-report` passes `--dry-run` (placeholder executive summary). `HC_SUMMARY_CONCLUSION=1` runs Cursor in-place Chapter 3/8 after generate (prefers `{stem}_pruned.md` when present). `make hc-summary-conclusion REPORT=path.md` drafts an existing report without re-evaluate.
 - `HC_CATALOG_PATH` overrides the TSR/CCX catalog JSON for `make hc-investigate`.
-- `make hc-build-catalog TSR_HTML=<path>` rebuilds `scripts/health_check/hc_report/catalogs/tsr_ccx_crosswalk.json` on the host.
+- `make hc-build-catalog TSR_HTML=<path>` rebuilds `scripts/health_check/hc_report/catalogs/tsr_ccx_crosswalk.json` on the host (leaf checks only; tree-view group headers omitted).
 - `make hc-investigate RESULTS_DIR=… FINDING_ID=…` re-runs load/evaluate/findings and prints matching raw JSON evidence (container). `CHECK_ID=` / `QUERY=` also work. When `RESULTS_DIR` points at a dated parent dir with one cluster child, the Makefile resolves the nested `manifest.json` path automatically (fails closed if several cluster children exist).
 - `make clean-hc` removes `output/hc_collect` and `output/Health_Check_Report`.
 
