@@ -103,7 +103,7 @@
 - `supportshell/` — offline `omc` collectors, `hc_merge.py`, `hc_collect_multi.sh`. `supportshell/06_layered.sh` is the `omc` twin of collect `06_layered.sh` (`cnv_vm` / `cnv_vmi` included).
 - `hc_report/` — report engine:
   - `evaluators/` — native registry categories `03`–`11` (`platform`, `topology`, `components` plus `components_infra` / `components_network` / `components_misc`, `layered`, `health`, `day2`, `security`, `metrics`, `hardware`) plus `_common.py` and `_shared_checks.py`. Category `12` CCX is not a native evaluator; advisory profile expands it via `parity.py`.
-  - `kb/` — TOML knowledge base (`7_1`–`7_9` plus `versions.toml`). Optional fields: `verification` (joined at read with a bold `**Verification:**` line inside Recommendation), `summary_patterns` (§6.1), `finding_group` / `finding_group_title`, `include_in_findings` (default true), `finding_on_info` (default false; INFO → P3 finding), and `content_from` (exact canonical `check_id`; alias omits inherited fields including `verification` so the TOML looks sparse; single hop; `load_kb` fails closed). Full alias rules: [README Knowledge Base](../README.md#knowledge-base-kb-for-recommendations-and-notes). Descriptions are mode-neutral (valid without TSR); do not encode a single cluster's TSR remainder. Recommendations list failure classes as examples.
+  - `kb/` — TOML knowledge base (`7_1`–`7_9` plus `versions.toml`). Optional fields: `verification` (joined at read with a bold `**Verification:**` line inside Recommendation), `summary_patterns` (§6.1), `finding_group` / `finding_group_title`, `include_in_findings` (default true), `finding_on_info` (default false; INFO → P3 finding), and `content_from` (exact canonical `check_id`; alias omits inherited fields including `verification` so the TOML looks sparse; single hop; `load_kb` fails closed). Full alias rules: [Knowledge Base](../scripts/health_check/README.md#knowledge-base-kb-for-recommendations-and-notes). Descriptions are mode-neutral (valid without TSR); do not encode a single cluster's TSR remainder. Recommendations list failure classes as examples.
   - `parity.py`, `tsr_parser.py`, `_text.py`, `build_crosswalk_catalog.py` — TSR/CCX catalog expansion, HTML parse, catalog rebuild.
   - `catalogs/` — `tsr_ccx_crosswalk.json`.
   - `registry.py`, `findings.py`, `omit_findings.py`, `notes.py`, `renderer.py`, `cli.py`, `kb_loader.py` — pipeline after load. `omit_findings.py` loads a check-ID list, filters Chapter 6 findings, and names `{stem}_pruned.md`. Observation assembly (`_finding_observation`) and §6.1 summary logic live in `renderer.py`. Chapter 7 FAIL/WARNING tables include a Scoring row (`Doc-backed` vs `Engine policy` from `CheckResult.scoring_basis`). Empty recommendation or impact renders `[NEEDS REVIEW]`; `impact = "none"` renders Level of Impact None.
@@ -168,6 +168,16 @@
 | `scripts/shared/lib/config.py` | Unified config reader |
 | `project.example.yaml` | Base config template copied to `project.yaml` (gitignored at any path; never commit `project.yaml` or `slot_map.json`) |
 | `project.example.hc.yaml` | Health Check config template (used when `PROJECT=HC`) |
+
+## Working copies and secrets
+
+`project.yaml` and `slot_map.json` are gitignored at any path. Never commit them. `project.example.yaml` is the committed template. `project.example.hc.yaml` is the Health Check template. Never commit kubeconfigs.
+
+Repo-root `ADR/` holds the filled engagement ADR and is gitignored. ADR templates stay in `templates/ADR/` (`ADR_template.md`, `ADR_EXAMPLE.md`, `Agenda_template.md`). `make setup` copies `templates/ADR/ADR_template.md` to `ADR/ADR_<client>.md`. `output/` and `output-*/` are gitignored.
+
+`make check-pii` scans tracked files for non-example emails and credential material, plus optional local substrings from gitignored `.pii_forbidden.txt` (copy `.pii_forbidden.example.txt`). `make install-git-hooks` copies `.githooks/pre-commit` into `.git/hooks` so that check runs on staged files.
+
+From the repo root, `python3 -m pytest tests` collects without setting `PYTHONPATH`.
 
 ## Naming Conventions
 

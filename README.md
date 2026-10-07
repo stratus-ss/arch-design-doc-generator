@@ -1,189 +1,73 @@
 # Arch Design Doc Generator
 
-Config-driven document automation toolkit for architecture engagements. It turns ADR decisions into structured HLD/LLD artifacts, diagrams, PDFs, and sprint-ready work items.
+An architecture decision record goes in. A high-level design, a low-level design, diagrams, PDFs, and sprint work items come out. The same toolkit can collect an OpenShift cluster and write a Health Check report.
 
-## Documentation
+## Pick a path
 
-- [Architecture](docs/ARCHITECTURE.md) - system components, data flow, and runtime boundaries
-- [Code Flow](docs/CODEFLOW.md) - execution paths for setup, AI preparation, publish, work items, and Health Check
-- [Project Layout](docs/PROJECT_LAYOUT.md) - directory structure and file-level responsibilities
+| | Architecture engagement | Health Check |
+|---|---|---|
+| You have | An ADR | An OpenShift cluster or a must-gather |
+| You get | HLD, LLD, diagrams, PDFs, sprint items | A scored report, HTML, and PDF |
+| First command | `make setup CLIENT="Example Client" PROJECT="OCP-V"` | `make setup CLIENT="Example Client" PROJECT="HC"` |
+| Then | [Six steps](#architecture-engagement) | [Health Check scripts](scripts/health_check/README.md) |
 
-## Prerequisites
+## Architecture engagement
 
-| For | Needs |
-|---|---|
-| Host AI targets (`build-hld-from-adr`, `prepare-hld-ai`) | `python3`, `pyyaml`, AI tooling (`cursor-sdk` or selected CLI) |
-| Container targets (`setup`, `publish`, `build-lld`, `workitems`, `hc-report`) | `podman` or `docker`, `make` |
-| Health Check live collect (`hc-collect`) | `oc`; `python3` for categories `10` and `11` |
+| | Command | You get |
+|---|---|---|
+| 1 | `make setup CLIENT="Example Client" PROJECT="OCP-V"` | `project.yaml`, working copies, and `ADR/ADR_<client>.md` |
+| 2 | Edit the ADR under `ADR/` | The decisions the pipeline reads. Start from `templates/ADR/ADR_template.md` or `templates/ADR/ADR_EXAMPLE.md` |
+| 3 | `make build-hld-from-adr` | HLD, LLD, and stamped diagrams in `output/` |
+| 4 | `make publish` | Stitched HLD and PDFs |
+| 5 | `make build-lld` | Stitched LLD and PDFs |
+| 6 | `make workitems` | Sprint items from the LLD |
 
-Podman is auto-detected; override with `ENGINE=docker` if needed.
+Setup leaves existing files alone. Pass `FORCE=1` when you mean to replace them. Do not edit `templates/ADR/` for a client engagement.
 
-`project.yaml` and `slot_map.json` are gitignored at any path — never commit them. `project.example.yaml` is the committed template. Repo-root `ADR/` (filled engagement ADRs) and `output/` (and `output-*/`) are gitignored. ADR **templates** live in `templates/ADR/` (`ADR_template.md`, `ADR_EXAMPLE.md`, `Agenda_template.md`). Copy or let `make setup` place a filled ADR under `ADR/`. From the repo root, `python3 -m pytest tests` collects without setting `PYTHONPATH`.
+`make status` shows how far this engagement has gotten. `make help` lists every target. What each command does internally: [Code flow](docs/CODEFLOW.md).
 
-`make check-pii` scans tracked files for non-example emails and credential material, plus optional local substrings from gitignored `.pii_forbidden.txt` (copy `.pii_forbidden.example.txt`). `make install-git-hooks` copies `.githooks/pre-commit` into `.git/hooks` so that check runs on staged files.
-
-## Container Image
-
-Most pipeline targets run inside a container built from the `Containerfile`. The image (`arch-doc-gen`) bundles everything the pipeline needs so the host only requires a container engine:
-
-- **pandoc** — markdown to intermediate formats
-- **weasyprint** — HTML/CSS to PDF
-- **stitchmd** — multi-file markdown assembly
-- **drawio-desktop** — `.drawio` diagram export (headless via xvfb)
-- **mermaid-cli** — mermaid diagram rendering
-- **Python 3 + pyyaml/openpyxl** — scripting and spreadsheet generation
-
-The image is built automatically on first use of any container target. To build or rebuild manually:
-
-```bash
-make image                          # build if not present
-make force-image                    # force rebuild
-make push REGISTRY=quay.io/org     # push to a registry
+```mermaid
+flowchart LR
+    ADR["Filled ADR"] --> Extract["build-hld-from-adr"]
+    Extract --> HLD["publish"]
+    Extract --> LLD["build-lld"]
+    LLD --> Items["workitems"]
 ```
-
-## Quick Start
-
-1. `make setup CLIENT="Example Client" PROJECT="OCP-V"` — copies generic templates into `output/` working copies and copies `templates/ADR/ADR_template.md` to `ADR/ADR_<client>.md`. If those files already exist, setup exits with a warning; pass `FORCE=1` to overwrite.
-2. Fill in the engagement ADR under `ADR/` (gitignored). Start from `templates/ADR/ADR_template.md` or the worked example `templates/ADR/ADR_EXAMPLE.md`. Do not edit files under `templates/ADR/` for a client engagement.
-3. `make build-hld-from-adr` — extracts one `slot_map.json`, applies `project.yaml` `slots:` overlay, and renders **HLD, LLD, and stampable diagrams** into `output/`
-4. `make publish`
-5. `make build-lld`
-6. `make workitems`
-
-Run `make help` or `make status` at any time to see available targets and current readiness.
-
-## Common Targets
-
-| Target | Purpose |
-|---|---|
-| `make setup CLIENT="..." PROJECT="..."` | Bootstrap `project.yaml` and client working files from `templates/` (refuses overwrite unless `FORCE=1`) |
-| `make status` | Show setup/build progress |
-| `make build-hld-from-adr` | Extract slots from the ADR and render HLD, LLD, and `output/Diagrams` from the same `slot_map.json` |
-| `make publish` | Build HLD outputs (stitch, diagrams, PDFs) |
-| `make prepare-and-publish` | AI prep then publish HLD in one step |
-| `make build-lld` | Build LLD outputs (stitch, diagrams, PDFs) |
-| `make diagrams` | Export all diagrams (.drawio + mermaid) to PNG |
-| `make pdfs` | Regenerate PDFs only (skip diagram export) |
-| `make workitems` | Extract sprint work items from LLD |
-| `make rvtools` | Process RVTools XLSX into migration schedule |
-| `make build` | Full pipeline (AI + HLD + LLD + work items) |
-| `make rebuild` | Clean then full rebuild |
-| `make image` | Build the container image (auto-built on first use) |
-| `make force-image` | Force rebuild the container image |
-| `make check-annotations` | Check HLD mermaid blocks for drawio annotations |
-| `make package` | Zip a runnable host copy of the toolkit |
-| `make lld-closeness CANONICAL=/path/to/LLD` | Report LLD content closeness vs a canonical fixture (`output/LLD` by default) |
-| `make push REGISTRY=...` | Push container image to a registry |
-| `make clean` | Reset generated artifacts |
 
 ## Health Check
 
-A second engagement type (`PROJECT=HC`) collects OpenShift cluster JSON and generates a deterministic markdown report plus audit JSON. Collection runs on the host; report generation runs in the container. AI is not used for check evaluation (company policy). Optional `HC_SUMMARY_CONCLUSION=1` on `make hc-report` (or `make hc-summary-conclusion REPORT=…`) drafts Chapter 3 and Chapter 8 in place via Cursor in the container after generate. TSR/CCX parity expansion is available: `make hc-report` defaults to `--check-profile advisory` and scores catalog checks from a TSR HTML export (and optional `12_ccx/ccx_rules.json`). Missing HTML or Insights data stays SKIPPED. Optional `HC_OMIT_CHECK_IDS` writes `{stem}_pruned.md` with those Chapter 6 findings removed (original markdown and audit stay full). `make hc-html` and `make hc-pdf` export collapsible HTML and branded PDF from that markdown. With `REPORT` unset they discover under `output/Health_Check_Report/` (`hc_export_paths.py` prefers `*_pruned.md` when present and maps each source to a unique path under `HTML/` or `PDFs/`, preserving cluster subdirs). Optional `REPORT=path.md` exports that one file (exact path; loud warning if a pruned sibling exists). A source outside the report tree maps by basename under `HTML/` or `PDFs/` (loud warning; `FORCE=1` only if that dest already exists). Both exit non-zero when no report markdown is present. Operator runbooks start at [`scripts/health_check/README.md`](scripts/health_check/README.md); per-check consultant rationale is in [`docs/HC_CHECK_RATIONALE.md`](docs/HC_CHECK_RATIONALE.md).
-
-| Target | Runtime | Purpose |
+| | Command | You get |
 |---|---|---|
-| `make setup CLIENT="..." PROJECT="HC"` | Container | Bootstrap `project.yaml` from `project.example.hc.yaml` and scaffold `output/hc_collect` + `output/Health_Check_Report` |
-| `make hc-collect KUBECONFIG=<path>` | Host | Collect cluster JSON via live `oc` CLI |
-| `make hc-push-scripts HC_SSH_HOST=user@host` | Host | Push supportshell scripts to a remote server |
-| `make hc-collect-remote HC_SSH_HOST=... HC_MG_INPUT=<path>` | Host | Run `hc_collect_multi.sh` on the remote via SSH |
-| `make hc-fetch-results HC_SSH_HOST=...` | Host | Fetch results tarball from remote into `output/hc_collect/<date>` (optional salvage: `HC_SSH_RESULTS=/path/hc_results.<cluster>`) |
-| `make hc-report-from-supportshell HC_SSH_HOST=user@host` | Host fetch, then container report | Fetch supportshell results, then run `hc-report` against the dated staging dir |
-| `make hc-merge MERGE_INPUTS="dir1 dir2"` | Host | Merge multiple `hc_results` dirs on the host |
-| `make hc-report` | Container | Generate markdown report + audit JSON from collected data (default profile `advisory`). Optional `HC_OMIT_CHECK_IDS` writes `{stem}_pruned.md`. Optional `HC_SUMMARY_CONCLUSION=1` drafts Chapter 3/8 in place (prefers pruned) |
-| `make hc-summary-conclusion REPORT=path.md` | Container | Cursor-draft Chapter 3/8 into an existing report |
-| `make hc-html` | Container | Collapsible HTML from report markdown (unset `REPORT` = discover-all; optional `REPORT=path.md`; `FORCE=1` overwrites an existing basename dest) |
-| `make hc-pdf` | Container | Branded PDF from report markdown (same `REPORT=` / `FORCE=1` as `hc-html`) |
-| `make hc-build-catalog TSR_HTML=<path>` | Host | Rebuild `tsr_ccx_crosswalk.json` from a TSR HTML export |
-| `make hc-investigate RESULTS_DIR=… FINDING_ID=…` | Container | Trace a finding or check back to raw evidence (`CHECK_ID=` / `QUERY=` also work) |
-| `make hc-skip-summary LEDGER=…` | Host | Summarize skipped collection commands from `skipped_commands.jsonl` (`RESULTS_DIR=` also works) |
-| `make hc-command-ref` | Host | Write `docs/HC_Command_Reference.md` from collect scripts |
-| `make hc-update-loi REPORT=path.md` | Host | Rewrite Chapter 6 Level of Impact from current KB TOML |
-| `make hc-renumber-findings REPORT=path.md` | Host | Resequence §6.2 IDs after moving findings between P0–P3 |
-| `make hc-link-review` | Container | Suggest KB doc URLs and HTTP-check pages with `curl_cffi` |
-| `make hc-link-apply` | Host | Write accepted `REPLACE` URLs from `kb_link_review.csv` into KB `[checks.links]` |
-| `make check-hc-sync` | Host | Diff collect/ vs supportshell/ shared scripts 03–09 |
-| `make hc-docs` | Container | Regenerate collect/supportshell READMEs from stitchmd fragments |
-| `make clean-hc` | Host | Remove `output/hc_collect` and `output/Health_Check_Report` |
+| 1 | `make setup CLIENT="..." PROJECT="HC"` | `project.yaml` plus `output/hc_collect` and `output/Health_Check_Report` |
+| 2 | `make hc-collect KUBECONFIG=<path>` | Cluster JSON on the host |
+| 3 | `make hc-report` | Markdown report and audit JSON |
+| 4 | `make hc-html` / `make hc-pdf` | Collapsible HTML and a branded PDF |
 
-### Health Check report engine (container)
+A must-gather on a remote support shell uses `hc-push-scripts`, `hc-collect-remote`, and `hc-fetch-results` instead of step 2. Every Health Check target, the report engine, and the knowledge base: [scripts/health_check/README.md](scripts/health_check/README.md).
 
-`make hc-report` runs `generate_report.py` inside the toolkit container (`HC_CHECK_PROFILE` defaults to `advisory`). Place TSR HTML under `output/tsr_html/` or set `HC_TSR_HTML` to a repo-relative path so catalog rows get real statuses. Without matching HTML, those rows are SKIPPED. `HC_CHECK_PROFILE=core` still runs native evaluators only.
+## Before you run
 
-Rebuild the catalog with `make hc-build-catalog TSR_HTML=path/to/export.html`. Outputs land under `output/Health_Check_Report/`. Optional: `HC_DRY_RUN=1` for the generate-report placeholder executive summary. Optional: `HC_OMIT_CHECK_IDS=path/to/omit.txt` (repo-relative) to also write `{stem}_pruned.md` with those check IDs dropped from Chapter 6; `HC_OMIT_STRICT=1` exits 1 if an ID is not on any finding. Optional: `HC_SUMMARY_CONCLUSION=1` to Cursor-draft Chapter 3 and Chapter 8 in place after generate (requires `CURSOR_API_KEY` and an image rebuilt with `cursor-sdk`; drafts the pruned file when it exists).
+| You are running | You need |
+|---|---|
+| `build-hld-from-adr` | `python3`, `pyyaml`, and `cursor-sdk` or the CLI selected with `AI_TOOL` |
+| `setup`, `publish`, `build-lld`, `workitems`, `hc-report` | `make`, plus Podman or Docker |
+| `hc-collect` | `oc` on the host, and `python3` for categories `10` and `11` |
 
-`project.example.hc.yaml` is the HC template; never commit `project.yaml` or kubeconfigs.
+Podman is used when it is on `PATH`. Set `ENGINE=docker` to force Docker. The pipeline image is `arch-doc-gen`. It builds the first time a container target runs. [What the image contains](docs/ARCHITECTURE.md#container-image).
 
-### Knowledge Base (KB) for recommendations and notes
+> **Client data stays on the machine.** `project.yaml`, `slot_map.json`, a filled `ADR/`, `output/`, and kubeconfigs are gitignored. Copy templates; do not commit the filled copies. Run `make install-git-hooks` once so `make check-pii` scans staged files. [What is safe to commit](docs/PROJECT_LAYOUT.md#working-copies-and-secrets).
 
-Report prose (description, recommendation, optional verification, documentation links, operational impact) lives in TOML under `scripts/health_check/hc_report/kb/` (`7_1`–`7_9` plus `versions.toml`). `kb_loader.py` loads it at report time. Thresholds, evidence paths, and live `oc`/`jq` validation stay in [`docs/HC_CHECK_RATIONALE.md`](docs/HC_CHECK_RATIONALE.md). Numbered `oc` commands belong in `verification`; `get_recommendation` joins that field into the Recommendation block at read. Verification English tells a non-expert how to read each command (healthy / fail / skip); it does not repeat the recommendation.
+## Where to read next
 
-Each `[[checks]]` row is keyed by `check_id`. Typical fields: `title`, `description`, `recommendation`, optional `verification`, `impact` / `impact_scope` / `impact_detail`, `[checks.links]`, optional `summary_patterns`, `finding_group`, `include_in_findings`, and `finding_on_info`. Descriptions are mode-neutral (valid without TSR). Empty recommendation or impact renders `[NEEDS REVIEW]`. `get_recommendation` joins `recommendation` with optional `verification` using a bold `**Verification:**` line inside the Recommendation block; aliases inherit `verification` via `content_from`.
-
-#### Sparse rows (`content_from`)
-
-Some `[[checks]]` entries look almost empty on purpose. When two `check_id`s tell the same operational story (a native check plus a TSR catalog twin, or a parent section that duplicates a child), the alias sets `content_from` to the canonical `check_id` and **omits** recommendation, verification, description, impact, and links:
-
-```toml
-[[checks]]
-check_id = "7.6.tsr.6_1_5_1_pod_pruning"
-title = "TSR pod pruning"
-content_from = "7.5.pruning.pods"
-```
-
-`load_kb()` copies those inherited fields from the canonical row in a **single hop**. Title and finding flags (`include_in_findings`, `finding_group`, `finding_on_info`) stay on the alias so chapter 7 can still list every check while Chapter 4 / §6.2 may merge or hide duplicates.
-
-Edit the **canonical** row to change report text. Do not copy inherited fields onto the alias — overlay is rejected. Chains, self-references, missing targets, glob targets, and `pattern = true` aliases also fail closed (`ValueError` at load).
-
-### KB documentation link review (container)
-
-Produces a suggested-URL table comparing KB TOML links against a local documentation checkout. Does not modify TOMLs. Suggested URLs never invent `#` fragments (existing fragments are kept only when the book is unchanged). Unique suggested **page** URLs are HTTP GET-checked with `curl_cffi` Chrome TLS impersonation inside the toolkit container (same anti-bot approach as the sibling repo’s `validate_links.py`). Fragments are not sent to the server; a 200 means the page exists. After reviewing the CSV, `make hc-link-apply` writes `REPLACE` rows (HTTP 200) into `[checks.links]` only.
-
-```bash
-make hc-link-review
-# optional: HC_DOCS_ROOT=/path/to/openshift_documentation HC_LINK_REVIEW_OUT=agent_planning/execution/hc_kb_link_precision
-# skip live GET: append --no-validate-http via a direct python invocation
-make hc-link-apply
-```
-
-Requires `make force-image` once so the image contains `curl_cffi`. Host urllib against `docs.redhat.com` is expected to 403.
-
-Outputs `kb_link_review.md` and `kb_link_review.csv`.
-
-## Key Variables
-
-```text
-ENGINE              podman | docker
-IMAGE               arch-doc-gen (container image name)
-CLIENT              "Example Client"
-PROJECT             OCP-V (default)
-PHASE               phase1 | phase2 | phase3 | phase4
-AI_TOOL             cursor | claude | codex
-AI_MODEL            model identifier (default: claude-sonnet-4-6)
-AI_TIMEOUT          per-call timeout seconds (default: 900)
-ADR_MODE            auto | chunked (default: auto = one full-ADR Prompt A, then 8x12k fallback)
-REFINE_PHASES       1 to opt in to Prompt B per-phase refine (off by default)
-OUTPUT_ROOT         output
-FORCE               1 (setup: overwrite working copies; AI: re-extract even if inputs are unchanged;
-                    hc-html/hc-pdf: overwrite an existing basename dest for an out-of-tree REPORT=)
-                    GNU make does not accept --force; use FORCE=1 or `make <target> force`
-RUNS                repeatability test iterations (default: 3)
-AI_MAX_CHARS        max chars per ADR chunk in chunked mode (default: 12000)
-AI_MAX_CHUNKS       max ADR chunks in chunked mode (default: 8)
-CANONICAL           path to canonical LLD directory for `make lld-closeness`
-CANONICAL_DIR       path to canonical files for AI benchmark mode
-REGISTRY            container registry for make push
-HC_CHECK_PROFILE    core | extended | advisory (default: advisory)
-HC_TSR_HTML         repo-relative path to a TSR HTML export (optional)
-HC_TSR_HTML_DIR     directory to auto-discover TSR HTML (default: output/tsr_html)
-HC_DRY_RUN          1 to pass --dry-run to hc-report (placeholder executive summary)
-HC_OMIT_CHECK_IDS   repo-relative omit file (check IDs; writes {stem}_pruned.md)
-HC_OMIT_STRICT      1 to fail if an omit ID is not on a Chapter 6 finding
-HC_CATALOG_PATH     optional TSR/CCX catalog JSON override for hc-investigate
-TSR_HTML            path for `make hc-build-catalog` (required for that target)
-```
-
-Operator facts the ADR often omits (`CLIENT_DOMAIN`, `GITOPS_HOST`, `REGISTRY_MIRROR`, `REGISTRY_MIRROR_FQDN`, `HUB_CLUSTER_NAME`, `NTP_DOMAIN`) go in `project.yaml` under `slots:`. Non-empty overlay values override extract; empty overlay does not wipe a filled extract. `prepare-hld-ai` always rewrites stampable `.drawio` files into `output/Diagrams`.
+| Question | Doc |
+|---|---|
+| How does a command run? | [Code flow](docs/CODEFLOW.md) |
+| Where does this file live? | [Project layout](docs/PROJECT_LAYOUT.md) |
+| What are the pieces? | [Architecture](docs/ARCHITECTURE.md) |
+| How do I run a Health Check? | [Health Check scripts](scripts/health_check/README.md) |
+| Why did a check score that way? | [Check rationale](docs/HC_CHECK_RATIONALE.md) |
+| What can I pass to `make`? | [Make variables](docs/CODEFLOW.md#make-variables) |
 
 ## License
 
-This project is licensed under GNU GPLv3. See [LICENSE](LICENSE).
+GNU GPLv3. See [LICENSE](LICENSE).

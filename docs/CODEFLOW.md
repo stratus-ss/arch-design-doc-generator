@@ -10,6 +10,7 @@
 6. Health Check collection (host)
 7. Health Check report engine (container)
 8. Health Check export and consultant follow-ons
+9. Make targets and variables
 
 ---
 
@@ -285,7 +286,7 @@ Key flow details:
 - TSR leaf Result (`hc_report/tsr_parser.py`): FAIL/WARNING keeps only important status lines before the 32_000 clip; PASS/INFO/SKIPPED/NOT_APPLICABLE still condense hosts/inventory then clip.
 - Findings: CLI calls `derive_findings_with_tsr()`, which calls `derive_findings()`. KB `include_in_findings = false` omits a row from Chapter 6; `finding_group` merges rows into one §6.2 finding. Chapter 7 still lists every check.
 - Omit: when `HC_OMIT_CHECK_IDS` is a non-empty list, `omit_findings.py` filters those Chapter 6 findings and a second `render_report` writes `{stem}_pruned.md` (filter-then-render; checks are not re-evaluated). Chapter 7 stays full.
-- Report prose comes from `hc_report/kb/` via `kb_loader.py` (`content_from` aliases inherit canonical recommendation, verification, description, impact, and links). `get_recommendation` joins optional `verification` with a bold `**Verification:**` line inside the Recommendation block. See [README Knowledge Base](../README.md#knowledge-base-kb-for-recommendations-and-notes).
+- Report prose comes from `hc_report/kb/` via `kb_loader.py` (`content_from` aliases inherit canonical recommendation, verification, description, impact, and links). `get_recommendation` joins optional `verification` with a bold `**Verification:**` line inside the Recommendation block. See [Knowledge Base](../scripts/health_check/README.md#knowledge-base-kb-for-recommendations-and-notes).
 - Template: `templates/Health_Check/Template_HC_Report.md`.
 - Outputs: markdown report and `*_audit_*.json` under `output/Health_Check_Report/`.
 - `HC_DRY_RUN=1` on `make hc-report` passes `--dry-run` (placeholder executive summary). `HC_SUMMARY_CONCLUSION=1` runs Cursor in-place Chapter 3/8 after generate (prefers `{stem}_pruned.md` when present). `make hc-summary-conclusion REPORT=path.md` drafts an existing report without re-evaluate.
@@ -328,3 +329,70 @@ Consultant tools (one named report file; do not glob):
 | `make hc-docs` | Regenerate collect/supportshell READMEs from stitchmd fragments |
 
 `DRY_RUN=1` is supported on LOI update and finding renumber.
+
+---
+
+## 9) Make targets and variables
+
+`make help` is the live list. This section is the written catalog.
+
+### Architecture targets
+
+| Target | Purpose |
+|---|---|
+| `make setup CLIENT="..." PROJECT="..."` | Bootstrap `project.yaml` and client working files from `templates/` (refuses overwrite unless `FORCE=1`) |
+| `make status` | Show setup/build progress |
+| `make build-hld-from-adr` | Extract slots from the ADR and render HLD, LLD, and `output/Diagrams` from the same `slot_map.json` |
+| `make publish` | Build HLD outputs (stitch, diagrams, PDFs) |
+| `make prepare-and-publish` | AI prep then publish HLD in one step |
+| `make build-lld` | Build LLD outputs (stitch, diagrams, PDFs) |
+| `make diagrams` | Export all diagrams (.drawio + mermaid) to PNG |
+| `make pdfs` | Regenerate PDFs only (skip diagram export) |
+| `make workitems` | Extract sprint work items from LLD |
+| `make rvtools` | Process RVTools XLSX into migration schedule |
+| `make build` | Full pipeline (AI + HLD + LLD + work items) |
+| `make rebuild` | Clean then full rebuild |
+| `make image` | Build the container image (auto-built on first use) |
+| `make force-image` | Force rebuild the container image |
+| `make check-annotations` | Check HLD mermaid blocks for drawio annotations |
+| `make package` | Zip a runnable host copy of the toolkit |
+| `make lld-closeness CANONICAL=/path/to/LLD` | Report LLD content closeness vs a canonical fixture (`output/LLD` by default) |
+| `make push REGISTRY=...` | Push container image to a registry |
+| `make clean` | Reset generated artifacts |
+
+Health Check targets, the report-engine notes, the knowledge base, and link review: [scripts/health_check/README.md](../scripts/health_check/README.md). How those commands run is in sections 6–8.
+
+### Make variables
+
+```text
+ENGINE              podman | docker
+IMAGE               arch-doc-gen (container image name)
+CLIENT              "Example Client"
+PROJECT             OCP-V (default)
+PHASE               phase1 | phase2 | phase3 | phase4
+AI_TOOL             cursor | claude | codex
+AI_MODEL            model identifier (default: claude-sonnet-4-6)
+AI_TIMEOUT          per-call timeout seconds (default: 900)
+ADR_MODE            auto | chunked (default: auto = one full-ADR Prompt A, then 8x12k fallback)
+REFINE_PHASES       1 to opt in to Prompt B per-phase refine (off by default)
+OUTPUT_ROOT         output
+FORCE               1 (setup: overwrite working copies; AI: re-extract even if inputs are unchanged;
+                    hc-html/hc-pdf: overwrite an existing basename dest for an out-of-tree REPORT=)
+                    GNU make does not accept --force; use FORCE=1 or `make <target> force`
+RUNS                repeatability test iterations (default: 3)
+AI_MAX_CHARS        max chars per ADR chunk in chunked mode (default: 12000)
+AI_MAX_CHUNKS       max ADR chunks in chunked mode (default: 8)
+CANONICAL           path to canonical LLD directory for `make lld-closeness`
+CANONICAL_DIR       path to canonical files for AI benchmark mode
+REGISTRY            container registry for make push
+HC_CHECK_PROFILE    core | extended | advisory (default: advisory)
+HC_TSR_HTML         repo-relative path to a TSR HTML export (optional)
+HC_TSR_HTML_DIR     directory to auto-discover TSR HTML (default: output/tsr_html)
+HC_DRY_RUN          1 to pass --dry-run to hc-report (placeholder executive summary)
+HC_OMIT_CHECK_IDS   repo-relative omit file (check IDs; writes {stem}_pruned.md)
+HC_OMIT_STRICT      1 to fail if an omit ID is not on a Chapter 6 finding
+HC_CATALOG_PATH     optional TSR/CCX catalog JSON override for hc-investigate
+TSR_HTML            path for `make hc-build-catalog` (required for that target)
+```
+
+Operator facts the ADR often omits (`CLIENT_DOMAIN`, `GITOPS_HOST`, `REGISTRY_MIRROR`, `REGISTRY_MIRROR_FQDN`, `HUB_CLUSTER_NAME`, `NTP_DOMAIN`) go in `project.yaml` under `slots:`. Non-empty overlay values override extract; empty overlay does not wipe a filled extract. `prepare-hld-ai` always rewrites stampable `.drawio` files into `output/Diagrams`.
